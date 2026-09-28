@@ -1,0 +1,4384 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 865841f..dadbb72 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2,6 +2,66 @@
+ # It is not intended for manual editing.
+ version = 4
+ 
++[[package]]
++name = "cfg-if"
++version = "1.0.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
++
++[[package]]
++name = "equivalent"
++version = "1.0.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
++
++[[package]]
++name = "fixedbitset"
++version = "0.5.7"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
++
++[[package]]
++name = "foldhash"
++version = "0.1.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
++
++[[package]]
++name = "getrandom"
++version = "0.1.16"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "8fc3cb4d91f53b50155bdcfd23f6a4c39ae1969c2ae85982b135750cccaf5fce"
++dependencies = [
++ "cfg-if",
++ "libc",
++ "wasi",
++]
++
++[[package]]
++name = "hashbrown"
++version = "0.15.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
++dependencies = [
++ "foldhash",
++]
++
++[[package]]
++name = "hashbrown"
++version = "0.17.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
++
++[[package]]
++name = "indexmap"
++version = "2.14.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
++dependencies = [
++ "equivalent",
++ "hashbrown 0.17.1",
++]
++
+ [[package]]
+ name = "itoa"
+ version = "1.0.18"
+@@ -13,6 +73,8 @@ name = "knotrel-benchmarks"
+ version = "0.1.0"
+ dependencies = [
+  "knotrel-core",
++ "outils",
++ "petgraph",
+  "serde",
+  "serde_json",
+ ]
+@@ -21,12 +83,49 @@ dependencies = [
+ name = "knotrel-core"
+ version = "0.1.0"
+ 
++[[package]]
++name = "libc"
++version = "0.2.189"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
++
+ [[package]]
+ name = "memchr"
+ version = "2.8.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+ 
++[[package]]
++name = "outils"
++version = "0.3.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "7ef2bc5732192edd990348157fa5540a6df2bec34402bc7e3924b15b9d243e5b"
++dependencies = [
++ "rand",
++ "slab",
++]
++
++[[package]]
++name = "petgraph"
++version = "0.8.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "8701b58ea97060d5e5b155d383a69952a60943f0e6dfe30b04c287beb0b27455"
++dependencies = [
++ "fixedbitset",
++ "hashbrown 0.15.5",
++ "indexmap",
++ "serde",
++]
++
++[[package]]
++name = "ppv-lite86"
++version = "0.2.21"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
++dependencies = [
++ "zerocopy",
++]
++
+ [[package]]
+ name = "proc-macro2"
+ version = "1.0.107"
+@@ -45,6 +144,47 @@ dependencies = [
+  "proc-macro2",
+ ]
+ 
++[[package]]
++name = "rand"
++version = "0.7.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
++dependencies = [
++ "getrandom",
++ "libc",
++ "rand_chacha",
++ "rand_core",
++ "rand_hc",
++]
++
++[[package]]
++name = "rand_chacha"
++version = "0.2.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f4c8ed856279c9737206bf725bf36935d8666ead7aa69b52be55af369d193402"
++dependencies = [
++ "ppv-lite86",
++ "rand_core",
++]
++
++[[package]]
++name = "rand_core"
++version = "0.5.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "90bde5296fc891b0cef12a6d03ddccc162ce7b2aff54160af9338f8d40df6d19"
++dependencies = [
++ "getrandom",
++]
++
++[[package]]
++name = "rand_hc"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
++dependencies = [
++ "rand_core",
++]
++
+ [[package]]
+ name = "serde"
+ version = "1.0.229"
+@@ -72,7 +212,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+- "syn",
++ "syn 3.0.6",
+ ]
+ 
+ [[package]]
+@@ -88,6 +228,23 @@ dependencies = [
+  "zmij",
+ ]
+ 
++[[package]]
++name = "slab"
++version = "0.4.12"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
++
++[[package]]
++name = "syn"
++version = "2.0.119"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "unicode-ident",
++]
++
+ [[package]]
+ name = "syn"
+ version = "3.0.6"
+@@ -105,6 +262,32 @@ version = "1.0.26"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+ 
++[[package]]
++name = "wasi"
++version = "0.9.0+wasi-snapshot-preview1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
++
++[[package]]
++name = "zerocopy"
++version = "0.8.59"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "6df92bf3d9227be3d53173901ddbffac2babc27ae50f397776ffd6dc33f800cb"
++dependencies = [
++ "zerocopy-derive",
++]
++
++[[package]]
++name = "zerocopy-derive"
++version = "0.8.59"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ac4f328cf2f05d084e496c3e9c3f33ed0a183656a16e1fcec4d464d8373aec82"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "syn 2.0.119",
++]
++
+ [[package]]
+ name = "zmij"
+ version = "1.0.23"
+diff --git a/Cargo.toml b/Cargo.toml
+index 5d6a9b3..56877cf 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -14,6 +14,8 @@ publish = false
+ knotrel-core = { path = "../knotrel/crates/knotrel-core" }
+ serde = { version = "1", features = ["derive"] }
+ serde_json = "1"
++outils = "=0.3.0"
++petgraph = { version = "=0.8.3", default-features = false, features = ["std", "stable_graph"] }
+ 
+ [workspace.lints.rust]
+ missing_docs = "deny"
+diff --git a/README.md b/README.md
+index 45357b9..d0dd43a 100644
+--- a/README.md
++++ b/README.md
+@@ -2,11 +2,14 @@
+ 
+ Reproducible workloads for measuring exact dynamic graph connectivity.
+ 
+-The initial harness measures `knotrel-core` directly using a seeded chain
+-split/rejoin workload. It validates every result and emits a JSON report with
+-operation latency distributions, configuration, build compiler and checkout
+-metadata. GraphScope, HTTP, production workload and memory-measurement adapters
+-are **not implemented yet**. This repository makes no comparative speedup claims.
++The harness compares [`knotrel-core`](https://github.com/knotrel/knotrel), the compact production core, an experimental BFS, petgraph DFS and outils HDT using four deterministic synthetic
++workloads: a path, a cycle, joining/splitting components, and a degree-skewed hub.
++It validates every result and supports trace export, warmup and separate reports
++for repeated fresh-graph runs. GraphScope, HTTP, real-world datasets and memory
++measurement are **not measured**. The prepared GraphScope probe remains unverified.
++See [competitor selection and adoption](docs/research/2026-09-26-competitive-landscape.md)
++and the [measured embedded comparison](results/2026-09-26-competitors/README.md).
++Petgraph is the primary external baseline; outils is an algorithmic control.
+ 
+ ## Local layout
+ 
+@@ -24,17 +27,25 @@ revision-pinned: record the exact core revision and diff with every result.
+ cargo run --release --locked -- --nodes 10000 --rounds 1000 --seed 42
+ ```
+ 
+-Use `--help` for arguments. The defaults match the command above. Repeated flags
+-use the last value. Each round performs one cut, a disconnected query, one link,
+-and a connected query. The initial graph has `nodes` vertices and `nodes - 1`
+-edges. All deleted edges are bridges; this is a narrow baseline, not a general
+-graph workload. Use release builds for measurements.
++Select a workload and save a reusable trace:
+ 
+-The report labels debug builds, contains per-operation min/p50/p95/p99/max and
+-total nanoseconds, and identifies the trace as `chain-split-rejoin-v1`.
+-Checkout metadata describes sources present at run time; moving an already-built
+-binary or changing sources after compilation invalidates binary provenance.
+-For reproducible published runs, build and run from clean, recorded revisions.
++```sh
++cargo run --release --locked -- --workload cycle-alternatives-v1 --nodes 4096 --rounds 200 --seed 42 --warmup 1 --repetitions 3 --trace-out cycle.trace.json
++```
++
++`--help` lists all families and flags. Defaults preserve the original chain
++sequence, with one warmup and one measured replay. Each repetition starts with
++a fresh graph. Trace output refuses to overwrite files. JSON report schema 2
++stores latency summaries under `repetitions[i].measurements`, with separate
++cut/link/connected summaries; it also records topology and trace fingerprint.
++
++See [methodology](docs/methodology.md) for topology, ratios, timing boundaries,
++trace interchange and limitations. The [local release baseline](results/2026-09-26-macos/README.md)
++contains raw results and reproducibility metadata. Reproduce the complete matrix:
++
++```sh
++python3 scripts/run_baseline.py results/NEW_RUN_DIRECTORY
++```
+ 
+ ## Development
+ 
+@@ -47,6 +58,69 @@ RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps --locked
+ 
+ All public items require English Rustdoc. Complex private code documents
+ invariants and costs. See [methodology](docs/methodology.md) before comparing
+-engines. CI checks out the sibling core repository; its Rust foundation must
++engines. CI checks out the sibling [core repository](https://github.com/knotrel/knotrel); its Rust foundation must
+ exist in the selected core revision first. Manual CI runs accept `core_ref`;
+ automatic CI checks compatibility with core `main` and logs the resolved revision.
++
++## Comparing backends
++
++```sh
++cargo run --release --locked -- --engine all --nodes 4096 --rounds 100 --query-repeats 1 --repetitions 3
++```
++
++Multiple engines produce schema 3 containing one schema-2 report per backend.
++Setup, original true/false queries and immediate repeated queries are reported
++separately. Repeats augment the workload; no hardware-cache flushing is implied.
++For the full recorded protocol with independent process trials and rotated order:
++
++```sh
++python3 scripts/run_baseline.py results/NEW_COMPARISON --nodes 128 1024 4096 --rounds 100 --process-trials 4 --repetitions 3 --cache-regimes both --engines all --query-repeats 1
++python3 scripts/summarize_comparison.py results/NEW_COMPARISON
++```
++
++`--engine compact-bfs` measures the default production `Graph`; `reference-bfs`
++continues to measure the preserved ordered `ReferenceGraph`. The `all` selector
++now includes the compact backend; see below for the current full set.
++See the [compact-core results](results/2026-09-27-compact-core/README.md).
++
++## Dynamic forest and scale workloads
++
++`--engine ett-scan` selects the experimental maintained forest. `all` now contains
++eight backends (use eight process trials to balance their positions). For sustained
++churn and process memory measurements:
++
++```sh
++python3 scripts/run_scale.py results/NEW_SCALE_RUN --nodes 10000 100000 --query-percent 10 50 90 99 --rounds 20 --trials 2
++python3 scripts/summarize_scale.py results/NEW_SCALE_RUN
++```
++
++One round is 100 operations for the new sustained families. RSS covers the whole
++process, including the harness. See [scale results](results/2026-09-27-forest-scale/README.md).
++
++The experimental forest now uses candidate-subtree pruning. Compare it with the
++frozen prototype via `--engines ett-scan-v1 ett-scan` in the scale collector.
++See [pruning measurements](results/2026-09-27-forest-pruned/README.md); `all` now
++contains eight backends, including experimental Knotrel HDT. Counter definitions differ by version as documented.
++
++
++## Experimental Knotrel HDT
++
++`--engine hdt` selects `knotrel-core/hdt-levels-v1`, with separate `hdt_stats`
++promotion/search counters. HDT maintains multiple forests and uses more memory;
++its update bound is amortized. Neither the default core nor the existing ETT
++backend changed. Dense stress families `dense-bridge-churn-v1` and
++`redundant-bridge-churn-v1` keep two cliques fixed and toggle one or two bridges.
++They use 100 operations per round and support `--query-percent`; setup has
++quadratic edge count, so choose bounded node sizes.
++
++```sh
++python3 scripts/run_scale.py results/NEW_HDT_RUN --nodes 128 512 \
++  --workloads dense-bridge-churn-v1 redundant-bridge-churn-v1 \
++  --query-percent 50 99 --rounds 20 --trials 2 \
++  --engines compact-bfs petgraph-dfs ett-scan hdt
++python3 scripts/summarize_scale.py results/NEW_HDT_RUN
++```
++
++A repeated-query control can use `--query-repeats 1` in a separate collection.
++Use the sparse sustained families too; these dense cases deliberately target
++repeated scans and cannot establish a general performance or adoption claim.
+diff --git a/adapters/graphscope/Dockerfile b/adapters/graphscope/Dockerfile
+new file mode 100644
+index 0000000..3a016ce
+--- /dev/null
++++ b/adapters/graphscope/Dockerfile
+@@ -0,0 +1,9 @@
++# A functional Linux/x86_64 probe on Apple Silicon; do not compare to native timings.
++FROM --platform=linux/amd64 python:3.11-bookworm
++RUN apt-get update && apt-get install -y --no-install-recommends \
++    cmake libopenmpi-dev openmpi-bin libgoogle-glog-dev libgflags-dev \
++    libboost-filesystem-dev libboost-system-dev libboost-regex-dev \
++    && rm -rf /var/lib/apt/lists/*
++RUN python -m pip install --no-cache-dir graphscope==0.29.0
++ENV OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
++WORKDIR /work
+diff --git a/adapters/graphscope/README.md b/adapters/graphscope/README.md
+new file mode 100644
+index 0000000..45ec956
+--- /dev/null
++++ b/adapters/graphscope/README.md
+@@ -0,0 +1,14 @@
++# Deferred GraphScope experiment
++
++This work was paused at the user's request before running a GraphScope engine.
++The Docker image `knotrel-graphscope-probe:0.29.0` was built locally on 2026-09-26
++for linux/amd64 on an ARM64 Mac. No container service was launched and there are
++no GraphScope timings or equivalence results. Python oracle/helper tests passing
++does not validate the live adapter. The Dockerfile resolves transitive Python
++packages at build time and is not a complete locked environment.
++
++The prepared probe is experimental and excluded from current competitor results.
++It maps u64 IDs to strings and proposes flushing buffered mutations using an edge
++count before querying the explicit analytical has_path builtin. Those runtime
++assumptions remain unverified. Do not publish or compare its timings until tested.
++See the active competitive-landscape document in docs/research for priorities.
+diff --git a/adapters/graphscope/probe.py b/adapters/graphscope/probe.py
+new file mode 100644
+index 0000000..e1a590b
+--- /dev/null
++++ b/adapters/graphscope/probe.py
+@@ -0,0 +1,248 @@
++#!/usr/bin/env python3
++"""Exact-connectivity and cache-invalidation probe for GraphScope 0.29.0.
++
++Importing this module needs only Python's standard library. GraphScope is loaded
++only by main, and calls use its explicit analytical builtin rather than a
++NetworkX fallback. Timings are diagnostic client-to-engine durations, not a
++native-core comparison. Run each invocation in a fresh process/container.
++"""
++import argparse
++import hashlib
++import importlib.metadata
++import json
++import platform
++from pathlib import Path
++import sys
++import time
++import traceback
++
++
++def node_key(node):
++    """Encode the entire Knotrel u64 domain losslessly as GraphScope string IDs."""
++    if type(node) is not int or not 0 <= node < 2**64:
++        raise ValueError('node must be a u64 integer')
++    return str(node)
++
++
++def from_export(envelope):
++    """Read the version-1 trace envelope; accept small oracle-checked graphs only."""
++    if envelope['schema_version'] != 1:
++        raise ValueError('unsupported trace schema')
++    n = envelope['config']['nodes']
++    if type(n) is not int or not 1 <= n <= 128:
++        raise ValueError('functional probe supports 1..128 vertices')
++    return dict(name=envelope['workload'], nodes=list(range(n)),
++                initial_edges=envelope['trace']['initial_edges'],
++                operations=envelope['trace']['operations'])
++
++
++def contract_cases():
++    """Small hand-derived cases including repeated endpoints across state changes."""
++    def query(a, b, expected):
++        return dict(op='connected', source=a, target=b, expected=expected)
++    def update(op, a, b, changed=True):
++        return dict(op=op, source=a, target=b, changed=changed)
++    bridge = dict(name='bridge-cache-invalidation', nodes=list(range(6)),
++                  initial_edges=[[0, 1], [1, 2], [2, 3]], operations=[])
++    bridge['operations'] = ([query(0, 3, True)] * 3
++        + [update('cut', 1, 2)] + [query(0, 3, False)] * 3
++        + [update('cut', 1, 2, False), query(4, 4, True), query(4, 5, False)]
++        + [update('link', 1, 2)] + [query(0, 3, True)] * 3
++        + [update('link', 2, 1, False), query(3, 0, True)])
++    cycle = dict(name='cycle-alternative-then-split', nodes=list(range(6)),
++                 initial_edges=[[0, 1], [1, 2], [2, 3], [3, 0]], operations=[
++                     query(0, 2, True), update('cut', 0, 1), query(0, 2, True),
++                     update('cut', 0, 3), query(0, 2, False), query(0, 2, False),
++                     update('link', 0, 1), query(0, 2, True)])
++    join = dict(name='separate-components-join-split', nodes=list(range(6)),
++                initial_edges=[[0, 1], [2, 3]], operations=[
++                    query(0, 3, False), update('link', 1, 2), query(0, 3, True),
++                    update('cut', 1, 2), query(0, 3, False), query(0, 3, False)])
++    large = 2**64-1
++    width = dict(name='full-u64-string-mapping', nodes=[0, large, large-1],
++                 initial_edges=[[0, large]], operations=[query(0, large, True),
++                     update('cut', large, 0), query(0, large, False),
++                     update('link', large, large-1), query(large, large-1, True)])
++    return [bridge, cycle, join, width]
++
++
++def validate_case(case):
++    """Validate topology answers using independent matrix transitive closure.
++
++    Recompute Floyd-Warshall for each query: O(q*n^3 + updates), O(n^2)
++    scratch. This is a small-graph validation oracle, never a timed backend.
++    Each diagonal is reachable even for isolated vertices; updates are symmetric.
++    """
++    nodes = case['nodes']
++    if not nodes or len(nodes) > 128 or len(set(nodes)) != len(nodes):
++        raise ValueError('need 1..128 unique nodes')
++    for node in nodes:
++        node_key(node)
++    indices = {node: i for i, node in enumerate(nodes)}
++    matrix = [[False] * len(nodes) for _ in nodes]
++    def endpoints(a, b):
++        if a not in indices or b not in indices:
++            raise ValueError('unknown endpoint')
++        return indices[a], indices[b]
++    for a, b in case['initial_edges']:
++        i, j = endpoints(a, b)
++        if i == j or matrix[i][j]:
++            raise ValueError('invalid initial edge')
++        matrix[i][j] = matrix[j][i] = True
++    for op in case['operations']:
++        i, j = endpoints(op['source'], op['target'])
++        if op['op'] in ('link', 'cut'):
++            if i == j:
++                raise ValueError('self-loop')
++            inserted = op['op'] == 'link'
++            if (matrix[i][j] != inserted) != op.get('changed', True):
++                raise ValueError('wrong expected mutation result')
++            matrix[i][j] = matrix[j][i] = inserted
++        elif op['op'] == 'connected':
++            reach = [row[:] for row in matrix]
++            for v in range(len(nodes)):
++                reach[v][v] = True
++            for k in range(len(nodes)):
++                for a in range(len(nodes)):
++                    for b in range(len(nodes)):
++                        reach[a][b] |= reach[a][k] and reach[k][b]
++            if type(op['expected']) is not bool or reach[i][j] != op['expected']:
++                raise ValueError('wrong topology-derived query answer')
++        else:
++            raise ValueError('unknown operation')
++
++
++class GraphScopeBackend:
++    """Small synchronous adapter, including existence checks and mutation flush.
++
++    number_of_edges is a public reporting operation that drains mutation buffers
++    in the pinned version. Charge this synchronization to the mutation. The
++    client metadata cache remains enabled; there is no user answer cache. ID
++    conversion and bridge calls are included in timed operation costs.
++    """
++    def __init__(self, nx, has_path, case):
++        self.graph = nx.Graph()
++        self.has_path = has_path
++        self.graph.add_nodes_from(node_key(n) for n in case['nodes'])
++        self.graph.add_edges_from((node_key(a), node_key(b)) for a, b in case['initial_edges'])
++        if self.graph.number_of_edges() != len(case['initial_edges']):
++            raise RuntimeError('initial edge count mismatch')
++
++    def execute(self, op):
++        """Return changed/connected, enforcing Knotrel's simple-graph contract."""
++        a, b = node_key(op['source']), node_key(op['target'])
++        if op['op'] == 'connected':
++            if not self.graph.has_node(a) or not self.graph.has_node(b):
++                raise ValueError('unknown node')
++            # Existing-node reflexivity is part of the adapter contract; avoid
++            # relying on traversal implementations to discover the empty path.
++            return a == b or bool(self.has_path(self.graph, a, b))
++        if a == b:
++            raise ValueError('self-loop')
++        exists = self.graph.has_edge(a, b)
++        if op['op'] == 'link':
++            self.graph.add_edge(a, b)
++            changed = not exists
++        elif op['op'] == 'cut':
++            if exists:
++                self.graph.remove_edge(a, b)
++            changed = exists
++        else:
++            raise ValueError('unknown operation')
++        self.graph.number_of_edges()
++        return changed
++
++    def close(self):
++        """Release the graph using the public API; cleanup is timed separately."""
++        self.graph.clear()
++
++
++def replay(nx, has_path, case, repeat_queries):
++    """Time original and repeated queries separately, checking every response."""
++    start = time.perf_counter_ns()
++    backend = GraphScopeBackend(nx, has_path, case)
++    result = dict(case=case['name'], setup_ns=time.perf_counter_ns()-start,
++                  samples=[], passed=False)
++    try:
++        for index, op in enumerate(case['operations']):
++            repetitions = 1 + repeat_queries if op['op'] == 'connected' else 1
++            expected = op['expected'] if op['op'] == 'connected' else op.get('changed', True)
++            for repeat in range(repetitions):
++                start = time.perf_counter_ns()
++                actual = backend.execute(op)
++                elapsed = time.perf_counter_ns()-start
++                if actual != expected:
++                    raise RuntimeError(f"stale/incorrect answer at operation {index}, repeat {repeat}: {actual} != {expected}")
++                result['samples'].append(dict(index=index, op=op['op'], query_repeat=repeat,
++                                               expected=expected, actual=actual, elapsed_ns=elapsed))
++        result['passed'] = True
++    except Exception:
++        result['error'] = traceback.format_exc()
++    finally:
++        start = time.perf_counter_ns()
++        backend.close()
++        result['cleanup_ns'] = time.perf_counter_ns()-start
++    return result
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output', type=Path, required=True)
++    parser.add_argument('--trace', type=Path, action='append', default=[])
++    parser.add_argument('--repeat-queries', type=int, default=2)
++    parser.add_argument('--repetitions', type=int, default=2)
++    args = parser.parse_args()
++    if args.repeat_queries < 0 or args.repetitions < 1:
++        parser.error('query repeats >=0 and repetitions >=1 are required')
++    cases = contract_cases()
++    for path in args.trace:
++        cases.append(from_export(json.loads(path.read_text())))
++    for case in cases:
++        validate_case(case)
++    # Exclusive creation happens before launching any engine; never overwrite.
++    with args.output.open('x') as output:
++        report = dict(schema_version=1, engine='graphscope.nx/analytical-sssp_has_path',
++                      graphscope_required='0.29.0', passed=False, runs=[],
++                      environment=dict(platform=platform.platform(), machine=platform.machine(), python=sys.version),
++                      cache_protocol=dict(fresh_process=True, same_graph_query_repeats=args.repeat_queries,
++                                          fresh_graph_repetitions=args.repetitions, hardware_caches_flushed=False,
++                                          engine_session_reused=True, explicit_replay_warmup=0),
++                      argv=sys.argv, cases=cases,
++                      trace_sha256={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in args.trace})
++        session = None
++        try:
++            import graphscope
++            from graphscope.nx.algorithms.builtin import has_path
++            version = importlib.metadata.version('graphscope')
++            report['graphscope_version'] = version
++            if version != '0.29.0':
++                raise RuntimeError('only GraphScope 0.29.0 is verified by this probe')
++            start = time.perf_counter_ns()
++            session = graphscope.session(cluster_type='hosts', num_workers=1)
++            report['session_start_ns'] = time.perf_counter_ns()-start
++            nx = session.nx()
++            for repetition in range(args.repetitions):
++                for case in cases:
++                    print(f"GraphScope: repetition {repetition}, {case['name']}", file=sys.stderr, flush=True)
++                    result = replay(nx, has_path, case, args.repeat_queries)
++                    result['repetition'] = repetition
++                    report['runs'].append(result)
++                    if not result['passed']:
++                        raise RuntimeError('equivalence probe failed; see operation error')
++            report['passed'] = True
++        except Exception:
++            report['error'] = traceback.format_exc()
++        finally:
++            if session is not None:
++                try:
++                    session.close()
++                except Exception:
++                    report['shutdown_error'] = traceback.format_exc()
++                    report['passed'] = False
++            json.dump(report, output, indent=2)
++            output.write('\n')
++    return 0 if report['passed'] else 1
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+diff --git a/crates/knotrel-benchmarks/Cargo.toml b/crates/knotrel-benchmarks/Cargo.toml
+index 29fcf32..ece2a8a 100644
+--- a/crates/knotrel-benchmarks/Cargo.toml
++++ b/crates/knotrel-benchmarks/Cargo.toml
+@@ -12,6 +12,8 @@ publish.workspace = true
+ knotrel-core.workspace = true
+ serde.workspace = true
+ serde_json.workspace = true
++outils.workspace = true
++petgraph.workspace = true
+ 
+ [lints]
+ workspace = true
+diff --git a/crates/knotrel-benchmarks/src/engines.rs b/crates/knotrel-benchmarks/src/engines.rs
+new file mode 100644
+index 0000000..ce83d34
+--- /dev/null
++++ b/crates/knotrel-benchmarks/src/engines.rs
+@@ -0,0 +1,453 @@
++//! Benchmark adapters over a pre-registered vertex universe.
++//!
++//! These are experimental comparison backends, not replacements for Knotrel's
++//! growing-node API. ID translation and duplicate/edge-handle bookkeeping are
++//! included in timed calls. Reference BFS retains its original implementation.
++
++use crate::ett_baseline::ForestGraph as BaselineForest;
++use knotrel_core::{
++    ForestGraph, ForestStats, Graph, GraphError, HdtGraph, HdtStats, ReferenceGraph,
++};
++use outils::prelude::{DynamicConnectivity, DynamicGraph, Edge, EmptyWeight, VertexIndex};
++use petgraph::{
++    Undirected,
++    algo::{DfsSpace, has_path_connecting},
++    graph::{Graph as PetGraph, NodeIndex},
++    visit::Visitable,
++};
++use std::collections::BTreeMap;
++
++type TraversalGraph = PetGraph<(), (), Undirected, usize>;
++type SearchSpace = DfsSpace<NodeIndex<usize>, <TraversalGraph as Visitable>::Map>;
++
++/// Implementations compared under the same operation contract.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum EngineKind {
++    /// Original ordered-adjacency Knotrel BFS.
++    Reference,
++    /// Growing-node production core with compact sorted adjacency and local BFS scratch.
++    Compact,
++    /// AVL Euler-tour forest with exhaustive smaller-side replacement search.
++    EttScan,
++    /// Experimental Knotrel HDT with growing vertices and exact-level promotions.
++    Hdt,
++    /// Frozen original ETT implementation with eager smaller-side enumeration.
++    EttBaseline,
++    /// Compact-index adjacency vectors with reusable BFS scratch memory.
++    DenseBfs,
++    /// petgraph 0.8.3 depth-first path test with reusable traversal space.
++    Petgraph,
++    /// outils 0.3.0 HDT with an adapter for simple-graph semantics.
++    Outils,
++}
++impl EngineKind {
++    /// Stable default comparison order; collectors should rotate this order.
++    pub const ALL: [Self; 8] = [
++        Self::Reference,
++        Self::Compact,
++        Self::EttScan,
++        Self::Hdt,
++        Self::EttBaseline,
++        Self::DenseBfs,
++        Self::Petgraph,
++        Self::Outils,
++    ];
++    /// CLI selector, also recorded in comparison manifests.
++    #[must_use]
++    pub fn key(self) -> &'static str {
++        match self {
++            Self::Reference => "reference-bfs",
++            Self::Compact => "compact-bfs",
++            Self::EttScan => "ett-scan",
++            Self::Hdt => "hdt",
++            Self::EttBaseline => "ett-scan-v1",
++            Self::DenseBfs => "dense-bfs",
++            Self::Petgraph => "petgraph-dfs",
++            Self::Outils => "outils-hdt",
++        }
++    }
++    /// Versioned backend identity for measurement reports.
++    #[must_use]
++    pub fn name(self) -> &'static str {
++        match self {
++            Self::Reference => "knotrel-core/reference-bfs",
++            Self::Compact => "knotrel-core/compact-bfs-v1",
++            Self::EttScan => "knotrel-core/ett-pruned-v2",
++            Self::Hdt => "knotrel-core/hdt-levels-v1",
++            Self::EttBaseline => "knotrel-core/ett-scan-v1",
++            Self::DenseBfs => "knotrel-benchmarks/dense-bfs-v1",
++            Self::Petgraph => "petgraph-0.8.3/dfs",
++            Self::Outils => "outils-0.3.0/hdt",
++        }
++    }
++    /// Parse an explicit selector without silently falling back.
++    ///
++    /// # Errors
++    /// Returns an error for unknown names.
++    pub fn parse(name: &str) -> Result<Self, &'static str> {
++        Self::ALL
++            .into_iter()
++            .find(|kind| kind.key() == name)
++            .ok_or("unknown engine")
++    }
++}
++
++/// Synchronous benchmark backend supporting pre-registered arbitrary u64 IDs.
++///
++/// Indexed backends reject new endpoints after construction. The reference
++/// delegates directly to the original core, whose links can create endpoints.
++/// Comparisons therefore register every vertex before measurement. This does
++/// not establish parity for dynamically growing vertex universes.
++pub struct Engine {
++    storage: Storage,
++}
++enum Storage {
++    Reference(ReferenceGraph),
++    Compact(Graph),
++    EttScan(ForestGraph),
++    Hdt(HdtGraph),
++    EttBaseline(BaselineForest),
++    Indexed(Box<Indexed>),
++}
++struct Indexed {
++    ids: BTreeMap<u64, usize>,
++    backend: Backend,
++}
++enum Backend {
++    Dense {
++        adjacency: Vec<Vec<usize>>,
++        visited: Vec<bool>,
++        queue: Vec<usize>,
++    },
++    Petgraph {
++        graph: TraversalGraph,
++        scratch: SearchSpace,
++    },
++    Outils {
++        graph: Box<DynamicGraph<EmptyWeight>>,
++        edges: BTreeMap<(usize, usize), Edge>,
++    },
++}
++
++impl Engine {
++    /// Initialize all registered vertices, including isolated ones.
++    ///
++    /// Setup is measured separately from operations. Dense/petgraph storage is
++    /// O(n+m); HDT includes O(n log n) forest entries plus edges and adapter maps.
++    /// The outils adjacency reservation hint is fixed at four for every workload.
++    ///
++    /// # Errors
++    /// Rejects empty or duplicate node lists. Allocation exhaustion may panic.
++    pub fn new(kind: EngineKind, nodes: &[u64]) -> Result<Self, &'static str> {
++        let ids: BTreeMap<_, _> = nodes
++            .iter()
++            .copied()
++            .enumerate()
++            .map(|(i, id)| (id, i))
++            .collect();
++        if nodes.is_empty() || ids.len() != nodes.len() {
++            return Err("need nonempty unique registered nodes");
++        }
++        let n = nodes.len();
++        if kind == EngineKind::Reference {
++            let mut graph = ReferenceGraph::new();
++            for &node in nodes {
++                graph.add_node(node);
++            }
++            return Ok(Self {
++                storage: Storage::Reference(graph),
++            });
++        }
++        if kind == EngineKind::Compact {
++            let mut graph = Graph::new();
++            for &node in nodes {
++                graph.add_node(node);
++            }
++            return Ok(Self {
++                storage: Storage::Compact(graph),
++            });
++        }
++        if kind == EngineKind::EttScan {
++            let mut graph = ForestGraph::new();
++            for &node in nodes {
++                graph.add_node(node);
++            }
++            return Ok(Self {
++                storage: Storage::EttScan(graph),
++            });
++        }
++        if kind == EngineKind::Hdt {
++            let mut graph = HdtGraph::new();
++            for &node in nodes {
++                graph.add_node(node);
++            }
++            return Ok(Self {
++                storage: Storage::Hdt(graph),
++            });
++        }
++        if kind == EngineKind::EttBaseline {
++            let mut graph = BaselineForest::new();
++            for &node in nodes {
++                graph.add_node(node);
++            }
++            return Ok(Self {
++                storage: Storage::EttBaseline(graph),
++            });
++        }
++        let backend = match kind {
++            EngineKind::DenseBfs => Backend::Dense {
++                adjacency: vec![Vec::new(); n],
++                visited: vec![false; n],
++                queue: Vec::with_capacity(n),
++            },
++            EngineKind::Petgraph => {
++                let mut graph = TraversalGraph::with_capacity(n, 0);
++                for _ in nodes {
++                    graph.add_node(());
++                }
++                let scratch = DfsSpace::new(&graph);
++                Backend::Petgraph { graph, scratch }
++            }
++            EngineKind::Outils => Backend::Outils {
++                graph: Box::new(DynamicGraph::new(n, 4)),
++                edges: BTreeMap::new(),
++            },
++            EngineKind::Reference
++            | EngineKind::Compact
++            | EngineKind::Hdt
++            | EngineKind::EttScan
++            | EngineKind::EttBaseline => unreachable!(),
++        };
++        Ok(Self {
++            storage: Storage::Indexed(Box::new(Indexed { ids, backend })),
++        })
++    }
++
++    /// Reset diagnostic work counters after initial loading.
++    pub fn reset_stats(&mut self) {
++        match &mut self.storage {
++            Storage::EttScan(graph) => graph.reset_stats(),
++            Storage::Hdt(graph) => graph.reset_stats(),
++            Storage::EttBaseline(graph) => graph.reset_stats(),
++            _ => {}
++        }
++    }
++    /// Replacement-search counters, available only for the ETT backends.
++    ///
++    /// In the frozen v1 backend, `scanned_vertices` counts all eagerly enumerated
++    /// vertices. In v2 it counts only yielded candidate-bearing vertices, as in
++    /// the current core type. Neither counter counts AVL tokens traversed.
++    #[must_use]
++    pub fn forest_stats(&self) -> Option<ForestStats> {
++        match &self.storage {
++            Storage::EttScan(graph) => Some(graph.stats()),
++            Storage::EttBaseline(graph) => Some(graph.stats()),
++            _ => None,
++        }
++    }
++
++    /// HDT-only diagnostic counters, separate from ETT scan accounting.
++    #[must_use]
++    pub fn hdt_stats(&self) -> Option<HdtStats> {
++        match &self.storage {
++            Storage::Hdt(graph) => Some(graph.stats()),
++            _ => None,
++        }
++    }
++
++    /// Insert an undirected edge; return false for duplicates (including reversal).
++    ///
++    /// # Errors
++    /// Rejects self-loops before mutation. Indexed backends reject unknown nodes.
++    pub fn link(&mut self, source: u64, target: u64) -> Result<bool, GraphError> {
++        self.update(source, target, true)
++    }
++    /// Remove an edge without deleting vertices; return false for absent edges.
++    ///
++    /// # Errors
++    /// Rejects self-loops before mutation. Unknown cut endpoints return false.
++    pub fn cut(&mut self, source: u64, target: u64) -> Result<bool, GraphError> {
++        self.update(source, target, false)
++    }
++    /// Query exact connectivity, including existing-node reflexivity.
++    ///
++    /// Dense BFS resets O(n) visited bits, explores reachable edges and queues
++    /// each vertex at most once: O(n+m) worst-case traversal and O(log n) ID
++    /// translation, with O(n) reusable scratch. It caches no connectivity answers.
++    /// petgraph uses DFS with reusable scratch; this is explicitly not BFS.
++    /// outils queries its maintained HDT forest after O(log n) ID translation.
++    ///
++    /// # Errors
++    /// Returns UnknownNode, checking source before target, for absent IDs.
++    pub fn connected(&mut self, source: u64, target: u64) -> Result<bool, GraphError> {
++        let indexed = match &mut self.storage {
++            Storage::Reference(graph) => return graph.connected(source, target),
++            Storage::Compact(graph) => return graph.connected(source, target),
++            Storage::EttScan(graph) => return graph.connected(source, target),
++            Storage::Hdt(graph) => return graph.connected(source, target),
++            Storage::EttBaseline(graph) => return graph.connected(source, target),
++            Storage::Indexed(indexed) => indexed,
++        };
++        let (a, b) = indexed.endpoints(source, target)?;
++        if a == b {
++            return Ok(true);
++        }
++        Ok(match &mut indexed.backend {
++            Backend::Dense {
++                adjacency,
++                visited,
++                queue,
++            } => {
++                visited.fill(false);
++                queue.clear();
++                visited[a] = true;
++                queue.push(a);
++                let mut cursor = 0;
++                let mut found = false;
++                // Every queued vertex is reachable. Mark at insertion, so the
++                // queue contains each vertex at most once. Exhaustion proves
++                // disconnection. Early success does not leave reusable answers.
++                'search: while cursor < queue.len() {
++                    for &neighbor in &adjacency[queue[cursor]] {
++                        if neighbor == b {
++                            found = true;
++                            break 'search;
++                        }
++                        if !visited[neighbor] {
++                            visited[neighbor] = true;
++                            queue.push(neighbor);
++                        }
++                    }
++                    cursor += 1;
++                }
++                found
++            }
++            Backend::Petgraph { graph, scratch } => {
++                has_path_connecting(&*graph, NodeIndex::new(a), NodeIndex::new(b), Some(scratch))
++            }
++            // outils returns false for v==w; the adapter handles it above.
++            Backend::Outils { graph, .. } => graph.is_connected(VertexIndex(a), VertexIndex(b)),
++        })
++    }
++
++    // Dense and petgraph locate an edge by scanning endpoint adjacency:
++    // O(deg(source)+deg(target)+log n) worst case including ID translation.
++    // Outils bookkeeping uses O(log m) ordered edge-handle lookup on top of the
++    // upstream HDT operations. Never pass a stale or duplicate handle upstream.
++    fn update(&mut self, source: u64, target: u64, insert: bool) -> Result<bool, GraphError> {
++        if source == target {
++            return Err(GraphError::SelfLoop { node: source });
++        }
++        let indexed = match &mut self.storage {
++            Storage::Reference(graph) => {
++                return if insert {
++                    graph.link(source, target)
++                } else {
++                    graph.cut(source, target)
++                };
++            }
++            Storage::Compact(graph) => {
++                return if insert {
++                    graph.link(source, target)
++                } else {
++                    graph.cut(source, target)
++                };
++            }
++            Storage::EttScan(graph) => {
++                return if insert {
++                    graph.link(source, target)
++                } else {
++                    graph.cut(source, target)
++                };
++            }
++            Storage::Hdt(graph) => {
++                return if insert {
++                    graph.link(source, target)
++                } else {
++                    graph.cut(source, target)
++                };
++            }
++            Storage::EttBaseline(graph) => {
++                return if insert {
++                    graph.link(source, target)
++                } else {
++                    graph.cut(source, target)
++                };
++            }
++            Storage::Indexed(indexed) => indexed,
++        };
++        let (a, b) = match indexed.endpoints(source, target) {
++            Ok(pair) => pair,
++            Err(error) => return if insert { Err(error) } else { Ok(false) },
++        };
++        Ok(match &mut indexed.backend {
++            Backend::Dense { adjacency, .. } => {
++                let position = adjacency[a].iter().position(|&v| v == b);
++                match (insert, position) {
++                    (true, None) => {
++                        adjacency[a].push(b);
++                        adjacency[b].push(a);
++                        true
++                    }
++                    (false, Some(i)) => {
++                        adjacency[a].swap_remove(i);
++                        let j = adjacency[b]
++                            .iter()
++                            .position(|&v| v == a)
++                            .expect("symmetric edge");
++                        adjacency[b].swap_remove(j);
++                        true
++                    }
++                    _ => false,
++                }
++            }
++            Backend::Petgraph { graph, .. } => {
++                let a = NodeIndex::new(a);
++                let b = NodeIndex::new(b);
++                match (insert, graph.find_edge(a, b)) {
++                    (true, None) => {
++                        graph.add_edge(a, b, ());
++                        true
++                    }
++                    (false, Some(edge)) => {
++                        graph.remove_edge(edge);
++                        true
++                    }
++                    _ => false,
++                }
++            }
++            Backend::Outils { graph, edges } => {
++                let key = (a.min(b), a.max(b));
++                if insert {
++                    if let std::collections::btree_map::Entry::Vacant(entry) = edges.entry(key) {
++                        let edge = graph
++                            .insert_edge(VertexIndex(a), VertexIndex(b))
++                            .expect("distinct registered vertices");
++                        entry.insert(edge);
++                        true
++                    } else {
++                        false
++                    }
++                } else if let Some(edge) = edges.remove(&key) {
++                    graph.delete_edge(edge);
++                    true
++                } else {
++                    false
++                }
++            }
++        })
++    }
++}
++impl Indexed {
++    fn endpoints(&self, source: u64, target: u64) -> Result<(usize, usize), GraphError> {
++        let a = *self
++            .ids
++            .get(&source)
++            .ok_or(GraphError::UnknownNode { node: source })?;
++        let b = *self
++            .ids
++            .get(&target)
++            .ok_or(GraphError::UnknownNode { node: target })?;
++        Ok((a, b))
++    }
++}
+diff --git a/crates/knotrel-benchmarks/src/ett_baseline/dynamic.rs b/crates/knotrel-benchmarks/src/ett_baseline/dynamic.rs
+new file mode 100644
+index 0000000..81dcdbd
+--- /dev/null
++++ b/crates/knotrel-benchmarks/src/ett_baseline/dynamic.rs
+@@ -0,0 +1,201 @@
++//! Exact general-graph connectivity using one Euler-tour spanning forest.
++use super::forest::Forest;
++use knotrel_core::{ForestStats, GraphError, NodeId};
++use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
++
++/// Experimental exact connectivity with deterministic Euler-tour trees.
++///
++/// Maintains a spanning forest: each graph component has exactly one tree.
++/// Non-tree edges are stored at both endpoints. Removing a forest edge scans
++/// non-tree edges incident to its smaller side; a crossing edge reconnects the
++/// trees, or exhaustion proves a real split. This is not HDT: repeated scans have
++/// no polylogarithmic amortized bound. The default [`knotrel_core::Graph`] is unchanged.
++///
++/// AVL root queries cost O(log V), plus O(log V) ID translation. Link costs
++/// O(log V + log E) amortized including arena growth. A tree cut costs (amortized for free-list growth)
++/// O(log V + log E + s + c log V), where s is the smaller side's vertex count
++/// and c the examined non-tree incidences. Non-tree cuts cost O(log V + log E).
++/// A single token-arena or free-list growth can add O(V) time. Logical storage is O(V + E); allocated
++/// arenas retain O(V) high-water capacity, and removed tree-edge slots are reused.
++/// Queries allocate no scratch, cache no answers and use no internal locks.
++#[derive(Debug, Default)]
++pub struct ForestGraph {
++    ids: BTreeMap<NodeId, usize>,
++    non_tree: Vec<BTreeSet<usize>>,
++    edges: BTreeMap<(usize, usize), Option<(usize, usize)>>,
++    forest: Forest,
++    stats: ForestStats,
++}
++impl ForestGraph {
++    /// Creates an empty graph in O(1) time.
++    #[must_use]
++    pub fn new() -> Self {
++        Self::default()
++    }
++
++    /// Registers an isolated vertex; returns false for an existing ID.
++    ///
++    /// O(log V) amortized; arena/vector growth can take O(V) in one call.
++    pub fn add_node(&mut self, node: NodeId) -> bool {
++        if let Entry::Vacant(entry) = self.ids.entry(node) {
++            let index = self.non_tree.len();
++            self.non_tree.push(BTreeSet::new());
++            self.forest.add_vertex();
++            entry.insert(index);
++            true
++        } else {
++            false
++        }
++    }
++    /// Inserts a simple undirected edge, registering absent endpoints.
++    ///
++    /// Returns false for an existing edge, including reversed endpoints.
++    /// # Errors
++    /// Rejects self-loops before registering either endpoint.
++    pub fn link(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        Self::distinct(source, target)?;
++        self.add_node(source);
++        self.add_node(target);
++        let (a, b) = (self.ids[&source], self.ids[&target]);
++        let key = (a.min(b), a.max(b));
++        if self.edges.contains_key(&key) {
++            return Ok(false);
++        }
++        let arcs = if self.forest.connected(a, b) {
++            self.non_tree[a].insert(b);
++            self.non_tree[b].insert(a);
++            None
++        } else {
++            Some(self.forest.link(a, b))
++        };
++        self.edges.insert(key, arcs);
++        Ok(true)
++    }
++    /// Removes an edge while retaining both vertices; absent edges return false.
++    ///
++    /// Tree cuts synchronously complete replacement search before returning.
++    /// # Errors
++    /// Rejects self-loops without changing graph state.
++    pub fn cut(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        Self::distinct(source, target)?;
++        let (Some(&a), Some(&b)) = (self.ids.get(&source), self.ids.get(&target)) else {
++            return Ok(false);
++        };
++        let key = (a.min(b), a.max(b));
++        let Some(arcs) = self.edges.remove(&key) else {
++            return Ok(false);
++        };
++        if let Some(arcs) = arcs {
++            self.forest.cut(arcs);
++            self.stats.tree_cuts = self.stats.tree_cuts.saturating_add(1);
++            let vertices = self.forest.smaller_vertices(a, b);
++            self.stats.scanned_vertices = self
++                .stats
++                .scanned_vertices
++                .saturating_add(vertices.len() as u64);
++            let mut replacement = None;
++            'search: for v in vertices {
++                for &w in &self.non_tree[v] {
++                    self.stats.candidate_edges = self.stats.candidate_edges.saturating_add(1);
++                    if !self.forest.connected(v, w) {
++                        replacement = Some((v, w));
++                        break 'search;
++                    }
++                }
++            }
++            if let Some((v, w)) = replacement {
++                self.non_tree[v].remove(&w);
++                self.non_tree[w].remove(&v);
++                let arcs = self.forest.link(v, w);
++                *self
++                    .edges
++                    .get_mut(&(v.min(w), v.max(w)))
++                    .expect("replacement edge exists") = Some(arcs);
++                self.stats.replacements = self.stats.replacements.saturating_add(1);
++            }
++        } else {
++            self.non_tree[a].remove(&b);
++            self.non_tree[b].remove(&a);
++        }
++        Ok(true)
++    }
++    /// Answers exact connectivity in O(log V) worst-case time without allocation.
++    ///
++    /// Existing vertices connect to themselves, including isolated vertices.
++    /// # Errors
++    /// Reports an absent source before an absent target.
++    pub fn connected(&self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        let a = *self
++            .ids
++            .get(&source)
++            .ok_or(GraphError::UnknownNode { node: source })?;
++        let b = *self
++            .ids
++            .get(&target)
++            .ok_or(GraphError::UnknownNode { node: target })?;
++        Ok(self.forest.connected(a, b))
++    }
++    /// Returns the number of registered vertices in O(1) time.
++    #[must_use]
++    #[cfg(test)]
++    pub fn node_count(&self) -> usize {
++        self.ids.len()
++    }
++    /// Returns the number of undirected graph edges in O(1) time.
++    #[must_use]
++    #[cfg(test)]
++    pub fn edge_count(&self) -> usize {
++        self.edges.len()
++    }
++    /// Returns cumulative replacement-search counters in O(1) time.
++    #[must_use]
++    pub fn stats(&self) -> ForestStats {
++        self.stats
++    }
++    /// Clears only diagnostic counters, preserving all graph state.
++    pub fn reset_stats(&mut self) {
++        self.stats = ForestStats::default();
++    }
++    fn distinct(a: NodeId, b: NodeId) -> Result<(), GraphError> {
++        if a == b {
++            Err(GraphError::SelfLoop { node: a })
++        } else {
++            Ok(())
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::ForestGraph;
++    #[test]
++    fn general_graph_updates_preserve_avl_and_edge_classification() {
++        let mut g = ForestGraph::new();
++        let mut seed = 123_u64;
++        for step in 0..3000 {
++            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
++            let a = (seed >> 32) % 50;
++            let b = (seed >> 48) % 50;
++            if step % 3 == 0 {
++                let _ = g.cut(a, b);
++            } else {
++                let _ = g.link(a, b);
++            }
++            g.forest.validate();
++            for (&(u, v), arcs) in &g.edges {
++                assert!(g.forest.connected(u, v));
++                assert_eq!(g.non_tree[u].contains(&v), arcs.is_none());
++                assert_eq!(g.non_tree[v].contains(&u), arcs.is_none());
++            }
++            for (u, neighbors) in g.non_tree.iter().enumerate() {
++                for &v in neighbors {
++                    assert_eq!(g.edges.get(&(u.min(v), u.max(v))), Some(&None));
++                }
++            }
++        }
++        let counts = (g.node_count(), g.edge_count());
++        g.reset_stats();
++        assert_eq!(g.stats(), super::ForestStats::default());
++        assert_eq!(counts, (g.node_count(), g.edge_count()));
++    }
++}
+diff --git a/crates/knotrel-benchmarks/src/ett_baseline/forest.rs b/crates/knotrel-benchmarks/src/ett_baseline/forest.rs
+new file mode 100644
+index 0000000..72d401a
+--- /dev/null
++++ b/crates/knotrel-benchmarks/src/ett_baseline/forest.rs
+@@ -0,0 +1,318 @@
++//! Euler-tour sequences over a deterministic implicit AVL tree.
++//!
++//! Each vertex has one permanent token. Each tree edge has two directed tokens.
++//! Rotating a tour and concatenating tours implements link; cutting at the two
++//! directed tokens implements cut. See Holm, de Lichtenberg and Thorup (2001),
++//! section 2: <https://www.cs.princeton.edu/courses/archive/fall07/cos521/handouts/poly.pdf>
++//! This module implements forest connectivity only, not HDT replacement levels.
++
++#[derive(Debug)]
++struct Token {
++    left: Option<usize>,
++    right: Option<usize>,
++    parent: Option<usize>,
++    height: usize,
++    size: usize,
++    vertices: usize,
++    vertex: Option<usize>,
++}
++impl Token {
++    fn new(vertex: Option<usize>) -> Self {
++        Self {
++            left: None,
++            right: None,
++            parent: None,
++            height: 1,
++            size: 1,
++            vertices: usize::from(vertex.is_some()),
++            vertex,
++        }
++    }
++}
++
++/// Stable handles; released edge tokens are reused before the arena grows.
++#[derive(Debug, Default)]
++pub(crate) struct Forest {
++    tokens: Vec<Token>,
++    free: Vec<usize>,
++    vertex_tokens: Vec<usize>,
++}
++impl Forest {
++    pub(crate) fn add_vertex(&mut self) {
++        let vertex = self.vertex_tokens.len();
++        let token = self.allocate(Some(vertex));
++        self.vertex_tokens.push(token);
++    }
++    fn allocate(&mut self, vertex: Option<usize>) -> usize {
++        if let Some(i) = self.free.pop() {
++            self.tokens[i] = Token::new(vertex);
++            i
++        } else {
++            let i = self.tokens.len();
++            self.tokens.push(Token::new(vertex));
++            i
++        }
++    }
++    fn height(&self, root: Option<usize>) -> usize {
++        root.map_or(0, |i| self.tokens[i].height)
++    }
++    fn size(&self, root: Option<usize>) -> usize {
++        root.map_or(0, |i| self.tokens[i].size)
++    }
++    fn vertices(&self, root: Option<usize>) -> usize {
++        root.map_or(0, |i| self.tokens[i].vertices)
++    }
++    fn pull(&mut self, i: usize) {
++        let (l, r) = (self.tokens[i].left, self.tokens[i].right);
++        self.tokens[i].height = 1 + self.height(l).max(self.height(r));
++        self.tokens[i].size = 1 + self.size(l) + self.size(r);
++        self.tokens[i].vertices =
++            usize::from(self.tokens[i].vertex.is_some()) + self.vertices(l) + self.vertices(r);
++        if let Some(l) = l {
++            self.tokens[l].parent = Some(i);
++        }
++        if let Some(r) = r {
++            self.tokens[r].parent = Some(i);
++        }
++        self.tokens[i].parent = None;
++    }
++    fn take_left(&mut self, i: usize) -> Option<usize> {
++        let child = self.tokens[i].left.take();
++        if let Some(c) = child {
++            self.tokens[c].parent = None;
++        }
++        child
++    }
++    fn take_right(&mut self, i: usize) -> Option<usize> {
++        let child = self.tokens[i].right.take();
++        if let Some(c) = child {
++            self.tokens[c].parent = None;
++        }
++        child
++    }
++    fn rotate_left(&mut self, i: usize) -> usize {
++        let r = self.take_right(i).expect("right child");
++        self.tokens[i].right = self.take_left(r);
++        self.pull(i);
++        self.tokens[r].left = Some(i);
++        self.pull(r);
++        r
++    }
++    fn rotate_right(&mut self, i: usize) -> usize {
++        let l = self.take_left(i).expect("left child");
++        self.tokens[i].left = self.take_right(l);
++        self.pull(i);
++        self.tokens[l].right = Some(i);
++        self.pull(l);
++        l
++    }
++    fn balance(&mut self, i: usize) -> usize {
++        self.pull(i);
++        let (l, r) = (self.tokens[i].left, self.tokens[i].right);
++        if self.height(l) > self.height(r) + 1 {
++            let left = l.expect("left heavy");
++            if self.height(self.tokens[left].right) > self.height(self.tokens[left].left) {
++                self.tokens[i].left = Some(self.rotate_left(left));
++            }
++            self.rotate_right(i)
++        } else if self.height(r) > self.height(l) + 1 {
++            let right = r.expect("right heavy");
++            if self.height(self.tokens[right].left) > self.height(self.tokens[right].right) {
++                self.tokens[i].right = Some(self.rotate_right(right));
++            }
++            self.rotate_left(i)
++        } else {
++            i
++        }
++    }
++    /// AVL join descends the taller spine until heights differ by at most one.
++    /// Rotations preserve sequence order. Cost O(1 + absolute height difference).
++    fn join(&mut self, left: Option<usize>, pivot: usize, right: Option<usize>) -> usize {
++        if self.height(left) > self.height(right) + 1 {
++            let l = left.expect("taller left");
++            let child = self.take_right(l);
++            let root = self.join(child, pivot, right);
++            self.tokens[l].right = Some(root);
++            self.balance(l)
++        } else if self.height(right) > self.height(left) + 1 {
++            let r = right.expect("taller right");
++            let child = self.take_left(r);
++            let root = self.join(left, pivot, child);
++            self.tokens[r].left = Some(root);
++            self.balance(r)
++        } else {
++            self.tokens[pivot].left = left;
++            self.tokens[pivot].right = right;
++            self.pull(pivot);
++            pivot
++        }
++    }
++    /// Split before rank k; joining the untouched subtrees restores AVL balance.
++    /// Join height differences telescope along the search path: O(log n) time.
++    fn split(&mut self, root: Option<usize>, k: usize) -> (Option<usize>, Option<usize>) {
++        let Some(i) = root else {
++            debug_assert_eq!(k, 0);
++            return (None, None);
++        };
++        let size = self.size(self.tokens[i].left);
++        let left = self.take_left(i);
++        let right = self.take_right(i);
++        if k <= size {
++            let (a, b) = self.split(left, k);
++            let r = self.join(b, i, right);
++            (a, Some(r))
++        } else {
++            let (a, b) = self.split(right, k - size - 1);
++            let l = self.join(left, i, a);
++            (Some(l), b)
++        }
++    }
++    fn concat(&mut self, left: Option<usize>, right: Option<usize>) -> Option<usize> {
++        match (left, right) {
++            (None, r) => r,
++            (l, None) => l,
++            (Some(l), Some(r)) => {
++                let (a, pivot) = self.split(Some(l), self.tokens[l].size - 1);
++                Some(self.join(a, pivot.expect("last token"), Some(r)))
++            }
++        }
++    }
++    fn root(&self, mut i: usize) -> usize {
++        while let Some(parent) = self.tokens[i].parent {
++            i = parent;
++        }
++        i
++    }
++    fn rank(&self, mut i: usize) -> usize {
++        let mut rank = self.size(self.tokens[i].left);
++        while let Some(parent) = self.tokens[i].parent {
++            if self.tokens[parent].right == Some(i) {
++                rank += 1 + self.size(self.tokens[parent].left);
++            }
++            i = parent;
++        }
++        rank
++    }
++    fn reroot(&mut self, token: usize) -> Option<usize> {
++        let root = self.root(token);
++        let rank = self.rank(token);
++        let (left, right) = self.split(Some(root), rank);
++        self.concat(right, left)
++    }
++    pub(crate) fn connected(&self, a: usize, b: usize) -> bool {
++        self.root(self.vertex_tokens[a]) == self.root(self.vertex_tokens[b])
++    }
++    pub(crate) fn link(&mut self, a: usize, b: usize) -> (usize, usize) {
++        debug_assert!(!self.connected(a, b));
++        let left = self.reroot(self.vertex_tokens[a]);
++        let right = self.reroot(self.vertex_tokens[b]);
++        let ab = self.allocate(None);
++        let ba = self.allocate(None);
++        let left = self.concat(left, Some(ab));
++        let left = self.concat(left, right);
++        self.concat(left, Some(ba));
++        (ab, ba)
++    }
++    pub(crate) fn cut(&mut self, arcs: (usize, usize)) {
++        let tour = self.reroot(arcs.0);
++        let (_, rest) = self.split(tour, 1);
++        let position = self.rank(arcs.1);
++        let (_, tail) = self.split(rest, position);
++        self.split(tail, 1);
++        for i in [arcs.0, arcs.1] {
++            debug_assert_eq!(self.tokens[i].size, 1);
++            self.free.push(i);
++        }
++    }
++    /// Enumerate only the smaller tree's vertex tokens, O(size of that tree).
++    pub(crate) fn smaller_vertices(&self, a: usize, b: usize) -> Vec<usize> {
++        let a = self.root(self.vertex_tokens[a]);
++        let b = self.root(self.vertex_tokens[b]);
++        let root = if self.tokens[a].vertices <= self.tokens[b].vertices {
++            a
++        } else {
++            b
++        };
++        let mut result = Vec::with_capacity(self.tokens[root].vertices);
++        let mut stack = vec![root];
++        while let Some(i) = stack.pop() {
++            if let Some(v) = self.tokens[i].vertex {
++                result.push(v);
++            }
++            if let Some(l) = self.tokens[i].left {
++                stack.push(l);
++            }
++            if let Some(r) = self.tokens[i].right {
++                stack.push(r);
++            }
++        }
++        result
++    }
++
++    #[cfg(test)]
++    pub(crate) fn validate(&self) {
++        use std::collections::BTreeSet;
++        let free: BTreeSet<_> = self.free.iter().copied().collect();
++        assert_eq!(free.len(), self.free.len());
++        let roots: BTreeSet<_> = self.vertex_tokens.iter().map(|&i| self.root(i)).collect();
++        let mut seen = BTreeSet::new();
++        fn visit(
++            f: &Forest,
++            i: usize,
++            parent: Option<usize>,
++            seen: &mut BTreeSet<usize>,
++        ) -> (usize, usize, usize) {
++            assert!(seen.insert(i));
++            let t = &f.tokens[i];
++            assert_eq!(t.parent, parent);
++            let l = t.left.map_or((0, 0, 0), |l| visit(f, l, Some(i), seen));
++            let r = t.right.map_or((0, 0, 0), |r| visit(f, r, Some(i), seen));
++            assert!(l.0.abs_diff(r.0) <= 1);
++            assert_eq!(
++                (t.height, t.size, t.vertices),
++                (
++                    1 + l.0.max(r.0),
++                    1 + l.1 + r.1,
++                    usize::from(t.vertex.is_some()) + l.2 + r.2
++                )
++            );
++            (t.height, t.size, t.vertices)
++        }
++        for root in roots {
++            visit(self, root, None, &mut seen);
++        }
++        assert!(seen.is_disjoint(&free));
++        assert_eq!(seen.len() + free.len(), self.tokens.len());
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::Forest;
++    #[test]
++    fn rotations_splits_and_reused_arcs_preserve_invariants() {
++        let mut f = Forest::default();
++        for _ in 0..100 {
++            f.add_vertex();
++        }
++        let mut edges = Vec::new();
++        for i in 1..100 {
++            edges.push(f.link(i - 1, i));
++            f.validate();
++        }
++        for round in 0..20 {
++            for (i, edge) in edges.iter_mut().enumerate() {
++                f.cut(*edge);
++                f.validate();
++                assert!(!f.connected(i, i + 1));
++                *edge = if round % 2 == 0 {
++                    f.link(i + 1, i)
++                } else {
++                    f.link(i, i + 1)
++                };
++                f.validate();
++            }
++        }
++        assert_eq!(f.tokens.len(), 100 + 198);
++    }
++}
+diff --git a/crates/knotrel-benchmarks/src/ett_baseline/mod.rs b/crates/knotrel-benchmarks/src/ett_baseline/mod.rs
+new file mode 100644
+index 0000000..6c846b0
+--- /dev/null
++++ b/crates/knotrel-benchmarks/src/ett_baseline/mod.rs
+@@ -0,0 +1,5 @@
++//! Frozen ETT scan v1 for controlled comparisons; never used by the server.
++//! Copied from the first prototype before candidate-subtree pruning.
++mod dynamic;
++mod forest;
++pub(crate) use dynamic::ForestGraph;
+diff --git a/crates/knotrel-benchmarks/src/lib.rs b/crates/knotrel-benchmarks/src/lib.rs
+index ca464e8..539bdea 100644
+--- a/crates/knotrel-benchmarks/src/lib.rs
++++ b/crates/knotrel-benchmarks/src/lib.rs
+@@ -5,19 +5,24 @@
+ 
+ use serde::Serialize;
+ 
+-/// A chain split/rejoin workload configuration.
++pub mod engines;
++mod traces;
++pub use traces::{WorkloadKind, generate, generate_with_query_percent};
++
++/// A deterministic workload configuration.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+ pub struct Config {
+     /// Number of vertices.
+     pub nodes: u64,
+-    /// Number of split/rejoin cycles.
++    /// Number of workload cycles; sustained families use 100 operations per cycle.
+     pub rounds: usize,
+     /// Deterministic generator seed.
+     pub seed: u64,
+ }
+ 
+ /// An operation with independently known query results.
+-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
++#[serde(tag = "op", rename_all = "snake_case")]
+ pub enum Operation {
+     /// Insert an edge.
+     Link {
+@@ -45,9 +50,9 @@ pub enum Operation {
+ }
+ 
+ /// A deterministic initial graph and operation trace.
+-#[derive(Debug, PartialEq, Eq)]
++#[derive(Debug, PartialEq, Eq, Serialize)]
+ pub struct Workload {
+-    /// Initial chain edges.
++    /// Initial undirected edges; vertices are `0..config.nodes`.
+     pub initial_edges: Vec<(u64, u64)>,
+     /// Operations in execution order.
+     pub operations: Vec<Operation>,
+@@ -116,3 +121,5 @@ pub fn chain_workload(config: Config) -> Result<Workload, &'static str> {
+         operations,
+     })
+ }
++
++mod ett_baseline;
+diff --git a/crates/knotrel-benchmarks/src/main.rs b/crates/knotrel-benchmarks/src/main.rs
+index 2bf86ee..6727936 100644
+--- a/crates/knotrel-benchmarks/src/main.rs
++++ b/crates/knotrel-benchmarks/src/main.rs
+@@ -2,13 +2,14 @@
+ 
+ mod metrics;
+ 
+-use knotrel_benchmarks::{Config, Operation, chain_workload};
+-use knotrel_core::Graph;
++use knotrel_benchmarks::engines::{Engine, EngineKind};
++use knotrel_benchmarks::{Config, Operation, Workload, WorkloadKind, generate_with_query_percent};
+ use metrics::Latency;
+ use serde::Serialize;
+ use std::{
+     error::Error,
+     hint::black_box,
++    io::Write,
+     path::Path,
+     process::{Command, ExitCode},
+     time::{Instant, SystemTime, UNIX_EPOCH},
+@@ -27,28 +28,65 @@ struct Report {
+     timestamp_unix_seconds: u64,
+     config: Config,
+     checkouts_at_run_time: Checkouts,
+-    measurements: Measurements,
+-    workload_wall_ns: u128,
++    warmup: usize,
++    query_repeats: usize,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    query_percent: Option<u8>,
++    trace_fingerprint_fnv1a64: String,
++    initial_edges: usize,
++    initial_density: f64,
++    initial_max_degree: usize,
++    repetitions: Vec<Run>,
+ }
+ 
+-#[derive(Serialize)]
++#[derive(Clone, Serialize)]
+ struct Checkouts {
+     core: GitState,
+     benchmarks: GitState,
+ }
+-
+-#[derive(Serialize)]
++#[derive(Clone, Serialize)]
+ struct GitState {
+     revision: Option<String>,
+     dirty: Option<bool>,
+ }
+-
++#[derive(Serialize)]
++struct Run {
++    setup_ns: u128,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    forest_stats: Option<serde_json::Value>,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    hdt_stats: Option<serde_json::Value>,
++    query_true: Option<Latency>,
++    query_false: Option<Latency>,
++    repeated_queries: Option<Latency>,
++    measurements: Measurements,
++    workload_wall_ns: u128,
++}
+ #[derive(Serialize)]
+ struct Measurements {
+-    cut: Latency,
+-    link: Latency,
++    cut: Option<Latency>,
++    link: Option<Latency>,
+     connected: Latency,
+ }
++#[derive(Serialize)]
++struct TraceExport<'a> {
++    schema_version: u32,
++    workload: &'static str,
++    config: Config,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    query_percent: Option<u8>,
++    trace: &'a Workload,
++}
++struct Options {
++    config: Config,
++    kind: WorkloadKind,
++    warmup: usize,
++    repetitions: usize,
++    trace_out: Option<String>,
++    engines: Vec<EngineKind>,
++    query_repeats: usize,
++    query_percent: u8,
++}
+ 
+ fn main() -> ExitCode {
+     match run() {
+@@ -61,28 +99,144 @@ fn main() -> ExitCode {
+ }
+ 
+ fn run() -> Result<(), Box<dyn Error>> {
+-    let Some(config) = parse_args()? else {
++    let Some(options) = parse_args()? else {
+         println!(
+-            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N]\nDefaults: --nodes 10000 --rounds 1000 --seed 42\nRun with cargo run --release --locked for measurements."
++            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (experimental HDT); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
+         );
+         return Ok(());
+     };
+-    let workload = chain_workload(config)?;
+-    let mut graph = Graph::new();
+-    for (source, target) in workload.initial_edges {
+-        graph.link(source, target)?;
++    let config = options.config;
++    let workload = generate_with_query_percent(options.kind, config, options.query_percent)?;
++    let query_percent = options.kind.is_sustained().then_some(options.query_percent);
++    let export = TraceExport {
++        schema_version: 1,
++        workload: options.kind.name(),
++        config,
++        query_percent,
++        trace: &workload,
++    };
++    let bytes = serde_json::to_vec(&export)?;
++    // Stable fingerprint of exact compact JSON bytes; not a cryptographic hash.
++    let fingerprint = bytes.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
++        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
++    });
++    if let Some(path) = &options.trace_out {
++        // Never overwrite user files, including source files or prior traces.
++        let mut file = std::fs::OpenOptions::new()
++            .write(true)
++            .create_new(true)
++            .open(path)?;
++        file.write_all(&bytes)?;
++    }
++    drop(bytes);
++    let mut degree = vec![0_usize; usize::try_from(config.nodes)?];
++    for &(a, b) in &workload.initial_edges {
++        degree[a as usize] += 1;
++        degree[b as usize] += 1;
+     }
+-    let mut cuts = Vec::with_capacity(config.rounds);
+-    let mut links = Vec::with_capacity(config.rounds);
+-    let mut queries = Vec::with_capacity(config.rounds * 2);
++    let initial_max_degree = degree.into_iter().max().unwrap_or(0);
+     let timestamp_unix_seconds = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
++    let benchmark_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
++    let core_root = benchmark_root.join("../knotrel");
++    let checkouts_at_run_time = Checkouts {
++        core: git_state(&core_root),
++        benchmarks: git_state(&benchmark_root),
++    };
++    let mut reports = Vec::new();
++    for &engine in &options.engines {
++        for _ in 0..options.warmup {
++            replay(config, &workload, engine, options.query_repeats)?;
++        }
++        let mut repetitions = Vec::new();
++        repetitions.try_reserve_exact(options.repetitions)?;
++        for _ in 0..options.repetitions {
++            repetitions.push(replay(config, &workload, engine, options.query_repeats)?);
++        }
++        let report = Report {
++            schema_version: 2,
++            engine: engine.name(),
++            workload: options.kind.name(),
++            benchmark_version: env!("CARGO_PKG_VERSION"),
++            compiler: env!("KNOTREL_BUILD_COMPILER"),
++            os: std::env::consts::OS,
++            arch: std::env::consts::ARCH,
++            debug_assertions: cfg!(debug_assertions),
++            timestamp_unix_seconds,
++            config,
++            checkouts_at_run_time: checkouts_at_run_time.clone(),
++            warmup: options.warmup,
++            query_repeats: options.query_repeats,
++            query_percent,
++            trace_fingerprint_fnv1a64: format!("{fingerprint:016x}"),
++            initial_edges: workload.initial_edges.len(),
++            initial_density: 2.0 * workload.initial_edges.len() as f64
++                / (config.nodes as f64 * (config.nodes - 1) as f64),
++            initial_max_degree,
++            repetitions,
++        };
++        reports.push(report);
++    }
++    if reports.len() == 1 {
++        println!("{}", serde_json::to_string_pretty(&reports[0])?);
++    } else {
++        println!(
++            "{}",
++            serde_json::to_string_pretty(
++                &serde_json::json!({"schema_version": 3, "comparisons": reports})
++            )?
++        );
++    }
++    Ok(())
++}
+ 
+-    // Setup and trace allocation finish before this wall timer. Each operation
+-    // interval includes the call and a compiler barrier; result checking and
+-    // sample storage follow the interval. The wall interval additionally includes
+-    // checks, loop dispatch and sampling overhead. It is not operation throughput.
++/// Rebuild before every replay. Warmups execute identical timers and checks,
++/// then discard summaries. Graph state never carries across repetitions, but
++/// allocator/process caches can remain warm. Setup and sorting are untimed.
++fn replay(
++    config: Config,
++    workload: &Workload,
++    engine: EngineKind,
++    query_repeats: usize,
++) -> Result<Run, Box<dyn Error>> {
++    let setup_start = Instant::now();
++    let nodes: Vec<u64> = (0..config.nodes).collect();
++    let mut graph = Engine::new(engine, &nodes)?;
++    for &(source, target) in &workload.initial_edges {
++        graph.link(source, target)?;
++    }
++    let setup_ns = setup_start.elapsed().as_nanos();
++    graph.reset_stats();
++    let mut counts = [0_usize; 4];
++    for operation in &workload.operations {
++        counts[match operation {
++            Operation::Cut { .. } => 0,
++            Operation::Link { .. } => 1,
++            Operation::Connected { expected: true, .. } => 2,
++            Operation::Connected {
++                expected: false, ..
++            } => 3,
++        }] += 1;
++    }
++    let allocate = |count| -> Result<Vec<u128>, Box<dyn Error>> {
++        let mut samples = Vec::new();
++        samples.try_reserve_exact(count)?;
++        Ok(samples)
++    };
++    let mut cuts = allocate(counts[0])?;
++    let mut links = allocate(counts[1])?;
++    let mut queries = allocate(counts[2] + counts[3])?;
++    let mut true_queries = allocate(counts[2])?;
++    let mut false_queries = allocate(counts[3])?;
++    let mut repeats = allocate(
++        (counts[2] + counts[3])
++            .checked_mul(query_repeats)
++            .ok_or("too many query repeats")?,
++    )?;
++    // Each interval includes the call, a compiler barrier and clock overhead.
++    // Checking and sample insertion follow the interval. Wall time additionally
++    // includes dispatch, checking and sampling; it is not operation throughput.
+     let wall_start = Instant::now();
+-    for operation in workload.operations {
++    for &operation in &workload.operations {
+         match operation {
+             Operation::Cut { source, target } => {
+                 let start = Instant::now();
+@@ -114,45 +268,79 @@ fn run() -> Result<(), Box<dyn Error>> {
+                     return Err("connectivity failed the workload oracle".into());
+                 }
+                 queries.push(elapsed);
++                if expected {
++                    true_queries.push(elapsed);
++                } else {
++                    false_queries.push(elapsed);
++                }
++                for _ in 0..query_repeats {
++                    let start = Instant::now();
++                    let repeated = black_box(graph.connected(source, target));
++                    let elapsed = start.elapsed().as_nanos();
++                    if repeated? != expected {
++                        return Err("repeated query failed the workload oracle".into());
++                    }
++                    repeats.push(elapsed);
++                }
+             }
+         }
+     }
+     let workload_wall_ns = wall_start.elapsed().as_nanos();
+-    let benchmark_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+-    let core_root = benchmark_root.join("../knotrel");
+-    let report = Report {
+-        schema_version: 1,
+-        engine: "knotrel-core/reference-bfs",
+-        workload: "chain-split-rejoin-v1",
+-        benchmark_version: env!("CARGO_PKG_VERSION"),
+-        compiler: env!("KNOTREL_BUILD_COMPILER"),
+-        os: std::env::consts::OS,
+-        arch: std::env::consts::ARCH,
+-        debug_assertions: cfg!(debug_assertions),
+-        timestamp_unix_seconds,
+-        config,
+-        checkouts_at_run_time: Checkouts {
+-            core: git_state(&core_root),
+-            benchmarks: git_state(&benchmark_root),
+-        },
++    let forest_stats = graph.forest_stats().map(|stats| {
++        serde_json::json!({
++            "tree_cuts": stats.tree_cuts,
++            "scanned_vertices": stats.scanned_vertices,
++            "candidate_edges": stats.candidate_edges,
++            "replacements": stats.replacements,
++        })
++    });
++    let hdt_stats = graph.hdt_stats().map(|stats| {
++        serde_json::json!({
++            "tree_cuts": stats.tree_cuts,
++            "candidate_edges": stats.candidate_edges,
++            "replacements": stats.replacements,
++            "tree_promotions": stats.tree_promotions,
++            "non_tree_promotions": stats.non_tree_promotions,
++            "levels_visited": stats.levels_visited,
++        })
++    });
++    let optional = |samples: Vec<u128>| {
++        if samples.is_empty() {
++            None
++        } else {
++            Some(Latency::from_samples(samples))
++        }
++    };
++    Ok(Run {
++        setup_ns,
++        forest_stats,
++        hdt_stats,
++        query_true: optional(true_queries),
++        query_false: optional(false_queries),
++        repeated_queries: optional(repeats),
+         measurements: Measurements {
+-            cut: Latency::from_samples(cuts),
+-            link: Latency::from_samples(links),
++            cut: optional(cuts),
++            link: optional(links),
+             connected: Latency::from_samples(queries),
+         },
+         workload_wall_ns,
+-    };
+-    println!("{}", serde_json::to_string_pretty(&report)?);
+-    Ok(())
++    })
+ }
+ 
+-/// Parses explicit numeric flags; malformed input fails before graph allocation.
+-fn parse_args() -> Result<Option<Config>, Box<dyn Error>> {
++/// Parses flags before allocating graphs. Repeated flags use their last value.
++fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
+     let mut config = Config {
+         nodes: 10_000,
+         rounds: 1_000,
+         seed: 42,
+     };
++    let mut kind = WorkloadKind::Chain;
++    let mut warmup = 1;
++    let mut repetitions = 1;
++    let mut trace_out = None;
++    let mut engines = vec![EngineKind::Reference];
++    let mut query_repeats = 0;
++    let mut query_percent = 50;
+     let mut args = std::env::args().skip(1);
+     while let Some(flag) = args.next() {
+         if flag == "--help" || flag == "-h" {
+@@ -162,14 +350,61 @@ fn parse_args() -> Result<Option<Config>, Box<dyn Error>> {
+             "--nodes" => config.nodes = args.next().ok_or("--nodes needs a value")?.parse()?,
+             "--rounds" => config.rounds = args.next().ok_or("--rounds needs a value")?.parse()?,
+             "--seed" => config.seed = args.next().ok_or("--seed needs a value")?.parse()?,
++            "--workload" => {
++                kind = WorkloadKind::parse(&args.next().ok_or("--workload needs a value")?)?
++            }
++            "--warmup" => warmup = args.next().ok_or("--warmup needs a value")?.parse()?,
++            "--repetitions" => {
++                repetitions = args.next().ok_or("--repetitions needs a value")?.parse()?
++            }
++            "--engine" => {
++                let value = args.next().ok_or("--engine needs a value")?;
++                engines = if value == "all" {
++                    EngineKind::ALL.to_vec()
++                } else {
++                    value
++                        .split(',')
++                        .map(EngineKind::parse)
++                        .collect::<Result<Vec<_>, _>>()?
++                };
++                for (i, kind) in engines.iter().enumerate() {
++                    if engines[..i].contains(kind) {
++                        return Err("duplicate engine".into());
++                    }
++                }
++            }
++            "--query-percent" => {
++                query_percent = args
++                    .next()
++                    .ok_or("--query-percent needs a value")?
++                    .parse()?;
++            }
++            "--query-repeats" => {
++                query_repeats = args
++                    .next()
++                    .ok_or("--query-repeats needs a value")?
++                    .parse()?
++            }
++            "--trace-out" => trace_out = Some(args.next().ok_or("--trace-out needs a value")?),
+             _ => return Err(format!("unknown argument: {flag}").into()),
+         }
+     }
+-    Ok(Some(config))
++    if repetitions == 0 {
++        return Err("repetitions must be at least 1".into());
++    }
++    Ok(Some(Options {
++        config,
++        kind,
++        warmup,
++        repetitions,
++        trace_out,
++        engines,
++        query_repeats,
++        query_percent,
++    }))
+ }
+ 
+-/// Records checkout provenance at run time, not a claim about binary provenance.
+-/// Missing Git or moved source checkouts produce null metadata, never invented IDs.
++/// Runtime checkout provenance, not binary attestation. Missing metadata is null.
+ fn git_state(directory: &Path) -> GitState {
+     let command = |args: &[&str]| -> Option<String> {
+         let output = Command::new("git")
+diff --git a/crates/knotrel-benchmarks/src/traces.rs b/crates/knotrel-benchmarks/src/traces.rs
+new file mode 100644
+index 0000000..8be005a
+--- /dev/null
++++ b/crates/knotrel-benchmarks/src/traces.rs
+@@ -0,0 +1,457 @@
++//! Topology-derived traces, independent of any measured engine.
++
++use std::collections::BTreeSet;
++
++use crate::{Config, Operation, Workload, chain_workload};
++
++/// Versioned synthetic workload families; names fix the generation contract.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum WorkloadKind {
++    /// Path bridge deletions, preserving the original v1 sequence.
++    Chain,
++    /// Ring edges: redundant deletion followed by an actual split.
++    Cycle,
++    /// Two paths repeatedly joined by a bridge and separated.
++    Components,
++    /// Star with a path among leaves; isolate and restore a leaf.
++    Hub,
++    /// Path edges toggle continuously, with interval-derived answers.
++    SustainedPath,
++    /// Connected cycle blocks with continuously toggled backbone bridges.
++    SustainedBlocks,
++    /// Two fixed cliques with one continuously toggled cross-component bridge.
++    DenseBridge,
++    /// Two fixed cliques with two independently toggled cross-component bridges.
++    RedundantBridge,
++}
++
++impl WorkloadKind {
++    /// Returns the stable trace family identifier.
++    #[must_use]
++    pub fn name(self) -> &'static str {
++        match self {
++            Self::Chain => "chain-split-rejoin-v1",
++            Self::Cycle => "cycle-alternatives-v1",
++            Self::Components => "components-join-split-v1",
++            Self::Hub => "hub-alternatives-v1",
++            Self::SustainedPath => "sustained-churn-path-v1",
++            Self::SustainedBlocks => "sustained-churn-blocks-v1",
++            Self::DenseBridge => "dense-bridge-churn-v1",
++            Self::RedundantBridge => "redundant-bridge-churn-v1",
++        }
++    }
++
++    /// Whether rounds represent 100-operation sustained churn cycles.
++    #[must_use]
++    pub fn is_sustained(self) -> bool {
++        matches!(
++            self,
++            Self::SustainedPath | Self::SustainedBlocks | Self::DenseBridge | Self::RedundantBridge
++        )
++    }
++
++    /// Resolves a versioned workload name.
++    ///
++    /// # Errors
++    /// Rejects unknown names rather than silently selecting another workload.
++    pub fn parse(name: &str) -> Result<Self, &'static str> {
++        [
++            Self::Chain,
++            Self::Cycle,
++            Self::Components,
++            Self::Hub,
++            Self::SustainedPath,
++            Self::SustainedBlocks,
++            Self::DenseBridge,
++            Self::RedundantBridge,
++        ]
++        .into_iter()
++        .find(|kind| kind.name() == name)
++        .ok_or("unknown workload")
++    }
++}
++
++/// Builds a reusable trace whose answers follow from topology.
++///
++/// Chain preserves [`chain_workload`]. Sustained families delegate to
++/// [`generate_with_query_percent`] with 50% queries and retain state across
++/// rounds. The remaining families require at least six vertices and restore
++/// their initial graph each round, so all updates change state.
++/// Cycle removes both edges incident to a seeded vertex: one deletion retains
++/// a spanning path, two isolate that vertex. Hub removes a seeded leaf's spoke
++/// and its one or two leaf-path edges; only the final cut isolates the leaf.
++/// Components starts with two paths and toggles a single cross-component bridge.
++/// Historical families follow each mutation with one query.
++///
++/// Historical generation uses O(nodes + rounds) worst-case time and space. Selection uses
++/// the same wrapping LCG as the chain; modulo selection is biased. These are
++/// structured sparse stress cases, not samples from a production distribution.
++///
++/// # Errors
++/// Rejects invalid sizes, arithmetic overflow and failed trace allocations.
++pub fn generate(kind: WorkloadKind, config: Config) -> Result<Workload, &'static str> {
++    if kind.is_sustained() {
++        return generate_with_query_percent(kind, config, 50);
++    }
++    if kind == WorkloadKind::Chain {
++        return chain_workload(config);
++    }
++    if config.nodes < 6 || config.rounds == 0 {
++        return Err("new workloads need nodes >= 6 and rounds >= 1");
++    }
++    let n = usize::try_from(config.nodes).map_err(|_| "too many nodes")?;
++    let mut trace = Workload {
++        initial_edges: Vec::new(),
++        operations: Vec::new(),
++    };
++    trace
++        .initial_edges
++        .try_reserve_exact(n.checked_mul(2).ok_or("too many nodes")?)
++        .map_err(|_| "cannot allocate initial graph")?;
++    trace
++        .operations
++        .try_reserve_exact(config.rounds.checked_mul(12).ok_or("too many rounds")?)
++        .map_err(|_| "cannot allocate operation trace")?;
++    let split = config.nodes / 2;
++    match kind {
++        WorkloadKind::Cycle => {
++            for v in 0..config.nodes {
++                trace.initial_edges.push((v, (v + 1) % config.nodes));
++            }
++        }
++        WorkloadKind::Components => {
++            for v in 0..config.nodes - 1 {
++                if v + 1 != split {
++                    trace.initial_edges.push((v, v + 1));
++                }
++            }
++        }
++        WorkloadKind::Hub => {
++            for v in 1..config.nodes {
++                trace.initial_edges.push((0, v));
++            }
++            for v in 1..config.nodes - 1 {
++                trace.initial_edges.push((v, v + 1));
++            }
++        }
++        WorkloadKind::Chain
++        | WorkloadKind::SustainedPath
++        | WorkloadKind::SustainedBlocks
++        | WorkloadKind::DenseBridge
++        | WorkloadKind::RedundantBridge => {
++            unreachable!()
++        }
++    }
++    let mut seed = config.seed;
++    for _ in 0..config.rounds {
++        seed = seed
++            .wrapping_mul(6364136223846793005)
++            .wrapping_add(1442695040888963407);
++        match kind {
++            WorkloadKind::Components => {
++                let a = seed % split;
++                let b = split + seed.rotate_left(32) % (config.nodes - split);
++                trace.operations.extend([
++                    Operation::Link {
++                        source: a,
++                        target: b,
++                    },
++                    query(0, config.nodes - 1, true),
++                    Operation::Cut {
++                        source: a,
++                        target: b,
++                    },
++                    query(0, config.nodes - 1, false),
++                ]);
++            }
++            WorkloadKind::Cycle | WorkloadKind::Hub => {
++                let v = if kind == WorkloadKind::Cycle {
++                    seed % config.nodes
++                } else {
++                    1 + seed % (config.nodes - 1)
++                };
++                // At most three incident edges; stack storage avoids per-round
++                // allocation. Other vertices remain connected after isolation.
++                let mut neighbors = [0; 3];
++                let count = if kind == WorkloadKind::Cycle {
++                    neighbors[0] = (v + config.nodes - 1) % config.nodes;
++                    neighbors[1] = (v + 1) % config.nodes;
++                    2
++                } else {
++                    let mut count = 1; // The spoke (v, 0).
++                    if v > 1 {
++                        neighbors[count] = v - 1;
++                        count += 1;
++                    }
++                    if v + 1 < config.nodes {
++                        neighbors[count] = v + 1;
++                        count += 1;
++                    }
++                    count
++                };
++                let target = if kind == WorkloadKind::Cycle {
++                    (v + config.nodes / 2) % config.nodes
++                } else {
++                    0
++                };
++                for (i, &neighbor) in neighbors[..count].iter().enumerate() {
++                    trace.operations.push(Operation::Cut {
++                        source: v,
++                        target: neighbor,
++                    });
++                    trace.operations.push(if kind == WorkloadKind::Hub {
++                        query(0, v, i + 1 < count)
++                    } else {
++                        query(v, target, i + 1 < count)
++                    });
++                }
++                for &neighbor in neighbors[..count].iter().rev() {
++                    trace.operations.push(Operation::Link {
++                        source: v,
++                        target: neighbor,
++                    });
++                    trace.operations.push(if kind == WorkloadKind::Hub {
++                        query(0, v, true)
++                    } else {
++                        query(v, target, true)
++                    });
++                }
++            }
++            WorkloadKind::Chain
++            | WorkloadKind::SustainedPath
++            | WorkloadKind::SustainedBlocks
++            | WorkloadKind::DenseBridge
++            | WorkloadKind::RedundantBridge => {
++                unreachable!()
++            }
++        }
++    }
++    Ok(trace)
++}
++
++fn query(source: u64, target: u64, expected: bool) -> Operation {
++    Operation::Connected {
++        source,
++        target,
++        expected,
++    }
++}
++
++/// Generates sustained churn with exactly `query_percent` queries per 100
++/// operations. Historical families accept only 50 and preserve their v1 traces.
++///
++/// Sustained path toggles seeded path edges. Blocks comprise up to 16 vertices
++/// each (at least three in a cycle), connected by single backbone bridges. A
++/// cycle has at most one absent edge; toggling cycle edges therefore preserves
++/// internal connectivity while exercising redundant/tree-edge deletion. Small
++/// trailing blocks retain their fixed internal path. Bridge and cycle updates
++/// alternate when cycles exist. State persists across every round boundary.
++/// Queries choose arbitrary vertices; a sorted set of absent path/bridge
++/// boundaries supplies independent answers without graph traversal.
++///
++/// Dense bridge families instead keep two fixed cliques of floor(nodes/2) and
++/// ceil(nodes/2) vertices. One bridge toggles for `DenseBridge`; `RedundantBridge`
++/// selects one of two distinct bridges with the seeded generator per update.
++/// All bridges start present and are loaded after internal edges. Queries are
++/// connected exactly when their endpoints share a clique or any bridge remains.
++/// These families need at least four vertices, take O(nodes² + operations) time
++/// and space, and target failed replacement searches and bridge redundancy.
++///
++/// Sparse sustained generation takes O(nodes + operations * log(nodes)) time and
++/// O(nodes + operations) space. Seeded modulo selection is biased, reproducible,
++/// and intended for structured stress testing rather than production modelling.
++///
++/// # Errors
++/// Rejects query percentages outside 1..=99, non-50 percentages for historical
++/// families, fewer than two nodes (four for dense bridge families), zero rounds,
++/// overflow or failed allocations.
++pub fn generate_with_query_percent(
++    kind: WorkloadKind,
++    config: Config,
++    query_percent: u8,
++) -> Result<Workload, &'static str> {
++    if !(1..=99).contains(&query_percent) {
++        return Err("query percent must be between 1 and 99");
++    }
++    if !kind.is_sustained() {
++        if query_percent != 50 {
++            return Err("query percent is configurable only for sustained workloads");
++        }
++        return generate(kind, config);
++    }
++    if matches!(
++        kind,
++        WorkloadKind::DenseBridge | WorkloadKind::RedundantBridge
++    ) {
++        return generate_dense_bridge(kind, config, query_percent);
++    }
++    if config.nodes < 2 || config.rounds == 0 {
++        return Err("sustained workloads need nodes >= 2 and rounds >= 1");
++    }
++    let n = usize::try_from(config.nodes).map_err(|_| "too many nodes")?;
++    let count = config.rounds.checked_mul(100).ok_or("too many rounds")?;
++    let mut trace = Workload {
++        initial_edges: Vec::new(),
++        operations: Vec::new(),
++    };
++    trace
++        .initial_edges
++        .try_reserve_exact(n.checked_mul(2).ok_or("too many nodes")?)
++        .map_err(|_| "cannot allocate initial graph")?;
++    trace
++        .operations
++        .try_reserve_exact(count)
++        .map_err(|_| "cannot allocate operation trace")?;
++    let block_size = if kind == WorkloadKind::SustainedPath || config.nodes < 3 {
++        1
++    } else {
++        16
++    };
++    let blocks = config.nodes.div_ceil(block_size);
++    for v in 0..config.nodes - 1 {
++        trace.initial_edges.push((v, v + 1));
++    }
++    let cycle_blocks = if block_size == 1 {
++        0
++    } else {
++        config.nodes / block_size + u64::from(config.nodes % block_size >= 3)
++    };
++    for block in 0..cycle_blocks {
++        let start = block * block_size;
++        let end = (start + block_size).min(config.nodes);
++        trace.initial_edges.push((start, end - 1));
++    }
++    let mut gaps = vec![None; usize::try_from(cycle_blocks).map_err(|_| "too many blocks")?];
++    let mut absent = BTreeSet::new();
++    let mut seed = config.seed;
++    let mut updates = 0_usize;
++    for index in 0..count {
++        let slot = index % 100;
++        if (slot + 1) * usize::from(query_percent) / 100 > slot * usize::from(query_percent) / 100 {
++            let source = next_random(&mut seed) % config.nodes;
++            let target = next_random(&mut seed) % config.nodes;
++            let a = source.min(target) / block_size;
++            let b = source.max(target) / block_size;
++            trace
++                .operations
++                .push(query(source, target, absent.range(a..b).next().is_none()));
++        } else {
++            let internal = cycle_blocks > 0 && (blocks == 1 || updates % 2 == 1);
++            let (source, target, insert) = if internal {
++                let block = next_random(&mut seed) % cycle_blocks;
++                let start = block * block_size;
++                let end = (start + block_size).min(config.nodes);
++                let gap = &mut gaps[block as usize];
++                if let Some(edge) = gap.take() {
++                    (edge, if edge + 1 == end { start } else { edge + 1 }, true)
++                } else {
++                    let edge = start + next_random(&mut seed) % (end - start);
++                    *gap = Some(edge);
++                    (edge, if edge + 1 == end { start } else { edge + 1 }, false)
++                }
++            } else {
++                let boundary = next_random(&mut seed) % (blocks - 1);
++                let insert = !absent.insert(boundary);
++                if insert {
++                    absent.remove(&boundary);
++                }
++                let source = (boundary + 1) * block_size - 1;
++                (source, source + 1, insert)
++            };
++            trace.operations.push(if insert {
++                Operation::Link { source, target }
++            } else {
++                Operation::Cut { source, target }
++            });
++            updates += 1;
++        }
++    }
++    Ok(trace)
++}
++
++// Only bridges mutate, so clique membership plus two presence bits is a complete
++// independent connectivity oracle. Trace storage dominates generation memory.
++fn generate_dense_bridge(
++    kind: WorkloadKind,
++    config: Config,
++    query_percent: u8,
++) -> Result<Workload, &'static str> {
++    if config.nodes < 4 || config.rounds == 0 {
++        return Err("dense bridge workloads need nodes >= 4 and rounds >= 1");
++    }
++    let n = usize::try_from(config.nodes).map_err(|_| "too many nodes")?;
++    let left = n / 2;
++    let right = n - left;
++    let clique_edges = |size: usize| {
++        // Divide the even factor first, avoiding intermediate overflow.
++        if size.is_multiple_of(2) {
++            (size / 2).checked_mul(size - 1)
++        } else {
++            size.checked_mul((size - 1) / 2)
++        }
++    };
++    let bridge_count = if kind == WorkloadKind::DenseBridge {
++        1
++    } else {
++        2
++    };
++    let edge_count = clique_edges(left)
++        .and_then(|a| clique_edges(right).and_then(|b| a.checked_add(b)))
++        .and_then(|count| count.checked_add(bridge_count))
++        .ok_or("too many nodes")?;
++    let count = config.rounds.checked_mul(100).ok_or("too many rounds")?;
++    let mut trace = Workload {
++        initial_edges: Vec::new(),
++        operations: Vec::new(),
++    };
++    trace
++        .initial_edges
++        .try_reserve_exact(edge_count)
++        .map_err(|_| "cannot allocate initial graph")?;
++    trace
++        .operations
++        .try_reserve_exact(count)
++        .map_err(|_| "cannot allocate operation trace")?;
++    let split = config.nodes / 2;
++    for (start, end) in [(0, split), (split, config.nodes)] {
++        for source in start..end {
++            for target in source + 1..end {
++                trace.initial_edges.push((source, target));
++            }
++        }
++    }
++    let bridges = [(0, split), (1, split + 1)];
++    trace
++        .initial_edges
++        .extend_from_slice(&bridges[..bridge_count]);
++    let mut present = [true; 2];
++    let mut seed = config.seed;
++    for index in 0..count {
++        let slot = index % 100;
++        if (slot + 1) * usize::from(query_percent) / 100 > slot * usize::from(query_percent) / 100 {
++            let source = next_random(&mut seed) % config.nodes;
++            let target = next_random(&mut seed) % config.nodes;
++            let expected = (source < split) == (target < split)
++                || present[..bridge_count].iter().any(|&exists| exists);
++            trace.operations.push(query(source, target, expected));
++        } else {
++            let bridge = (next_random(&mut seed) % bridge_count as u64) as usize;
++            let (source, target) = bridges[bridge];
++            trace.operations.push(if present[bridge] {
++                Operation::Cut { source, target }
++            } else {
++                Operation::Link { source, target }
++            });
++            present[bridge] = !present[bridge];
++        }
++    }
++    Ok(trace)
++}
++
++fn next_random(seed: &mut u64) -> u64 {
++    *seed = seed
++        .wrapping_mul(6364136223846793005)
++        .wrapping_add(1442695040888963407);
++    // High bits avoid short low-bit cycles for power-of-two graph sizes.
++    seed.rotate_left(29)
++}
+diff --git a/crates/knotrel-benchmarks/tests/cli.rs b/crates/knotrel-benchmarks/tests/cli.rs
+index 8e61863..40d2060 100644
+--- a/crates/knotrel-benchmarks/tests/cli.rs
++++ b/crates/knotrel-benchmarks/tests/cli.rs
+@@ -15,13 +15,17 @@ fn smoke_run_emits_machine_readable_measurements_and_configuration() {
+         String::from_utf8_lossy(&output.stderr)
+     );
+     let report: Value = serde_json::from_slice(&output.stdout).expect("benchmark must emit JSON");
+-    assert_eq!(report["schema_version"], 1);
++    assert_eq!(report["schema_version"], 2);
++    assert!(report.get("query_percent").is_none());
+     assert_eq!(report["config"]["nodes"], 16);
+     assert_eq!(report["config"]["rounds"], 4);
+     assert_eq!(report["config"]["seed"], 7);
+-    assert_eq!(report["measurements"]["cut"]["count"], 4);
+-    assert_eq!(report["measurements"]["link"]["count"], 4);
+-    assert_eq!(report["measurements"]["connected"]["count"], 8);
++    assert_eq!(report["repetitions"][0]["measurements"]["cut"]["count"], 4);
++    assert_eq!(report["repetitions"][0]["measurements"]["link"]["count"], 4);
++    assert_eq!(
++        report["repetitions"][0]["measurements"]["connected"]["count"],
++        8
++    );
+     assert!(
+         report["compiler"]
+             .as_str()
+@@ -29,7 +33,7 @@ fn smoke_run_emits_machine_readable_measurements_and_configuration() {
+             .contains("rustc 1.98.1")
+     );
+     for op in ["cut", "link", "connected"] {
+-        let samples = &report["measurements"][op];
++        let samples = &report["repetitions"][0]["measurements"][op];
+         let values: Vec<u64> = ["min_ns", "p50_ns", "p95_ns", "p99_ns", "max_ns"]
+             .into_iter()
+             .map(|key| samples[key].as_u64().unwrap())
+@@ -44,7 +48,14 @@ fn invalid_arguments_fail_without_printing_measurements() {
+         vec!["--nodes", "1"],
+         vec!["--rounds", "0"],
+         vec!["--seed"],
++        vec!["--workload", "invalid"],
++        vec!["--workload", "cycle-alternatives-v1", "--nodes", "5"],
++        vec!["--repetitions", "0"],
++        vec!["--warmup", "-1"],
+         vec!["--unknown", "1"],
++        vec!["--query-percent", "0"],
++        vec!["--query-percent", "100"],
++        vec!["--query-percent", "10"],
+     ] {
+         let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
+             .args(args)
+@@ -55,3 +66,293 @@ fn invalid_arguments_fail_without_printing_measurements() {
+         assert!(!output.stderr.is_empty());
+     }
+ }
++
++#[test]
++fn reusable_traces_match_an_independent_matrix_oracle() {
++    // A wrong topology answer, duplicate initial edge, or ineffective update
++    // must fail even when the measured engine agrees with the generator.
++    for name in [
++        "chain-split-rejoin-v1",
++        "cycle-alternatives-v1",
++        "components-join-split-v1",
++        "hub-alternatives-v1",
++    ] {
++        for nodes in [6, 7, 12] {
++            for seed in [0, 42, u64::MAX] {
++                let path = std::env::temp_dir().join(format!(
++                    "knotrel-trace-{}-{name}-{nodes}-{seed}.json",
++                    std::process::id()
++                ));
++                let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++                    .args([
++                        "--workload",
++                        name,
++                        "--nodes",
++                        &nodes.to_string(),
++                        "--rounds",
++                        "9",
++                        "--seed",
++                        &seed.to_string(),
++                        "--warmup",
++                        "1",
++                        "--repetitions",
++                        "2",
++                        "--trace-out",
++                        path.to_str().unwrap(),
++                    ])
++                    .output()
++                    .unwrap();
++                assert!(
++                    output.status.success(),
++                    "{}",
++                    String::from_utf8_lossy(&output.stderr)
++                );
++                let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++                assert_eq!(report["repetitions"].as_array().unwrap().len(), 2);
++                assert_eq!(report["warmup"], 1);
++                let bytes = std::fs::read(&path).unwrap();
++                let trace: Value = serde_json::from_slice(&bytes).unwrap();
++                std::fs::remove_file(path).unwrap();
++                let mut adjacency = vec![vec![false; nodes]; nodes];
++                for edge in trace["trace"]["initial_edges"].as_array().unwrap() {
++                    let a = edge[0].as_u64().unwrap() as usize;
++                    let b = edge[1].as_u64().unwrap() as usize;
++                    assert!(a != b && !adjacency[a][b]);
++                    adjacency[a][b] = true;
++                    adjacency[b][a] = true;
++                }
++                for operation in trace["trace"]["operations"].as_array().unwrap() {
++                    let a = operation["source"].as_u64().unwrap() as usize;
++                    let b = operation["target"].as_u64().unwrap() as usize;
++                    match operation["op"].as_str().unwrap() {
++                        "link" | "cut" => {
++                            let inserted = operation["op"] == "link";
++                            assert_ne!(adjacency[a][b], inserted);
++                            adjacency[a][b] = inserted;
++                            adjacency[b][a] = inserted;
++                        }
++                        "connected" => {
++                            let mut reach = adjacency.clone();
++                            for (i, row) in reach.iter_mut().enumerate() {
++                                row[i] = true;
++                            }
++                            for k in 0..nodes {
++                                for i in 0..nodes {
++                                    for j in 0..nodes {
++                                        reach[i][j] |= reach[i][k] && reach[k][j];
++                                    }
++                                }
++                            }
++                            assert_eq!(
++                                reach[a][b],
++                                operation["expected"].as_bool().unwrap(),
++                                "{name}, n={nodes}, seed={seed}"
++                            );
++                        }
++                        _ => panic!("unknown trace operation"),
++                    }
++                }
++                let queries = trace["trace"]["operations"]
++                    .as_array()
++                    .unwrap()
++                    .iter()
++                    .filter(|op| op["op"] == "connected")
++                    .count();
++                for run in report["repetitions"].as_array().unwrap() {
++                    assert_eq!(run["measurements"]["connected"]["count"], queries);
++                }
++            }
++        }
++    }
++}
++
++#[test]
++fn export_is_stable_across_sampling_options_and_never_overwrites_files() {
++    let path = std::env::temp_dir().join(format!("knotrel-export-{}.json", std::process::id()));
++    let mut fingerprints = Vec::new();
++    let mut traces = Vec::new();
++    for warmup in ["0", "2"] {
++        let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++            .args([
++                "--nodes",
++                "8",
++                "--rounds",
++                "2",
++                "--warmup",
++                warmup,
++                "--trace-out",
++                path.to_str().unwrap(),
++            ])
++            .output()
++            .unwrap();
++        assert!(output.status.success());
++        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++        fingerprints.push(report["trace_fingerprint_fnv1a64"].clone());
++        traces.push(std::fs::read(&path).unwrap());
++        let rejected = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++            .args([
++                "--nodes",
++                "6",
++                "--rounds",
++                "1",
++                "--trace-out",
++                path.to_str().unwrap(),
++            ])
++            .output()
++            .unwrap();
++        assert!(!rejected.status.success());
++        assert_eq!(std::fs::read(&path).unwrap(), *traces.last().unwrap());
++        std::fs::remove_file(&path).unwrap();
++    }
++    assert_eq!(fingerprints[0], fingerprints[1]);
++    assert_eq!(traces[0], traces[1]);
++}
++
++#[test]
++fn all_engines_share_trace_and_keep_repeat_queries_separate() {
++    let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++        .args([
++            "--nodes",
++            "16",
++            "--rounds",
++            "4",
++            "--engine",
++            "all",
++            "--query-repeats",
++            "2",
++            "--warmup",
++            "0",
++        ])
++        .output()
++        .unwrap();
++    assert!(
++        output.status.success(),
++        "{}",
++        String::from_utf8_lossy(&output.stderr)
++    );
++    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++    let comparisons = report["comparisons"].as_array().unwrap();
++    assert_eq!(comparisons.len(), 8);
++    for backend in comparisons {
++        assert_eq!(
++            backend["trace_fingerprint_fnv1a64"],
++            comparisons[0]["trace_fingerprint_fnv1a64"]
++        );
++        let run = &backend["repetitions"][0];
++        assert_eq!(run["measurements"]["connected"]["count"], 8);
++        assert_eq!(run["repeated_queries"]["count"], 16);
++        assert_eq!(run["query_true"]["count"], 4);
++        assert_eq!(run["query_false"]["count"], 4);
++        assert!(run["setup_ns"].as_u64().is_some());
++        if backend["engine"] == "knotrel-core/ett-scan-v1"
++            || backend["engine"] == "knotrel-core/ett-pruned-v2"
++        {
++            assert_eq!(run["forest_stats"]["tree_cuts"], 4);
++            assert_eq!(run["forest_stats"]["replacements"], 0);
++        } else {
++            assert!(run.get("forest_stats").is_none());
++        }
++    }
++}
++
++#[test]
++fn sustained_ratios_exports_repeats_and_fingerprints_are_consistent() {
++    for name in ["sustained-churn-path-v1", "sustained-churn-blocks-v1"] {
++        let mut fingerprints = Vec::new();
++        for percent in [10_u64, 50, 90, 99] {
++            let mut ratio_fingerprints = Vec::new();
++            for repeats in [0_u64, 2] {
++                let path = std::env::temp_dir().join(format!(
++                    "knotrel-sustained-{}-{name}-{percent}-{repeats}.json",
++                    std::process::id()
++                ));
++                let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++                    .args([
++                        "--workload",
++                        name,
++                        "--nodes",
++                        "33",
++                        "--rounds",
++                        "1",
++                        "--query-percent",
++                        &percent.to_string(),
++                        "--query-repeats",
++                        &repeats.to_string(),
++                        "--warmup",
++                        "0",
++                        "--trace-out",
++                        path.to_str().unwrap(),
++                    ])
++                    .output()
++                    .unwrap();
++                assert!(
++                    output.status.success(),
++                    "{}",
++                    String::from_utf8_lossy(&output.stderr)
++                );
++                let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++                let bytes = std::fs::read(&path).unwrap();
++                std::fs::remove_file(path).unwrap();
++                let trace: Value = serde_json::from_slice(&bytes).unwrap();
++                assert_eq!(trace["query_percent"], percent);
++                assert_eq!(report["query_percent"], percent);
++                assert_eq!(trace["trace"]["operations"].as_array().unwrap().len(), 100);
++                let run = &report["repetitions"][0];
++                assert_eq!(run["measurements"]["connected"]["count"], percent);
++                assert_eq!(
++                    run["measurements"]["cut"]["count"].as_u64().unwrap_or(0)
++                        + run["measurements"]["link"]["count"].as_u64().unwrap_or(0),
++                    100 - percent
++                );
++                assert_eq!(
++                    run["repeated_queries"]["count"].as_u64().unwrap_or(0),
++                    repeats * percent
++                );
++                let hash = bytes.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
++                    (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
++                });
++                assert_eq!(report["trace_fingerprint_fnv1a64"], format!("{hash:016x}"));
++                ratio_fingerprints.push(report["trace_fingerprint_fnv1a64"].clone());
++            }
++            assert_eq!(ratio_fingerprints[0], ratio_fingerprints[1]);
++            assert!(!fingerprints.contains(&ratio_fingerprints[0]));
++            fingerprints.push(ratio_fingerprints.remove(0));
++        }
++    }
++}
++
++#[test]
++fn hdt_dense_replays_validate_oracle_and_report_level_work() {
++    for workload in ["dense-bridge-churn-v1", "redundant-bridge-churn-v1"] {
++        let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++            .args([
++                "--engine",
++                "hdt",
++                "--nodes",
++                "16",
++                "--rounds",
++                "4",
++                "--workload",
++                workload,
++                "--query-percent",
++                "50",
++                "--query-repeats",
++                "1",
++            ])
++            .output()
++            .unwrap();
++        assert!(
++            output.status.success(),
++            "{}",
++            String::from_utf8_lossy(&output.stderr)
++        );
++        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++        let run = &report["repetitions"][0];
++        assert_eq!(report["engine"], "knotrel-core/hdt-levels-v1");
++        assert_eq!(run["measurements"]["connected"]["count"], 200);
++        assert_eq!(run["repeated_queries"]["count"], 200);
++        assert!(run.get("forest_stats").is_none());
++        assert!(run["hdt_stats"]["tree_cuts"].as_u64().unwrap() > 0);
++        assert!(run["hdt_stats"]["non_tree_promotions"].as_u64().unwrap() > 0);
++    }
++}
+diff --git a/crates/knotrel-benchmarks/tests/engines.rs b/crates/knotrel-benchmarks/tests/engines.rs
+new file mode 100644
+index 0000000..8d7fa3f
+--- /dev/null
++++ b/crates/knotrel-benchmarks/tests/engines.rs
+@@ -0,0 +1,79 @@
++//! Differential adapter tests: expected answers never come from a measured engine.
++use knotrel_benchmarks::engines::{Engine, EngineKind};
++use knotrel_core::GraphError;
++
++#[test]
++fn every_engine_preserves_registered_graph_semantics_and_cache_invalidation() {
++    let ids = [0, 1, u64::MAX, 17, u64::MAX - 1, 29, 30, 31];
++    for kind in EngineKind::ALL {
++        let mut engine = Engine::new(kind, &ids).unwrap();
++        let mut edges = vec![vec![false; ids.len()]; ids.len()];
++        let mut seed = 42_u64;
++        for step in 0..300 {
++            seed = seed
++                .wrapping_mul(6364136223846793005)
++                .wrapping_add(1442695040888963407);
++            let a = (seed >> 32) as usize % ids.len();
++            let b = (seed >> 48) as usize % ids.len();
++            if a != b {
++                let insert = step % 3 != 0;
++                let changed = if insert {
++                    engine.link(ids[a], ids[b])
++                } else {
++                    engine.cut(ids[b], ids[a])
++                };
++                assert_eq!(changed, Ok(edges[a][b] != insert), "{kind:?}, step {step}");
++                edges[a][b] = insert;
++                edges[b][a] = insert;
++            }
++            let mut reach = edges.clone();
++            for (i, row) in reach.iter_mut().enumerate() {
++                row[i] = true;
++            }
++            for k in 0..ids.len() {
++                for i in 0..ids.len() {
++                    for j in 0..ids.len() {
++                        reach[i][j] |= reach[i][k] && reach[k][j];
++                    }
++                }
++            }
++            for (i, &source) in ids.iter().enumerate() {
++                for (j, &target) in ids.iter().enumerate() {
++                    for _ in 0..2 {
++                        assert_eq!(
++                            engine.connected(source, target),
++                            Ok(reach[i][j]),
++                            "{kind:?} step {step}, {i}->{j}"
++                        );
++                    }
++                }
++            }
++        }
++        assert_eq!(
++            engine.connected(0, 42),
++            Err(GraphError::UnknownNode { node: 42 })
++        );
++        assert_eq!(engine.link(0, 0), Err(GraphError::SelfLoop { node: 0 }));
++        assert_eq!(engine.cut(0, 0), Err(GraphError::SelfLoop { node: 0 }));
++    }
++}
++
++#[test]
++fn repeated_bridge_and_cycle_queries_do_not_return_stale_answers() {
++    for kind in EngineKind::ALL {
++        let mut engine = Engine::new(kind, &[0, 1, 2, 3]).unwrap();
++        for _ in 0..20 {
++            assert_eq!(engine.link(0, 1), Ok(true));
++            assert_eq!(engine.link(1, 2), Ok(true));
++            assert_eq!(engine.link(2, 0), Ok(true));
++            assert_eq!(engine.cut(0, 1), Ok(true));
++            assert_eq!(engine.connected(0, 1), Ok(true));
++            assert_eq!(engine.cut(0, 2), Ok(true));
++            assert_eq!(engine.connected(0, 1), Ok(false));
++            assert_eq!(engine.connected(0, 1), Ok(false));
++            assert_eq!(engine.cut(1, 2), Ok(true));
++            assert_eq!(engine.cut(1, 2), Ok(false));
++            assert_eq!(engine.connected(3, 3), Ok(true));
++        }
++    }
++}
+diff --git a/crates/knotrel-benchmarks/tests/workload.rs b/crates/knotrel-benchmarks/tests/workload.rs
+index bfccacc..32ec42f 100644
+--- a/crates/knotrel-benchmarks/tests/workload.rs
++++ b/crates/knotrel-benchmarks/tests/workload.rs
+@@ -124,3 +124,152 @@ fn invalid_sizes_fail_before_allocation() {
+         ]
+     );
+ }
++
++#[test]
++fn all_families_are_reproducible_and_reject_unaddressable_sizes() {
++    use knotrel_benchmarks::{WorkloadKind, generate};
++    for kind in [
++        WorkloadKind::Chain,
++        WorkloadKind::Cycle,
++        WorkloadKind::Components,
++        WorkloadKind::Hub,
++    ] {
++        let config = Config {
++            nodes: 32,
++            rounds: 30,
++            seed: 42,
++        };
++        let first = generate(kind, config).unwrap();
++        assert_eq!(first, generate(kind, config).unwrap());
++        assert_ne!(
++            first,
++            generate(kind, Config { seed: 43, ..config }).unwrap()
++        );
++        for invalid in [
++            Config {
++                nodes: u64::MAX,
++                ..config
++            },
++            Config {
++                rounds: usize::MAX,
++                ..config
++            },
++            Config {
++                rounds: 0,
++                ..config
++            },
++        ] {
++            assert!(generate(kind, invalid).is_err());
++        }
++    }
++}
++
++#[test]
++fn sustained_traces_match_independent_matrix_oracle_and_exact_ratios() {
++    use knotrel_benchmarks::{WorkloadKind, generate_with_query_percent};
++    for kind in [WorkloadKind::SustainedPath, WorkloadKind::SustainedBlocks] {
++        for nodes in [2, 3, 16, 17, 19, 33] {
++            for percent in [1, 10, 50, 90, 99] {
++                let config = Config {
++                    nodes,
++                    rounds: 4,
++                    seed: 42,
++                };
++                let trace = generate_with_query_percent(kind, config, percent).unwrap();
++                assert_eq!(
++                    trace,
++                    generate_with_query_percent(kind, config, percent).unwrap()
++                );
++                assert_eq!(trace.operations.len(), 400);
++                for round in trace.operations.as_chunks::<100>().0 {
++                    assert_eq!(
++                        round
++                            .iter()
++                            .filter(|op| matches!(op, Operation::Connected { .. }))
++                            .count(),
++                        usize::from(percent)
++                    );
++                }
++                let n = nodes as usize;
++                let mut adjacency = vec![vec![false; n]; n];
++                for &(a, b) in &trace.initial_edges {
++                    assert!(a != b && !adjacency[a as usize][b as usize]);
++                    adjacency[a as usize][b as usize] = true;
++                    adjacency[b as usize][a as usize] = true;
++                }
++                let initial = adjacency.clone();
++                let mut changed_at_boundary = false;
++                let mut reach = Vec::new();
++                let mut dirty = true;
++                for (index, op) in trace.operations.iter().enumerate() {
++                    match *op {
++                        Operation::Link { source, target } | Operation::Cut { source, target } => {
++                            let insert = matches!(op, Operation::Link { .. });
++                            assert_ne!(adjacency[source as usize][target as usize], insert);
++                            adjacency[source as usize][target as usize] = insert;
++                            adjacency[target as usize][source as usize] = insert;
++                            dirty = true;
++                        }
++                        Operation::Connected {
++                            source,
++                            target,
++                            expected,
++                        } => {
++                            if dirty {
++                                reach = adjacency.clone();
++                                for (i, row) in reach.iter_mut().enumerate() {
++                                    row[i] = true;
++                                }
++                                for k in 0..n {
++                                    for i in 0..n {
++                                        for j in 0..n {
++                                            reach[i][j] |= reach[i][k] && reach[k][j];
++                                        }
++                                    }
++                                }
++                                dirty = false;
++                            }
++                            assert_eq!(
++                                reach[source as usize][target as usize], expected,
++                                "{kind:?} n={nodes} q={percent} op={index}"
++                            );
++                        }
++                    }
++                    if (index + 1) % 100 == 0 && adjacency != initial {
++                        changed_at_boundary = true;
++                    }
++                }
++                // With larger graphs, state survives round boundaries.
++                if nodes >= 33 {
++                    assert!(changed_at_boundary);
++                }
++            }
++        }
++        for percent in [0, 100] {
++            assert!(
++                generate_with_query_percent(
++                    kind,
++                    Config {
++                        nodes: 16,
++                        rounds: 1,
++                        seed: 0
++                    },
++                    percent
++                )
++                .is_err()
++            );
++        }
++        assert!(
++            generate_with_query_percent(
++                kind,
++                Config {
++                    nodes: 16,
++                    rounds: usize::MAX,
++                    seed: 0
++                },
++                50
++            )
++            .is_err()
++        );
++    }
++}
+diff --git a/docs/methodology.md b/docs/methodology.md
+index 988dab2..d987f7b 100644
+--- a/docs/methodology.md
++++ b/docs/methodology.md
+@@ -1,56 +1,242 @@
+ # Benchmark methodology
+ 
+-## Implemented baseline
+-
+-`chain-split-rejoin-v1` starts with an undirected path. A wrapping 64-bit LCG
+-selects which edge to cut in each round. Deleting a path edge disconnects the two
+-ends; restoring it reconnects them. These expected results come from topology,
+-independently of the measured engine. The generator is deterministic for a
+-configuration; modulo edge selection has a small bias and is not advertised as
+-unbiased sampling.
+-
+-Graph construction, trace generation and latency-buffer allocation occur before
+-measurement. Each timed interval includes the engine call, a compiler barrier
+-and clock overhead. Correctness checks and sample insertion occur afterward.
+-Latency samples are sorted after the run, using nearest-rank percentiles
+-`ceil(p*n/100)`. A singleton's percentiles equal its only sample. No timer-overhead
+-subtraction or automatic warmup is performed. Very short updates may be dominated
+-by clock overhead. Wall time additionally includes checking and harness overhead.
+-
+-The harness stores O(rounds) operations and timing samples. This affects memory
+-and cache behavior. It does not measure engine-only RSS. The first workload is
+-single-threaded, has 50% queries, alternates split/rejoin updates and uses only
+-bridge deletions. It cannot establish scaling, general workload performance,
+-concurrent service throughput or network latency.
+-
+-## Reproducible runs
+-
+-Record both Git revisions and any diffs, Cargo.lock files, Rust compiler,
+-optimization flags, target CPU settings, OS/kernel, CPU model, core count, RAM,
+-dataset checksum, full arguments and repetition count. Run from the source
+-checkout; the report's Git fields describe checkout state at run time and do not
+-attest to a separately copied binary. Null Git fields mean metadata was unavailable.
+-Do not modify either checkout between building and running.
+-
+-Use a quiet machine and repeated process runs. Preserve each JSON report. Report
+-variability across repetitions rather than selecting the fastest. Keep local core
+-results separate from HTTP results, where serialization, scheduling and transport
+-are part of the measured service cost. Record memory independently and account for
+-the harness, allocator, preload and external processes.
++## Deterministic trace contract
++
++The preserved ordered `ReferenceGraph` remains the reference backend. `chain-split-rejoin-v1` preserves
++its original initial edges and operation sequence for a given nodes/rounds/seed.
++`generate(kind, config)` returns initial edges and an ordered operation vector,
++independent of the measured backend. Initialize **all** vertices `0..nodes`
++before loading the undirected edges. Every link and cut in these traces must
++return `changed = true`; queries carry topology-derived expected booleans.
++
++`--trace-out NEW_PATH` writes compact JSON (trace schema 1) before warmup. It
++refuses to overwrite existing files. The envelope contains workload, config,
++initial edges and operations (`op`, `source`, `target`, and query `expected`).
++Integers are JSON numbers: consumers must parse u64 losslessly, especially seed;
++this is a benchmark interchange format, not the string-ID HTTP protocol.
++Future adapters can read these files or use the Rust generator; the current CLI
++only generates traces, and does not import arbitrary external trace files.
++
++The report contains FNV-1a-64 of the exact compact export bytes (including config
++and expected answers), starting at 0xcbf29ce484222325 and multiplying by
++0x100000001b3 modulo 2^64 after XOR with each byte. This is a stable diagnostic
++fingerprint, **not** a collision-resistant proof. The baseline manifest also
++records SHA-256 checksums of saved files. Trace identities do not depend on
++warmup, repetition count or timings. Selection uses the original wrapping LCG;
++modulo selection is biased and is not a statistical sampling guarantee.
++
++## Workload families
++
++Let n = vertices, r = rounds and d = the selected leaf's original degree.
++The four historical base traces are sparse, undirected, simple and have 50% queries. Every round
++restores the initial graph. Density at any point is 2m/(n(n-1)); reports include
++initial density, edge count and maximum degree. Operation counts in each
++repetition make the actual update/query ratio observable.
++
++| Versioned name | Initial topology and edge range | Operations per round | What it exercises |
++| --- | --- | --- | --- |
++| `chain-split-rejoin-v1` | Path; m ranges n-2 to n-1; max degree 2 (1 at n=2) | 1 cut, 1 link, 2 queries | Cut a seeded bridge; query endpoints false then true. Only bridges. |
++| `cycle-alternatives-v1` | Ring; m ranges n-2 to n; max degree 2 | 2 cuts, 2 links, 4 queries | Remove both edges at a seeded vertex. First cut has an alternative path; second isolates it. Queries to the opposite vertex: true, false, true, true. |
++| `components-join-split-v1` | Two paths of floor(n/2) and ceil(n/2); m ranges n-2 to n-1; initial max degree 2 | 1 link, 1 cut, 2 queries | Seeded cross-component bridge joins then splits the paths. Query 0 to n-1: true then false. |
++| `hub-alternatives-v1` | Star plus a path through leaves; initial m=2n-3; minimum m=2n-3-d; initial max degree n-1 | d cuts, d links, 2d queries; d=2 at leaf-path endpoints, otherwise 3 | Cut spoke first, then remaining incident edges to isolate a seeded leaf; restore in reverse. Query hub to leaf after each mutation. One false query per round traverses the large source component. |
++
++Chain needs n>=2, others n>=6; all require r>=1. Only chain accepts n=2.
++The hub is deliberately degree-skewed, **not** a fitted power-law distribution.
++Cycle and hub exercise alternate paths but do not guarantee which deleted edge
++is a maintained tree edge in a future backend; each backend should instrument
++replacement searches separately. These families do not establish performance
++on dense graphs, long-lived randomized churn, different query/update ratios,
++real datasets, concurrent traffic or worst-case adversarial sequences.
++
++## Correctness
++
++Expected answers are constructed from topology, never read from the timed
++backend. All updates change state and every query is checked outside its timer.
++Integration tests replay all four families for n=6,7,12 with seeds 0,42,u64::MAX,
++checking each mutation and query against a separate adjacency matrix and
++Floyd-Warshall transitive closure. This O(n^3)-time, O(n^2)-space oracle is test-only;
++it independently validates the generator, while the runtime checks the engine.
++Determinism, changed seeds, invalid/overflowing sizes, stable export, overwrite
++protection and CLI sampling counts have separate tests.
++
++## Timing, warmup and repetitions
++
++Defaults: one complete warmup replay and one measured repetition. Use
++`--warmup 0` for no warmup; `--repetitions N` requires N>=1. Each replay builds a
++fresh graph from the same trace. Warmups execute the same checks and timers and
++discard their summaries. They warm process/allocator caches; they do not promise
++steady-state CPU frequency or warm state inside the next graph instance.
++
++Trace generation, export, initial graph construction and timing-buffer
++allocation are excluded from operation and workload wall intervals. Each
++operation interval includes the synchronous backend call, a compiler barrier and
++clock overhead. Validation and sample insertion happen afterward. Wall time
++also includes dispatch, checking and sample storage, but excludes final sorting
++and graph destruction. It is not end-to-end service throughput. Each repetition
++records `setup_ns` separately for vertex registration, backend construction and
++initial edge loading; it is excluded from operation and workload wall intervals.
++
++Report schema 2 replaces schema 1's single `measurements`/`workload_wall_ns` with
++an ordered `repetitions` array. Each repetition retains separate cut/link/query
++min, p50, p95, p99, max, count and total nanoseconds. Percentiles use nearest rank
++ceil(p*n/100); samples are sorted after timing. Report all repetitions and their
++variability; do not pool per-run percentiles or select the fastest run. No timer
++overhead subtraction is applied. Very short updates can be timer dominated.
++
++The harness retains O(n+r) trace storage and O(r) sample storage per replay;
++report storage is O(repetitions). Export temporarily adds an O(n+r) JSON buffer.
++There is no RSS measurement, memory budget estimator or engine-only allocation
++accounting. Very large inputs can exhaust memory despite checked trace allocation.
++
++## Reproducing the recorded local baseline
++
++```sh
++python3 scripts/run_baseline.py results/NEW_RUN_DIRECTORY
++```
++
++The standard-library-only script builds release with `--locked`, then runs all
++four families sequentially at n=128,1024,4096, r=200, seed=42, one warmup and three
++measured repetitions. One process handles each workload/size pair. It preserves
++raw JSON, exported traces, source hashes, both revisions and dirty states,
++tracked diffs, untracked Rust files, compiler, OS, CPU, RAM, build environment,
++commands and executable checksum. It rejects changed source inputs during runs.
++Use a new output directory. The script takes the executable path from Cargo build output, including custom
++target directories, and requires the sibling checkout layout.
++
++These in-process repetitions are not independent process trials. Run the script
++again on a quiet machine to study process-level and scheduling variability.
++The source manifest covers workspace Rust/build files, manifests, lockfiles,
++toolchain and workspace Cargo configuration. It does not attest to every global
++Cargo configuration, compiler environment override or external tool. Record
++those separately if customized. Runtime Git state alone never attests to compiled
++code. See [local results](../results/2026-09-26-macos/README.md).
+ 
+ ## Future comparison adapters
+ 
+-Before comparing with GraphScope or a specialized dynamic-connectivity engine:
++Before comparing with GraphScope or another dynamic-connectivity engine:
++
++1. Load identical graphs and replay the exact same exported update/query trace.
++2. Match undirected semantics, duplicate handling and vertex lifetime.
++3. Require every answer to see all preceding updates, including synchronization
++   or waiting for incremental maintenance. Stale answers are not exact parity.
++4. Validate answers independently before interpreting performance.
++5. Distinguish a boolean connectivity query from materializing all component labels.
++6. Report loading, update, state maintenance, compaction, synchronization and query
++   costs separately, plus total lifecycle cost and memory.
++7. Record software versions, workers, threads, hardware and monetary costs.
++
++No validated live HTTP or GraphScope comparison is available. A deferred
++GraphScope probe exists but has not been executed against a live engine. GraphScope's incremental
++capabilities must be verified in an actual comparable experiment; do not assume
++full recomputation. Beating this BFS alone establishes no commercial advantage.
++
++## Embedded comparisons and cache protocol
++
++`--engine` selects `reference-bfs` (default), `compact-bfs`, `dense-bfs`, `petgraph-dfs`,
++`outils-hdt`, `all`, or an ordered comma-separated list. Multiple backends return
++schema 3 with a `comparisons` array of schema-2 reports sharing one trace.
++The `dense-bfs` and petgraph adapters reuse scratch storage but reset traversal
++state each query. Outils maintains a connectivity index. The production compact core uses local per-call scratch and supports growing
++vertices. All experimental indexed adapters
++pre-register a fixed vertex universe; this does not test growing-node API parity.
++ID translation and edge-handle bookkeeping are inside operation intervals.
++
++`--query-repeats N` adds N immediate checked calls after each original query.
++Their distributions appear separately in `repeated_queries`; original true/false
++queries also have separate summaries. Repeats affect later cache state, so base
++operation totals from these runs are not a separate unaugmented experiment.
++With N repeats the executed query fraction is (N+1)/(N+2), versus 50% in the base
++trace. Sample storage becomes O(r*(N+1)).
++
++The collector supports `--process-trials`, `--cache-regimes fresh|warmed|both`,
++`--engines`, and `--query-repeats`, as well as sizes/rounds/repetitions. Fresh means
++zero deliberate replay warmups; warmed means one. Neither flushes hardware or
++OS caches. Cases are shuffled deterministically and backend order rotates across
++process trials. Four trials balance the positions of four backends, not every
++cache interaction. Reports preserve all repetitions and process identities.
++See the [comparison results](../results/2026-09-26-competitors/README.md) and
++[adoption-based candidate selection](research/2026-09-26-competitive-landscape.md).
++
++## Sustained scale experiments
++
++`sustained-churn-path-v1` toggles seeded path edges; an ordered set of absent
++boundaries answers queries independently. `sustained-churn-blocks-v1` connects
++16-vertex cycles with bridges, toggles bridges and removes/restores one internal
++cycle edge per selected block. Blocks stay internally connected. The oracle uses
++missing bridge boundaries, not a measured engine. State persists across rounds.
++Each round is 100 operations and `--query-percent 1..99` gives the exact query
++count per round; the remainder are changed updates. A short trace may have no
++links, in which case its latency field is null, not zero. Fixed operation counts
++mean different numbers of updates and different fragmentation at different ratios.
++
++`ett-scan` measures the opt-in deterministic AVL Euler-tour forest with an
++exhaustive smaller-side replacement scan. It is not HDT. Reports include
++`forest_stats` only for this backend: tree cuts, enumerated vertices, examined
++non-tree incidences and replacements. Counters reset after setup and include
++measured mutation work. Queries allocate no scratch; maintained connectivity is
++valid state, not a cache to disable. The compact default remains unchanged.
++
++`run_scale.py` runs one engine per fresh process, deterministically shuffling
++cases. `fresh`/`warmed` remain replay policies, not CPU-cache states. The platform
++time tool records whole-process peak RSS including generation, trace JSON export,
++harness buffers, engine and any warmup. This cannot be called engine heap usage.
++The collector normalizes macOS bytes / Linux KiB, saves stderr and commands, and
++kills the entire measurement process group on timeout. Failed cases remain in
++partial metadata and are not silently dropped. `summarize_scale.py` preserves one
++row per process, including null operation categories and replacement counters.
++
++## Candidate-pruned forest version
++
++`ett-scan` now reports `knotrel-core/ett-pruned-v2`. A frozen benchmark-only copy
++of the previous implementation is selectable as `ett-scan-v1`, preserving its
++`knotrel-core/ett-scan-v1` identity and original token representation. Both run in
++the same executable with the same adapter registration and timing boundaries.
++Historical reports continue to identify v1, not the current ForestGraph.
++
++For v1, `scanned_vertices` counts all vertices eagerly enumerated before checking
++edges. For v2 it counts candidate-bearing vertices yielded before success or
++exhaustion. It does not count AVL tokens traversed or ancestor repairs, so counter
++ratios are not runtime speedups. The other replacement counters keep their
++semantics. Pruning preserves the relative enumeration order of candidate vertices.
++The `all` selector now contains seven backends; explicit lists preserve old suites.
++
++
++## Dense bridge churn workloads
++
++`dense-bridge-churn-v1` and `redundant-bridge-churn-v1` split n>=4 vertices
++into fixed cliques of floor(n/2) and ceil(n/2) vertices. Internal edges load
++before cross-clique edges. The first family starts with one bridge `(0, n/2)`;
++the second starts with that bridge and `(1, n/2+1)`. Every update toggles one
++bridge, selected by the seeded generator, and changes graph state. The redundant
++family tracks its two bridges independently. State persists across rounds,
++including when an odd update count leaves a bridge absent at a round boundary.
++
++Each round contains exactly 100 operations with `--query-percent 1..99` queries
++(default 50), using the sustained families' operation scheduling. Queries select
++seeded random vertex pairs. Their topology oracle answers true exactly when the
++vertices share a clique or at least one bridge remains. Small odd/even fixtures
++with several seeds and ratios are validated by independent transitive closure.
++The sparse and historical versioned traces retain their generation contracts.
++
++With a=floor(n/2) and b=ceil(n/2), initial edge count is
++`a*(a-1)/2 + b*(b-1)/2 + bridges`. These are explicitly synthetic **dense** stress
++cases: generation and retained trace storage take O(n² + operations), with
++checked edge/operation arithmetic and fallible vector reservations. Export and
++backend setup also retain or process quadratic edge data. Large sparse-workload
++node counts are unsuitable defaults here. The single-bridge family targets
++repeated failed replacement searches; the second also exercises redundant
++cross-clique connectivity. This is workload intent, not a performance result or
++a guarantee about a backend's selected forest. The cases do not model production
++distributions, and generation/setup are outside timed operation intervals.
++
+ 
+-1. Load identical graphs and replay an identical update/query trace.
+-2. Match undirected graph semantics, duplicate handling and node lifetime.
+-3. Ensure every query sees the same preceding updates. Measure waiting for an
+-   incremental engine to catch up; do not compare stale answers with exact ones.
+-4. Validate query answers against an independent oracle before interpreting times.
+-5. Distinguish boolean connectivity queries from materializing full component labels.
+-6. Include ingestion, deletion maintenance, compaction and required synchronization.
+-7. Record software versions, worker counts, thread counts, hardware and costs.
++### Knotrel HDT diagnostics
+ 
+-GraphScope's incremental capabilities must be exercised by an actual adapter;
+-do not assume full recomputation on every update. Add cyclic, high-degree,
+-disconnected, skewed and adversarial workloads before making broad conclusions.
++`hdt` records `knotrel-core/hdt-levels-v1`, a growing-node HDT implementation with
++separate exact-level tree/non-tree aggregates. Each report's optional `hdt_stats`
++contains tree_cuts, candidate_edges, replacements, tree_promotions,
++non_tree_promotions and levels_visited. Setup counters are reset before replay.
++The scale CSV prefixes these with `hdt_`; ETT fields stay unchanged, and absent
++backend-specific counters remain empty. Optional diagnostics extend schema 2
++without changing the trace format or old workload fingerprints. Interpret each
++counter by its algorithm; equal values are not required between ETT and HDT.
+diff --git a/docs/research/2026-09-26-adoption-snapshot.json b/docs/research/2026-09-26-adoption-snapshot.json
+new file mode 100644
+index 0000000..c5f998e
+--- /dev/null
++++ b/docs/research/2026-09-26-adoption-snapshot.json
+@@ -0,0 +1,101 @@
++{
++  "observed_on": "2026-09-26",
++  "repositories": [
++    {
++      "full_name": "petgraph/petgraph",
++      "html_url": "https://github.com/petgraph/petgraph",
++      "stargazers_count": 4020,
++      "forks_count": 467,
++      "pushed_at": "2026-09-20T19:14:41Z",
++      "archived": false,
++      "default_branch": "master",
++      "license": {
++        "key": "apache-2.0",
++        "name": "Apache License 2.0",
++        "spdx_id": "Apache-2.0",
++        "url": "https://api.github.com/licenses/apache-2.0",
++        "node_id": "MDc6TGljZW5zZTI="
++      }
++    },
++    {
++      "full_name": "TimelyDataflow/differential-dataflow",
++      "html_url": "https://github.com/TimelyDataflow/differential-dataflow",
++      "stargazers_count": 3013,
++      "forks_count": 211,
++      "pushed_at": "2026-09-23T14:57:09Z",
++      "archived": false,
++      "default_branch": "master",
++      "license": {
++        "key": "mit",
++        "name": "MIT License",
++        "spdx_id": "MIT",
++        "url": "https://api.github.com/licenses/mit",
++        "node_id": "MDc6TGljZW5zZTEz"
++      }
++    },
++    {
++      "full_name": "ouaffm/outils",
++      "html_url": "https://github.com/ouaffm/outils",
++      "stargazers_count": 10,
++      "forks_count": 1,
++      "pushed_at": "2020-10-10T16:42:49Z",
++      "archived": false,
++      "default_branch": "master",
++      "license": {
++        "key": "apache-2.0",
++        "name": "Apache License 2.0",
++        "spdx_id": "Apache-2.0",
++        "url": "https://api.github.com/licenses/apache-2.0",
++        "node_id": "MDc6TGljZW5zZTI="
++      }
++    },
++    {
++      "full_name": "tomtseng/dynamic-connectivity-hdt",
++      "html_url": "https://github.com/tomtseng/dynamic-connectivity-hdt",
++      "stargazers_count": 25,
++      "forks_count": 0,
++      "pushed_at": "2023-09-14T15:54:18Z",
++      "archived": false,
++      "default_branch": "master",
++      "license": {
++        "key": "mit",
++        "name": "MIT License",
++        "spdx_id": "MIT",
++        "url": "https://api.github.com/licenses/mit",
++        "node_id": "MDc6TGljZW5zZTEz"
++      }
++    }
++  ],
++  "crates": [
++    {
++      "name": "differential-dataflow",
++      "max_stable_version": "0.25.1",
++      "downloads": 485665,
++      "recent_downloads": 83331,
++      "repository": "https://github.com/TimelyDataflow/differential-dataflow.git",
++      "release_date": "2026-07-15T20:56:23.895455Z",
++      "license": "MIT",
++      "source": "https://crates.io/api/v1/crates/differential-dataflow"
++    },
++    {
++      "name": "petgraph",
++      "max_stable_version": "0.8.3",
++      "downloads": 524737804,
++      "recent_downloads": 111774854,
++      "repository": "https://github.com/petgraph/petgraph",
++      "release_date": "2025-09-30T13:16:04.011947Z",
++      "license": "MIT OR Apache-2.0",
++      "source": "https://crates.io/api/v1/crates/petgraph"
++    },
++    {
++      "name": "outils",
++      "max_stable_version": "0.3.0",
++      "downloads": 9965,
++      "recent_downloads": 54,
++      "repository": "https://github.com/ouaffm/outils",
++      "release_date": "2020-10-10T12:43:57.345944Z",
++      "license": "MIT/Apache-2.0",
++      "source": "https://crates.io/api/v1/crates/outils"
++    }
++  ]
++}
+diff --git a/docs/research/2026-09-26-competitive-landscape.md b/docs/research/2026-09-26-competitive-landscape.md
+new file mode 100644
+index 0000000..a6c3dae
+--- /dev/null
++++ b/docs/research/2026-09-26-competitive-landscape.md
+@@ -0,0 +1,97 @@
++# Competitive landscape and benchmark priorities
++
++Observed 2026-09-26. Separate **customer alternatives** from **algorithmic
++controls**. A library can be a useful performance reference without being a
++successful product, and a successful database can serve a different contract.
++
++## Selection
++
++| Priority and role | Candidate | Evidence of adoption / maintenance | Decision |
++| --- | --- | --- | --- |
++| Primary embedded incumbent | petgraph 0.8.3 | GitHub API: 4,020 stars, 467 forks, pushed 2026-09-20. crates.io reports 111,774,854 recent downloads. | Measure now: common Rust graph representation and path query. This represents an application implementing connectivity itself. |
++| Next incremental reference | Differential Dataflow 0.25.1 | 3,013 stars, 211 forks, pushed 2026-09-23; 83,331 recent crate downloads. Materialize documents its use of Timely and Differential Dataflow. | Prioritize a later exact incremental-components adapter with timestamp/frontier synchronization and memory accounting. Not measured here. |
++| Relevant product alternative | Memgraph | Vendor-published Volue customer story concerns changing power-grid topology and connected traces; named customer/engineers and deployed workflow. | Investigate for a topology-management use case. First establish equivalent boolean undirected answers; then compare service lifecycle costs. No performance claim yet. |
++| Secondary algorithmic control | outils 0.3.0 | 10 stars, 1 fork, last push and published release in October 2020; 54 recent crate downloads. | Measure HDT as a research control. Do not call it an established commercial competitor or adopt it into the core on these results alone. |
++| Additional research control | tomtseng/dynamic-connectivity-hdt | 25 stars, no forks, last push 2023-09-14; repository declares MIT. | A C++ implementation to inspect if needed to separate HDT's algorithm from outils' implementation constants. Not measured. |
++| Deferred broad platform | GraphScope | Multiple engines/stores, rather than one directly substitutable kernel. Ingress documentation and standalone deployment must be distinguished. | Previous user-directed investigation paused. Prepared Python probe has not been run against a live engine. |
++
++Numbers come from the [saved API snapshot](2026-09-26-adoption-snapshot.json),
++not estimates. GitHub stars measure attention, not revenue, support quality,
++correctness or production users. Crate downloads include CI and transitive
++fetches, not unique adopters; `recent_downloads` is the provider's rolling field.
++The last-push timestamp is activity evidence, not a count of substantive commits.
++No market-share, customer-count or commercial-success ranking is established.
++A small repository can still beat a large project on a narrowly defined algorithm.
++
++## Primary evidence and licensing
++
++- [petgraph repository](https://github.com/petgraph/petgraph) and
++  [crate metadata](https://crates.io/api/v1/crates/petgraph): 0.8.3 declares
++  `MIT OR Apache-2.0`. This benchmark calls `has_path_connecting` with reusable
++  DFS state. It must not be described as BFS or a maintained connectivity index.
++- [outils repository](https://github.com/ouaffm/outils),
++  [crate metadata](https://crates.io/api/v1/crates/outils) and
++  [DynamicGraph documentation](https://docs.rs/outils/0.3.0/outils/graph/dynconn/hdt/struct.DynamicGraph.html):
++  0.3.0 declares `MIT/Apache-2.0`; fixed vertex universe and HDT level structure.
++  Inspection of the downloaded 0.3.0 source confirms AA-tree Euler forests,
++  replacement searches, edge handles, and false reflexive queries. Source search
++  found no unsafe blocks in this release; this is not a security or quality audit.
++- [Differential Dataflow repository](https://github.com/TimelyDataflow/differential-dataflow)
++  declares MIT. [Materialize's architecture account](https://materialize.com/blog/materialize-under-the-hood/)
++  provides named product-use evidence, not evidence that any specific DD graph
++  program meets Knotrel's desired latency. Component labeling need not enumerate
++  all reachable vertex pairs; do not assert unavoidable O(n²) memory.
++- [Memgraph's Volue story](https://memgraph.com/customer-stories/how-volue-optimized-power-grid-management-with-memgraph)
++  is a vendor case study, not an independent benchmark. It reports topology
++  changes, connected traces and operational tooling. It supports investigating
++  demand in this domain, not claiming that Knotrel replaces the full workflow.
++- [C++ HDT repository](https://github.com/tomtseng/dynamic-connectivity-hdt):
++  research implementation with a different integration/toolchain cost.
++
++Only outils and petgraph are new runtime dependencies, confined to the benchmark
++workspace and pinned exactly in Cargo.lock. Existing locked versions were
++preserved. Knotrel core/server dependencies and licenses are unchanged. No
++third-party source is copied into the production core.
++
++## Product hypothesis to validate
++
++Start with **an application maintaining an undirected operational topology**:
++edge insertions/removals from an authoritative event stream, followed by exact
++pair-connectivity queries. The immediate alternative is an embedded graph library
++and a traversal, not necessarily a graph database. If a team already uses a graph
++database for storage, attributes and exploration, Knotrel could be a specialized
++index alongside it; replacing that database adds scope and migration costs.
++
++This hypothesis still needs a real user/workload: graph size and degree spectrum,
++update/query ratio, burst behavior, latency budget, memory budget, and whether
++embedded or network access is preferred. No customer interviews were conducted.
++For network infrastructure, detecting faults and obtaining accurate topology are
++upstream responsibilities. In electrical models, topological connection does not
++establish power flow or safe operation. General ReBAC requires relation/policy
++semantics beyond undirected connectivity.
++
++## Optimization decision
++
++See the [local comparison](../../results/2026-09-26-competitors/README.md).
++Do not optimize merely to beat the original ordered-adjacency BFS. The practical
++baseline is petgraph plus traversal and the compact BFS control. Outils isolates
++the query/update tradeoff of one HDT implementation; it does not establish the
++best achievable HDT performance or justify claiming a market lead.
++
++Next engineering milestone: retain the reference, develop a production-capable
++compact representation with the full growing-u64-node contract, and assess a
++maintained connectivity index against that stronger baseline. Before choosing
++HDT for production, extend to sustained churn, larger graphs, varying query/update
++ratios, adversarial replacement searches and measured memory. Add DD when its
++adapter can account for convergence after every visible update. A product-level
++Memgraph comparison follows a validated customer contract rather than a desired
++headline speedup. GraphScope is not the immediate optimization target.
++
++## Subsequent milestones
++
++The compact core is now implemented and the opt-in Euler-tour scan prototype is
++measured in the [2026-09-27 scale study](../../results/2026-09-27-forest-scale/README.md).
++Petgraph remains the practical external baseline. The forest wins operation-only
++query-heavy cases but loses other mixes, costs more to load and needs more memory.
++These findings reinforce the distinction between a useful algorithm and an
++established product advantage.
+diff --git a/docs/superpowers/plans/2026-09-26-graphscope-equivalence.md b/docs/superpowers/plans/2026-09-26-graphscope-equivalence.md
+new file mode 100644
+index 0000000..c9ba108
+--- /dev/null
++++ b/docs/superpowers/plans/2026-09-26-graphscope-equivalence.md
+@@ -0,0 +1,44 @@
++# GraphScope equivalence and cache-aware measurements
++
++> Implement in this chat, preserving the user's working changes. No commits or pushes.
++
++Goal: establish what a pinned GraphScope configuration can actually execute before
++investing in HDT. The user approved a small reproducible comparison and explicitly
++asked to account for caches. Core/server behavior remains unchanged.
++
++## Design
++
++Use a separate, isolated GraphScope installation and its explicit analytical
++`has_path` function over an undirected dynamic graph. Check source and runtime;
++do not claim this path uses Ingress. Use existing trace JSON, independent small
++matrix oracle, explicit mutation completion, and repeated same-pair queries that
++change answer after deletions/reinsertions. Record installation, version and
++architecture; emulated GraphScope is not performance-comparable to native Knotrel.
++If the environment or semantics prevents fair timing, deliver the executable
++probe and concrete limitation, without fabricating comparative results.
++
++Caches are separate concerns: warm query repeats, invalidation after mutation,
++fresh graph, fresh process, and uncontrolled CPU/OS caches. Never label a fresh
++process as hardware-cache cold. Do not drop system caches or disable maintained
++connectivity state. Timing includes required synchronization. Keep first queries
++separate from immediate repeated queries and exclude oracle checks from timers.
++
++## Steps
++
++- [ ] Inspect pinned upstream code and establish isolated executable runtime.
++- [ ] Write independent trace/probe tests; implement a small Python adapter with
++      JSON reports, cache-invalidation scenarios, and explicit timing boundaries.
++- [ ] Execute real GraphScope bridge, cycle, split/rejoin, isolated-node and
++      repeated-query probes. Preserve failures and exact environment metadata.
++- [ ] Add fresh-process/no-warmup and warmed sampling to the local collection
++      script; validate process count, order and metadata without claiming cache flush.
++- [ ] Run feasible traces; document supported semantics, Ingress distinction and
++      timing comparability, then run Rust/Python checks and review changes.
++
++## Review focus
++
++- Buffered updates charged to the mutation, not silently to the next query.
++- Identical query endpoints returning changed answers after a mutation.
++- No silent NetworkX fallback or unsupported-width ID conversion.
++- No stale executable or interpretation of emulation as native performance.
++- Preserve earlier raw measurements; new experiments use new output paths.
+diff --git a/docs/superpowers/plans/2026-09-26-local-competitors.md b/docs/superpowers/plans/2026-09-26-local-competitors.md
+new file mode 100644
+index 0000000..6e08d4e
+--- /dev/null
++++ b/docs/superpowers/plans/2026-09-26-local-competitors.md
+@@ -0,0 +1,34 @@
++# Local competitor comparison
++
++The user approved identifying direct alternatives before optimizing Knotrel.
++Implement directly in the existing dirty checkout; preserve all previous changes.
++No commits or pushes. GraphScope work remains deferred.
++
++## Design
++
++Compare four synchronous in-process implementations with the same versioned
++trace: existing Knotrel BFS, an experimental compact-index BFS, petgraph DFS,
++and outils HDT. Use a single binary and fixed vertex universe for the comparison;
++report that pre-registration is narrower than Knotrel's growing-node API. All
++adapters accept full u64 IDs and retain simple undirected/idempotent semantics.
++Charge ID translation, edge-handle lookup and query workspace reset to operations.
++Do not adopt a third-party engine into knotrel-core in this experimental step.
++
++Keep default benchmark CLI compatible. Add --engine, and --engine all for the
++same-process comparison, rotating engine order across process trials in the
++collection script. Preserve original traces; optional extra immediate query
++repeats are reported separately and identified as workload augmentation.
++Retain raw first-query versus repeated-query and true/false distributions.
++Include setup costs and per-run process memory only if measured with clear scope.
++Do not call fresh processes hardware-cache cold or remove valid maintained state.
++
++## Tasks
++
++- [x] Record primary-source scope, releases, licenses and maintenance evidence.
++- [x] Add locked benchmark-only dependencies and test adapters against independent
++      transitive closure, including repeated queries, redundant updates, cycles,
++      bridges, isolated/full-width IDs and invalid/unknown endpoints.
++- [x] Add common runner and cache-aware comparisons while preserving default output.
++- [x] Run release matrix with multiple process trials and rotated engine order.
++- [x] Document results, semantic gaps and a concrete next optimization decision;
++      run required checks and independent review.
+diff --git a/scripts/__pycache__/summarize_scale.cpython-312.pyc b/scripts/__pycache__/summarize_scale.cpython-312.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8bead3c70a9c1672854c396b61527ce1e4a6951
+GIT binary patch
+literal 3010
+zcma(TTWk~A_0GfN@heV35|XeG^AN$yCIKQ6Se_vPK?*B&p{%ePjfR;UGmbrW=Z+KX
+zIw)GLDrXf5M=KTgtLc7a1uMbVru|}f`>|4gGI82uFH~yPN-ci@Dz)ra&mG&4vLEfW
+za__n4ea|cN`%uV_U`Y+XN&H+w=&$TjUvdq2G0Guy7wIU5bWZ1!T#R#1KE}f-B!!e1
+z6S*qQ6Z7ce$0#OYukM-HhmiF%9$^uC5{-4WuTNd-fXhA5&Q{C^oD%lEy8E$D_vQl#
+zCAL;MHt)Ku`|kVi@m1Vm6bphhm+0KgQ-v|3G+@8ZZMJqlP?wE`aX7K_hjRC7C=LOA
+z_YdjVU-uN=&a+=#BZqQ)j^B+ABEn7a9J-D;_~rOp!gVyoMT7ZEA6kZuBWV*yhOb<U
+zSm~)q23rw>q?4+R^+*b<Bx?bXvC<kQ<QM>$U~3XbQU)Q08INed7*AUUCcRIYZ|_Ap
+zDqdFYn_4ZLuEQ*a0{p%B9R%twvR}~>wZOStwXFatbi?i0jIF};VAP*H&Bf6)Ux0F8
+zK^;LQZfp-i)58C<P!M#1N$6r8_W#?OSP*rOD<`={)nt3Cejx-D@8-nnGUFipDEf%2
+z({vx>nD*%Y5p+k=cmrwt7{q2;Do6#P;FjU1{G4Az(_X-N^Z?^8c=f<>c6#(+?H*)z
+z+XtJw^w7tQ+Q6s@DAYGsJ!&JU4%Ooay2GxnP+jJgo^T!W`g~JbZ-jTq8Xsrx0B@${
+zf?V(vWah^>KhMtvM4(K|EXE^fYzIO=fqYN<ru}*o+*<$+6#SN_;4io@H95Vx;4S#{
+zEli>iU_0|}u1!R95fSMvAQf??Jc%YCys`Aw`nxRfLvMAXwOO+p$GKf1D)5OdZwSM+
+z;H}GZP)T#$jPDA(fMc(ars|M9g`#cwvmanpk4$3A7&o9rh;|dF)Sg2T))q<Jb3@f8
+zu&G0X5KP{QOkkX0{bE~&nj{h3Ahuy@c5gnEQcYtV6T3G-(kAt|{8Tj66wZ69xQ423
+z1#A%`Z9Zi^LjxAhVB4?(L7uXHvKTrlTQEKm^_XcL6B_zy7F#(5np(rAP35VyHIYoK
+zI`z1IP|3n^BZaAi&A4G=+LpoUgi`Bv#Uezxk+VUMOt78JC?=tebrs5#noI)bzxtf@
+zct8BTcn7v0!LYfD3TP|{8RH5Z;pQahRK&9K3+^t*p}7VT<+v{d7)Csm?X;~jjqiPq
+z;L7(Npxh*3kBUUTztHz%m^-A;viq0=B%^A$Z^BI57EadBo*UTIZl+Wq_Yuu9GB%vq
+z6d;T|R*0r1ac?F^eaGY2#J4im$^2HBc%=7uG7U6xviB7M3KNk|*#3e3J%g6_V`o@d
+zQdcy6acD8|#U;4CBy6O8<Za<T@wad^Seuk7h%%w=Hz4Oq8ltYc=~3!0iwe|V&4_Jf
+zF%4AVaWIZ)Bg-e7x(dU>JdH|F4C$<CTdiP<N}0n4SOTQX(ZjX#sC%Z=TP$dlQ=%gE
+zK|rvgWx<O^c(G}MJ}4X8fbmVkfY1#cj3`)-10o1ElMu<O+rjZPOm|x$wrZ28pNiFj
+zWc5O*&w^@KY<$b6LK2%)fXGs5QcY$-kC=pVrXKiTk|I=yW1C89CIi(U4N{+OSXi^u
+zR*uT`QfGBXvPqkYtlHTvleR#yl?BBUI0sOAigFXRT6V2a(e(>z3F_hXvRE}yktNbP
+z4IrC|<QwRR8T7YM)1BCCtlY71%IP??)_%fiKT&BvRSBJ*IlmqV&750rY%g#9L*ve(
+z_$0jLPJT9DKDwYU4*WX#V9?q7uCwjfTIV^Z^IWC#d?kFLD6NNEm)rI_;qJwzmGIm5
+z$%BEV9;g3&rSHPG2Uq$oF3T5}!xz_s&7~7gaOc8KC%C65JmXRKS^fn=p>zB*#NaY1
+zUMaPdwE2$Nu?-hf6yOB<di%EW=r6-Xp*T7lUXScv-ZS7t28+USaEBvzJ=wS4*^eLf
+zKf3J<Ut1d<bB4!Ohn32HT-k>i&t6CFe$u(4OcqW$U5D1XjyPRMDqZhZI*)<f54a)b
+z#ECP^33mB*Xi0q}JR15+`fUuXGZavO{!fIqo#AIkizB7h$L*I(;&+Dz7Y;ABe0FT<
+zYDp-Kl()>EFJGO%w9>finSeUp=Qac;@IpeZ*SO-ydjG(egAWInPOkQkmb7xO(-vLa
+zv(nbLeEDi|xFmjZ0oZ}@&vL_^&}^ur{Za1R*oK;RZM=no%`=x?K5u1_c==prz7Uq|
+zuRWo&?b0{VhO^scDl1A#HB3dZ*ymzCP;KvAuSO;*cZ(wU`0$!|Dhaa;KtBxTq|PQO
+zi8fQOqUdQ&QK$gi)_#zu-VA)GB#j#un_E!QxoQnDGfWD2Mb(N=T8CZcnlUOuXPZ<?
+zXYEYZrv4E_v)%6~%R0#Tq$&1MWzm3p-h{S+i?51gRoVtjkP8^tZt2R$Q)xY$#3!w*
+zfMbK4{0g=Wf#bNppev7&|1k>u3AF?8Tx#Z;H{M2Kuoznrwtm;pT<X7jWd2BbX#QBG
+zp=;*C=i=h^d*KD|x_?XQlH=dG=IeHR-HXD5Gt0j2Ro~#!z<PLlk=(gGd%HaTP<-&=
+z()$l%l>?_&!$VNsa>JV3>Bya{@>}I=YukIA?LCX})$IfS@*w|_W#8b22Z`-}_YDI0
+Uy_=e^8c&_+5Wep4oZ0354-6<6TL1t6
+
+literal 0
+HcmV?d00001
+
+diff --git a/scripts/run_baseline.py b/scripts/run_baseline.py
+new file mode 100644
+index 0000000..84f9260
+--- /dev/null
++++ b/scripts/run_baseline.py
+@@ -0,0 +1,168 @@
++#!/usr/bin/env python3
++"""Build and record a sequential local release matrix using only the standard library.
++
++Run from any directory: python3 scripts/run_baseline.py NEW_OUTPUT_DIRECTORY.
++The output must not exist. Source hashes cover both workspaces' build inputs;
++patches and untracked Rust files preserve this milestone without a commit.
++"""
++import argparse
++import random
++import hashlib
++import json
++import os
++from pathlib import Path
++import platform
++import subprocess
++import sys
++
++ROOT = Path(__file__).resolve().parents[1]
++CORE = ROOT.parent / "knotrel"
++ENGINES = ["reference-bfs", "compact-bfs", "dense-bfs", "petgraph-dfs", "outils-hdt", "ett-scan", "ett-scan-v1", "hdt"]
++KINDS = ["chain-split-rejoin-v1", "cycle-alternatives-v1",
++         "components-join-split-v1", "hub-alternatives-v1"]
++
++
++def command(args, cwd=ROOT):
++    return subprocess.check_output(args, cwd=cwd, text=True).strip()
++
++
++def source_patch(root):
++    """Capture staged/unstaged changes without recursively copying old results."""
++    return command(["git", "diff", "--binary", "HEAD", "--", ".", ":(exclude)results"], root)
++
++
++def optional_command(args):
++    result = subprocess.run(args, cwd=ROOT, text=True, capture_output=True)
++    return {"value": result.stdout.strip() if result.returncode == 0 else None,
++            "error": result.stderr.strip() if result.returncode else None}
++
++
++def hashes():
++    result = {}
++    for name, root in [("benchmarks", ROOT), ("core", CORE)]:
++        paths = [root / "Cargo.toml", root / "Cargo.lock", root / "rust-toolchain.toml"]
++        paths += sorted((root / "crates").rglob("*.rs"))
++        paths += sorted((root / "crates").rglob("Cargo.toml"))
++        paths += sorted((root / ".cargo").glob("config*"))
++        for path in paths:
++            result[f"{name}/{path.relative_to(root)}"] = hashlib.sha256(path.read_bytes()).hexdigest()
++    return result
++
++
++def run_cases(nodes, kinds, trials, regimes, order_seed):
++    """Balance fresh processes across regimes, then randomize execution order.
++
++    Fresh means no deliberate replay warmup, not flushed CPU or OS caches.
++    Every case is a separate process; repetitions inside it stay separate.
++    """
++    if trials < 1 or regimes not in ("fresh", "warmed", "both"):
++        raise ValueError("positive trials and a known cache regime are required")
++    warmups = [0, 1] if regimes == "both" else [int(regimes == "warmed")]
++    cases = []
++    for n in nodes:
++        for kind in kinds:
++            for trial in range(trials):
++                for warmup in warmups:
++                    regime = "warmed" if warmup else "fresh"
++                    name = f"{kind}-n{n}-{regime}-p{trial}"
++                    cases.append(dict(nodes=n, kind=kind, trial=trial, warmup=warmup,
++                                      regime=regime, name=name))
++    random.Random(order_seed).shuffle(cases)
++    return cases
++
++
++def engine_order(selection, trial):
++    """Rotate order across process trials to balance first/last positions."""
++    engines = ENGINES[:] if selection == "all" else selection.split(',')
++    if not engines or len(set(engines)) != len(engines) or any(e not in ENGINES for e in engines):
++        raise ValueError("unknown or duplicate engine")
++    offset = trial % len(engines)
++    return engines[offset:] + engines[:offset]
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("destination", type=Path)
++    parser.add_argument("--nodes", type=int, nargs="+", default=[128, 1024, 4096])
++    parser.add_argument("--rounds", type=int, default=200)
++    parser.add_argument("--process-trials", type=int, default=1)
++    parser.add_argument("--repetitions", type=int, default=3)
++    parser.add_argument("--cache-regimes", choices=["fresh", "warmed", "both"], default="warmed")
++    parser.add_argument("--engines", default="reference-bfs")
++    parser.add_argument("--query-repeats", type=int, default=0)
++    parser.add_argument("--order-seed", type=int, default=42)
++    args = parser.parse_args()
++    if min(args.nodes) < 6 or min(args.rounds, args.process_trials, args.repetitions) < 1:
++        parser.error("nodes must be >=6 and all counts positive")
++    engine_order(args.engines, 0)
++    if args.query_repeats < 0:
++        parser.error("query repeats must be nonnegative")
++    cases = run_cases(args.nodes, KINDS, args.process_trials, args.cache_regimes, args.order_seed)
++    for case in cases:
++        case["engine_order"] = engine_order(args.engines, case["trial"])
++    destination = args.destination.resolve()
++    destination.mkdir(parents=True, exist_ok=False)
++    before = hashes()
++    collector_hash = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
++    metadata = {
++        "platform": platform.platform(), "machine": platform.machine(),
++        "compiler": command(["rustc", "-vV"]),
++        "build_command": ["cargo", "build", "--release", "--locked", "--message-format=json-render-diagnostics"],
++        "environment": {key: os.environ.get(key) for key in
++                        ["RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS", "CARGO_BUILD_TARGET", "CARGO_TARGET_DIR", "CARGO_PROFILE_RELEASE_OPT_LEVEL", "CARGO_PROFILE_RELEASE_LTO", "CARGO_PROFILE_RELEASE_CODEGEN_UNITS"]},
++        "source_sha256": before,
++        "collector_sha256": collector_hash,
++        "query_repeats": args.query_repeats,
++        "method": "One sequential process per case; fresh graphs per replay; CPU/OS caches uncontrolled.",
++        "cache_protocol": {"cases_in_execution_order": cases, "order_seed": args.order_seed,
++                           "process_trials": args.process_trials, "repetitions": args.repetitions,
++                           "system_caches_flushed": False},
++        "commands": [],
++    }
++    if sys.platform == "darwin":
++        metadata["hardware"] = {key: optional_command(["sysctl", "-n", key]) for key in
++                                ["machdep.cpu.brand_string", "hw.ncpu", "hw.memsize"]}
++        metadata["os_version"] = command(["sw_vers"])
++    for name, root in [("benchmarks", ROOT), ("core", CORE)]:
++        metadata[name] = {"revision": command(["git", "rev-parse", "HEAD"], root),
++                          "status": command(["git", "status", "--porcelain"], root)}
++        (destination / f"{name}.patch").write_text(source_patch(root) + "\n")
++        for relative in command(["git", "ls-files", "--others", "--exclude-standard"], root).splitlines():
++            path = root / relative
++            if relative.startswith("crates/") and path.suffix == ".rs":
++                saved = destination / "untracked" / name / relative
++                saved.parent.mkdir(parents=True, exist_ok=True)
++                saved.write_bytes(path.read_bytes())
++    build = subprocess.run(metadata["build_command"], cwd=ROOT, check=True,
++                           text=True, stdout=subprocess.PIPE)
++    artifacts = [json.loads(line) for line in build.stdout.splitlines()]
++    executables = [item["executable"] for item in artifacts
++                   if item.get("reason") == "compiler-artifact"
++                   and item.get("target", {}).get("name") == "knotrel-benchmarks"
++                   and item.get("executable")]
++    if len(executables) != 1:
++        raise RuntimeError("Cargo did not report exactly one benchmark executable")
++    binary = Path(executables[0])
++    metadata["binary_sha256"] = hashlib.sha256(binary.read_bytes()).hexdigest()
++    for case in cases:
++        name = case["name"]
++        trace = destination / f"{name}.trace.json"
++        command_args = [str(binary), "--workload", case["kind"], "--nodes", str(case["nodes"]),
++                        "--rounds", str(args.rounds), "--seed", "42", "--warmup", str(case["warmup"]),
++                        "--repetitions", str(args.repetitions), "--trace-out", str(trace),
++                        "--engine", ",".join(case["engine_order"]), "--query-repeats", str(args.query_repeats)]
++        metadata["commands"].append(command_args)
++        print(f"Measuring {name}", flush=True)
++        output = command(command_args)
++        json.loads(output)
++        (destination / f"{name}.json").write_text(output + "\n")
++    if hashes() != before or hashlib.sha256(Path(__file__).read_bytes()).hexdigest() != collector_hash:
++        raise RuntimeError("Build inputs changed during measurement; discard these results")
++    (destination / "run_baseline.py").write_bytes(Path(__file__).read_bytes())
++    metadata["artifact_sha256"] = {str(p.relative_to(destination)): hashlib.sha256(p.read_bytes()).hexdigest()
++                                   for p in sorted(destination.rglob("*")) if p.is_file()}
++    (destination / "manifest.json").write_text(json.dumps(metadata, indent=2) + "\n")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/scripts/run_scale.py b/scripts/run_scale.py
+new file mode 100644
+index 0000000..6e2a525
+--- /dev/null
++++ b/scripts/run_scale.py
+@@ -0,0 +1,120 @@
++#!/usr/bin/env python3
++"""Record isolated backend processes, including whole-process peak resident memory.
++
++macOS /usr/bin/time -l reports bytes; Linux time -v reports KiB. RSS includes
++trace generation, exported JSON, warmup and harness, not just engine allocations.
++No engine or query timeout failures are silently dropped. Use a new output folder.
++"""
++import argparse
++import hashlib
++import itertools
++import json
++import os
++from pathlib import Path
++import platform
++import random
++import re
++import signal
++import subprocess
++import sys
++
++from run_baseline import ROOT, CORE, command, hashes, source_patch
++
++
++def peak_rss(stderr, system):
++    """Normalize the platform time tool's peak process RSS to bytes."""
++    if system == 'darwin':
++        match = re.search(r'^\s*(\d+)\s+maximum resident set size\s*$', stderr, re.M)
++        return int(match[1]) if match else None
++    match = re.search(r'Maximum resident set size \(kbytes\):\s*(\d+)', stderr)
++    return int(match[1]) * 1024 if match else None
++
++
++def run_measurement(invocation, timeout):
++    """Bound both time wrapper and benchmark lifetime; preserve partial output."""
++    with subprocess.Popen(invocation, cwd=ROOT, text=True, stdout=subprocess.PIPE,
++                          stderr=subprocess.PIPE, start_new_session=True) as process:
++        try:
++            stdout, stderr = process.communicate(timeout=timeout)
++            return subprocess.CompletedProcess(invocation, process.returncode, stdout, stderr), False
++        except subprocess.TimeoutExpired:
++            # The new session belongs exclusively to this measurement. Killing
++            # its group also stops the benchmark child of /usr/bin/time.
++            try:
++                os.killpg(process.pid, signal.SIGKILL)
++            except ProcessLookupError:
++                pass
++            stdout, stderr = process.communicate()
++            return subprocess.CompletedProcess(invocation, 124, stdout, stderr), True
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('destination', type=Path)
++    parser.add_argument('--nodes', nargs='+', type=int, default=[10000, 100000])
++    parser.add_argument('--query-percent', nargs='+', type=int, default=[10, 50, 90, 99])
++    parser.add_argument('--rounds', type=int, default=20)
++    parser.add_argument('--trials', type=int, default=2)
++    parser.add_argument('--regimes', nargs='+', choices=['fresh', 'warmed'], default=['fresh', 'warmed'])
++    parser.add_argument('--engines', nargs='+', default=['compact-bfs','petgraph-dfs','ett-scan'])
++    parser.add_argument('--workloads', nargs='+', default=['sustained-churn-path-v1','sustained-churn-blocks-v1'])
++    parser.add_argument('--query-repeats', type=int, default=0)
++    parser.add_argument('--timeout', type=int, default=180)
++    args = parser.parse_args()
++    if min(args.nodes) < 2 or min(args.rounds,args.trials,args.timeout) < 1 or args.query_repeats < 0:
++        parser.error('invalid size/count')
++    if any(not 1 <= q <= 99 for q in args.query_percent): parser.error('query percentage must be 1..99')
++    if sys.platform not in ['darwin','linux']: parser.error('RSS collector supports macOS and Linux')
++    destination=args.destination.resolve();destination.mkdir(parents=True,exist_ok=False)
++    before=hashes()
++    meta={'platform':platform.platform(),'compiler':command(['rustc','-vV']),
++          'source_sha256':before,'arguments':vars(args)|{'destination':str(destination)},
++          'patch_scope':'Tracked changes against HEAD, excluding results/; untracked Rust files saved separately.',
++          'memory_scope':'Peak entire child process, including trace, export, warmups, samples and engine. Not engine-only RSS.',
++          'environment':{k:os.environ.get(k) for k in ['RUSTFLAGS','CARGO_ENCODED_RUSTFLAGS','CARGO_BUILD_TARGET','CARGO_TARGET_DIR']},
++          'cases':[]}
++    for name,root in [('benchmarks',ROOT),('core',CORE)]:
++        meta[name]={'revision':command(['git','rev-parse','HEAD'],root),'status':command(['git','status','--porcelain'],root)}
++        (destination/f'{name}.patch').write_text(source_patch(root)+'\n')
++        for relative in command(['git','ls-files','--others','--exclude-standard'],root).splitlines():
++            f=root/relative
++            if relative.startswith('crates/') and f.suffix=='.rs':
++                saved=destination/'untracked'/name/relative;saved.parent.mkdir(parents=True,exist_ok=True);saved.write_bytes(f.read_bytes())
++    for script in ['run_scale.py','run_baseline.py']:
++        (destination/script).write_bytes((ROOT/'scripts'/script).read_bytes())
++    build_args=['cargo','build','--release','--locked','--message-format=json-render-diagnostics']
++    meta['build_command']=build_args
++    build=subprocess.run(build_args,cwd=ROOT,check=True,text=True,stdout=subprocess.PIPE)
++    artifacts=[json.loads(line) for line in build.stdout.splitlines()]
++    binary=next(Path(a['executable']) for a in artifacts if a.get('reason')=='compiler-artifact' and a.get('target',{}).get('name')=='knotrel-benchmarks' and a.get('executable'))
++    meta['binary_sha256']=hashlib.sha256(binary.read_bytes()).hexdigest()
++    cases=list(itertools.product(args.nodes,args.query_percent,args.workloads,range(args.trials),args.regimes,args.engines))
++    random.Random(42).shuffle(cases)
++    for i,(n,q,workload,trial,regime,engine) in enumerate(cases):
++        name=f'{workload}-n{n}-q{q}-{regime}-p{trial}-{engine}'
++        invocation=[str(binary),'--nodes',str(n),'--rounds',str(args.rounds),'--workload',workload,'--query-percent',str(q),
++                    '--engine',engine,'--warmup',str(int(regime=='warmed')),'--repetitions','1','--seed','42',
++                    '--query-repeats',str(args.query_repeats),'--trace-out',str(destination/(name+'.trace.json'))]
++        timed=['/usr/bin/time','-l' if sys.platform=='darwin' else '-v',*invocation]
++        print(f'{i+1}/{len(cases)} {name}',flush=True)
++        result,timed_out=run_measurement(timed,args.timeout)
++        (destination/(name+'.stderr.txt')).write_text(result.stderr)
++        case={'name':name,'nodes':n,'query_percent':q,'workload':workload,'trial':trial,'regime':regime,'engine':engine,
++              'command':timed,'timed_out':timed_out,'exit_code':result.returncode,'peak_process_rss_bytes':peak_rss(result.stderr,sys.platform)}
++        meta['cases'].append(case)
++        (destination/'manifest.partial.json').write_text(json.dumps(meta,indent=2)+'\n')
++        if result.returncode:
++            (destination/(name+'.partial-stdout.txt')).write_text(result.stdout)
++        result.check_returncode()
++        json.loads(result.stdout)
++        if case['peak_process_rss_bytes'] is None: raise RuntimeError('missing process RSS')
++        (destination/(name+'.json')).write_text(result.stdout)
++    if before!=hashes():raise RuntimeError('source changed during measurement')
++    for script in ['run_scale.py','run_baseline.py']:
++        if (destination/script).read_bytes()!=(ROOT/'scripts'/script).read_bytes():raise RuntimeError('collector changed')
++    (destination/'manifest.partial.json').unlink()
++    meta['artifact_sha256']={str(p.relative_to(destination)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(destination.rglob('*')) if p.is_file()}
++    (destination/'manifest.json').write_text(json.dumps(meta,indent=2)+'\n')
++
++
++if __name__=='__main__':main()
+diff --git a/scripts/summarize_comparison.py b/scripts/summarize_comparison.py
+new file mode 100644
+index 0000000..275dce1
+--- /dev/null
++++ b/scripts/summarize_comparison.py
+@@ -0,0 +1,49 @@
++#!/usr/bin/env python3
++"""Summarize saved comparison reports, never averaging pooled percentiles.
++
++Usage: python3 scripts/summarize_comparison.py RESULT_DIRECTORY
++Writes summary.csv exclusively. Each row summarizes per-repetition values;
++repetitions from one process are correlated, not independent trials.
++"""
++import csv
++import json
++from pathlib import Path
++import statistics
++import sys
++
++
++def summarize(directory):
++    """Group schema-3 reports by regime, family, size and versioned backend."""
++    manifest = json.loads((directory / 'manifest.json').read_text())
++    groups = {}
++    for case in manifest['cache_protocol']['cases_in_execution_order']:
++        report = json.loads((directory / (case['name'] + '.json')).read_text())
++        for backend in report['comparisons']:
++            key = (case['regime'], backend['config']['nodes'], backend['workload'], backend['engine'])
++            groups.setdefault(key, []).extend(backend['repetitions'])
++    rows = []
++    for key, runs in sorted(groups.items()):
++        row = dict(zip(['regime', 'nodes', 'workload', 'engine'], key))
++        row['repetition_summaries'] = len(runs)
++        for op in ['cut', 'link', 'connected']:
++            for percentile in ['p50_ns', 'p95_ns', 'p99_ns']:
++                row[f'{op}_{percentile}_median'] = statistics.median(r['measurements'][op][percentile] for r in runs if r['measurements'][op]) if any(r['measurements'][op] for r in runs) else None
++        totals = [sum(r['measurements'][op]['total_ns'] for op in ['cut', 'link', 'connected'] if r['measurements'][op]) for r in runs]
++        for label, values in [('base_operations_total_ns', totals),
++                              ('setup_ns', [r['setup_ns'] for r in runs]),
++                              ('query_repeat_p50_ns', [r['repeated_queries']['p50_ns'] for r in runs if r['repeated_queries']])]:
++            if values:
++                row[label + '_median'] = statistics.median(values)
++                row[label + '_min'] = min(values)
++                row[label + '_max'] = max(values)
++        rows.append(row)
++    return rows
++
++
++if __name__ == '__main__':
++    destination = Path(sys.argv[1])
++    rows = summarize(destination)
++    with (destination / 'summary.csv').open('x', newline='') as output:
++        writer = csv.DictWriter(output, fieldnames=list(rows[0]))
++        writer.writeheader()
++        writer.writerows(rows)
+diff --git a/scripts/summarize_scale.py b/scripts/summarize_scale.py
+new file mode 100644
+index 0000000..dc1db87
+--- /dev/null
++++ b/scripts/summarize_scale.py
+@@ -0,0 +1,36 @@
++#!/usr/bin/env python3
++"""Write one CSV row per isolated measured process; preserve missing categories."""
++import csv
++import json
++from pathlib import Path
++import sys
++
++
++def rows(directory):
++    """Read verified schema-2 single-backend cases, keeping trials distinct."""
++    manifest=json.loads((directory/'manifest.json').read_text())
++    result=[]
++    for case in manifest['cases']:
++        report=json.loads((directory/(case['name']+'.json')).read_text())
++        assert report['schema_version']==2 and len(report['repetitions'])==1
++        run=report['repetitions'][0]
++        row={key:case[key] for key in ['name','nodes','query_percent','workload','trial','regime','engine','peak_process_rss_bytes']}
++        row['setup_ns']=run['setup_ns']
++        row['workload_wall_ns']=run['workload_wall_ns']
++        row['base_operations_total_ns']=sum(v['total_ns'] for v in run['measurements'].values() if v)
++        for name,value in list(run['measurements'].items())+[(k,run[k]) for k in ['query_true','query_false','repeated_queries']]:
++            for stat in ['count','total_ns','p50_ns','p95_ns','p99_ns','max_ns']:
++                row[name+'_'+stat]=value[stat] if value else None
++        for stat in ['tree_cuts','scanned_vertices','candidate_edges','replacements']:
++            row[stat]=run['forest_stats'][stat] if run.get('forest_stats') else None
++        for stat in ['tree_cuts','candidate_edges','replacements','tree_promotions','non_tree_promotions','levels_visited']:
++            row['hdt_'+stat]=run['hdt_stats'][stat] if run.get('hdt_stats') else None
++        result.append(row)
++    return result
++
++
++if __name__=='__main__':
++    directory=Path(sys.argv[1]);summary=rows(directory)
++    with (directory/'summary.csv').open('x',newline='') as output:
++        writer=csv.DictWriter(output,fieldnames=list(summary[0]))
++        writer.writeheader();writer.writerows(summary)
+diff --git a/tests/python/test_cache_protocol.py b/tests/python/test_cache_protocol.py
+new file mode 100644
+index 0000000..38f4911
+--- /dev/null
++++ b/tests/python/test_cache_protocol.py
+@@ -0,0 +1,37 @@
++"""Behavior checks for cache-regime scheduling and trace validation."""
++import importlib.util
++from pathlib import Path
++import sys
++import unittest
++
++ROOT = Path(__file__).resolve().parents[2]
++sys.path.insert(0, str(ROOT / 'scripts'))
++sys.path.insert(0, str(ROOT / 'adapters/graphscope'))
++import run_baseline
++
++
++class CacheProtocolTests(unittest.TestCase):
++    def test_balanced_independent_process_cases(self):
++        cases = run_baseline.run_cases([8], ['chain-split-rejoin-v1'], 3, 'both', 7)
++        self.assertEqual(len(cases), 6)
++        self.assertEqual({(c['trial'], c['warmup']) for c in cases},
++                         {(i, w) for i in range(3) for w in (0, 1)})
++        self.assertEqual(cases, run_baseline.run_cases([8], ['chain-split-rejoin-v1'], 3, 'both', 7))
++        self.assertEqual(len({c['name'] for c in cases}), 6)
++
++    def test_rotation_balances_each_engine_position(self):
++        orders = [run_baseline.engine_order('all', i) for i in range(len(run_baseline.ENGINES))]
++        for position in range(len(run_baseline.ENGINES)):
++            self.assertEqual({order[position] for order in orders}, set(run_baseline.ENGINES))
++        for invalid in ['typo', 'reference-bfs,reference-bfs']:
++            with self.assertRaises(ValueError):
++                run_baseline.engine_order(invalid, 0)
++
++    def test_invalid_sampling_rejected(self):
++        for trials in [0, -1]:
++            with self.assertRaises(ValueError):
++                run_baseline.run_cases([8], ['chain-split-rejoin-v1'], trials, 'both', 7)
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tests/python/test_graphscope_probe.py b/tests/python/test_graphscope_probe.py
+new file mode 100644
+index 0000000..4105489
+--- /dev/null
++++ b/tests/python/test_graphscope_probe.py
+@@ -0,0 +1,52 @@
++"""Independent-oracle and cache correctness tests without GraphScope installed."""
++import copy
++from pathlib import Path
++import sys
++import unittest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'adapters/graphscope'))
++import probe
++
++
++class ProbeTests(unittest.TestCase):
++    def test_topology_cases_have_independently_valid_answers(self):
++        for case in probe.contract_cases():
++            probe.validate_case(case)
++
++    def test_wrong_expected_answer_is_rejected_before_backend(self):
++        case = copy.deepcopy(probe.contract_cases()[0])
++        query = next(op for op in case['operations'] if op['op'] == 'connected')
++        query['expected'] = not query['expected']
++        with self.assertRaises(ValueError):
++            probe.validate_case(case)
++
++    def test_same_query_is_checked_again_after_state_changes(self):
++        case = probe.contract_cases()[0]
++        answers = [op['expected'] for op in case['operations'] if op['op'] == 'connected']
++        self.assertIn(False, answers)
++        self.assertIn(True, answers)
++        self.assertGreaterEqual(len(answers), 6)
++
++    def test_oracle_rejects_invalid_or_ineffective_updates(self):
++        for op in [{'op': 'link', 'source': 0, 'target': 0},
++                   {'op': 'cut', 'source': 0, 'target': 2, 'changed': True},
++                   {'op': 'connected', 'source': 0, 'target': 99, 'expected': False}]:
++            case = {'name': 'bad', 'nodes': [0, 1, 2], 'initial_edges': [[0, 1]], 'operations': [op]}
++            with self.assertRaises(ValueError):
++                probe.validate_case(case)
++
++    def test_export_preserves_u64_and_rejects_unsupported_schema(self):
++        envelope = {'schema_version': 1, 'workload': 'test', 'config': {'nodes': 2},
++                    'trace': {'initial_edges': [[0, 1]], 'operations': []}}
++        self.assertEqual(probe.from_export(envelope)['nodes'], [0, 1])
++        envelope['schema_version'] = 2
++        with self.assertRaises(ValueError):
++            probe.from_export(envelope)
++        self.assertEqual(probe.node_key(2**64-1), '18446744073709551615')
++        for value in [-1, 2**64, True, 1.2]:
++            with self.assertRaises(ValueError):
++                probe.node_key(value)
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tests/python/test_scale_collector.py b/tests/python/test_scale_collector.py
+new file mode 100644
+index 0000000..a86678f
+--- /dev/null
++++ b/tests/python/test_scale_collector.py
+@@ -0,0 +1,22 @@
++"""The peak RSS parser normalizes units without treating absent data as zero."""
++import sys
++from pathlib import Path
++import unittest
++sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
++from run_scale import peak_rss, run_measurement
++
++class RssTests(unittest.TestCase):
++    def test_units_and_missing_values(self):
++        self.assertEqual(peak_rss('  123456  maximum resident set size\n', 'darwin'), 123456)
++        self.assertEqual(peak_rss('Maximum resident set size (kbytes): 123\n', 'linux'), 125952)
++        self.assertIsNone(peak_rss('permission denied', 'darwin'))
++        self.assertIsNone(peak_rss('', 'linux'))
++
++    def test_timeout_is_recorded_and_success_returns_output(self):
++        result, timed_out = run_measurement([sys.executable, '-c', 'import time; time.sleep(5)'], 0.05)
++        self.assertTrue(timed_out)
++        self.assertEqual(result.returncode, 124)
++        result, timed_out = run_measurement([sys.executable, '-c', 'print(42)'], 5)
++        self.assertFalse(timed_out)
++        self.assertEqual(result.returncode, 0)
++        self.assertEqual(result.stdout.strip(), '42')

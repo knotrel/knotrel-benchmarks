@@ -1,0 +1,2148 @@
+diff --git a/README.md b/README.md
+index 0efb9e0..d8b2068 100644
+--- a/README.md
++++ b/README.md
+@@ -3,9 +3,10 @@
+ Dynamic connectivity for undirected graphs: insert edges, delete edges, and ask
+ whether two vertices are connected.
+ 
+-This repository is an initial, in-memory reference implementation. Connectivity
+-queries use breadth-first traversal; no optimized dynamic-connectivity or
+-production scalability claims have been established yet.
++The default core uses compact adjacency and breadth-first traversal. It supports
++growing vertex sets and retains the original ordered-adjacency engine as
++`ReferenceGraph` for comparison. An experimental Euler-tour forest is available
++explicitly; no production scalability claim has been established.
+ 
+ ## Workspace
+ 
+@@ -24,9 +25,31 @@ the resolved dependency versions. Packages are currently unpublished.
+ cargo run --release --locked -p knotrel-server
+ ```
+ 
+-The server listens on `127.0.0.1:8080`. Set `KNOTREL_ADDR` to an IP address and
+-port, and `RUST_LOG` to configure logging. Ctrl-C and Unix SIGTERM drain active
+-requests. All graph data is lost when the process exits.
++The server listens on `127.0.0.1:8080` and uses compact BFS by default.
++Configuration is read once before binding:
++
++| Variable | Default | Meaning |
++| --- | --- | --- |
++| `KNOTREL_ADDR` | `127.0.0.1:8080` | IP address and port |
++| `KNOTREL_ENGINE` | `compact-bfs` | `compact-bfs`, experimental `ett` or `hdt` |
++| `KNOTREL_MAX_PENDING_JOBS` | `32` | Positive limit on queued plus running graph jobs |
++| `RUST_LOG` | `info` | Logging filter |
++
++For example, to opt into the experimental forest:
++
++```sh
++KNOTREL_ENGINE=ett KNOTREL_MAX_PENDING_JOBS=16 \
++  cargo run --release --locked -p knotrel-server
++curl -sS http://127.0.0.1:8080/v1/info
++```
++
++Invalid values and unknown `KNOTREL_` variables stop startup. `hdt` selects the
++experimental level-based HDT engine. `GET /v1/info` reports the effective engine and limits without
++locking the graph. Settings cannot be changed through operation requests.
++See [configuration and API details](docs/http-api.md#startup-configuration-and-engine-selection).
++
++Ctrl-C and Unix SIGTERM drain active requests. All graph data is lost when the
++process exits; restarting with another engine does not migrate existing data.
+ 
+ ```sh
+ curl -sS http://127.0.0.1:8080/v1/operations \
+@@ -65,5 +88,24 @@ CI runs the quality gates on Linux and macOS.
+   local workloads and future comparisons. Keep its clone beside this repository.
+ 
+ Documentation lives here alongside the code. Authentication, persistence,
+-multiple graph namespaces, distributed execution and an optimized connectivity
+-engine are outside this initial foundation.
++multiple graph namespaces and distributed execution are not implemented.
++
++An opt-in experimental `ForestGraph` maintains exact connectivity using AVL
++Euler-tour trees and smaller-side replacement scans. The default `Graph` and HTTP
++service use compact BFS; `KNOTREL_ENGINE=ett` opts the server into `ForestGraph`. See [design and limits](docs/architecture/0005-experimental-euler-tour-forest.md).
++
++The experimental forest skips candidate-free subtrees and stops replacement
++searches lazily. See [candidate pruning and measured tradeoffs](docs/architecture/0006-candidate-pruning.md).
++
++
++Embedded callers can choose an engine through `ConnectivityGraph::new(EngineConfig)`
++without environment or HTTP dependencies. Existing `Graph`, `ForestGraph` and
++`knotrel_server::router(Graph)` APIs remain available. See
++[startup configuration design](docs/architecture/0007-startup-engine-configuration.md).
++
++
++Experimental `HdtGraph` adds deterministic edge levels and promotions to avoid
++repeated failed replacement work. Select it with `KNOTREL_ENGINE=hdt` or
++`ConnectivityGraph::new(EngineConfig::Hdt)`. It uses O(E + V log V) logical memory;
++update bounds are amortized, not per-request latency guarantees. Compact BFS
++remains the default. See [HDT design and limits](docs/architecture/0008-experimental-hdt.md).
+diff --git a/crates/knotrel-core/src/dynamic.rs b/crates/knotrel-core/src/dynamic.rs
+new file mode 100644
+index 0000000..3310e5b
+--- /dev/null
++++ b/crates/knotrel-core/src/dynamic.rs
+@@ -0,0 +1,216 @@
++//! Exact general-graph connectivity using one Euler-tour spanning forest.
++use crate::{GraphError, NodeId, forest::Forest};
++use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
++
++/// Cumulative replacement-search work; counters saturate at u64::MAX.
++#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
++pub struct ForestStats {
++    /// Deleted edges that belonged to the maintained spanning forest.
++    pub tree_cuts: u64,
++    /// Candidate-bearing vertices yielded on the smaller side after tree cuts.
++    /// Pruned empty regions and unvisited vertices after success are excluded.
++    pub scanned_vertices: u64,
++    /// Non-tree adjacency entries tested for a crossing replacement.
++    pub candidate_edges: u64,
++    /// Successful promotions of non-tree edges into the forest.
++    pub replacements: u64,
++}
++
++/// Experimental exact connectivity with deterministic Euler-tour trees.
++///
++/// Maintains a spanning forest: each graph component has exactly one tree.
++/// Non-tree edges are stored at both endpoints. Removing a forest edge scans
++/// non-tree edges incident to its smaller side; a crossing edge reconnects the
++/// trees, or exhaustion proves a real split. This is not HDT: repeated scans have
++/// no polylogarithmic amortized bound. The default [`crate::Graph`] is unchanged.
++///
++/// AVL root queries cost O(log V), plus O(log V) ID translation. Link costs
++/// O(log V + log E) amortized including arena growth. A tree cut costs (amortized for free-list growth)
++/// O(log V + log E + min(s, (k+1) log V) + c log V), where s is the
++/// smaller side size, k the yielded candidate-bearing vertices, and c the
++/// examined non-tree incidences. Empty candidate sets require no enumeration. Non-tree cuts cost O(log V + log E).
++/// A single token-arena or free-list growth can add O(V) time. Logical storage is O(V + E); allocated
++/// arenas retain O(V) high-water capacity, and removed tree-edge slots are reused.
++/// Queries allocate no scratch, cache no answers and use no internal locks.
++#[derive(Debug, Default)]
++pub struct ForestGraph {
++    ids: BTreeMap<NodeId, usize>,
++    non_tree: Vec<BTreeSet<usize>>,
++    edges: BTreeMap<(usize, usize), Option<(usize, usize)>>,
++    forest: Forest,
++    stats: ForestStats,
++}
++impl ForestGraph {
++    /// Creates an empty graph in O(1) time.
++    #[must_use]
++    pub fn new() -> Self {
++        Self::default()
++    }
++
++    /// Registers an isolated vertex; returns false for an existing ID.
++    ///
++    /// O(log V) amortized; arena/vector growth can take O(V) in one call.
++    pub fn add_node(&mut self, node: NodeId) -> bool {
++        if let Entry::Vacant(entry) = self.ids.entry(node) {
++            let index = self.non_tree.len();
++            self.non_tree.push(BTreeSet::new());
++            self.forest.add_vertex();
++            entry.insert(index);
++            true
++        } else {
++            false
++        }
++    }
++    /// Inserts a simple undirected edge, registering absent endpoints.
++    ///
++    /// Returns false for an existing edge, including reversed endpoints.
++    /// # Errors
++    /// Rejects self-loops before registering either endpoint.
++    pub fn link(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        Self::distinct(source, target)?;
++        self.add_node(source);
++        self.add_node(target);
++        let (a, b) = (self.ids[&source], self.ids[&target]);
++        let key = (a.min(b), a.max(b));
++        if self.edges.contains_key(&key) {
++            return Ok(false);
++        }
++        let arcs = if self.forest.connected(a, b) {
++            self.non_tree[a].insert(b);
++            self.non_tree[b].insert(a);
++            self.forest.set_candidate(a, true);
++            self.forest.set_candidate(b, true);
++            None
++        } else {
++            Some(self.forest.link(a, b))
++        };
++        self.edges.insert(key, arcs);
++        Ok(true)
++    }
++    /// Removes an edge while retaining both vertices; absent edges return false.
++    ///
++    /// Tree cuts synchronously complete replacement search before returning.
++    /// # Errors
++    /// Rejects self-loops without changing graph state.
++    pub fn cut(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        Self::distinct(source, target)?;
++        let (Some(&a), Some(&b)) = (self.ids.get(&source), self.ids.get(&target)) else {
++            return Ok(false);
++        };
++        let key = (a.min(b), a.max(b));
++        let Some(arcs) = self.edges.remove(&key) else {
++            return Ok(false);
++        };
++        if let Some(arcs) = arcs {
++            self.forest.cut(arcs);
++            self.stats.tree_cuts = self.stats.tree_cuts.saturating_add(1);
++            let mut replacement = None;
++            'search: for v in self.forest.smaller_candidates(a, b) {
++                self.stats.scanned_vertices = self.stats.scanned_vertices.saturating_add(1);
++                for &w in &self.non_tree[v] {
++                    self.stats.candidate_edges = self.stats.candidate_edges.saturating_add(1);
++                    if !self.forest.connected(v, w) {
++                        replacement = Some((v, w));
++                        break 'search;
++                    }
++                }
++            }
++            if let Some((v, w)) = replacement {
++                self.non_tree[v].remove(&w);
++                self.non_tree[w].remove(&v);
++                self.forest.set_candidate(v, !self.non_tree[v].is_empty());
++                self.forest.set_candidate(w, !self.non_tree[w].is_empty());
++                let arcs = self.forest.link(v, w);
++                *self
++                    .edges
++                    .get_mut(&(v.min(w), v.max(w)))
++                    .expect("replacement edge exists") = Some(arcs);
++                self.stats.replacements = self.stats.replacements.saturating_add(1);
++            }
++        } else {
++            self.non_tree[a].remove(&b);
++            self.non_tree[b].remove(&a);
++            self.forest.set_candidate(a, !self.non_tree[a].is_empty());
++            self.forest.set_candidate(b, !self.non_tree[b].is_empty());
++        }
++        Ok(true)
++    }
++    /// Answers exact connectivity in O(log V) worst-case time without allocation.
++    ///
++    /// Existing vertices connect to themselves, including isolated vertices.
++    /// # Errors
++    /// Reports an absent source before an absent target.
++    pub fn connected(&self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        let a = *self
++            .ids
++            .get(&source)
++            .ok_or(GraphError::UnknownNode { node: source })?;
++        let b = *self
++            .ids
++            .get(&target)
++            .ok_or(GraphError::UnknownNode { node: target })?;
++        Ok(self.forest.connected(a, b))
++    }
++    /// Returns the number of registered vertices in O(1) time.
++    #[must_use]
++    pub fn node_count(&self) -> usize {
++        self.ids.len()
++    }
++    /// Returns the number of undirected graph edges in O(1) time.
++    #[must_use]
++    pub fn edge_count(&self) -> usize {
++        self.edges.len()
++    }
++    /// Returns cumulative replacement-search counters in O(1) time.
++    #[must_use]
++    pub fn stats(&self) -> ForestStats {
++        self.stats
++    }
++    /// Clears only diagnostic counters, preserving all graph state.
++    pub fn reset_stats(&mut self) {
++        self.stats = ForestStats::default();
++    }
++    fn distinct(a: NodeId, b: NodeId) -> Result<(), GraphError> {
++        if a == b {
++            Err(GraphError::SelfLoop { node: a })
++        } else {
++            Ok(())
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::ForestGraph;
++    #[test]
++    fn general_graph_updates_preserve_avl_and_edge_classification() {
++        let mut g = ForestGraph::new();
++        let mut seed = 123_u64;
++        for step in 0..3000 {
++            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
++            let a = (seed >> 32) % 50;
++            let b = (seed >> 48) % 50;
++            if step % 3 == 0 {
++                let _ = g.cut(a, b);
++            } else {
++                let _ = g.link(a, b);
++            }
++            g.forest.validate();
++            for (&(u, v), arcs) in &g.edges {
++                assert!(g.forest.connected(u, v));
++                assert_eq!(g.non_tree[u].contains(&v), arcs.is_none());
++                assert_eq!(g.non_tree[v].contains(&u), arcs.is_none());
++            }
++            for (u, neighbors) in g.non_tree.iter().enumerate() {
++                assert_eq!(g.forest.is_candidate(u), !neighbors.is_empty());
++                for &v in neighbors {
++                    assert_eq!(g.edges.get(&(u.min(v), u.max(v))), Some(&None));
++                }
++            }
++        }
++        let counts = (g.node_count(), g.edge_count());
++        g.reset_stats();
++        assert_eq!(g.stats(), super::ForestStats::default());
++        assert_eq!(counts, (g.node_count(), g.edge_count()));
++    }
++}
+diff --git a/crates/knotrel-core/src/forest.rs b/crates/knotrel-core/src/forest.rs
+new file mode 100644
+index 0000000..ee7eebf
+--- /dev/null
++++ b/crates/knotrel-core/src/forest.rs
+@@ -0,0 +1,382 @@
++//! Euler-tour sequences over a deterministic implicit AVL tree.
++//!
++//! Each vertex has one permanent token. Each tree edge has two directed tokens.
++//! Rotating a tour and concatenating tours implements link; cutting at the two
++//! directed tokens implements cut. See Holm, de Lichtenberg and Thorup (2001),
++//! section 2: <https://www.cs.princeton.edu/courses/archive/fall07/cos521/handouts/poly.pdf>
++//! This module implements forest connectivity only, not HDT replacement levels.
++
++#[derive(Debug)]
++struct Token {
++    left: Option<usize>,
++    right: Option<usize>,
++    parent: Option<usize>,
++    height: usize,
++    size: usize,
++    vertices: usize,
++    vertex: Option<usize>,
++    candidate: bool,
++    has_candidates: bool,
++}
++impl Token {
++    fn new(vertex: Option<usize>) -> Self {
++        Self {
++            left: None,
++            right: None,
++            parent: None,
++            height: 1,
++            size: 1,
++            vertices: usize::from(vertex.is_some()),
++            vertex,
++            candidate: false,
++            has_candidates: false,
++        }
++    }
++}
++
++/// Stable handles; released edge tokens are reused before the arena grows.
++#[derive(Debug, Default)]
++pub(crate) struct Forest {
++    tokens: Vec<Token>,
++    free: Vec<usize>,
++    vertex_tokens: Vec<usize>,
++}
++impl Forest {
++    pub(crate) fn add_vertex(&mut self) {
++        let vertex = self.vertex_tokens.len();
++        let token = self.allocate(Some(vertex));
++        self.vertex_tokens.push(token);
++    }
++    fn allocate(&mut self, vertex: Option<usize>) -> usize {
++        if let Some(i) = self.free.pop() {
++            self.tokens[i] = Token::new(vertex);
++            i
++        } else {
++            let i = self.tokens.len();
++            self.tokens.push(Token::new(vertex));
++            i
++        }
++    }
++    fn height(&self, root: Option<usize>) -> usize {
++        root.map_or(0, |i| self.tokens[i].height)
++    }
++    fn size(&self, root: Option<usize>) -> usize {
++        root.map_or(0, |i| self.tokens[i].size)
++    }
++    fn vertices(&self, root: Option<usize>) -> usize {
++        root.map_or(0, |i| self.tokens[i].vertices)
++    }
++    fn has_candidates(&self, root: Option<usize>) -> bool {
++        root.is_some_and(|i| self.tokens[i].has_candidates)
++    }
++    fn pull(&mut self, i: usize) {
++        let (l, r) = (self.tokens[i].left, self.tokens[i].right);
++        self.tokens[i].height = 1 + self.height(l).max(self.height(r));
++        self.tokens[i].size = 1 + self.size(l) + self.size(r);
++        self.tokens[i].vertices =
++            usize::from(self.tokens[i].vertex.is_some()) + self.vertices(l) + self.vertices(r);
++        self.tokens[i].has_candidates =
++            self.tokens[i].candidate || self.has_candidates(l) || self.has_candidates(r);
++        if let Some(l) = l {
++            self.tokens[l].parent = Some(i);
++        }
++        if let Some(r) = r {
++            self.tokens[r].parent = Some(i);
++        }
++        self.tokens[i].parent = None;
++    }
++    fn take_left(&mut self, i: usize) -> Option<usize> {
++        let child = self.tokens[i].left.take();
++        if let Some(c) = child {
++            self.tokens[c].parent = None;
++        }
++        child
++    }
++    fn take_right(&mut self, i: usize) -> Option<usize> {
++        let child = self.tokens[i].right.take();
++        if let Some(c) = child {
++            self.tokens[c].parent = None;
++        }
++        child
++    }
++    fn rotate_left(&mut self, i: usize) -> usize {
++        let r = self.take_right(i).expect("right child");
++        self.tokens[i].right = self.take_left(r);
++        self.pull(i);
++        self.tokens[r].left = Some(i);
++        self.pull(r);
++        r
++    }
++    fn rotate_right(&mut self, i: usize) -> usize {
++        let l = self.take_left(i).expect("left child");
++        self.tokens[i].left = self.take_right(l);
++        self.pull(i);
++        self.tokens[l].right = Some(i);
++        self.pull(l);
++        l
++    }
++    fn balance(&mut self, i: usize) -> usize {
++        self.pull(i);
++        let (l, r) = (self.tokens[i].left, self.tokens[i].right);
++        if self.height(l) > self.height(r) + 1 {
++            let left = l.expect("left heavy");
++            if self.height(self.tokens[left].right) > self.height(self.tokens[left].left) {
++                self.tokens[i].left = Some(self.rotate_left(left));
++            }
++            self.rotate_right(i)
++        } else if self.height(r) > self.height(l) + 1 {
++            let right = r.expect("right heavy");
++            if self.height(self.tokens[right].left) > self.height(self.tokens[right].right) {
++                self.tokens[i].right = Some(self.rotate_right(right));
++            }
++            self.rotate_left(i)
++        } else {
++            i
++        }
++    }
++    /// AVL join descends the taller spine until heights differ by at most one.
++    /// Rotations preserve sequence order. Cost O(1 + absolute height difference).
++    fn join(&mut self, left: Option<usize>, pivot: usize, right: Option<usize>) -> usize {
++        if self.height(left) > self.height(right) + 1 {
++            let l = left.expect("taller left");
++            let child = self.take_right(l);
++            let root = self.join(child, pivot, right);
++            self.tokens[l].right = Some(root);
++            self.balance(l)
++        } else if self.height(right) > self.height(left) + 1 {
++            let r = right.expect("taller right");
++            let child = self.take_left(r);
++            let root = self.join(left, pivot, child);
++            self.tokens[r].left = Some(root);
++            self.balance(r)
++        } else {
++            self.tokens[pivot].left = left;
++            self.tokens[pivot].right = right;
++            self.pull(pivot);
++            pivot
++        }
++    }
++    /// Split before rank k; joining the untouched subtrees restores AVL balance.
++    /// Join height differences telescope along the search path: O(log n) time.
++    fn split(&mut self, root: Option<usize>, k: usize) -> (Option<usize>, Option<usize>) {
++        let Some(i) = root else {
++            debug_assert_eq!(k, 0);
++            return (None, None);
++        };
++        let size = self.size(self.tokens[i].left);
++        let left = self.take_left(i);
++        let right = self.take_right(i);
++        if k <= size {
++            let (a, b) = self.split(left, k);
++            let r = self.join(b, i, right);
++            (a, Some(r))
++        } else {
++            let (a, b) = self.split(right, k - size - 1);
++            let l = self.join(left, i, a);
++            (Some(l), b)
++        }
++    }
++    fn concat(&mut self, left: Option<usize>, right: Option<usize>) -> Option<usize> {
++        match (left, right) {
++            (None, r) => r,
++            (l, None) => l,
++            (Some(l), Some(r)) => {
++                let (a, pivot) = self.split(Some(l), self.tokens[l].size - 1);
++                Some(self.join(a, pivot.expect("last token"), Some(r)))
++            }
++        }
++    }
++    fn root(&self, mut i: usize) -> usize {
++        while let Some(parent) = self.tokens[i].parent {
++            i = parent;
++        }
++        i
++    }
++    fn rank(&self, mut i: usize) -> usize {
++        let mut rank = self.size(self.tokens[i].left);
++        while let Some(parent) = self.tokens[i].parent {
++            if self.tokens[parent].right == Some(i) {
++                rank += 1 + self.size(self.tokens[parent].left);
++            }
++            i = parent;
++        }
++        rank
++    }
++    fn reroot(&mut self, token: usize) -> Option<usize> {
++        let root = self.root(token);
++        let rank = self.rank(token);
++        let (left, right) = self.split(Some(root), rank);
++        self.concat(right, left)
++    }
++    pub(crate) fn connected(&self, a: usize, b: usize) -> bool {
++        self.root(self.vertex_tokens[a]) == self.root(self.vertex_tokens[b])
++    }
++    pub(crate) fn link(&mut self, a: usize, b: usize) -> (usize, usize) {
++        debug_assert!(!self.connected(a, b));
++        let left = self.reroot(self.vertex_tokens[a]);
++        let right = self.reroot(self.vertex_tokens[b]);
++        let ab = self.allocate(None);
++        let ba = self.allocate(None);
++        let left = self.concat(left, Some(ab));
++        let left = self.concat(left, right);
++        self.concat(left, Some(ba));
++        (ab, ba)
++    }
++    pub(crate) fn cut(&mut self, arcs: (usize, usize)) {
++        let tour = self.reroot(arcs.0);
++        let (_, rest) = self.split(tour, 1);
++        let position = self.rank(arcs.1);
++        let (_, tail) = self.split(rest, position);
++        self.split(tail, 1);
++        for i in [arcs.0, arcs.1] {
++            debug_assert_eq!(self.tokens[i].size, 1);
++            self.free.push(i);
++        }
++    }
++    /// Update the vertex's non-tree incidence flag, repairing only affected
++    /// ancestors. O(log n) worst case; stop when the subtree OR is unchanged.
++    /// Unlike structural pull, this must preserve the existing parent pointers.
++    pub(crate) fn set_candidate(&mut self, vertex: usize, enabled: bool) {
++        let token = self.vertex_tokens[vertex];
++        if self.tokens[token].candidate == enabled {
++            return;
++        }
++        self.tokens[token].candidate = enabled;
++        let mut current = Some(token);
++        while let Some(i) = current {
++            let value = self.tokens[i].candidate
++                || self.has_candidates(self.tokens[i].left)
++                || self.has_candidates(self.tokens[i].right);
++            if self.tokens[i].has_candidates == value {
++                break;
++            }
++            self.tokens[i].has_candidates = value;
++            current = self.tokens[i].parent;
++        }
++    }
++
++    /// Traverse only marked regions of the smaller tree, lazily. An empty tree
++    /// of candidates returns without allocating. Stack space is O(log n).
++    /// Yielding k vertices visits O(min(s, (k+1) log n)) tokens, where s is the
++    /// smaller tree size. Dropping the iterator ends enumeration immediately.
++    pub(crate) fn smaller_candidates(&self, a: usize, b: usize) -> Candidates<'_> {
++        let a = self.root(self.vertex_tokens[a]);
++        let b = self.root(self.vertex_tokens[b]);
++        let root = if self.tokens[a].vertices <= self.tokens[b].vertices {
++            a
++        } else {
++            b
++        };
++        let mut stack = Vec::new();
++        if self.tokens[root].has_candidates {
++            stack.reserve_exact(self.tokens[root].height);
++            stack.push(root);
++        }
++        Candidates {
++            forest: self,
++            stack,
++        }
++    }
++
++    #[cfg(test)]
++    pub(crate) fn is_candidate(&self, vertex: usize) -> bool {
++        self.tokens[self.vertex_tokens[vertex]].candidate
++    }
++
++    #[cfg(test)]
++    pub(crate) fn validate(&self) {
++        use std::collections::BTreeSet;
++        let free: BTreeSet<_> = self.free.iter().copied().collect();
++        assert_eq!(free.len(), self.free.len());
++        let roots: BTreeSet<_> = self.vertex_tokens.iter().map(|&i| self.root(i)).collect();
++        let mut seen = BTreeSet::new();
++        fn visit(
++            f: &Forest,
++            i: usize,
++            parent: Option<usize>,
++            seen: &mut BTreeSet<usize>,
++        ) -> (usize, usize, usize, bool) {
++            assert!(seen.insert(i));
++            let t = &f.tokens[i];
++            assert_eq!(t.parent, parent);
++            let l = t
++                .left
++                .map_or((0, 0, 0, false), |l| visit(f, l, Some(i), seen));
++            let r = t
++                .right
++                .map_or((0, 0, 0, false), |r| visit(f, r, Some(i), seen));
++            assert!(l.0.abs_diff(r.0) <= 1);
++            assert_eq!(
++                (t.height, t.size, t.vertices),
++                (
++                    1 + l.0.max(r.0),
++                    1 + l.1 + r.1,
++                    usize::from(t.vertex.is_some()) + l.2 + r.2
++                )
++            );
++            assert!(!t.candidate || t.vertex.is_some());
++            assert_eq!(t.has_candidates, t.candidate || l.3 || r.3);
++            (t.height, t.size, t.vertices, t.has_candidates)
++        }
++        for root in roots {
++            visit(self, root, None, &mut seen);
++        }
++        assert!(seen.is_disjoint(&free));
++        assert_eq!(seen.len() + free.len(), self.tokens.len());
++    }
++}
++
++/// Borrowing prevents forest rotations or candidate changes during a scan.
++pub(crate) struct Candidates<'a> {
++    forest: &'a Forest,
++    stack: Vec<usize>,
++}
++impl Iterator for Candidates<'_> {
++    type Item = usize;
++    fn next(&mut self) -> Option<Self::Item> {
++        while let Some(i) = self.stack.pop() {
++            let token = &self.forest.tokens[i];
++            // Preserve v1's node/right/left traversal order among candidates.
++            for child in [token.left, token.right].into_iter().flatten() {
++                if self.forest.tokens[child].has_candidates {
++                    self.stack.push(child);
++                }
++            }
++            if token.candidate {
++                return token.vertex;
++            }
++        }
++        None
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::Forest;
++    #[test]
++    fn rotations_splits_and_reused_arcs_preserve_invariants() {
++        let mut f = Forest::default();
++        for _ in 0..100 {
++            f.add_vertex();
++        }
++        let mut edges = Vec::new();
++        for i in 1..100 {
++            edges.push(f.link(i - 1, i));
++            f.validate();
++        }
++        for round in 0..20 {
++            for (i, edge) in edges.iter_mut().enumerate() {
++                f.cut(*edge);
++                f.validate();
++                assert!(!f.connected(i, i + 1));
++                *edge = if round % 2 == 0 {
++                    f.link(i + 1, i)
++                } else {
++                    f.link(i, i + 1)
++                };
++                f.validate();
++            }
++        }
++        assert_eq!(f.tokens.len(), 100 + 198);
++    }
++}
+diff --git a/crates/knotrel-core/src/lib.rs b/crates/knotrel-core/src/lib.rs
+index 5e1fa64..4274101 100644
+--- a/crates/knotrel-core/src/lib.rs
++++ b/crates/knotrel-core/src/lib.rs
+@@ -1,8 +1,8 @@
+ //! Exact, in-memory connectivity for undirected simple graphs.
+ //!
+-//! This ordered-adjacency implementation is a correctness and performance
+-//! baseline. It recomputes reachability for each query; it is not an optimized
+-//! dynamic connectivity data structure.
++//! Compact adjacency with stable internal indices supports a growing vertex
++//! universe. Queries traverse the graph without caching answers or acquiring
++//! internal locks. The original ordered implementation is [`ReferenceGraph`].
+ //!
+ //! ```
+ //! use knotrel_core::Graph;
+@@ -16,11 +16,22 @@
+ //! ```
+ 
+ use std::{
+-    collections::{BTreeMap, BTreeSet, VecDeque, btree_map::Entry},
++    collections::{BTreeMap, btree_map::Entry},
+     error::Error,
+     fmt,
+ };
+ 
++mod configuration;
++mod dynamic;
++mod forest;
++mod hdt;
++mod hdt_forest;
++pub use hdt::{HdtGraph, HdtStats};
++mod reference;
++pub use configuration::{ConnectivityGraph, EngineConfig};
++pub use dynamic::{ForestGraph, ForestStats};
++pub use reference::ReferenceGraph;
++
+ /// A vertex identifier.
+ pub type NodeId = u64;
+ 
+@@ -50,15 +61,16 @@ impl fmt::Display for GraphError {
+ 
+ impl Error for GraphError {}
+ 
+-/// An undirected simple graph with exact connectivity queries.
++/// An undirected simple graph with compact adjacency and exact BFS queries.
+ ///
+-/// Every stored edge appears in both endpoints' adjacency sets. Sets exclude
+-/// self-loops and duplicate edges; every endpoint has a vertex entry. Deleting
+-/// an edge preserves its vertices. Storage is O(V + E), where V and E are the
+-/// current vertex and undirected edge counts.
++/// External IDs map to stable, append-only indices. Each sorted adjacency vector
++/// contains unique indices, and every edge appears at both endpoints. Cuts retain
++/// vertices. Logical storage is O(V + E). Allocated storage is O(V + H), where H is
++/// the sum of per-vertex historical maximum degrees (capacity is retained). No query answers are cached.
+ #[derive(Debug, Default)]
+ pub struct Graph {
+-    adjacency: BTreeMap<NodeId, BTreeSet<NodeId>>,
++    ids: BTreeMap<NodeId, usize>,
++    adjacency: Vec<Vec<usize>>,
+     edges: usize,
+ }
+ 
+@@ -69,12 +81,15 @@ impl Graph {
+         Self::default()
+     }
+ 
+-    /// Adds an isolated vertex, returning `true` only if it was absent.
++    /// Adds an isolated vertex, returning true only if it was absent.
+     ///
+-    /// An existing vertex and its edges are unchanged. Worst-case time: O(log V).
++    /// Existing edges are unchanged. O(log V) amortized time; growing the outer
++    /// vector can take O(V) in a single insertion. Indices never change.
+     pub fn add_node(&mut self, node: NodeId) -> bool {
+-        if let Entry::Vacant(entry) = self.adjacency.entry(node) {
+-            entry.insert(BTreeSet::new());
++        if let Entry::Vacant(entry) = self.ids.entry(node) {
++            let index = self.adjacency.len();
++            self.adjacency.push(Vec::new());
++            entry.insert(index);
+             true
+         } else {
+             false
+@@ -83,79 +98,90 @@ impl Graph {
+ 
+     /// Inserts an undirected edge, creating absent endpoints.
+     ///
+-    /// Returns `true` only when the edge is new. Reversed endpoints identify
+-    /// the same edge. Worst-case time: O(log V).
++    /// Reversed endpoints identify the same edge; duplicates return false.
++    /// O(log V + deg(source) + deg(target)) amortized time, including sorted
++    /// vector shifts. A new vertex can trigger an O(V) capacity growth.
+     ///
+     /// # Errors
+-    /// Returns [`GraphError::SelfLoop`] for equal endpoints, without changing the graph.
++    /// Returns [`GraphError::SelfLoop`] without creating vertices for equal IDs.
+     pub fn link(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
+         Self::check_distinct(source, target)?;
+-        let inserted = self.adjacency.entry(source).or_default().insert(target);
+-        self.adjacency.entry(target).or_default().insert(source);
+-        self.edges += usize::from(inserted);
+-        Ok(inserted)
++        self.add_node(source);
++        self.add_node(target);
++        let a = self.ids[&source];
++        let b = self.ids[&target];
++        let Err(position) = self.adjacency[a].binary_search(&b) else {
++            return Ok(false);
++        };
++        let reverse = self.adjacency[b]
++            .binary_search(&a)
++            .expect_err("symmetric absence");
++        self.adjacency[a].insert(position, b);
++        self.adjacency[b].insert(reverse, a);
++        self.edges += 1;
++        Ok(true)
+     }
+ 
+-    /// Removes an undirected edge while preserving both vertices.
++    /// Removes an edge, preserving vertices; absent edges return false.
+     ///
+-    /// Returns `false` if the edge or either endpoint is absent. Worst-case
+-    /// time: O(log V).
++    /// Worst-case time: O(log V + deg(source) + deg(target)), due to vector shifts.
+     ///
+     /// # Errors
+-    /// Returns [`GraphError::SelfLoop`] for equal endpoints, without changing the graph.
++    /// Returns [`GraphError::SelfLoop`] for equal IDs without changing the graph.
+     pub fn cut(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
+         Self::check_distinct(source, target)?;
+-        let removed = self
+-            .adjacency
+-            .get_mut(&source)
+-            .is_some_and(|neighbors| neighbors.remove(&target));
+-        if removed {
+-            // Symmetric adjacency guarantees the other endpoint exists. Update
+-            // both directions before returning to preserve the graph invariant.
+-            self.adjacency
+-                .get_mut(&target)
+-                .expect("edge endpoint exists")
+-                .remove(&source);
+-            self.edges -= 1;
+-        }
+-        Ok(removed)
++        let (Some(&a), Some(&b)) = (self.ids.get(&source), self.ids.get(&target)) else {
++            return Ok(false);
++        };
++        let Ok(position) = self.adjacency[a].binary_search(&b) else {
++            return Ok(false);
++        };
++        let reverse = self.adjacency[b].binary_search(&a).expect("symmetric edge");
++        self.adjacency[a].remove(position);
++        self.adjacency[b].remove(reverse);
++        self.edges -= 1;
++        Ok(true)
+     }
+ 
+     /// Reports whether a path exists between two existing vertices.
+     ///
+-    /// An existing vertex connects to itself by the empty path. Worst-case time
+-    /// is O((V + E) log V); scratch memory is O(V). These are worst-case bounds,
+-    /// not amortized bounds. Traversal stops early when the target is found.
++    /// Existing vertices connect to themselves. Worst-case time O(V + E), with
++    /// O(log V) endpoint lookup and O(V) local scratch initialization/allocation.
++    /// Scratch is private to each call, so shared queries need no internal lock.
+     ///
+     /// # Errors
+-    /// Returns [`GraphError::UnknownNode`] for an absent endpoint, checking
+-    /// `source` before `target`.
++    /// Returns [`GraphError::UnknownNode`] for absent endpoints, source first.
+     pub fn connected(&self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
+-        for node in [source, target] {
+-            if !self.adjacency.contains_key(&node) {
+-                return Err(GraphError::UnknownNode { node });
+-            }
+-        }
+-        if source == target {
++        let a = *self
++            .ids
++            .get(&source)
++            .ok_or(GraphError::UnknownNode { node: source })?;
++        let b = *self
++            .ids
++            .get(&target)
++            .ok_or(GraphError::UnknownNode { node: target })?;
++        if a == b {
+             return Ok(true);
+         }
+-
+-        // Breadth-first search: every queued vertex is reachable from source.
+-        // Marking at enqueue time means a vertex enters the queue at most once,
+-        // including on cycles. Exhausting the queue explores the entire source
+-        // component, so an undiscovered target cannot be connected. Ordered
+-        // sets make membership O(log V) and traversal reproducible.
+-        let mut visited = BTreeSet::from([source]);
+-        let mut pending = VecDeque::from([source]);
+-        while let Some(node) = pending.pop_front() {
+-            for &neighbor in &self.adjacency[&node] {
+-                if neighbor == target {
++        let mut visited = vec![false; self.adjacency.len()];
++        let mut queue = Vec::new();
++        visited[a] = true;
++        queue.push(a);
++        let mut cursor = 0;
++        // Mark on enqueue: each vertex is visited at most once and every queued
++        // vertex is reachable. Exhaustion proves the target is disconnected.
++        // Integer adjacency avoids ordered-map lookups inside the traversal.
++        while cursor < queue.len() {
++            for &neighbor in &self.adjacency[queue[cursor]] {
++                if neighbor == b {
+                     return Ok(true);
+                 }
+-                if visited.insert(neighbor) {
+-                    pending.push_back(neighbor);
++                if !visited[neighbor] {
++                    visited[neighbor] = true;
++                    queue.push(neighbor);
+                 }
+             }
++            cursor += 1;
+         }
+         Ok(false)
+     }
+@@ -172,7 +198,6 @@ impl Graph {
+         self.edges
+     }
+ 
+-    /// Validates endpoints before mutations so rejected loops cannot create vertices.
+     fn check_distinct(source: NodeId, target: NodeId) -> Result<(), GraphError> {
+         if source == target {
+             Err(GraphError::SelfLoop { node: source })
+diff --git a/crates/knotrel-core/src/reference.rs b/crates/knotrel-core/src/reference.rs
+new file mode 100644
+index 0000000..58094a8
+--- /dev/null
++++ b/crates/knotrel-core/src/reference.rs
+@@ -0,0 +1,136 @@
++//! Original ordered-adjacency BFS retained for differential checks and benchmarks.
++
++use crate::{GraphError, NodeId};
++use std::collections::{BTreeMap, BTreeSet, VecDeque, btree_map::Entry};
++
++/// An undirected simple graph with exact connectivity queries.
++///
++/// Every stored edge appears in both endpoints' adjacency sets. Sets exclude
++/// self-loops and duplicate edges; every endpoint has a vertex entry. Deleting
++/// an edge preserves its vertices. Storage is O(V + E), where V and E are the
++/// current vertex and undirected edge counts.
++#[derive(Debug, Default)]
++pub struct ReferenceGraph {
++    adjacency: BTreeMap<NodeId, BTreeSet<NodeId>>,
++    edges: usize,
++}
++
++impl ReferenceGraph {
++    /// Creates an empty graph in O(1) time.
++    #[must_use]
++    pub fn new() -> Self {
++        Self::default()
++    }
++
++    /// Adds an isolated vertex, returning `true` only if it was absent.
++    ///
++    /// An existing vertex and its edges are unchanged. Worst-case time: O(log V).
++    pub fn add_node(&mut self, node: NodeId) -> bool {
++        if let Entry::Vacant(entry) = self.adjacency.entry(node) {
++            entry.insert(BTreeSet::new());
++            true
++        } else {
++            false
++        }
++    }
++
++    /// Inserts an undirected edge, creating absent endpoints.
++    ///
++    /// Returns `true` only when the edge is new. Reversed endpoints identify
++    /// the same edge. Worst-case time: O(log V).
++    ///
++    /// # Errors
++    /// Returns [`GraphError::SelfLoop`] for equal endpoints, without changing the graph.
++    pub fn link(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        Self::check_distinct(source, target)?;
++        let inserted = self.adjacency.entry(source).or_default().insert(target);
++        self.adjacency.entry(target).or_default().insert(source);
++        self.edges += usize::from(inserted);
++        Ok(inserted)
++    }
++
++    /// Removes an undirected edge while preserving both vertices.
++    ///
++    /// Returns `false` if the edge or either endpoint is absent. Worst-case
++    /// time: O(log V).
++    ///
++    /// # Errors
++    /// Returns [`GraphError::SelfLoop`] for equal endpoints, without changing the graph.
++    pub fn cut(&mut self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        Self::check_distinct(source, target)?;
++        let removed = self
++            .adjacency
++            .get_mut(&source)
++            .is_some_and(|neighbors| neighbors.remove(&target));
++        if removed {
++            // Symmetric adjacency guarantees the other endpoint exists. Update
++            // both directions before returning to preserve the graph invariant.
++            self.adjacency
++                .get_mut(&target)
++                .expect("edge endpoint exists")
++                .remove(&source);
++            self.edges -= 1;
++        }
++        Ok(removed)
++    }
++
++    /// Reports whether a path exists between two existing vertices.
++    ///
++    /// An existing vertex connects to itself by the empty path. Worst-case time
++    /// is O((V + E) log V); scratch memory is O(V). These are worst-case bounds,
++    /// not amortized bounds. Traversal stops early when the target is found.
++    ///
++    /// # Errors
++    /// Returns [`GraphError::UnknownNode`] for an absent endpoint, checking
++    /// `source` before `target`.
++    pub fn connected(&self, source: NodeId, target: NodeId) -> Result<bool, GraphError> {
++        for node in [source, target] {
++            if !self.adjacency.contains_key(&node) {
++                return Err(GraphError::UnknownNode { node });
++            }
++        }
++        if source == target {
++            return Ok(true);
++        }
++
++        // Breadth-first search: every queued vertex is reachable from source.
++        // Marking at enqueue time means a vertex enters the queue at most once,
++        // including on cycles. Exhausting the queue explores the entire source
++        // component, so an undiscovered target cannot be connected. Ordered
++        // sets make membership O(log V) and traversal reproducible.
++        let mut visited = BTreeSet::from([source]);
++        let mut pending = VecDeque::from([source]);
++        while let Some(node) = pending.pop_front() {
++            for &neighbor in &self.adjacency[&node] {
++                if neighbor == target {
++                    return Ok(true);
++                }
++                if visited.insert(neighbor) {
++                    pending.push_back(neighbor);
++                }
++            }
++        }
++        Ok(false)
++    }
++
++    /// Returns the number of vertices, including isolated ones, in O(1) time.
++    #[must_use]
++    pub fn node_count(&self) -> usize {
++        self.adjacency.len()
++    }
++
++    /// Returns the number of undirected edges in O(1) time.
++    #[must_use]
++    pub fn edge_count(&self) -> usize {
++        self.edges
++    }
++
++    /// Validates endpoints before mutations so rejected loops cannot create vertices.
++    fn check_distinct(source: NodeId, target: NodeId) -> Result<(), GraphError> {
++        if source == target {
++            Err(GraphError::SelfLoop { node: source })
++        } else {
++            Ok(())
++        }
++    }
++}
+diff --git a/crates/knotrel-core/tests/connectivity.rs b/crates/knotrel-core/tests/connectivity.rs
+index 3d5095a..89e226f 100644
+--- a/crates/knotrel-core/tests/connectivity.rs
++++ b/crates/knotrel-core/tests/connectivity.rs
+@@ -110,3 +110,65 @@ fn updates_match_independent_transitive_closure() {
+         );
+     }
+ }
++
++#[test]
++fn growth_preserves_indices_isolation_and_shared_queries() {
++    fn assert_send_sync<T: Send + Sync>() {}
++    assert_send_sync::<Graph>();
++    let mut graph = Graph::new();
++    let ids: Vec<_> = (0..257).map(|i| u64::MAX - i * 7919).collect();
++    graph.add_node(0);
++    for pair in ids.windows(2) {
++        assert_eq!(graph.link(pair[0], pair[1]), Ok(true));
++        assert_eq!(graph.connected(ids[0], pair[1]), Ok(true));
++        assert_eq!(graph.connected(0, pair[1]), Ok(false));
++    }
++    for pair in ids.windows(2).step_by(3) {
++        assert_eq!(graph.cut(pair[1], pair[0]), Ok(true));
++        assert_eq!(graph.connected(pair[0], pair[1]), Ok(false));
++        assert_eq!(graph.link(pair[1], pair[0]), Ok(true));
++        assert_eq!(graph.connected(pair[0], pair[1]), Ok(true));
++    }
++    assert_eq!((graph.node_count(), graph.edge_count()), (258, 256));
++    std::thread::scope(|scope| {
++        for _ in 0..4 {
++            let graph = &graph;
++            let ids = &ids;
++            scope.spawn(move || {
++                for _ in 0..20 {
++                    assert_eq!(graph.connected(ids[0], ids[256]), Ok(true));
++                    assert_eq!(graph.connected(0, ids[0]), Ok(false));
++                }
++            });
++        }
++    });
++}
++
++#[test]
++fn arbitrary_growing_histories_match_original_reference() {
++    let mut compact = Graph::new();
++    let mut reference = knotrel_core::ReferenceGraph::new();
++    let mut seed = 913_u64;
++    for step in 0..1500 {
++        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
++        let universe = 2 + step / 30;
++        let a = u64::MAX - ((seed >> 32) % universe) * 7919;
++        let b = u64::MAX - ((seed >> 48) % universe) * 7919;
++        match step % 5 {
++            0 => assert_eq!(compact.add_node(a), reference.add_node(a)),
++            1 | 2 => assert_eq!(compact.link(a, b), reference.link(a, b)),
++            _ => assert_eq!(compact.cut(a, b), reference.cut(a, b)),
++        }
++        for (source, target) in [(a, b), (b, a), (0, a), (a, a), (u64::MAX, b)] {
++            for _ in 0..2 {
++                assert_eq!(
++                    compact.connected(source, target),
++                    reference.connected(source, target),
++                    "step {step}"
++                );
++            }
++        }
++        assert_eq!(compact.node_count(), reference.node_count());
++        assert_eq!(compact.edge_count(), reference.edge_count());
++    }
++}
+diff --git a/crates/knotrel-core/tests/forest.rs b/crates/knotrel-core/tests/forest.rs
+new file mode 100644
+index 0000000..5556e6d
+--- /dev/null
++++ b/crates/knotrel-core/tests/forest.rs
+@@ -0,0 +1,164 @@
++//! Exact dynamic-forest behavior, independent of the sequence representation.
++use knotrel_core::{ForestGraph, GraphError, ReferenceGraph};
++
++#[test]
++fn forest_replaces_cycles_preserves_bridges_and_recycles_handles() {
++    let mut g = ForestGraph::new();
++    assert_eq!(g.link(9, 9), Err(GraphError::SelfLoop { node: 9 }));
++    assert_eq!(g.node_count(), 0);
++    for _ in 0..200 {
++        for (a, b) in [(0, 1), (1, 2), (2, 0), (2, u64::MAX)] {
++            assert_eq!(g.link(a, b), Ok(true));
++        }
++        assert_eq!(g.link(1, 0), Ok(false));
++        assert_eq!(g.cut(0, 1), Ok(true));
++        assert_eq!(g.connected(0, 1), Ok(true));
++        assert_eq!(g.cut(2, u64::MAX), Ok(true));
++        assert_eq!(g.connected(0, u64::MAX), Ok(false));
++        assert_eq!(g.cut(1, 2), Ok(true));
++        assert_eq!(g.cut(2, 0), Ok(true));
++        assert_eq!(g.cut(2, 0), Ok(false));
++        assert_eq!(g.edge_count(), 0);
++        assert_eq!(g.connected(u64::MAX, u64::MAX), Ok(true));
++    }
++    assert_eq!(g.node_count(), 4);
++    assert!(g.stats().replacements >= 200);
++}
++
++#[test]
++fn growing_random_histories_match_matrix_and_original() {
++    const N: usize = 24;
++    let ids: Vec<_> = (0..N).map(|i| u64::MAX - i as u64 * 997).collect();
++    let mut g = ForestGraph::new();
++    let mut reference = ReferenceGraph::new();
++    let mut adjacency = [[false; N]; N];
++    let mut present = [false; N];
++    let mut state = 31_u64;
++    for step in 0..2000 {
++        state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
++        let limit = N.min(2 + step / 30);
++        let a = (state >> 32) as usize % limit;
++        let b = (state >> 48) as usize % limit;
++        match step % 5 {
++            0 => {
++                assert_eq!(g.add_node(ids[a]), reference.add_node(ids[a]));
++                present[a] = true;
++            }
++            1 | 2 => {
++                assert_eq!(g.link(ids[a], ids[b]), reference.link(ids[a], ids[b]));
++                if a != b {
++                    adjacency[a][b] = true;
++                    adjacency[b][a] = true;
++                    present[a] = true;
++                    present[b] = true;
++                }
++            }
++            _ => {
++                assert_eq!(g.cut(ids[a], ids[b]), reference.cut(ids[a], ids[b]));
++                if a != b {
++                    adjacency[a][b] = false;
++                    adjacency[b][a] = false;
++                }
++            }
++        }
++        let mut closure = adjacency;
++        for (i, row) in closure.iter_mut().enumerate() {
++            row[i] = present[i];
++        }
++        for k in 0..N {
++            for i in 0..N {
++                for j in 0..N {
++                    closure[i][j] |= closure[i][k] && closure[k][j];
++                }
++            }
++        }
++        for (i, row) in closure.iter().enumerate() {
++            for (j, &value) in row.iter().enumerate() {
++                let expected = if !present[i] {
++                    Err(GraphError::UnknownNode { node: ids[i] })
++                } else if !present[j] {
++                    Err(GraphError::UnknownNode { node: ids[j] })
++                } else {
++                    Ok(value)
++                };
++                assert_eq!(
++                    g.connected(ids[i], ids[j]),
++                    expected,
++                    "step {step}, pair {i},{j}"
++                );
++            }
++        }
++        assert_eq!(g.edge_count(), reference.edge_count());
++        assert_eq!(g.node_count(), reference.node_count());
++    }
++}
++
++#[test]
++fn shared_queries_on_large_growing_forest() {
++    fn send_sync<T: Send + Sync>() {}
++    send_sync::<ForestGraph>();
++    let mut g = ForestGraph::new();
++    for i in 0..10_000 {
++        g.link(i, i + 1).unwrap();
++    }
++    std::thread::scope(|scope| {
++        for _ in 0..4 {
++            let g = &g;
++            scope.spawn(move || {
++                for i in (0..10_000).step_by(101) {
++                    assert_eq!(g.connected(i, 10_000), Ok(true));
++                }
++            });
++        }
++    });
++    g.cut(4999, 5000).unwrap();
++    assert_eq!(g.connected(0, 10_000), Ok(false));
++    g.link(0, 10_000).unwrap();
++    assert_eq!(g.connected(4999, 5000), Ok(true));
++}
++
++#[test]
++fn bridge_without_candidates_skips_vertex_enumeration() {
++    let mut graph = ForestGraph::new();
++    for i in 0..1000 {
++        graph.link(i, i + 1).unwrap();
++    }
++    graph.reset_stats();
++    graph.cut(499, 500).unwrap();
++    assert_eq!(graph.connected(0, 1000), Ok(false));
++    assert_eq!(graph.stats().scanned_vertices, 0);
++    assert_eq!(graph.stats().candidate_edges, 0);
++}
++
++#[test]
++fn replacement_stops_before_enumerating_empty_vertices() {
++    let mut graph = ForestGraph::new();
++    for i in 0..1000 {
++        graph.link(i, i + 1).unwrap();
++    }
++    graph.link(0, 1000).unwrap();
++    graph.reset_stats();
++    graph.cut(499, 500).unwrap();
++    assert_eq!(graph.connected(0, 1000), Ok(true));
++    assert_eq!(graph.stats().scanned_vertices, 1);
++    assert_eq!(graph.stats().candidate_edges, 1);
++    assert_eq!(graph.stats().replacements, 1);
++    // Promoted candidates must be removed from the aggregates on both sides.
++    graph.reset_stats();
++    graph.cut(0, 1000).unwrap();
++    assert_eq!(graph.connected(0, 1000), Ok(false));
++    assert_eq!(graph.stats().scanned_vertices, 0);
++}
++
++#[test]
++fn deleting_last_non_tree_edge_clears_candidate_flags() {
++    let mut graph = ForestGraph::new();
++    for (a, b) in [(0, 1), (1, 2), (2, 3), (0, 3)] {
++        graph.link(a, b).unwrap();
++    }
++    graph.cut(3, 0).unwrap();
++    graph.reset_stats();
++    graph.cut(1, 2).unwrap();
++    assert_eq!(graph.connected(0, 3), Ok(false));
++    assert_eq!(graph.stats().scanned_vertices, 0);
++}
+diff --git a/crates/knotrel-server/src/api.rs b/crates/knotrel-server/src/api.rs
+index 896bbf6..9286649 100644
+--- a/crates/knotrel-server/src/api.rs
++++ b/crates/knotrel-server/src/api.rs
+@@ -7,7 +7,7 @@ use axum::{
+     http::StatusCode,
+     response::{IntoResponse, Response},
+ };
+-use knotrel_core::{Graph, GraphError};
++use knotrel_core::{ConnectivityGraph, GraphError};
+ use serde::{Deserialize, Serialize};
+ 
+ /// A decimal-string node identifier with lossless JSON representation.
+@@ -37,7 +37,7 @@ pub(crate) enum Operation {
+ 
+ impl Operation {
+     /// Applies one operation, keeping graph errors local to this operation.
+-    pub(crate) fn apply(self, graph: &mut Graph) -> Outcome {
++    pub(crate) fn apply(self, graph: &mut ConnectivityGraph) -> Outcome {
+         match self {
+             Self::AddNode { node } => Outcome::Changed {
+                 changed: graph.add_node(node.0),
+@@ -130,11 +130,14 @@ pub(crate) async fn batch(
+         Ok(Json(batch)) => batch,
+         Err(error) => return invalid_json(error),
+     };
+-    if batch.operations.is_empty() || batch.operations.len() > 1024 {
++    if batch.operations.is_empty() || batch.operations.len() > crate::MAX_BATCH_OPERATIONS {
+         return error_response(
+             StatusCode::UNPROCESSABLE_ENTITY,
+             "invalid_batch_size",
+-            "batches must contain 1 to 1024 operations".into(),
++            format!(
++                "batches must contain 1 to {} operations",
++                crate::MAX_BATCH_OPERATIONS
++            ),
+         );
+     }
+     match service.execute(batch.operations).await {
+@@ -158,3 +161,8 @@ fn service_error(error: ServiceError) -> Response {
+ fn error_response(status: StatusCode, code: &'static str, message: String) -> Response {
+     (status, Json(Outcome::Error { code, message })).into_response()
+ }
++
++/// Returns startup metadata without taking the graph lock or a worker permit.
++pub(crate) async fn info(State(service): State<Service>) -> Json<crate::ServerInfo> {
++    Json(service.info())
++}
+diff --git a/crates/knotrel-server/src/lib.rs b/crates/knotrel-server/src/lib.rs
+index c0f3ead..8ae8973 100644
+--- a/crates/knotrel-server/src/lib.rs
++++ b/crates/knotrel-server/src/lib.rs
+@@ -1,15 +1,21 @@
+ //! Axum HTTP transport for a single in-memory Knotrel graph.
+ //!
+-//! The server uses exact reference connectivity with bounded blocking work.
++//! The server uses exact connectivity with bounded blocking work.
+ //! State is ephemeral and there is no authentication or persistence layer.
+ //! See the repository's `docs/http-api.md` for wire formats and batch semantics.
+ 
+ mod api;
++mod configuration;
++pub use configuration::{ConfigError, ServerConfig};
++
++const MAX_BODY_BYTES: usize = 1024 * 1024;
++const MAX_BATCH_OPERATIONS: usize = 1024;
+ mod service;
+ 
+ /// Builds the HTTP API around an owned, in-memory graph.
+ ///
+-/// Routes are `GET /health`, `POST /v1/operations` and `POST /v1/batch`. Request
++/// Routes are `GET /health`, `GET /v1/info`, `POST /v1/operations` and
++/// `POST /v1/batch`. Request
+ /// bodies are limited to 1 MiB; batches contain 1–1024 operations. At most 32
+ /// graph jobs may be queued or running. Excess graph requests receive HTTP 503.
+ /// A graph mutex isolates each request, including all operations in a batch.
+@@ -18,6 +24,23 @@ mod service;
+ /// Request handling requires a Tokio runtime. Health reports process liveness,
+ /// not graph-worker readiness. See `docs/http-api.md` for retry semantics.
+ pub fn router(graph: knotrel_core::Graph) -> axum::Router {
++    build_router(graph.into(), ServerConfig::default().max_pending_jobs())
++}
++
++/// Builds the HTTP API around an empty graph using validated startup settings.
++///
++/// The engine and admission limit remain fixed for this router's lifetime.
++/// The configuration address is not bound here; embedded callers own their
++/// listener. Other limits and batch semantics are the same as [`router`].
++/// This function does not read the environment.
++pub fn router_with_config(config: ServerConfig) -> axum::Router {
++    build_router(
++        knotrel_core::ConnectivityGraph::new(config.engine()),
++        config.max_pending_jobs(),
++    )
++}
++
++fn build_router(graph: knotrel_core::ConnectivityGraph, max_pending_jobs: usize) -> axum::Router {
+     use axum::{
+         extract::DefaultBodyLimit,
+         routing::{get, post},
+@@ -27,13 +50,24 @@ pub fn router(graph: knotrel_core::Graph) -> axum::Router {
+             "/health",
+             get(|| async { axum::Json(Health { status: "ok" }) }),
+         )
++        .route("/v1/info", get(api::info))
+         .route("/v1/operations", post(api::single))
+         .route("/v1/batch", post(api::batch))
+-        .layer(DefaultBodyLimit::max(1024 * 1024))
+-        .with_state(service::Service::new(graph, 32))
++        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
++        .with_state(service::Service::new(graph, max_pending_jobs))
+ }
+ 
+ #[derive(serde::Serialize)]
+ struct Health {
+     status: &'static str,
+ }
++
++/// Immutable effective settings; available without taking the graph mutex.
++#[derive(Clone, serde::Serialize)]
++pub(crate) struct ServerInfo {
++    engine: &'static str,
++    experimental: bool,
++    max_pending_jobs: usize,
++    max_body_bytes: usize,
++    max_batch_operations: usize,
++}
+diff --git a/crates/knotrel-server/src/main.rs b/crates/knotrel-server/src/main.rs
+index 2d715e2..5bb613e 100644
+--- a/crates/knotrel-server/src/main.rs
++++ b/crates/knotrel-server/src/main.rs
+@@ -1,7 +1,6 @@
+ //! Standalone in-memory Knotrel HTTP server.
+ 
+-use knotrel_core::Graph;
+-use std::{error::Error, net::SocketAddr};
++use std::error::Error;
+ use tracing_subscriber::EnvFilter;
+ 
+ #[tokio::main]
+@@ -11,12 +10,18 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+         )
+         .try_init()?;
+-    let address: SocketAddr = std::env::var("KNOTREL_ADDR")
+-        .unwrap_or_else(|_| "127.0.0.1:8080".into())
+-        .parse()?;
++    let config = knotrel_server::ServerConfig::from_env()?;
++    let address = config.address();
++    let engine = config.engine();
++    let max_pending_jobs = config.max_pending_jobs();
++    let app = knotrel_server::router_with_config(config);
+     let listener = tokio::net::TcpListener::bind(address).await?;
+-    tracing::info!(address = %listener.local_addr()?, "Knotrel listening; graph state is in memory");
+-    axum::serve(listener, knotrel_server::router(Graph::new()))
++    tracing::info!(
++        address = %listener.local_addr()?, engine = engine.as_str(),
++        experimental = engine.is_experimental(), max_pending_jobs,
++        "Knotrel listening; graph state is in memory"
++    );
++    axum::serve(listener, app)
+         .with_graceful_shutdown(shutdown_signal())
+         .await?;
+     Ok(())
+diff --git a/crates/knotrel-server/src/service.rs b/crates/knotrel-server/src/service.rs
+index 476b41b..abc7ee2 100644
+--- a/crates/knotrel-server/src/service.rs
++++ b/crates/knotrel-server/src/service.rs
+@@ -1,15 +1,16 @@
+ //! Bounded CPU work and exclusive graph ownership for each request.
+ 
+ use crate::api::{Operation, Outcome};
+-use knotrel_core::Graph;
++use knotrel_core::ConnectivityGraph;
+ use std::sync::{Arc, Mutex};
+ use tokio::sync::Semaphore;
+ 
+ /// Shared graph state plus a strict limit on outstanding worker jobs.
+ #[derive(Clone)]
+ pub(crate) struct Service {
+-    graph: Arc<Mutex<Graph>>,
++    graph: Arc<Mutex<ConnectivityGraph>>,
+     permits: Arc<Semaphore>,
++    info: crate::ServerInfo,
+ }
+ 
+ /// Admission failure or a worker that cannot safely use the graph.
+@@ -21,13 +22,26 @@ pub(crate) enum ServiceError {
+ 
+ impl Service {
+     /// Creates the service; zero capacity intentionally rejects every request.
+-    pub(crate) fn new(graph: Graph, capacity: usize) -> Self {
++    pub(crate) fn new(graph: ConnectivityGraph, capacity: usize) -> Self {
++        let engine = graph.engine();
+         Self {
++            info: crate::ServerInfo {
++                engine: engine.as_str(),
++                experimental: engine.is_experimental(),
++                max_pending_jobs: capacity,
++                max_body_bytes: crate::MAX_BODY_BYTES,
++                max_batch_operations: crate::MAX_BATCH_OPERATIONS,
++            },
+             graph: Arc::new(Mutex::new(graph)),
+             permits: Arc::new(Semaphore::new(capacity)),
+         }
+     }
+ 
++    /// Reads effective immutable settings without waiting for graph work.
++    pub(crate) fn info(&self) -> crate::ServerInfo {
++        self.info.clone()
++    }
++
+     /// Executes a request on a blocking worker, preserving batch isolation.
+     ///
+     /// Admission is nonblocking: rejected work never enters Tokio's blocking
+@@ -77,7 +91,7 @@ mod tests {
+ 
+     #[tokio::test]
+     async fn saturated_service_rejects_without_mutating() {
+-        let service = Service::new(Graph::new(), 1);
++        let service = Service::new(ConnectivityGraph::default(), 1);
+         let permit = service.permits.clone().acquire_owned().await.unwrap();
+         assert!(matches!(
+             service.execute(vec![add(9)]).await,
+@@ -92,7 +106,7 @@ mod tests {
+ 
+     #[tokio::test]
+     async fn dropped_caller_does_not_release_a_running_workers_permit() {
+-        let service = Service::new(Graph::new(), 1);
++        let service = Service::new(ConnectivityGraph::default(), 1);
+         let graph = service.graph.clone();
+         let (locked_tx, locked_rx) = tokio::sync::oneshot::channel();
+         let (release_tx, release_rx) = std::sync::mpsc::channel();
+diff --git a/crates/knotrel-server/tests/http.rs b/crates/knotrel-server/tests/http.rs
+index 257c8b3..985c7fc 100644
+--- a/crates/knotrel-server/tests/http.rs
++++ b/crates/knotrel-server/tests/http.rs
+@@ -211,3 +211,123 @@ async fn concurrent_duplicate_links_change_the_graph_once() {
+     }
+     assert_eq!(changes, 1);
+ }
++
++async fn info(app: &Router) -> Value {
++    let response = app
++        .clone()
++        .oneshot(Request::get("/v1/info").body(Body::empty()).unwrap())
++        .await
++        .unwrap();
++    assert_eq!(response.status(), StatusCode::OK);
++    serde_json::from_slice(&to_bytes(response.into_body(), 4096).await.unwrap()).unwrap()
++}
++
++#[tokio::test]
++async fn configured_engines_report_actual_settings_and_observe_every_mutation() {
++    use knotrel_core::EngineConfig;
++    use knotrel_server::{ServerConfig, router_with_config};
++    for (engine, name, experimental) in [
++        (EngineConfig::CompactBfs, "compact-bfs", false),
++        (EngineConfig::EulerTour, "ett", true),
++        (EngineConfig::Hdt, "hdt", true),
++    ] {
++        let config = ServerConfig::new("127.0.0.1:0".parse().unwrap(), engine, 1).unwrap();
++        let app = router_with_config(config);
++        assert_eq!(
++            info(&app).await,
++            json!({
++                "engine":name, "experimental":experimental,
++                "max_pending_jobs":1, "max_body_bytes":1048576, "max_batch_operations":1024
++            })
++        );
++        let (status, body) = post(
++            &app,
++            "/v1/batch",
++            json!({"operations":[
++                {"op":"link","source":"0","target":"18446744073709551615"},
++                {"op":"link","source":"0","target":"1"},
++                {"op":"link","source":"1","target":"18446744073709551615"},
++                {"op":"cut","source":"0","target":"18446744073709551615"},
++                {"op":"connected","source":"0","target":"18446744073709551615"},
++                {"op":"cut","source":"0","target":"1"},
++                {"op":"connected","source":"0","target":"18446744073709551615"},
++                {"op":"link","source":"7","target":"7"},
++                {"op":"connected","source":"7","target":"7"}
++            ]}),
++        )
++        .await;
++        assert_eq!(status, StatusCode::OK);
++        assert_eq!(body["results"][4]["connected"], true);
++        assert_eq!(body["results"][6]["connected"], false);
++        assert_eq!(body["results"][7]["code"], "self_loop");
++        assert_eq!(body["results"][8]["code"], "unknown_node");
++        // A per-request engine override is rejected before the link executes.
++        assert_eq!(
++            post(
++                &app,
++                "/v1/operations",
++                json!({
++                    "op":"link","source":"0","target":"1","engine":"ett"
++                })
++            )
++            .await
++            .0,
++            StatusCode::UNPROCESSABLE_ENTITY
++        );
++        for _ in 0..3 {
++            assert_eq!(
++                post(
++                    &app,
++                    "/v1/operations",
++                    json!({
++                        "op":"connected","source":"0","target":"1"
++                    })
++                )
++                .await
++                .1["connected"],
++                false
++            );
++        }
++        assert_eq!(info(&app).await["engine"], name);
++    }
++}
++
++#[tokio::test]
++async fn legacy_router_retains_populated_state_and_reports_defaults() {
++    let mut graph = Graph::new();
++    graph.add_node(99);
++    graph.link(1, 2).unwrap();
++    let app = knotrel_server::router(graph);
++    assert_eq!(info(&app).await["engine"], "compact-bfs");
++    assert_eq!(info(&app).await["max_pending_jobs"], 32);
++    for (source, target) in [("99", "99"), ("1", "2")] {
++        assert_eq!(
++            post(
++                &app,
++                "/v1/operations",
++                json!({
++                    "op":"connected","source":source,"target":target
++                })
++            )
++            .await
++            .1["connected"],
++            true
++        );
++    }
++}
++
++#[test]
++fn invalid_admission_limits_are_rejected_before_router_construction() {
++    use knotrel_core::EngineConfig;
++    use knotrel_server::ServerConfig;
++    for capacity in [0, usize::MAX] {
++        assert!(
++            ServerConfig::new(
++                "127.0.0.1:0".parse().unwrap(),
++                EngineConfig::CompactBfs,
++                capacity
++            )
++            .is_err()
++        );
++    }
++}
+diff --git a/docs/architecture/0001-foundation.md b/docs/architecture/0001-foundation.md
+index a976010..7760d8b 100644
+--- a/docs/architecture/0001-foundation.md
++++ b/docs/architecture/0001-foundation.md
+@@ -7,7 +7,7 @@ connectivity algorithm. It establishes semantics and a measurable baseline.
+ ## Components
+ 
+ The `knotrel` Cargo workspace contains `knotrel-core` (synchronous, dependency-free)
+-and `knotrel-server` (Axum and Tokio). The independent `knotrel-benchmarks`
++and `knotrel-server` (Axum and Tokio). The independent [`knotrel-benchmarks`](https://github.com/knotrel/knotrel-benchmarks)
+ workspace consumes the sibling core by path during local development.
+ Both workspaces pin Rust 1.98.1, edition 2024, resolver 3. Packages are unpublished.
+ Every exported item needs English Rustdoc; nontrivial private algorithms document
+@@ -21,9 +21,12 @@ invariants, correctness and complexity. CI checks formatting, Clippy, tests and
+ - Edges are undirected, unique and have distinct endpoints. Self-loops are errors.
+ - Repeated links and cuts are idempotent; cuts leave vertices alive.
+ - Queries require both vertices to exist; an existing vertex connects to itself.
+-- The core uses ordered adjacency sets and breadth-first traversal. Link and cut
+-  take O(log V); connectivity takes O((V + E) log V) worst case and O(V) scratch
+-  memory. Storage is O(V + E). There are no amortized performance claims.
++- The original `ReferenceGraph` uses ordered adjacency sets: O(log V) link/cut
++  and O((V + E) log V) queries. The default `Graph` now uses stable indices and
++  sorted compact adjacency: O(V + E) queries with O(V) per-call scratch. Updates
++  cost O(log V + deg(source) + deg(target)) amortized; adding vertices can trigger
++  O(V) outer-vector growth. Logical storage is O(V + E); retained capacity tracks
++  historical per-vertex maximum degrees. See [compact core](0004-compact-core.md).
+ 
+ ## HTTP contract
+ 
+diff --git a/docs/architecture/0002-first-optimized-engine.md b/docs/architecture/0002-first-optimized-engine.md
+new file mode 100644
+index 0000000..4c0bd10
+--- /dev/null
++++ b/docs/architecture/0002-first-optimized-engine.md
+@@ -0,0 +1,72 @@
++# First optimized connectivity engine
++
++Status: **Proposed**, 2026-09-26. This ADR recommends a next milestone; it does not
++approve or implement a new engine. Keep the synchronous BFS as a reference.
++
++## Evidence and objective
++
++The [local benchmark baseline](https://github.com/knotrel/knotrel-benchmarks/blob/main/results/2026-09-26-macos/README.md)
++measures four sparse synthetic families, 128–4096 vertices, 200 rounds, one warmup
++and three repetitions on an Apple M3. Queries consume 98.29%–99.95% of summed
++operation time; setup is excluded. At 4096 vertices, median per-run query p50s
++span 115–277 µs. This motivates avoiding graph traversal per query. It does not
++establish an optimized engine's crossover point or commercial advantage.
++
++## Options
++
++Here n is stored vertices (including isolated ones) and m is live edges.
++Bounds describe candidate designs, not measured implementations.
++
++| Option | Updates and queries | Replacement search, memory and implementation cost |
++| --- | --- | --- |
++| Existing ordered-adjacency BFS | O(log n) worst-case link/cut; O((n+m) log n) worst-case query | No maintained forest; O(n+m) graph storage and O(n) query scratch. Lowest complexity; retain as oracle/reference. |
++| Eager component relabeling | Rebuild labels after each changed update: O((n+m) log n) worst case with ordered maps; O(log n) query by ID lookup | A full traversal discovers replacement paths implicitly. O(n+m) storage; low complexity, but shifts almost all cost onto updates in these 50%-query traces. These bounds follow directly from the proposed rebuild procedure. |
++| Single Euler-tour forest plus exhaustive replacement search | Balanced-tree forest primitives and queries O(log n) worst case; a tree-edge deletion can cost O((n+m) log n) worst case | Inspect incident non-tree edges of the smaller split tree until a crossing edge is found. O(n+m) storage; medium complexity. Simple exact stepping stone, but repeated failed scans lack a polylogarithmic amortized guarantee. |
++| Holm–de Lichtenberg–Thorup (HDT) | O(log² n) amortized updates; binary balanced Euler-tour trees give O(log n) worst-case queries | Edge levels and smaller-side promotion charge repeated searches to level increases. O(m+n log n) storage; highest implementation/invariant burden among these candidates. |
++
++HDT's bounds and level-search structure come from [Holm, de Lichtenberg and
++Thorup, JACM 2001, §§2–3](https://www.cs.princeton.edu/courses/archive/fall07/cos521/handouts/poly.pdf).
++The paper also obtains O(log n/log log n) worst-case queries using a higher-arity
++forest representation; that refinement is not part of this initial proposal.
++Euler-tour forest operations alone do not solve general-graph replacement search.
++Deterministic balanced trees matter: substituting randomized treaps changes the
++relevant forest bounds to expected bounds. Amortized updates do not bound each
++individual deletion or p99 latency.
++
++## Recommendation
++
++Prototype **deterministic HDT with binary balanced Euler-tour forests** as the
++first optimized candidate. This is an engineering recommendation: unlike a single
++forest scan, it addresses repeated replacement searches; unlike eager relabeling,
++it avoids a full traversal after every change. Accept the extra memory and
++implementation complexity only if subsequent measurements justify them.
++
++Build and test the forest kernel first; an exhaustive exact replacement scan can
++serve as a temporary integration step. Do not label that step HDT or attach HDT
++bounds until level invariants and promotion accounting are implemented. Preserve
++simple undirected/idempotent semantics, all u64 IDs, isolated vertices and errors.
++Map IDs to stable internal handles. The paper assumes a fixed vertex universe;
++choose and document a capacity-growth/rebuilding strategy before claiming its
++bounds for Knotrel's dynamically added vertices. Do not silently renumber or drop
++isolated nodes.
++
++Randomized Las Vegas structures are an alternative, not inherently inexact:
++[Huang et al.](https://arxiv.org/abs/1609.05867) give expected amortized
++O(log n(log log n)²) updates. Defer them because implementing and validating their
++additional machinery is not justified by this small baseline. This is a scope
++choice, not a claim of measured inferiority.
++
++## Acceptance evidence for the next milestone
++
++Differential-test arbitrary update histories against the matrix oracle and BFS,
++including bridges, replacement paths, repeated deletes, isolated/max-u64 IDs and
++vertex-capacity growth. Check forest/level invariants after every test mutation.
++Replay the saved traces unchanged and report per-operation latency, full loading
++cost, memory (separating harness overhead), and replacement-scan/promotion counts.
++Add dense, long-lived churn and adversarial traces before interpreting scaling;
++this suite mainly restores a small local change each round.
++
++Keep results even if the candidate loses at small sizes. GraphScope requires a
++real adapter with identical exact visibility and boolean-query semantics, plus
++loading, update and state-maintenance costs. No comparison or market claim is
++supported by beating our BFS alone.
+diff --git a/docs/architecture/0003-comparison-driven-optimization.md b/docs/architecture/0003-comparison-driven-optimization.md
+new file mode 100644
+index 0000000..0087627
+--- /dev/null
++++ b/docs/architecture/0003-comparison-driven-optimization.md
+@@ -0,0 +1,39 @@
++# Comparison-driven optimization gates
++
++Status: Proposed, 2026-09-27. Refines the implementation order in ADR 0002.
++At proposal time no production engine had been replaced. The compact-core
++milestone is now implemented in [ADR 0004](0004-compact-core.md).
++
++## Evidence
++
++The sibling benchmark repository records the
++[embedded comparison](../../../knotrel-benchmarks/results/2026-09-26-competitors/README.md)
++and [candidate selection](../../../knotrel-benchmarks/docs/research/2026-09-26-competitive-landscape.md).
++Petgraph is the primary external embedded baseline because it represents an
++adopted alternative to a custom connectivity kernel. Outils is only an HDT
++algorithmic control; its small, inactive project does not establish market demand.
++Differential Dataflow has named product adoption through Materialize and is the
++next incremental reference. Memgraph merits a later product comparison if a real
++customer needs topology queries within its broader database workflow.
++
++At 4096 vertices in the warmed experiment, compact BFS and petgraph traversal
++have lower median base-operation totals than outils on three of four families;
++outils wins the hub family. Its cheaper queries do not compensate for updates
++everywhere. These totals exclude setup and extra repeat timings, but the repeats
++affect cache state. The experiment does not establish a universal crossover.
++
++## Decision
++
++Retain the original synchronous core as a correctness reference. First develop
++and measure a compact representation supporting the full growing-u64-node
++contract. The current benchmark-only compact adapter uses a fixed universe and
++is not ready to replace the core. Evaluate maintained connectivity against both
++that stronger traversal baseline and petgraph, not only the original ordered BFS.
++HDT remains a candidate rather than an already justified production choice.
++
++Before selecting it, measure larger graphs, sustained churn, query/update mixes,
++replacement-search stress, full loading cost and memory. Keep correctness checks,
++fresh/warmed protocols and repeated-query reporting. Production changes must
++preserve isolated nodes, arbitrary u64 IDs, idempotent updates and exact visibility.
++No GraphScope, Memgraph or Differential Dataflow performance claim is supported
++until an equivalent adapter is executed and validated.
+diff --git a/docs/architecture/0004-compact-core.md b/docs/architecture/0004-compact-core.md
+new file mode 100644
+index 0000000..706a3f7
+--- /dev/null
++++ b/docs/architecture/0004-compact-core.md
+@@ -0,0 +1,56 @@
++# Compact adjacency in the default core
++
++Status: Implemented, 2026-09-27. Refines ADR 0003's first milestone; this is still
++BFS, not a maintained dynamic-connectivity index.
++
++## Design and compatibility
++
++`Graph` maps arbitrary u64 IDs through a BTreeMap to append-only indices.
++Adjacency is a vector of sorted vectors of indices. Binary search detects
++redundant edges; insert/remove preserves ordering and symmetric adjacency.
++Vertices are never deleted or renumbered. `link` creates endpoints, `cut` retains
++isolated vertices, self-loops fail before mutation, and queries validate source
++before target. Counts and public method signatures are unchanged.
++
++`connected(&self)` allocates visited bits and a queue per call. This preserves
++shared-reference queries and Send/Sync without interior locks or stale answer
++caches. The benchmark-only dense control reuses scratch and uses unsorted
++adjacency; it is not the same algorithm implementation as this default core.
++The server uses the new Graph automatically; its admission and locking policy
++remain unchanged. No dependencies or unsafe code were added.
++
++The old algorithm is retained as the public `ReferenceGraph`, sharing NodeId and
++GraphError. The benchmark selector `reference-bfs` continues to mean that original
++algorithm; `compact-bfs` measures the current default. Historical results remain
++historical rather than being relabeled as measurements of the new core.
++
++## Costs and tradeoffs
++
++Endpoint lookups cost O(log V). BFS costs O(V + E) worst case with O(V) local
++scratch, including its initialization and allocation. Reflexive queries return
++before allocating scratch. No results are memoized.
++
++Sorted-vector updates cost O(log V + deg(source) + deg(target)) amortized because
++of shifts/allocation. Adding a vertex costs O(log V) amortized but may trigger
++O(V) outer-vector growth in one call. This intentionally gives up the original
++ordered-set O(log V) update bound. High-degree mutation-heavy workloads can lose;
++query improvements do not establish a universal win.
++
++Logical storage is O(V + E). Allocated capacity is O(V + H), where H sums the
++historical maximum degree of every vertex. Deletions do not shrink capacity.
++Concurrent queries allocate independent scratch. Memory and production latency
++budgets still need dedicated measurement.
++
++## Validation and next gate
++
++Existing HTTP and matrix-oracle tests remain applicable. Additional tests cover
++257 growing full-width IDs, cut/rejoin after growth, isolated vertices, shared
++queries, and 1,500 mixed operations compared with the original engine including
++errors, counts and repeated queries. The registered-universe benchmark also
++checks the new engine against its matrix oracle.
++
++See the [recorded compact-core comparison](../../../knotrel-benchmarks/results/2026-09-27-compact-core/README.md)
++for same-run reference and petgraph comparisons, setup and cache protocol.
++Before selecting HDT, extend beyond these sparse restoring traces to sustained
++churn, high-degree update stress, larger sizes, query/update ratios and measured
++memory. No claim about Differential Dataflow or Memgraph performance follows.
+diff --git a/docs/architecture/0005-experimental-euler-tour-forest.md b/docs/architecture/0005-experimental-euler-tour-forest.md
+new file mode 100644
+index 0000000..44d3979
+--- /dev/null
++++ b/docs/architecture/0005-experimental-euler-tour-forest.md
+@@ -0,0 +1,75 @@
++# Experimental Euler-tour spanning forest
++
++Status: First prototype implemented, 2026-09-27. The current experimental
++implementation incorporates [candidate pruning](0006-candidate-pruning.md); this
++ADR describes the original v1 design and measurements. The default Graph and
++HTTP service still use compact BFS. This is not HDT and has no HDT update bound.
++
++## Representation and exactness
++
++`ForestGraph` has the same graph-operation contract as Graph, including growing
++u64 IDs, isolated vertices, idempotent/reversed edges and source-first errors.
++An ordered ID map gives stable indices. Each component's Euler tour is an implicit
++AVL sequence: one permanent vertex token, plus two directed tokens for each tree
++edge. Parent pointers support roots/ranks, subtree sizes support splitting, and
++vertex counts select the smaller side after a cut. Link rotates both tours and
++concatenates them with the directed edge tokens. Cut splits at both occurrences.
++Tokens for removed tree edges are recycled; vertices never disappear.
++
++Every live graph edge is either a forest edge or a non-tree edge. The latter is
++stored at both endpoints. Removing a non-tree edge cannot split the forest.
++Removing a forest edge partitions its tree. Scanning non-tree incidences of the
++smaller resulting tree finds a crossing edge if one exists; promoting one restores
++the spanning-tree invariant. If none crosses, the original component really split.
++All repair finishes before the mutation returns. Queries compare tour roots,
++allocate no scratch, mutate no state and acquire no internal locks.
++
++The Euler-tour forest reduction follows [Holm, de Lichtenberg and Thorup,
++JACM 2001, section 2](https://www.cs.princeton.edu/courses/archive/fall07/cos521/handouts/poly.pdf).
++The sequence implementation here uses deterministic AVL joins/splits. No source
++was copied and no random balance or new core dependency was introduced.
++
++## Bounds and limits
++
++Query: O(log V) worst case including ID translation. Link: O(log V + log E)
++amortized, allowing growing arenas. Non-tree cut: O(log V + log E). Tree cut:
++O(log V + log E + s + c log V), amortized for free-list growth, where s is the
++smaller side's vertex count and c is examined non-tree incidences. One arena or
++free-list growth can add O(V) time. Smaller-side enumeration allocates O(s) scratch.
++Even if the first candidate reconnects the graph, enumeration has already visited
++all s vertices. Repeated failed searches are unbounded by any HDT level invariant.
++
++Logical memory is O(V + E); arenas retain O(V) high-water capacity. Counters report
++tree cuts, enumerated vertices, examined non-tree incidences and replacements.
++Counters saturate rather than wrapping, and the harness resets them after setup.
++
++## Evidence and next decision
++
++Tests validate AVL heights, parent pointers, ranks via cut/relink behavior, subtree
++sizes, token partition/recycling and edge classification. Random growing histories
++are checked against matrix closure and the original BFS; shared queries and
++10,001-node paths exercise growth and thread-safe reads. Benchmark adapters also
++include the prototype in independent registered-universe checks.
++
++Scale workloads use an independent missing-boundary oracle. Path edges toggle
++without restoration; blocks remain internally connected while their cycle edges
++and connecting bridges change. These are intentionally constrained sparse models,
++not arbitrary dense churn or real datasets. Fixed 2,000 operations mean only 20
++updates at 99% queries; large-graph results can reflect initial fragmentation.
++The separate longer run investigates more updates, not a universal steady state.
++
++See the sibling benchmark [scale report](../../../knotrel-benchmarks/results/2026-09-27-forest-scale/README.md).
++Only promote a maintained index to the default after representative update-tail,
++memory and setup budgets are met. Repeated replacement work motivates HDT levels;
++space pressure motivates Cluster Forest evaluation. Neither is implemented here.
++
++## Observed bottleneck
++
++The scale run makes smaller-side enumeration a concrete optimization target:
++path deletions inspect no non-tree candidates yet enumerate many vertices.
++Before adding HDT levels, consider non-tree-incidence aggregates to skip empty
++regions and an iterator that stops enumerating once a replacement is found.
++That would reduce unnecessary scan work without claiming an HDT amortized bound.
++Measure added metadata/update costs and arena memory; do not assume the change
++wins on every query/update mix. Cluster Forest remains a research alternative,
++not an implemented or commercially validated dependency.
+diff --git a/docs/architecture/0006-candidate-pruning.md b/docs/architecture/0006-candidate-pruning.md
+new file mode 100644
+index 0000000..edbfc0a
+--- /dev/null
++++ b/docs/architecture/0006-candidate-pruning.md
+@@ -0,0 +1,62 @@
++# Pruning replacement searches in Euler-tour trees
++
++Status: Implemented in experimental ForestGraph, 2026-09-27. The default compact
++Graph and the HTTP service are unchanged. Refines ADR 0005; still not HDT.
++
++## Change and invariants
++
++Every permanent vertex token has a boolean indicating whether its non-tree
++adjacency is nonempty. Every AVL token stores the OR of that flag over its
++subtree. Directed edge tokens never carry a local flag. Structural pull repairs
++the aggregate after join/split/rotation; changes in non-tree membership repair
++ancestors without altering parent pointers and stop when the aggregate stops
++changing. Insertions, non-tree deletions and promotion to forest edges update
++both endpoints. Recycled edge tokens start with both flags false.
++
++After a tree cut, select the smaller side by vertex count, as before. If its
++aggregate is false, skip enumeration without allocating a scan stack. Otherwise,
++a borrowing iterator descends only subtrees with candidates, yields marked
++vertices in v1's node/right/left order and stops when a crossing edge is found.
++An iterator borrow prevents topology/membership changes during the scan. Promotion
++occurs after the iterator is dropped. The first chosen replacement is therefore
++the same as v1, despite skipping empty vertices and stopping enumeration early.
++
++If a side has no candidate, no non-tree edge can cross it. If candidates exist,
++all their incidences are still checked until success or exhaustion; pruning does
++not change exactness or graph visibility. Existing random matrix/reference tests
++and AVL invariants remain applicable. New tests first failed against v1 and then
++passed: candidate-free bridge cuts enumerate zero vertices; a large cycle stops
++at one candidate; removal/promotion of the last non-tree edge clears the flags.
++
++## Costs
++
++Aggregate maintenance takes O(log V) worst case per changed endpoint. Link and
++non-tree-cut asymptotic bounds remain O(log V + log E), with the previously
++stated allocation caveats. Enumerating k candidate-bearing vertices in a smaller
++side of size s visits O(min(s, (k+1) log V)) AVL tokens and uses O(log V) stack
++space. Candidate checks still cost O(c log V). Empty candidate sides need only
++root/size/aggregate checks; no O(s) enumeration or scratch remains.
++
++Extra per-token flags and aggregate maintenance add space and CPU work, including
++during initial construction. This is not an asymptotic replacement-search bound:
++dense internal non-tree edges can still be repeatedly inspected after cuts. HDT
++levels and Cluster Forest remain separate candidates if these costs dominate.
++
++## Comparable versions and counter meanings
++
++The benchmark freezes the former implementation in `src/ett_baseline/`, used
++only by `--engine ett-scan-v1` (identity `knotrel-core/ett-scan-v1`). Imports differ
++and count accessors are test-only; timed methods and original token layout are
++preserved. Current `--engine ett-scan` is `knotrel-core/ett-pruned-v2`.
++
++`scanned_vertices` has an intentionally versioned meaning: v1 counts every
++vertex eagerly enumerated before any candidate test, whereas v2 counts only
++candidate-bearing vertices actually yielded before success/exhaustion. Neither
++is a count of AVL tokens touched. Do not interpret their ratio as a CPU-work
++speedup. `tree_cuts`, `candidate_edges` and `replacements` retain their meanings;
++they should match between versions on the same ordered trace. Timing captures
++both pruning benefits and aggregate-maintenance costs.
++
++See [same-build measurements](../../../knotrel-benchmarks/results/2026-09-27-forest-pruned/README.md)
++for setup, memory, update tails and complete-operation comparisons. Previous
++result directories remain immutable observations of their recorded source.
+diff --git a/docs/http-api.md b/docs/http-api.md
+index 31e2c1d..9a42f33 100644
+--- a/docs/http-api.md
++++ b/docs/http-api.md
+@@ -75,8 +75,8 @@ order. A connectivity result reflects all earlier operations in that order.
+ 
+ ## Admission, cancellation and health
+ 
+-Each request body is limited to 1 MiB. At most 32 graph jobs can be queued or
+-running. Admission occurs after JSON parsing; this limit bounds graph work, not
++Each request body is limited to 1 MiB. By default, at most 32 graph jobs can be
++queued or running; `KNOTREL_MAX_PENDING_JOBS` sets this limit at startup. Admission occurs after JSON parsing; this limit bounds graph work, not
+ the number of network connections or concurrently buffered HTTP bodies. Workers
+ run outside Tokio's async executor. `busy` means no graph operation was admitted.
+ 
+@@ -89,3 +89,68 @@ exactly-once delivery guarantee.
+ `GET /health` returns `{"status":"ok"}` without taking the graph lock. This is
+ process liveness, not a graph readiness or capacity check. Shutdown waits for
+ active work; it does not impose a hard deadline on graph traversal or slow clients.
++
++
++## Startup configuration and engine selection
++
++The standalone executable reads a single configuration snapshot before opening
++its listener. There is no file loader or runtime reload in this version.
++
++| Variable | Accepted value | Default |
++| --- | --- | --- |
++| `KNOTREL_ADDR` | IP socket address, such as `127.0.0.1:8080` or `[::1]:8080` | `127.0.0.1:8080` |
++| `KNOTREL_ENGINE` | Exactly `compact-bfs`, `ett` or `hdt` | `compact-bfs` |
++| `KNOTREL_MAX_PENDING_JOBS` | ASCII decimal integer from 1 through Tokio's `Semaphore::MAX_PERMITS` | `32` |
++
++Unknown variables in the reserved `KNOTREL_` namespace, empty or non-Unicode
++values, unsupported engines and invalid addresses/limits fail startup. Values
++are not trimmed; engine names are case-sensitive. Unrelated environment
++variables are ignored by this loader. `RUST_LOG` is handled separately by the
++logging subscriber (falling back to `info` if its filter is missing or invalid).
++No configuration file or implicit engine fallback is used.
++
++`compact-bfs` uses the existing compact-adjacency `Graph`. `ett` opts into
++experimental `ForestGraph`, the AVL Euler-tour forest with candidate-pruned
++replacement search. It is not HDT, and it has no polylogarithmic update guarantee.
++`hdt` opts into experimental `HdtGraph`, adding edge levels and promotions with
++O(log² N) amortized edge updates over a history reaching N vertices. It uses more
++memory, O(E + V log V), and a single cut can still be expensive. All three engines
++provide the same exact graph and batch semantics. None caches query answers;
++the indexed engines maintain their connectivity structures on updates.
++
++The job limit covers admitted queued plus running graph work, not concurrent
++mutation workers. All graph operations still acquire the same mutex. Body
++size (1 MiB) and batch size (1–1024) are fixed in this version.
++
++`GET /v1/info` returns HTTP 200 and immutable effective settings, for example:
++
++```json
++{
++  "engine": "ett",
++  "experimental": true,
++  "max_pending_jobs": 16,
++  "max_body_bytes": 1048576,
++  "max_batch_operations": 1024
++}
++```
++
++The endpoint does not acquire the graph mutex or an admission permit, and
++contains no graph data. Like `/health`, it is not a readiness check. Engine and
++limit fields describe the actual service instance, including embedded routers.
++The default response has `engine: "compact-bfs"`, `experimental: false` and
++`max_pending_jobs: 32`.
++
++Operation and batch requests cannot configure the engine or the server. An
++`engine` field, for example, is rejected as an unknown field before mutation.
++There is no administrative engine-switch endpoint. A future migration would
++need to preserve every vertex (including isolated ones) and edge, construct the
++new state, and replace the old state only on success. Restarting today's
++in-memory server instead loses the graph.
++
++Embedded callers use `ServerConfig::new(address, engine, max_pending_jobs)` and
++`router_with_config(config)` to create a selected empty graph. The constructor
++validates admission limits; it does not read the environment. The router does
++not bind the configured address: the caller owns its listener. The original
++`router(Graph)` preserves its supplied, possibly populated graph and uses the
++default limits. Direct core callers use `ConnectivityGraph::new(EngineConfig)`;
++the core never loads server configuration or reads the environment.
+diff --git a/docs/superpowers/plans/2026-09-27-dynamic-forest.md b/docs/superpowers/plans/2026-09-27-dynamic-forest.md
+new file mode 100644
+index 0000000..6133afc
+--- /dev/null
++++ b/docs/superpowers/plans/2026-09-27-dynamic-forest.md
+@@ -0,0 +1,31 @@
++# Dynamic forest and scale benchmark implementation plan
++
++Goal: preserve the compact default while introducing an exact experimental
++Euler-tour forest and sustained, independently checkable scale workloads.
++Architecture: stable arena handles, deterministic implicit AVL sequences with
++one vertex token and two directed tokens per forest edge. Link concatenates
++rerooted tours; cut splits at edge occurrences. Scan non-tree adjacency of the
++smaller resulting tree for a replacement. No HDT levels or HDT bounds.
++Tech stack: Rust 1.98.1, current locked workspaces, no new core dependencies.
++Spec: user-approved three-step proposal in conversation; first milestone only.
++
++Constraints: full growing u64 semantics, synchronous shared-reference queries,
++English docs, no unsafe, preserve existing dirty changes, no commits/pushes.
++Review focus: parent/rank/size consistency under rotations; recycling cut edge
++handles; isolated growing nodes; cyclic replacement and failed searches; generator
++oracle independence and actual operation ratios; process RSS is not engine heap.
++
++- [x] Add AVL sequence/ETT tests that fail before implementation; implement private
++      forest module with structural invariant tests and deterministic bounds.
++- [x] Add public ForestGraph with Graph-compatible methods, counters and exhaustive
++      smaller-component replacement; differential-test arbitrary histories and
++      growth against matrix closure and retained reference.
++- [x] Independently extend traces to sustained path/block churn, query ratios,
++      topology-derived answers; validate generator with matrix oracle.
++- [x] Integrate selector `ett-scan`, identity
++      `knotrel-core/ett-scan-v1`; preserve all historical backend identities.
++- [x] Collect separate-process scale reports, cache regimes/repeats, setup, p99,
++      replacement counters and whole-process peak RSS with explicit scope.
++      Sizes 10k/100k/1m staged, reduce expensive sampling transparently if needed.
++- [x] Run both workspaces' required checks, independent review, artifact hash audit;
++      report wins and regressions, and the next HDT/Cluster Forest decision gate.

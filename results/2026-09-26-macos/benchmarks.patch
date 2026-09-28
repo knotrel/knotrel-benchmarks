@@ -1,0 +1,785 @@
+diff --git a/README.md b/README.md
+index 45357b9..b4d74e2 100644
+--- a/README.md
++++ b/README.md
+@@ -2,11 +2,11 @@
+ 
+ Reproducible workloads for measuring exact dynamic graph connectivity.
+ 
+-The initial harness measures `knotrel-core` directly using a seeded chain
+-split/rejoin workload. It validates every result and emits a JSON report with
+-operation latency distributions, configuration, build compiler and checkout
+-metadata. GraphScope, HTTP, production workload and memory-measurement adapters
+-are **not implemented yet**. This repository makes no comparative speedup claims.
++The harness measures `knotrel-core` directly using four deterministic synthetic
++workloads: a path, a cycle, joining/splitting components, and a degree-skewed hub.
++It validates every result and supports trace export, warmup and separate reports
++for repeated fresh-graph runs. GraphScope, HTTP, real-world datasets and memory
++measurement are **not implemented**. No comparative speedup is claimed.
+ 
+ ## Local layout
+ 
+@@ -24,17 +24,25 @@ revision-pinned: record the exact core revision and diff with every result.
+ cargo run --release --locked -- --nodes 10000 --rounds 1000 --seed 42
+ ```
+ 
+-Use `--help` for arguments. The defaults match the command above. Repeated flags
+-use the last value. Each round performs one cut, a disconnected query, one link,
+-and a connected query. The initial graph has `nodes` vertices and `nodes - 1`
+-edges. All deleted edges are bridges; this is a narrow baseline, not a general
+-graph workload. Use release builds for measurements.
+-
+-The report labels debug builds, contains per-operation min/p50/p95/p99/max and
+-total nanoseconds, and identifies the trace as `chain-split-rejoin-v1`.
+-Checkout metadata describes sources present at run time; moving an already-built
+-binary or changing sources after compilation invalidates binary provenance.
+-For reproducible published runs, build and run from clean, recorded revisions.
++Select a workload and save a reusable trace:
++
++```sh
++cargo run --release --locked -- --workload cycle-alternatives-v1 --nodes 4096 --rounds 200 --seed 42 --warmup 1 --repetitions 3 --trace-out cycle.trace.json
++```
++
++`--help` lists all families and flags. Defaults preserve the original chain
++sequence, with one warmup and one measured replay. Each repetition starts with
++a fresh graph. Trace output refuses to overwrite files. JSON report schema 2
++stores latency summaries under `repetitions[i].measurements`, with separate
++cut/link/connected summaries; it also records topology and trace fingerprint.
++
++See [methodology](docs/methodology.md) for topology, ratios, timing boundaries,
++trace interchange and limitations. The [local release baseline](results/2026-09-26-macos/README.md)
++contains raw results and reproducibility metadata. Reproduce the complete matrix:
++
++```sh
++python3 scripts/run_baseline.py results/NEW_RUN_DIRECTORY
++```
+ 
+ ## Development
+ 
+diff --git a/crates/knotrel-benchmarks/src/lib.rs b/crates/knotrel-benchmarks/src/lib.rs
+index ca464e8..da652c3 100644
+--- a/crates/knotrel-benchmarks/src/lib.rs
++++ b/crates/knotrel-benchmarks/src/lib.rs
+@@ -5,6 +5,9 @@
+ 
+ use serde::Serialize;
+ 
++mod traces;
++pub use traces::{WorkloadKind, generate};
++
+ /// A chain split/rejoin workload configuration.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+ pub struct Config {
+@@ -17,7 +20,8 @@ pub struct Config {
+ }
+ 
+ /// An operation with independently known query results.
+-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
++#[serde(tag = "op", rename_all = "snake_case")]
+ pub enum Operation {
+     /// Insert an edge.
+     Link {
+@@ -45,9 +49,9 @@ pub enum Operation {
+ }
+ 
+ /// A deterministic initial graph and operation trace.
+-#[derive(Debug, PartialEq, Eq)]
++#[derive(Debug, PartialEq, Eq, Serialize)]
+ pub struct Workload {
+-    /// Initial chain edges.
++    /// Initial undirected edges; vertices are `0..config.nodes`.
+     pub initial_edges: Vec<(u64, u64)>,
+     /// Operations in execution order.
+     pub operations: Vec<Operation>,
+diff --git a/crates/knotrel-benchmarks/src/main.rs b/crates/knotrel-benchmarks/src/main.rs
+index 2bf86ee..e5db76c 100644
+--- a/crates/knotrel-benchmarks/src/main.rs
++++ b/crates/knotrel-benchmarks/src/main.rs
+@@ -2,13 +2,14 @@
+ 
+ mod metrics;
+ 
+-use knotrel_benchmarks::{Config, Operation, chain_workload};
++use knotrel_benchmarks::{Config, Operation, Workload, WorkloadKind, generate};
+ use knotrel_core::Graph;
+ use metrics::Latency;
+ use serde::Serialize;
+ use std::{
+     error::Error,
+     hint::black_box,
++    io::Write,
+     path::Path,
+     process::{Command, ExitCode},
+     time::{Instant, SystemTime, UNIX_EPOCH},
+@@ -27,8 +28,12 @@ struct Report {
+     timestamp_unix_seconds: u64,
+     config: Config,
+     checkouts_at_run_time: Checkouts,
+-    measurements: Measurements,
+-    workload_wall_ns: u128,
++    warmup: usize,
++    trace_fingerprint_fnv1a64: String,
++    initial_edges: usize,
++    initial_density: f64,
++    initial_max_degree: usize,
++    repetitions: Vec<Run>,
+ }
+ 
+ #[derive(Serialize)]
+@@ -36,19 +41,36 @@ struct Checkouts {
+     core: GitState,
+     benchmarks: GitState,
+ }
+-
+ #[derive(Serialize)]
+ struct GitState {
+     revision: Option<String>,
+     dirty: Option<bool>,
+ }
+-
++#[derive(Serialize)]
++struct Run {
++    measurements: Measurements,
++    workload_wall_ns: u128,
++}
+ #[derive(Serialize)]
+ struct Measurements {
+     cut: Latency,
+     link: Latency,
+     connected: Latency,
+ }
++#[derive(Serialize)]
++struct TraceExport<'a> {
++    schema_version: u32,
++    workload: &'static str,
++    config: Config,
++    trace: &'a Workload,
++}
++struct Options {
++    config: Config,
++    kind: WorkloadKind,
++    warmup: usize,
++    repetitions: usize,
++    trace_out: Option<String>,
++}
+ 
+ fn main() -> ExitCode {
+     match run() {
+@@ -61,28 +83,98 @@ fn main() -> ExitCode {
+ }
+ 
+ fn run() -> Result<(), Box<dyn Error>> {
+-    let Some(config) = parse_args()? else {
++    let Some(options) = parse_args()? else {
+         println!(
+-            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N]\nDefaults: --nodes 10000 --rounds 1000 --seed 42\nRun with cargo run --release --locked for measurements."
++            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH]\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
+         );
+         return Ok(());
+     };
+-    let workload = chain_workload(config)?;
+-    let mut graph = Graph::new();
+-    for (source, target) in workload.initial_edges {
+-        graph.link(source, target)?;
++    let config = options.config;
++    let workload = generate(options.kind, config)?;
++    let export = TraceExport {
++        schema_version: 1,
++        workload: options.kind.name(),
++        config,
++        trace: &workload,
++    };
++    let bytes = serde_json::to_vec(&export)?;
++    // Stable fingerprint of exact compact JSON bytes; not a cryptographic hash.
++    let fingerprint = bytes.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
++        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
++    });
++    if let Some(path) = &options.trace_out {
++        // Never overwrite user files, including source files or prior traces.
++        let mut file = std::fs::OpenOptions::new()
++            .write(true)
++            .create_new(true)
++            .open(path)?;
++        file.write_all(&bytes)?;
+     }
+-    let mut cuts = Vec::with_capacity(config.rounds);
+-    let mut links = Vec::with_capacity(config.rounds);
+-    let mut queries = Vec::with_capacity(config.rounds * 2);
++    drop(bytes);
++    let mut degree = vec![0_usize; usize::try_from(config.nodes)?];
++    for &(a, b) in &workload.initial_edges {
++        degree[a as usize] += 1;
++        degree[b as usize] += 1;
++    }
++    let initial_max_degree = degree.into_iter().max().unwrap_or(0);
+     let timestamp_unix_seconds = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
++    let benchmark_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
++    let core_root = benchmark_root.join("../knotrel");
++    let checkouts_at_run_time = Checkouts {
++        core: git_state(&core_root),
++        benchmarks: git_state(&benchmark_root),
++    };
++    for _ in 0..options.warmup {
++        replay(config, &workload)?;
++    }
++    let mut repetitions = Vec::new();
++    repetitions.try_reserve_exact(options.repetitions)?;
++    for _ in 0..options.repetitions {
++        repetitions.push(replay(config, &workload)?);
++    }
++    let report = Report {
++        schema_version: 2,
++        engine: "knotrel-core/reference-bfs",
++        workload: options.kind.name(),
++        benchmark_version: env!("CARGO_PKG_VERSION"),
++        compiler: env!("KNOTREL_BUILD_COMPILER"),
++        os: std::env::consts::OS,
++        arch: std::env::consts::ARCH,
++        debug_assertions: cfg!(debug_assertions),
++        timestamp_unix_seconds,
++        config,
++        checkouts_at_run_time,
++        warmup: options.warmup,
++        trace_fingerprint_fnv1a64: format!("{fingerprint:016x}"),
++        initial_edges: workload.initial_edges.len(),
++        initial_density: 2.0 * workload.initial_edges.len() as f64
++            / (config.nodes as f64 * (config.nodes - 1) as f64),
++        initial_max_degree,
++        repetitions,
++    };
++    println!("{}", serde_json::to_string_pretty(&report)?);
++    Ok(())
++}
+ 
+-    // Setup and trace allocation finish before this wall timer. Each operation
+-    // interval includes the call and a compiler barrier; result checking and
+-    // sample storage follow the interval. The wall interval additionally includes
+-    // checks, loop dispatch and sampling overhead. It is not operation throughput.
++/// Rebuild before every replay. Warmups execute identical timers and checks,
++/// then discard summaries. Graph state never carries across repetitions, but
++/// allocator/process caches can remain warm. Setup and sorting are untimed.
++fn replay(config: Config, workload: &Workload) -> Result<Run, Box<dyn Error>> {
++    let mut graph = Graph::new();
++    for node in 0..config.nodes {
++        graph.add_node(node);
++    }
++    for &(source, target) in &workload.initial_edges {
++        graph.link(source, target)?;
++    }
++    let mut cuts = Vec::with_capacity(workload.operations.len() / 2);
++    let mut links = Vec::with_capacity(workload.operations.len() / 2);
++    let mut queries = Vec::with_capacity(workload.operations.len() / 2);
++    // Each interval includes the call, a compiler barrier and clock overhead.
++    // Checking and sample insertion follow the interval. Wall time additionally
++    // includes dispatch, checking and sampling; it is not operation throughput.
+     let wall_start = Instant::now();
+-    for operation in workload.operations {
++    for &operation in &workload.operations {
+         match operation {
+             Operation::Cut { source, target } => {
+                 let start = Instant::now();
+@@ -118,41 +210,27 @@ fn run() -> Result<(), Box<dyn Error>> {
+         }
+     }
+     let workload_wall_ns = wall_start.elapsed().as_nanos();
+-    let benchmark_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+-    let core_root = benchmark_root.join("../knotrel");
+-    let report = Report {
+-        schema_version: 1,
+-        engine: "knotrel-core/reference-bfs",
+-        workload: "chain-split-rejoin-v1",
+-        benchmark_version: env!("CARGO_PKG_VERSION"),
+-        compiler: env!("KNOTREL_BUILD_COMPILER"),
+-        os: std::env::consts::OS,
+-        arch: std::env::consts::ARCH,
+-        debug_assertions: cfg!(debug_assertions),
+-        timestamp_unix_seconds,
+-        config,
+-        checkouts_at_run_time: Checkouts {
+-            core: git_state(&core_root),
+-            benchmarks: git_state(&benchmark_root),
+-        },
++    Ok(Run {
+         measurements: Measurements {
+             cut: Latency::from_samples(cuts),
+             link: Latency::from_samples(links),
+             connected: Latency::from_samples(queries),
+         },
+         workload_wall_ns,
+-    };
+-    println!("{}", serde_json::to_string_pretty(&report)?);
+-    Ok(())
++    })
+ }
+ 
+-/// Parses explicit numeric flags; malformed input fails before graph allocation.
+-fn parse_args() -> Result<Option<Config>, Box<dyn Error>> {
++/// Parses flags before allocating graphs. Repeated flags use their last value.
++fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
+     let mut config = Config {
+         nodes: 10_000,
+         rounds: 1_000,
+         seed: 42,
+     };
++    let mut kind = WorkloadKind::Chain;
++    let mut warmup = 1;
++    let mut repetitions = 1;
++    let mut trace_out = None;
+     let mut args = std::env::args().skip(1);
+     while let Some(flag) = args.next() {
+         if flag == "--help" || flag == "-h" {
+@@ -162,14 +240,30 @@ fn parse_args() -> Result<Option<Config>, Box<dyn Error>> {
+             "--nodes" => config.nodes = args.next().ok_or("--nodes needs a value")?.parse()?,
+             "--rounds" => config.rounds = args.next().ok_or("--rounds needs a value")?.parse()?,
+             "--seed" => config.seed = args.next().ok_or("--seed needs a value")?.parse()?,
++            "--workload" => {
++                kind = WorkloadKind::parse(&args.next().ok_or("--workload needs a value")?)?
++            }
++            "--warmup" => warmup = args.next().ok_or("--warmup needs a value")?.parse()?,
++            "--repetitions" => {
++                repetitions = args.next().ok_or("--repetitions needs a value")?.parse()?
++            }
++            "--trace-out" => trace_out = Some(args.next().ok_or("--trace-out needs a value")?),
+             _ => return Err(format!("unknown argument: {flag}").into()),
+         }
+     }
+-    Ok(Some(config))
++    if repetitions == 0 {
++        return Err("repetitions must be at least 1".into());
++    }
++    Ok(Some(Options {
++        config,
++        kind,
++        warmup,
++        repetitions,
++        trace_out,
++    }))
+ }
+ 
+-/// Records checkout provenance at run time, not a claim about binary provenance.
+-/// Missing Git or moved source checkouts produce null metadata, never invented IDs.
++/// Runtime checkout provenance, not binary attestation. Missing metadata is null.
+ fn git_state(directory: &Path) -> GitState {
+     let command = |args: &[&str]| -> Option<String> {
+         let output = Command::new("git")
+diff --git a/crates/knotrel-benchmarks/tests/cli.rs b/crates/knotrel-benchmarks/tests/cli.rs
+index 8e61863..f863ebf 100644
+--- a/crates/knotrel-benchmarks/tests/cli.rs
++++ b/crates/knotrel-benchmarks/tests/cli.rs
+@@ -15,13 +15,16 @@ fn smoke_run_emits_machine_readable_measurements_and_configuration() {
+         String::from_utf8_lossy(&output.stderr)
+     );
+     let report: Value = serde_json::from_slice(&output.stdout).expect("benchmark must emit JSON");
+-    assert_eq!(report["schema_version"], 1);
++    assert_eq!(report["schema_version"], 2);
+     assert_eq!(report["config"]["nodes"], 16);
+     assert_eq!(report["config"]["rounds"], 4);
+     assert_eq!(report["config"]["seed"], 7);
+-    assert_eq!(report["measurements"]["cut"]["count"], 4);
+-    assert_eq!(report["measurements"]["link"]["count"], 4);
+-    assert_eq!(report["measurements"]["connected"]["count"], 8);
++    assert_eq!(report["repetitions"][0]["measurements"]["cut"]["count"], 4);
++    assert_eq!(report["repetitions"][0]["measurements"]["link"]["count"], 4);
++    assert_eq!(
++        report["repetitions"][0]["measurements"]["connected"]["count"],
++        8
++    );
+     assert!(
+         report["compiler"]
+             .as_str()
+@@ -29,7 +32,7 @@ fn smoke_run_emits_machine_readable_measurements_and_configuration() {
+             .contains("rustc 1.98.1")
+     );
+     for op in ["cut", "link", "connected"] {
+-        let samples = &report["measurements"][op];
++        let samples = &report["repetitions"][0]["measurements"][op];
+         let values: Vec<u64> = ["min_ns", "p50_ns", "p95_ns", "p99_ns", "max_ns"]
+             .into_iter()
+             .map(|key| samples[key].as_u64().unwrap())
+@@ -44,6 +47,10 @@ fn invalid_arguments_fail_without_printing_measurements() {
+         vec!["--nodes", "1"],
+         vec!["--rounds", "0"],
+         vec!["--seed"],
++        vec!["--workload", "invalid"],
++        vec!["--workload", "cycle-alternatives-v1", "--nodes", "5"],
++        vec!["--repetitions", "0"],
++        vec!["--warmup", "-1"],
+         vec!["--unknown", "1"],
+     ] {
+         let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
+@@ -55,3 +62,144 @@ fn invalid_arguments_fail_without_printing_measurements() {
+         assert!(!output.stderr.is_empty());
+     }
+ }
++
++#[test]
++fn reusable_traces_match_an_independent_matrix_oracle() {
++    // A wrong topology answer, duplicate initial edge, or ineffective update
++    // must fail even when the measured engine agrees with the generator.
++    for name in [
++        "chain-split-rejoin-v1",
++        "cycle-alternatives-v1",
++        "components-join-split-v1",
++        "hub-alternatives-v1",
++    ] {
++        for nodes in [6, 7, 12] {
++            for seed in [0, 42, u64::MAX] {
++                let path = std::env::temp_dir().join(format!(
++                    "knotrel-trace-{}-{name}-{nodes}-{seed}.json",
++                    std::process::id()
++                ));
++                let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++                    .args([
++                        "--workload",
++                        name,
++                        "--nodes",
++                        &nodes.to_string(),
++                        "--rounds",
++                        "9",
++                        "--seed",
++                        &seed.to_string(),
++                        "--warmup",
++                        "1",
++                        "--repetitions",
++                        "2",
++                        "--trace-out",
++                        path.to_str().unwrap(),
++                    ])
++                    .output()
++                    .unwrap();
++                assert!(
++                    output.status.success(),
++                    "{}",
++                    String::from_utf8_lossy(&output.stderr)
++                );
++                let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++                assert_eq!(report["repetitions"].as_array().unwrap().len(), 2);
++                assert_eq!(report["warmup"], 1);
++                let bytes = std::fs::read(&path).unwrap();
++                let trace: Value = serde_json::from_slice(&bytes).unwrap();
++                std::fs::remove_file(path).unwrap();
++                let mut adjacency = vec![vec![false; nodes]; nodes];
++                for edge in trace["trace"]["initial_edges"].as_array().unwrap() {
++                    let a = edge[0].as_u64().unwrap() as usize;
++                    let b = edge[1].as_u64().unwrap() as usize;
++                    assert!(a != b && !adjacency[a][b]);
++                    adjacency[a][b] = true;
++                    adjacency[b][a] = true;
++                }
++                for operation in trace["trace"]["operations"].as_array().unwrap() {
++                    let a = operation["source"].as_u64().unwrap() as usize;
++                    let b = operation["target"].as_u64().unwrap() as usize;
++                    match operation["op"].as_str().unwrap() {
++                        "link" | "cut" => {
++                            let inserted = operation["op"] == "link";
++                            assert_ne!(adjacency[a][b], inserted);
++                            adjacency[a][b] = inserted;
++                            adjacency[b][a] = inserted;
++                        }
++                        "connected" => {
++                            let mut reach = adjacency.clone();
++                            for (i, row) in reach.iter_mut().enumerate() {
++                                row[i] = true;
++                            }
++                            for k in 0..nodes {
++                                for i in 0..nodes {
++                                    for j in 0..nodes {
++                                        reach[i][j] |= reach[i][k] && reach[k][j];
++                                    }
++                                }
++                            }
++                            assert_eq!(
++                                reach[a][b],
++                                operation["expected"].as_bool().unwrap(),
++                                "{name}, n={nodes}, seed={seed}"
++                            );
++                        }
++                        _ => panic!("unknown trace operation"),
++                    }
++                }
++                let queries = trace["trace"]["operations"]
++                    .as_array()
++                    .unwrap()
++                    .iter()
++                    .filter(|op| op["op"] == "connected")
++                    .count();
++                for run in report["repetitions"].as_array().unwrap() {
++                    assert_eq!(run["measurements"]["connected"]["count"], queries);
++                }
++            }
++        }
++    }
++}
++
++#[test]
++fn export_is_stable_across_sampling_options_and_never_overwrites_files() {
++    let path = std::env::temp_dir().join(format!("knotrel-export-{}.json", std::process::id()));
++    let mut fingerprints = Vec::new();
++    let mut traces = Vec::new();
++    for warmup in ["0", "2"] {
++        let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++            .args([
++                "--nodes",
++                "8",
++                "--rounds",
++                "2",
++                "--warmup",
++                warmup,
++                "--trace-out",
++                path.to_str().unwrap(),
++            ])
++            .output()
++            .unwrap();
++        assert!(output.status.success());
++        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++        fingerprints.push(report["trace_fingerprint_fnv1a64"].clone());
++        traces.push(std::fs::read(&path).unwrap());
++        let rejected = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++            .args([
++                "--nodes",
++                "6",
++                "--rounds",
++                "1",
++                "--trace-out",
++                path.to_str().unwrap(),
++            ])
++            .output()
++            .unwrap();
++        assert!(!rejected.status.success());
++        assert_eq!(std::fs::read(&path).unwrap(), *traces.last().unwrap());
++        std::fs::remove_file(&path).unwrap();
++    }
++    assert_eq!(fingerprints[0], fingerprints[1]);
++    assert_eq!(traces[0], traces[1]);
++}
+diff --git a/crates/knotrel-benchmarks/tests/workload.rs b/crates/knotrel-benchmarks/tests/workload.rs
+index bfccacc..3252367 100644
+--- a/crates/knotrel-benchmarks/tests/workload.rs
++++ b/crates/knotrel-benchmarks/tests/workload.rs
+@@ -124,3 +124,42 @@ fn invalid_sizes_fail_before_allocation() {
+         ]
+     );
+ }
++
++#[test]
++fn all_families_are_reproducible_and_reject_unaddressable_sizes() {
++    use knotrel_benchmarks::{WorkloadKind, generate};
++    for kind in [
++        WorkloadKind::Chain,
++        WorkloadKind::Cycle,
++        WorkloadKind::Components,
++        WorkloadKind::Hub,
++    ] {
++        let config = Config {
++            nodes: 32,
++            rounds: 30,
++            seed: 42,
++        };
++        let first = generate(kind, config).unwrap();
++        assert_eq!(first, generate(kind, config).unwrap());
++        assert_ne!(
++            first,
++            generate(kind, Config { seed: 43, ..config }).unwrap()
++        );
++        for invalid in [
++            Config {
++                nodes: u64::MAX,
++                ..config
++            },
++            Config {
++                rounds: usize::MAX,
++                ..config
++            },
++            Config {
++                rounds: 0,
++                ..config
++            },
++        ] {
++            assert!(generate(kind, invalid).is_err());
++        }
++    }
++}
+diff --git a/docs/methodology.md b/docs/methodology.md
+index 988dab2..024b3af 100644
+--- a/docs/methodology.md
++++ b/docs/methodology.md
+@@ -1,56 +1,129 @@
+ # Benchmark methodology
+ 
+-## Implemented baseline
+-
+-`chain-split-rejoin-v1` starts with an undirected path. A wrapping 64-bit LCG
+-selects which edge to cut in each round. Deleting a path edge disconnects the two
+-ends; restoring it reconnects them. These expected results come from topology,
+-independently of the measured engine. The generator is deterministic for a
+-configuration; modulo edge selection has a small bias and is not advertised as
+-unbiased sampling.
+-
+-Graph construction, trace generation and latency-buffer allocation occur before
+-measurement. Each timed interval includes the engine call, a compiler barrier
+-and clock overhead. Correctness checks and sample insertion occur afterward.
+-Latency samples are sorted after the run, using nearest-rank percentiles
+-`ceil(p*n/100)`. A singleton's percentiles equal its only sample. No timer-overhead
+-subtraction or automatic warmup is performed. Very short updates may be dominated
+-by clock overhead. Wall time additionally includes checking and harness overhead.
+-
+-The harness stores O(rounds) operations and timing samples. This affects memory
+-and cache behavior. It does not measure engine-only RSS. The first workload is
+-single-threaded, has 50% queries, alternates split/rejoin updates and uses only
+-bridge deletions. It cannot establish scaling, general workload performance,
+-concurrent service throughput or network latency.
+-
+-## Reproducible runs
+-
+-Record both Git revisions and any diffs, Cargo.lock files, Rust compiler,
+-optimization flags, target CPU settings, OS/kernel, CPU model, core count, RAM,
+-dataset checksum, full arguments and repetition count. Run from the source
+-checkout; the report's Git fields describe checkout state at run time and do not
+-attest to a separately copied binary. Null Git fields mean metadata was unavailable.
+-Do not modify either checkout between building and running.
+-
+-Use a quiet machine and repeated process runs. Preserve each JSON report. Report
+-variability across repetitions rather than selecting the fastest. Keep local core
+-results separate from HTTP results, where serialization, scheduling and transport
+-are part of the measured service cost. Record memory independently and account for
+-the harness, allocator, preload and external processes.
++## Deterministic trace contract
++
++The core BFS remains the reference backend. `chain-split-rejoin-v1` preserves
++its original initial edges and operation sequence for a given nodes/rounds/seed.
++`generate(kind, config)` returns initial edges and an ordered operation vector,
++independent of the measured backend. Initialize **all** vertices `0..nodes`
++before loading the undirected edges. Every link and cut in these traces must
++return `changed = true`; queries carry topology-derived expected booleans.
++
++`--trace-out NEW_PATH` writes compact JSON (trace schema 1) before warmup. It
++refuses to overwrite existing files. The envelope contains workload, config,
++initial edges and operations (`op`, `source`, `target`, and query `expected`).
++Integers are JSON numbers: consumers must parse u64 losslessly, especially seed;
++this is a benchmark interchange format, not the string-ID HTTP protocol.
++Future adapters can read these files or use the Rust generator; the current CLI
++only generates traces, and does not import arbitrary external trace files.
++
++The report contains FNV-1a-64 of the exact compact export bytes (including config
++and expected answers), starting at 0xcbf29ce484222325 and multiplying by
++0x100000001b3 modulo 2^64 after XOR with each byte. This is a stable diagnostic
++fingerprint, **not** a collision-resistant proof. The baseline manifest also
++records SHA-256 checksums of saved files. Trace identities do not depend on
++warmup, repetition count or timings. Selection uses the original wrapping LCG;
++modulo selection is biased and is not a statistical sampling guarantee.
++
++## Workload families
++
++Let n = vertices, r = rounds and d = the selected leaf's original degree.
++All families are sparse, undirected, simple and have 50% queries. Every round
++restores the initial graph. Density at any point is 2m/(n(n-1)); reports include
++initial density, edge count and maximum degree. Operation counts in each
++repetition make the actual update/query ratio observable.
++
++| Versioned name | Initial topology and edge range | Operations per round | What it exercises |
++| --- | --- | --- | --- |
++| `chain-split-rejoin-v1` | Path; m ranges n-2 to n-1; max degree 2 (1 at n=2) | 1 cut, 1 link, 2 queries | Cut a seeded bridge; query endpoints false then true. Only bridges. |
++| `cycle-alternatives-v1` | Ring; m ranges n-2 to n; max degree 2 | 2 cuts, 2 links, 4 queries | Remove both edges at a seeded vertex. First cut has an alternative path; second isolates it. Queries to the opposite vertex: true, false, true, true. |
++| `components-join-split-v1` | Two paths of floor(n/2) and ceil(n/2); m ranges n-2 to n-1; initial max degree 2 | 1 link, 1 cut, 2 queries | Seeded cross-component bridge joins then splits the paths. Query 0 to n-1: true then false. |
++| `hub-alternatives-v1` | Star plus a path through leaves; initial m=2n-3; minimum m=2n-3-d; initial max degree n-1 | d cuts, d links, 2d queries; d=2 at leaf-path endpoints, otherwise 3 | Cut spoke first, then remaining incident edges to isolate a seeded leaf; restore in reverse. Query hub to leaf after each mutation. One false query per round traverses the large source component. |
++
++Chain needs n>=2, others n>=6; all require r>=1. Only chain accepts n=2.
++The hub is deliberately degree-skewed, **not** a fitted power-law distribution.
++Cycle and hub exercise alternate paths but do not guarantee which deleted edge
++is a maintained tree edge in a future backend; each backend should instrument
++replacement searches separately. These families do not establish performance
++on dense graphs, long-lived randomized churn, different query/update ratios,
++real datasets, concurrent traffic or worst-case adversarial sequences.
++
++## Correctness
++
++Expected answers are constructed from topology, never read from the timed
++backend. All updates change state and every query is checked outside its timer.
++Integration tests replay all four families for n=6,7,12 with seeds 0,42,u64::MAX,
++checking each mutation and query against a separate adjacency matrix and
++Floyd-Warshall transitive closure. This O(n^3)-time, O(n^2)-space oracle is test-only;
++it independently validates the generator, while the runtime checks the engine.
++Determinism, changed seeds, invalid/overflowing sizes, stable export, overwrite
++protection and CLI sampling counts have separate tests.
++
++## Timing, warmup and repetitions
++
++Defaults: one complete warmup replay and one measured repetition. Use
++`--warmup 0` for no warmup; `--repetitions N` requires N>=1. Each replay builds a
++fresh graph from the same trace. Warmups execute the same checks and timers and
++discard their summaries. They warm process/allocator caches; they do not promise
++steady-state CPU frequency or warm state inside the next graph instance.
++
++Trace generation, export, initial graph construction and timing-buffer
++allocation are excluded from operation and workload wall intervals. Each
++operation interval includes the synchronous core call, a compiler barrier and
++clock overhead. Validation and sample insertion happen afterward. Wall time
++also includes dispatch, checking and sample storage, but excludes final sorting
++and graph destruction. It is not end-to-end service throughput. Initialization
++cost is not measured by this harness and must be reported by future adapters.
++
++Report schema 2 replaces schema 1's single `measurements`/`workload_wall_ns` with
++an ordered `repetitions` array. Each repetition retains separate cut/link/query
++min, p50, p95, p99, max, count and total nanoseconds. Percentiles use nearest rank
++ceil(p*n/100); samples are sorted after timing. Report all repetitions and their
++variability; do not pool per-run percentiles or select the fastest run. No timer
++overhead subtraction is applied. Very short updates can be timer dominated.
++
++The harness retains O(n+r) trace storage and O(r) sample storage per replay;
++report storage is O(repetitions). Export temporarily adds an O(n+r) JSON buffer.
++There is no RSS measurement, memory budget estimator or engine-only allocation
++accounting. Very large inputs can exhaust memory despite checked trace allocation.
++
++## Reproducing the recorded local baseline
++
++```sh
++python3 scripts/run_baseline.py results/NEW_RUN_DIRECTORY
++```
++
++The standard-library-only script builds release with `--locked`, then runs all
++four families sequentially at n=128,1024,4096, r=200, seed=42, one warmup and three
++measured repetitions. One process handles each workload/size pair. It preserves
++raw JSON, exported traces, source hashes, both revisions and dirty states,
++tracked diffs, untracked Rust files, compiler, OS, CPU, RAM, build environment,
++commands and executable checksum. It rejects changed source inputs during runs.
++Use a new output directory. The script currently expects the default Cargo
++`target/release` location and the sibling checkout layout.
++
++These in-process repetitions are not independent process trials. Run the script
++again on a quiet machine to study process-level and scheduling variability.
++The source manifest covers workspace Rust/build files, manifests, lockfiles,
++toolchain and workspace Cargo configuration. It does not attest to every global
++Cargo configuration, compiler environment override or external tool. Record
++those separately if customized. Runtime Git state alone never attests to compiled
++code. See [local results](../results/2026-09-26-macos/README.md).
+ 
+ ## Future comparison adapters
+ 
+-Before comparing with GraphScope or a specialized dynamic-connectivity engine:
++Before comparing with GraphScope or another dynamic-connectivity engine:
+ 
+-1. Load identical graphs and replay an identical update/query trace.
+-2. Match undirected graph semantics, duplicate handling and node lifetime.
+-3. Ensure every query sees the same preceding updates. Measure waiting for an
+-   incremental engine to catch up; do not compare stale answers with exact ones.
+-4. Validate query answers against an independent oracle before interpreting times.
+-5. Distinguish boolean connectivity queries from materializing full component labels.
+-6. Include ingestion, deletion maintenance, compaction and required synchronization.
+-7. Record software versions, worker counts, thread counts, hardware and costs.
++1. Load identical graphs and replay the exact same exported update/query trace.
++2. Match undirected semantics, duplicate handling and vertex lifetime.
++3. Require every answer to see all preceding updates, including synchronization
++   or waiting for incremental maintenance. Stale answers are not exact parity.
++4. Validate answers independently before interpreting performance.
++5. Distinguish a boolean connectivity query from materializing all component labels.
++6. Report loading, update, state maintenance, compaction, synchronization and query
++   costs separately, plus total lifecycle cost and memory.
++7. Record software versions, workers, threads, hardware and monetary costs.
+ 
+-GraphScope's incremental capabilities must be exercised by an actual adapter;
+-do not assume full recomputation on every update. Add cyclic, high-degree,
+-disconnected, skewed and adversarial workloads before making broad conclusions.
++No HTTP or GraphScope adapter is implemented. GraphScope's incremental
++capabilities must be verified in an actual comparable experiment; do not assume
++full recomputation. Beating this BFS alone establishes no commercial advantage.

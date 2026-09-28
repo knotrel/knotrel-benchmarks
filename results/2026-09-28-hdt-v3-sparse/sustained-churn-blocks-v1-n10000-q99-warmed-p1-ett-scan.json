@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-blocks-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1790600888,
+  "config": {
+    "nodes": 10000,
+    "rounds": 20,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "87ca572223b6657836db14aa34338c7855d56859",
+      "dirty": true
+    },
+    "benchmarks": {
+      "revision": "9a20223c54e3f0383b0300a1cdd4b7d40cc6bb3e",
+      "dirty": true
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 99,
+  "trace_fingerprint_fnv1a64": "67bf0a888f6a1364",
+  "initial_edges": 10624,
+  "initial_density": 0.0002125012501250125,
+  "initial_max_degree": 3,
+  "repetitions": [
+    {
+      "setup_ns": 12376958,
+      "forest_stats": {
+        "candidate_edges": 1349,
+        "replacements": 9,
+        "scanned_vertices": 1349,
+        "tree_cuts": 19
+      },
+      "query_true": {
+        "count": 551,
+        "total_ns": 134930,
+        "min_ns": 125,
+        "p50_ns": 250,
+        "p95_ns": 334,
+        "p99_ns": 375,
+        "max_ns": 417
+      },
+      "query_false": {
+        "count": 1429,
+        "total_ns": 349595,
+        "min_ns": 83,
+        "p50_ns": 250,
+        "p95_ns": 333,
+        "p99_ns": 375,
+        "max_ns": 500
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 20,
+          "total_ns": 120584,
+          "min_ns": 333,
+          "p50_ns": 3500,
+          "p95_ns": 13083,
+          "p99_ns": 26083,
+          "max_ns": 26083
+        },
+        "link": null,
+        "connected": {
+          "count": 1980,
+          "total_ns": 484525,
+          "min_ns": 83,
+          "p50_ns": 250,
+          "p95_ns": 333,
+          "p99_ns": 375,
+          "max_ns": 500
+        }
+      },
+      "workload_wall_ns": 648459
+    }
+  ]
+}

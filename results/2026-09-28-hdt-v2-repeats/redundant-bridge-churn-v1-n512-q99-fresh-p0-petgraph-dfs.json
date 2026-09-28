@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "engine": "petgraph-0.8.3/dfs",
+  "workload": "redundant-bridge-churn-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1790597760,
+  "config": {
+    "nodes": 512,
+    "rounds": 20,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "87ca572223b6657836db14aa34338c7855d56859",
+      "dirty": true
+    },
+    "benchmarks": {
+      "revision": "9a20223c54e3f0383b0300a1cdd4b7d40cc6bb3e",
+      "dirty": true
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 1,
+  "query_percent": 99,
+  "trace_fingerprint_fnv1a64": "4c1845d751ff68f7",
+  "initial_edges": 65282,
+  "initial_density": 0.4990368150684932,
+  "initial_max_degree": 256,
+  "repetitions": [
+    {
+      "setup_ns": 19297792,
+      "query_true": {
+        "count": 1641,
+        "total_ns": 293162548,
+        "min_ns": 0,
+        "p50_ns": 144583,
+        "p95_ns": 405666,
+        "p99_ns": 446750,
+        "max_ns": 759250
+      },
+      "query_false": {
+        "count": 339,
+        "total_ns": 84299802,
+        "min_ns": 229542,
+        "p50_ns": 250666,
+        "p95_ns": 271584,
+        "p99_ns": 280834,
+        "max_ns": 292125
+      },
+      "repeated_queries": {
+        "count": 1980,
+        "total_ns": 376550771,
+        "min_ns": 0,
+        "p50_ns": 192750,
+        "p95_ns": 400833,
+        "p99_ns": 442666,
+        "max_ns": 480292
+      },
+      "measurements": {
+        "cut": {
+          "count": 11,
+          "total_ns": 2042,
+          "min_ns": 41,
+          "p50_ns": 167,
+          "p95_ns": 417,
+          "p99_ns": 417,
+          "max_ns": 417
+        },
+        "link": {
+          "count": 9,
+          "total_ns": 5207,
+          "min_ns": 458,
+          "p50_ns": 542,
+          "p95_ns": 792,
+          "p99_ns": 792,
+          "max_ns": 792
+        },
+        "connected": {
+          "count": 1980,
+          "total_ns": 377462350,
+          "min_ns": 0,
+          "p50_ns": 193791,
+          "p95_ns": 399833,
+          "p99_ns": 443292,
+          "max_ns": 759250
+        }
+      },
+      "workload_wall_ns": 754118625
+    }
+  ]
+}

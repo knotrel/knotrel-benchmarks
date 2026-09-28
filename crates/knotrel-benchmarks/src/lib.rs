@@ -5,19 +5,24 @@
 
 use serde::Serialize;
 
-/// A chain split/rejoin workload configuration.
+pub mod engines;
+mod traces;
+pub use traces::{WorkloadKind, generate, generate_with_query_percent};
+
+/// A deterministic workload configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Config {
     /// Number of vertices.
     pub nodes: u64,
-    /// Number of split/rejoin cycles.
+    /// Number of workload cycles; sustained families use 100 operations per cycle.
     pub rounds: usize,
     /// Deterministic generator seed.
     pub seed: u64,
 }
 
 /// An operation with independently known query results.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
 pub enum Operation {
     /// Insert an edge.
     Link {
@@ -45,9 +50,9 @@ pub enum Operation {
 }
 
 /// A deterministic initial graph and operation trace.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Workload {
-    /// Initial chain edges.
+    /// Initial undirected edges; vertices are `0..config.nodes`.
     pub initial_edges: Vec<(u64, u64)>,
     /// Operations in execution order.
     pub operations: Vec<Operation>,
@@ -116,3 +121,8 @@ pub fn chain_workload(config: Config) -> Result<Workload, &'static str> {
         operations,
     })
 }
+
+mod ett_baseline;
+
+/// Frozen HDT v2 implementation for controlled comparisons.
+pub mod hdt_baseline;

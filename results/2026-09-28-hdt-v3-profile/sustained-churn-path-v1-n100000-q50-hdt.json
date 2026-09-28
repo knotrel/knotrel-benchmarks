@@ -1,0 +1,140 @@
+{
+  "checkouts_at_run_time": {
+    "benchmarks": {
+      "dirty": true,
+      "revision": "9a20223c54e3f0383b0300a1cdd4b7d40cc6bb3e"
+    },
+    "core": {
+      "dirty": true,
+      "revision": "87ca572223b6657836db14aa34338c7855d56859"
+    }
+  },
+  "config": {
+    "nodes": 100000,
+    "rounds": 20,
+    "seed": 42
+  },
+  "counters": {
+    "candidate_edges": 0,
+    "levels_visited": 995,
+    "non_tree_promotions": 0,
+    "replacements": 0,
+    "tree_cuts": 995,
+    "tree_promotions": 0
+  },
+  "diagnostic_stage_timings": {
+    "initial_edges_ns": 185932083,
+    "registration_ns": 9433375
+  },
+  "diagnostic_timings": {
+    "links": {
+      "count": 5,
+      "max_ns": 2334,
+      "min_ns": 1792,
+      "p50_ns": 1834,
+      "p95_ns": 2334,
+      "p99_ns": 2334,
+      "total_ns": 10001
+    },
+    "non_tree_cuts": null,
+    "queries": {
+      "count": 1000,
+      "max_ns": 12750,
+      "min_ns": 208,
+      "p50_ns": 959,
+      "p95_ns": 2750,
+      "p99_ns": 4958,
+      "total_ns": 1186681
+    },
+    "tree_cuts_with_promotions": null,
+    "tree_cuts_without_promotions": {
+      "count": 995,
+      "max_ns": 53000,
+      "min_ns": 875,
+      "p50_ns": 2209,
+      "p95_ns": 7166,
+      "p99_ns": 18500,
+      "total_ns": 2936976
+    }
+  },
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "query_percent": 50,
+  "schema_version": 1,
+  "snapshots": {
+    "after_initial_edges": {
+      "available_levels": 18,
+      "edge_arc_capacity_bytes": 1599984,
+      "edge_count": 99999,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 50331648,
+          "tree_edges": 99999,
+          "tree_incidences": 199998,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 100000
+        }
+      ],
+      "ordered_payload_bytes": 7999936,
+      "vector_capacity_bytes": 59272368,
+      "vertex_count": 100000
+    },
+    "after_node_registration": {
+      "available_levels": 18,
+      "edge_arc_capacity_bytes": 0,
+      "edge_count": 0,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 12582912,
+          "tree_edges": 0,
+          "tree_incidences": 0,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 100000
+        }
+      ],
+      "ordered_payload_bytes": 1600000,
+      "vector_capacity_bytes": 19923648,
+      "vertex_count": 100000
+    },
+    "after_replay": {
+      "available_levels": 18,
+      "edge_arc_capacity_bytes": 1584144,
+      "edge_count": 99009,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 16384,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 50331648,
+          "tree_edges": 99009,
+          "tree_incidences": 198018,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 100000
+        }
+      ],
+      "ordered_payload_bytes": 7936576,
+      "vector_capacity_bytes": 59272912,
+      "vertex_count": 100000
+    }
+  },
+  "timing_note": "Diagnostic timings are cache-perturbed and not comparable to normal benchmark timings",
+  "trace_fingerprint_fnv1a64": "456f6bc4232988ef",
+  "workload": "sustained-churn-path-v1"
+}

@@ -1,0 +1,575 @@
+{
+  "comparisons": [
+    {
+      "arch": "aarch64",
+      "benchmark_version": "0.1.0",
+      "checkouts_at_run_time": {
+        "benchmarks": {
+          "dirty": true,
+          "revision": "9a20223c54e3f0383b0300a1cdd4b7d40cc6bb3e"
+        },
+        "core": {
+          "dirty": true,
+          "revision": "87ca572223b6657836db14aa34338c7855d56859"
+        }
+      },
+      "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "config": {
+        "nodes": 4096,
+        "rounds": 100,
+        "seed": 42
+      },
+      "debug_assertions": false,
+      "engine": "knotrel-core/reference-bfs",
+      "initial_density": 0.00048828125,
+      "initial_edges": 4095,
+      "initial_max_degree": 2,
+      "os": "macos",
+      "query_repeats": 0,
+      "repetitions": [
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 393375,
+              "min_ns": 2083,
+              "p50_ns": 276500,
+              "p95_ns": 310583,
+              "p99_ns": 351000,
+              "total_ns": 40882085
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 375,
+              "min_ns": 42,
+              "p50_ns": 84,
+              "p95_ns": 167,
+              "p99_ns": 291,
+              "total_ns": 11001
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 208,
+              "min_ns": 41,
+              "p50_ns": 84,
+              "p95_ns": 125,
+              "p99_ns": 167,
+              "total_ns": 10212
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 361083,
+            "min_ns": 2083,
+            "p50_ns": 105917,
+            "p95_ns": 266708,
+            "p99_ns": 284875,
+            "total_ns": 11849587
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 393375,
+            "min_ns": 276084,
+            "p50_ns": 285208,
+            "p95_ns": 329875,
+            "p99_ns": 351000,
+            "total_ns": 29032498
+          },
+          "repeated_queries": null,
+          "setup_ns": 430791,
+          "workload_wall_ns": 40911792
+        },
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 350584,
+              "min_ns": 2208,
+              "p50_ns": 273917,
+              "p95_ns": 291875,
+              "p99_ns": 322667,
+              "total_ns": 39684458
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 209,
+              "min_ns": 41,
+              "p50_ns": 84,
+              "p95_ns": 125,
+              "p99_ns": 208,
+              "total_ns": 9460
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 125,
+              "min_ns": 41,
+              "p50_ns": 84,
+              "p95_ns": 125,
+              "p99_ns": 125,
+              "total_ns": 9465
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 302500,
+            "min_ns": 2208,
+            "p50_ns": 86000,
+            "p95_ns": 266084,
+            "p99_ns": 277500,
+            "total_ns": 11356289
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 350584,
+            "min_ns": 272875,
+            "p50_ns": 280542,
+            "p95_ns": 301541,
+            "p99_ns": 323625,
+            "total_ns": 28328169
+          },
+          "repeated_queries": null,
+          "setup_ns": 430958,
+          "workload_wall_ns": 39712208
+        },
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 332500,
+              "min_ns": 2250,
+              "p50_ns": 272917,
+              "p95_ns": 288583,
+              "p99_ns": 305167,
+              "total_ns": 39341924
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 125,
+              "min_ns": 41,
+              "p50_ns": 83,
+              "p95_ns": 125,
+              "p99_ns": 125,
+              "total_ns": 8708
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 167,
+              "min_ns": 41,
+              "p50_ns": 84,
+              "p95_ns": 125,
+              "p99_ns": 166,
+              "total_ns": 9587
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 310625,
+            "min_ns": 2250,
+            "p50_ns": 89584,
+            "p95_ns": 259958,
+            "p99_ns": 282917,
+            "total_ns": 11278085
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 332500,
+            "min_ns": 272917,
+            "p50_ns": 278667,
+            "p95_ns": 291709,
+            "p99_ns": 305167,
+            "total_ns": 28063839
+          },
+          "repeated_queries": null,
+          "setup_ns": 426791,
+          "workload_wall_ns": 39368625
+        }
+      ],
+      "schema_version": 2,
+      "timestamp_unix_seconds": 1790497696,
+      "trace_fingerprint_fnv1a64": "73fc5daf1ce6a7e6",
+      "warmup": 1,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "arch": "aarch64",
+      "benchmark_version": "0.1.0",
+      "checkouts_at_run_time": {
+        "benchmarks": {
+          "dirty": true,
+          "revision": "9a20223c54e3f0383b0300a1cdd4b7d40cc6bb3e"
+        },
+        "core": {
+          "dirty": true,
+          "revision": "87ca572223b6657836db14aa34338c7855d56859"
+        }
+      },
+      "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "config": {
+        "nodes": 4096,
+        "rounds": 100,
+        "seed": 42
+      },
+      "debug_assertions": false,
+      "engine": "knotrel-core/compact-bfs-v1",
+      "initial_density": 0.00048828125,
+      "initial_edges": 4095,
+      "initial_max_degree": 2,
+      "os": "macos",
+      "query_repeats": 0,
+      "repetitions": [
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 26584,
+              "min_ns": 583,
+              "p50_ns": 18958,
+              "p95_ns": 20209,
+              "p99_ns": 26000,
+              "total_ns": 2948254
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 209,
+              "min_ns": 41,
+              "p50_ns": 83,
+              "p95_ns": 125,
+              "p99_ns": 125,
+              "total_ns": 8210
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 208,
+              "min_ns": 83,
+              "p50_ns": 125,
+              "p95_ns": 167,
+              "p99_ns": 167,
+              "total_ns": 13000
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 26584,
+            "min_ns": 583,
+            "p50_ns": 8709,
+            "p95_ns": 18833,
+            "p99_ns": 19417,
+            "total_ns": 955040
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 26083,
+            "min_ns": 18791,
+            "p50_ns": 19750,
+            "p95_ns": 21375,
+            "p99_ns": 26000,
+            "total_ns": 1993214
+          },
+          "repeated_queries": null,
+          "setup_ns": 601417,
+          "workload_wall_ns": 2977125
+        },
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 20250,
+              "min_ns": 667,
+              "p50_ns": 14333,
+              "p95_ns": 16584,
+              "p99_ns": 18750,
+              "total_ns": 2322791
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 209,
+              "min_ns": 83,
+              "p50_ns": 84,
+              "p95_ns": 125,
+              "p99_ns": 208,
+              "total_ns": 10541
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 250,
+              "min_ns": 83,
+              "p50_ns": 166,
+              "p95_ns": 167,
+              "p99_ns": 209,
+              "total_ns": 15040
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 20250,
+            "min_ns": 667,
+            "p50_ns": 6666,
+            "p95_ns": 14542,
+            "p99_ns": 16250,
+            "total_ns": 750502
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 19125,
+            "min_ns": 12500,
+            "p50_ns": 15792,
+            "p95_ns": 16875,
+            "p99_ns": 18750,
+            "total_ns": 1572289
+          },
+          "repeated_queries": null,
+          "setup_ns": 674833,
+          "workload_wall_ns": 2355958
+        },
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 20542,
+              "min_ns": 625,
+              "p50_ns": 18958,
+              "p95_ns": 20083,
+              "p99_ns": 20334,
+              "total_ns": 2899829
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 125,
+              "min_ns": 41,
+              "p50_ns": 83,
+              "p95_ns": 84,
+              "p99_ns": 125,
+              "total_ns": 7793
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 208,
+              "min_ns": 42,
+              "p50_ns": 125,
+              "p95_ns": 167,
+              "p99_ns": 167,
+              "total_ns": 12088
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 19916,
+            "min_ns": 625,
+            "p50_ns": 8333,
+            "p95_ns": 18375,
+            "p99_ns": 19542,
+            "total_ns": 941917
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 20542,
+            "min_ns": 18917,
+            "p50_ns": 19583,
+            "p95_ns": 20125,
+            "p99_ns": 20417,
+            "total_ns": 1957912
+          },
+          "repeated_queries": null,
+          "setup_ns": 602875,
+          "workload_wall_ns": 2927833
+        }
+      ],
+      "schema_version": 2,
+      "timestamp_unix_seconds": 1790497696,
+      "trace_fingerprint_fnv1a64": "73fc5daf1ce6a7e6",
+      "warmup": 1,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "arch": "aarch64",
+      "benchmark_version": "0.1.0",
+      "checkouts_at_run_time": {
+        "benchmarks": {
+          "dirty": true,
+          "revision": "9a20223c54e3f0383b0300a1cdd4b7d40cc6bb3e"
+        },
+        "core": {
+          "dirty": true,
+          "revision": "87ca572223b6657836db14aa34338c7855d56859"
+        }
+      },
+      "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "config": {
+        "nodes": 4096,
+        "rounds": 100,
+        "seed": 42
+      },
+      "debug_assertions": false,
+      "engine": "petgraph-0.8.3/dfs",
+      "initial_density": 0.00048828125,
+      "initial_edges": 4095,
+      "initial_max_degree": 2,
+      "os": "macos",
+      "query_repeats": 0,
+      "repetitions": [
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 15958,
+              "min_ns": 209,
+              "p50_ns": 11583,
+              "p95_ns": 14458,
+              "p99_ns": 15667,
+              "total_ns": 1937463
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 125,
+              "min_ns": 0,
+              "p50_ns": 83,
+              "p95_ns": 125,
+              "p99_ns": 125,
+              "total_ns": 8506
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 84,
+              "min_ns": 0,
+              "p50_ns": 42,
+              "p95_ns": 84,
+              "p99_ns": 84,
+              "total_ns": 6128
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 13667,
+            "min_ns": 209,
+            "p50_ns": 4792,
+            "p95_ns": 12375,
+            "p99_ns": 13541,
+            "total_ns": 617335
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 15958,
+            "min_ns": 11292,
+            "p50_ns": 13375,
+            "p95_ns": 14625,
+            "p99_ns": 15834,
+            "total_ns": 1320128
+          },
+          "repeated_queries": null,
+          "setup_ns": 224584,
+          "workload_wall_ns": 1959583
+        },
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 16750,
+              "min_ns": 208,
+              "p50_ns": 12250,
+              "p95_ns": 15375,
+              "p99_ns": 15666,
+              "total_ns": 2059575
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 125,
+              "min_ns": 0,
+              "p50_ns": 83,
+              "p95_ns": 125,
+              "p99_ns": 125,
+              "total_ns": 7789
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 84,
+              "min_ns": 0,
+              "p50_ns": 42,
+              "p95_ns": 84,
+              "p99_ns": 84,
+              "total_ns": 5785
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 14750,
+            "min_ns": 208,
+            "p50_ns": 5750,
+            "p95_ns": 13167,
+            "p99_ns": 14125,
+            "total_ns": 639496
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 16750,
+            "min_ns": 12083,
+            "p50_ns": 14375,
+            "p95_ns": 15542,
+            "p99_ns": 15667,
+            "total_ns": 1420079
+          },
+          "repeated_queries": null,
+          "setup_ns": 233458,
+          "workload_wall_ns": 2081667
+        },
+        {
+          "measurements": {
+            "connected": {
+              "count": 200,
+              "max_ns": 20750,
+              "min_ns": 250,
+              "p50_ns": 12083,
+              "p95_ns": 15125,
+              "p99_ns": 17875,
+              "total_ns": 1996587
+            },
+            "cut": {
+              "count": 100,
+              "max_ns": 125,
+              "min_ns": 0,
+              "p50_ns": 42,
+              "p95_ns": 84,
+              "p99_ns": 125,
+              "total_ns": 5875
+            },
+            "link": {
+              "count": 100,
+              "max_ns": 125,
+              "min_ns": 0,
+              "p50_ns": 42,
+              "p95_ns": 84,
+              "p99_ns": 125,
+              "total_ns": 5167
+            }
+          },
+          "query_false": {
+            "count": 100,
+            "max_ns": 14167,
+            "min_ns": 250,
+            "p50_ns": 5500,
+            "p95_ns": 12750,
+            "p99_ns": 13417,
+            "total_ns": 621418
+          },
+          "query_true": {
+            "count": 100,
+            "max_ns": 20750,
+            "min_ns": 11250,
+            "p50_ns": 13750,
+            "p95_ns": 15500,
+            "p99_ns": 19708,
+            "total_ns": 1375169
+          },
+          "repeated_queries": null,
+          "setup_ns": 221125,
+          "workload_wall_ns": 2015500
+        }
+      ],
+      "schema_version": 2,
+      "timestamp_unix_seconds": 1790497696,
+      "trace_fingerprint_fnv1a64": "73fc5daf1ce6a7e6",
+      "warmup": 1,
+      "workload": "chain-split-rejoin-v1"
+    }
+  ],
+  "schema_version": 3
+}

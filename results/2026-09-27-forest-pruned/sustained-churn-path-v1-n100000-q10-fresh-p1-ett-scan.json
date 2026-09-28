@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1790539393,
+  "config": {
+    "nodes": 100000,
+    "rounds": 20,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "87ca572223b6657836db14aa34338c7855d56859",
+      "dirty": true
+    },
+    "benchmarks": {
+      "revision": "9a20223c54e3f0383b0300a1cdd4b7d40cc6bb3e",
+      "dirty": true
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 10,
+  "trace_fingerprint_fnv1a64": "dd90c584255f0482",
+  "initial_edges": 99999,
+  "initial_density": 0.00002,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 196844708,
+      "forest_stats": {
+        "candidate_edges": 0,
+        "replacements": 0,
+        "scanned_vertices": 0,
+        "tree_cuts": 1785
+      },
+      "query_true": null,
+      "query_false": {
+        "count": 200,
+        "total_ns": 236795,
+        "min_ns": 250,
+        "p50_ns": 1084,
+        "p95_ns": 2084,
+        "p99_ns": 2709,
+        "max_ns": 3958
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 1785,
+          "total_ns": 3819211,
+          "min_ns": 542,
+          "p50_ns": 2083,
+          "p95_ns": 3292,
+          "p99_ns": 4500,
+          "max_ns": 8459
+        },
+        "link": {
+          "count": 15,
+          "total_ns": 27209,
+          "min_ns": 1250,
+          "p50_ns": 1709,
+          "p95_ns": 2542,
+          "p99_ns": 2542,
+          "max_ns": 2542
+        },
+        "connected": {
+          "count": 200,
+          "total_ns": 236795,
+          "min_ns": 250,
+          "p50_ns": 1084,
+          "p95_ns": 2084,
+          "p99_ns": 2709,
+          "max_ns": 3958
+        }
+      },
+      "workload_wall_ns": 4128875
+    }
+  ]
+}

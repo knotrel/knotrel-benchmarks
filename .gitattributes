@@ -1,0 +1,7 @@
+
+# Historical benchmark artifacts must retain their exact bytes and hashes.
+/results/** -text
+# Unified patches contain meaningful blank context lines with one space.
+/results/**/*.patch -whitespace
+# Python csv.writer uses CRLF; these are intentional artifact bytes.
+/results/**/*.csv whitespace=cr-at-eol
