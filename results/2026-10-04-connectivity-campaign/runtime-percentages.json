@@ -1,0 +1,3461 @@
+{
+  "metric": "median workload_wall_ns across process trials",
+  "formula_best": "100*(runtime/best_runtime-1)",
+  "formula_compact": "100*(runtime/compact_runtime-1)",
+  "counting": "equal weight per scenario including separate fresh/warmed regimes; repeats excluded from overall",
+  "counts": {
+    "overall": {
+      "scenarios": 62,
+      "ties": 0,
+      "range_separated_winners": 56,
+      "wins": {
+        "compact-bfs": 17,
+        "ett-scan": 15,
+        "hdt": 13,
+        "petgraph-dfs": 17
+      },
+      "win_percent": {
+        "compact-bfs": 27.419354838709676,
+        "ett-scan": 24.193548387096776,
+        "hdt": 20.967741935483872,
+        "petgraph-dfs": 27.419354838709676
+      }
+    },
+    "sparse": {
+      "scenarios": 36,
+      "ties": 0,
+      "range_separated_winners": 30,
+      "wins": {
+        "compact-bfs": 5,
+        "ett-scan": 13,
+        "hdt": 1,
+        "petgraph-dfs": 17
+      },
+      "win_percent": {
+        "compact-bfs": 13.88888888888889,
+        "ett-scan": 36.111111111111114,
+        "hdt": 2.7777777777777777,
+        "petgraph-dfs": 47.22222222222222
+      }
+    },
+    "dense": {
+      "scenarios": 24,
+      "ties": 0,
+      "range_separated_winners": 24,
+      "wins": {
+        "compact-bfs": 12,
+        "ett-scan": 0,
+        "hdt": 12,
+        "petgraph-dfs": 0
+      },
+      "win_percent": {
+        "compact-bfs": 50.0,
+        "ett-scan": 0.0,
+        "hdt": 50.0,
+        "petgraph-dfs": 0.0
+      }
+    },
+    "cogentco": {
+      "scenarios": 2,
+      "ties": 0,
+      "range_separated_winners": 2,
+      "wins": {
+        "compact-bfs": 0,
+        "ett-scan": 2,
+        "hdt": 0,
+        "petgraph-dfs": 0
+      },
+      "win_percent": {
+        "compact-bfs": 0.0,
+        "ett-scan": 100.0,
+        "hdt": 0.0,
+        "petgraph-dfs": 0.0
+      }
+    },
+    "repeats": {
+      "scenarios": 4,
+      "ties": 0,
+      "range_separated_winners": 3,
+      "wins": {
+        "compact-bfs": 0,
+        "ett-scan": 2,
+        "hdt": 2,
+        "petgraph-dfs": 0
+      },
+      "win_percent": {
+        "compact-bfs": 0.0,
+        "ett-scan": 50.0,
+        "hdt": 50.0,
+        "petgraph-dfs": 0.0
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "family": "cogentco",
+      "workload": "topology-zoo-outages-v1",
+      "nodes": 197,
+      "query_percent": null,
+      "regime": "fresh",
+      "trials": 4,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 360541.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1089250,
+            "median": 1097437.5,
+            "max": 1108417
+          },
+          "slower_than_best_percent": 204.38590287109807,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 358000,
+            "median": 360541.5,
+            "max": 364666
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -67.14696736716215
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 509459,
+            "median": 545896.0,
+            "max": 559875
+          },
+          "slower_than_best_percent": 51.41003185486275,
+          "delta_vs_compact_percent": -50.257212825331735
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 712416,
+            "median": 715187.5,
+            "max": 726167
+          },
+          "slower_than_best_percent": 98.36482069331825,
+          "delta_vs_compact_percent": -34.831140725553844
+        }
+      }
+    },
+    {
+      "family": "cogentco",
+      "workload": "topology-zoo-outages-v1",
+      "nodes": 197,
+      "query_percent": null,
+      "regime": "warmed",
+      "trials": 4,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 317042.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 875208,
+            "median": 973271.5,
+            "max": 1067666
+          },
+          "slower_than_best_percent": 206.98503668283698,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 296584,
+            "median": 317042.0,
+            "max": 372041
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -67.42512238363088
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 480291,
+            "median": 482291.5,
+            "max": 499000
+          },
+          "slower_than_best_percent": 52.12227402047678,
+          "delta_vs_compact_percent": -50.44635541059201
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 647625,
+            "median": 667750.0,
+            "max": 704583
+          },
+          "slower_than_best_percent": 110.61878236952833,
+          "delta_vs_compact_percent": -31.39118940603932
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 169999.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 881667,
+            "median": 889833.5,
+            "max": 898000
+          },
+          "slower_than_best_percent": 423.43301009708847,
+          "delta_vs_compact_percent": 423.43301009708847
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 844708,
+            "median": 850791.5,
+            "max": 856875
+          },
+          "slower_than_best_percent": 400.4670601972359,
+          "delta_vs_compact_percent": 400.4670601972359
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 165291,
+            "median": 169999.5,
+            "max": 174708
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 14588084,
+            "median": 14702500.5,
+            "max": 14816917
+          },
+          "slower_than_best_percent": 8548.555142809244,
+          "delta_vs_compact_percent": 8548.555142809244
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 167104.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 161500,
+            "median": 167104.0,
+            "max": 172708
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 13918375,
+            "median": 13928125.0,
+            "max": 13937875
+          },
+          "slower_than_best_percent": 8235.003949636155,
+          "delta_vs_compact_percent": 8235.003949636155
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 835833,
+            "median": 845916.5,
+            "max": 856000
+          },
+          "slower_than_best_percent": 406.22157458828036,
+          "delta_vs_compact_percent": 406.22157458828036
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 879041,
+            "median": 910833.0,
+            "max": 942625
+          },
+          "slower_than_best_percent": 445.06953753351206,
+          "delta_vs_compact_percent": 445.06953753351206
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 695979.0,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 718583,
+            "median": 720375.0,
+            "max": 722167
+          },
+          "slower_than_best_percent": 3.5052781764967067,
+          "delta_vs_compact_percent": 3.5052781764967067
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 673458,
+            "median": 695979.0,
+            "max": 718500
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 4324875,
+            "median": 4489292.0,
+            "max": 4653709
+          },
+          "slower_than_best_percent": 545.0326805837532,
+          "delta_vs_compact_percent": 545.0326805837532
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 8052333,
+            "median": 8086396.0,
+            "max": 8120459
+          },
+          "slower_than_best_percent": 1061.8735622770228,
+          "delta_vs_compact_percent": 1061.8735622770228
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 671895.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 670958,
+            "median": 671895.5,
+            "max": 672833
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 7916458,
+            "median": 8048624.5,
+            "max": 8180791
+          },
+          "slower_than_best_percent": 1097.898259476362,
+          "delta_vs_compact_percent": 1097.898259476362
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 706167,
+            "median": 707708.5,
+            "max": 709250
+          },
+          "slower_than_best_percent": 5.33014434536323,
+          "delta_vs_compact_percent": 5.33014434536323
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 4258291,
+            "median": 4274708.0,
+            "max": 4291125
+          },
+          "slower_than_best_percent": 536.2161973104448,
+          "delta_vs_compact_percent": 536.2161973104448
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 585667.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1115458,
+            "median": 1117895.5,
+            "max": 1120333
+          },
+          "slower_than_best_percent": 90.87561703152132,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1649792,
+            "median": 1655354.0,
+            "max": 1660916
+          },
+          "slower_than_best_percent": 182.64423298563858,
+          "delta_vs_compact_percent": 48.077704937536645
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 563917,
+            "median": 585667.0,
+            "max": 607417
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -47.60986156577247
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 7635167,
+            "median": 7657729.5,
+            "max": 7680292
+          },
+          "slower_than_best_percent": 1207.5227902545303,
+          "delta_vs_compact_percent": 585.0129998734228
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 556062.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 553000,
+            "median": 556062.5,
+            "max": 559125
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -50.3561722840022
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1652875,
+            "median": 1674937.5,
+            "max": 1697000
+          },
+          "slower_than_best_percent": 201.213892323255,
+          "delta_vs_compact_percent": 49.53410576160786
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 7696083,
+            "median": 7854354.0,
+            "max": 8012625
+          },
+          "slower_than_best_percent": 1312.4948184781385,
+          "delta_vs_compact_percent": 601.216494182683
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1111625,
+            "median": 1120104.0,
+            "max": 1128583
+          },
+          "slower_than_best_percent": 101.43491064403732,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 1887145.5,
+      "winner_range_separated": true,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 17601500,
+            "median": 17923229.0,
+            "max": 18244958
+          },
+          "slower_than_best_percent": 849.7534238880892,
+          "delta_vs_compact_percent": 849.7534238880892
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1825333,
+            "median": 1887145.5,
+            "max": 1948958
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 320454292,
+            "median": 324632396.0,
+            "max": 328810500
+          },
+          "slower_than_best_percent": 17102.298179976053,
+          "delta_vs_compact_percent": 17102.298179976053
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8993417,
+            "median": 9043854.5,
+            "max": 9094292
+          },
+          "slower_than_best_percent": 379.2346165147309,
+          "delta_vs_compact_percent": 379.2346165147309
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 1850708.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 319403958,
+            "median": 320010875.0,
+            "max": 320617792
+          },
+          "slower_than_best_percent": 17191.26304871891,
+          "delta_vs_compact_percent": 17191.26304871891
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1814708,
+            "median": 1850708.5,
+            "max": 1886709
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 16199583,
+            "median": 16813020.5,
+            "max": 17426458
+          },
+          "slower_than_best_percent": 808.4640017593263,
+          "delta_vs_compact_percent": 808.4640017593263
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8349042,
+            "median": 8604542.0,
+            "max": 8860042
+          },
+          "slower_than_best_percent": 364.93232186484255,
+          "delta_vs_compact_percent": 364.93232186484255
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8336458.5,
+      "winner_range_separated": true,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 89969833,
+            "median": 90212083.0,
+            "max": 90454333
+          },
+          "slower_than_best_percent": 982.1391721676538,
+          "delta_vs_compact_percent": 904.530616876237
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 8965417,
+            "median": 8980521.0,
+            "max": 8995625
+          },
+          "slower_than_best_percent": 7.725852650738929,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8316292,
+            "median": 8336458.5,
+            "max": 8356625
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -7.171772105426843
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 183195416,
+            "median": 184897250.0,
+            "max": 186599084
+          },
+          "slower_than_best_percent": 2117.9352299300717,
+          "delta_vs_compact_percent": 1958.869969793512
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8385729.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 8955750,
+            "median": 8987354.0,
+            "max": 9018958
+          },
+          "slower_than_best_percent": 7.174391159075144,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8035958,
+            "median": 8385729.0,
+            "max": 8735500
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -6.694128216157946
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 91316250,
+            "median": 92092625.0,
+            "max": 92869000
+          },
+          "slower_than_best_percent": 998.2065482917467,
+          "delta_vs_compact_percent": 924.6911938708545
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 180402667,
+            "median": 181393188.0,
+            "max": 182383709
+          },
+          "slower_than_best_percent": 2063.1176967440756,
+          "delta_vs_compact_percent": 1918.3158246576245
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8702729.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 16083750,
+            "median": 16920104.0,
+            "max": 17756458
+          },
+          "slower_than_best_percent": 94.4229677840135,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 35779917,
+            "median": 36184250.0,
+            "max": 36588583
+          },
+          "slower_than_best_percent": 315.78049827818376,
+          "delta_vs_compact_percent": 113.85359097083563
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 159804375,
+            "median": 162209812.5,
+            "max": 164615250
+          },
+          "slower_than_best_percent": 1763.895939997672,
+          "delta_vs_compact_percent": 858.6809425048452
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8627000,
+            "median": 8702729.0,
+            "max": 8778458
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -48.56574758642146
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8130541.5,
+      "winner_range_separated": true,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 158461625,
+            "median": 162462500.0,
+            "max": 166463375
+          },
+          "slower_than_best_percent": 1898.175644266744,
+          "delta_vs_compact_percent": 908.4952905745193
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 35784834,
+            "median": 36124062.5,
+            "max": 36463291
+          },
+          "slower_than_best_percent": 344.30081932427254,
+          "delta_vs_compact_percent": 124.24219070659137
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 16068084,
+            "median": 16109396.0,
+            "max": 16150708
+          },
+          "slower_than_best_percent": 98.13435550387388,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8023292,
+            "median": 8130541.5,
+            "max": 8237791
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -49.52919712197775
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 176791.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 170375,
+            "median": 176791.5,
+            "max": 183208
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 994166,
+            "median": 997145.5,
+            "max": 1000125
+          },
+          "slower_than_best_percent": 464.0234400409522,
+          "delta_vs_compact_percent": 464.0234400409522
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 880458,
+            "median": 906687.5,
+            "max": 932917
+          },
+          "slower_than_best_percent": 412.8569529643676,
+          "delta_vs_compact_percent": 412.8569529643676
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 9523917,
+            "median": 9587292.0,
+            "max": 9650667
+          },
+          "slower_than_best_percent": 5322.937188722309,
+          "delta_vs_compact_percent": 5322.937188722309
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 171895.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 862125,
+            "median": 862312.5,
+            "max": 862500
+          },
+          "slower_than_best_percent": 401.64925783397473,
+          "delta_vs_compact_percent": 401.64925783397473
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 9642750,
+            "median": 9690167.0,
+            "max": 9737584
+          },
+          "slower_than_best_percent": 5537.242976110485,
+          "delta_vs_compact_percent": 5537.242976110485
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 166250,
+            "median": 171895.5,
+            "max": 177541
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 977959,
+            "median": 987188.0,
+            "max": 996417
+          },
+          "slower_than_best_percent": 474.2954294905917,
+          "delta_vs_compact_percent": 474.2954294905917
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 734500.0,
+      "winner_range_separated": true,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 4686333,
+            "median": 4700708.0,
+            "max": 4715083
+          },
+          "slower_than_best_percent": 539.9874744724302,
+          "delta_vs_compact_percent": 539.9874744724302
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 718625,
+            "median": 734500.0,
+            "max": 750375
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 773541,
+            "median": 774979.0,
+            "max": 776417
+          },
+          "slower_than_best_percent": 5.511095983662351,
+          "delta_vs_compact_percent": 5.511095983662351
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 5293708,
+            "median": 5400145.5,
+            "max": 5506583
+          },
+          "slower_than_best_percent": 635.2138189244383,
+          "delta_vs_compact_percent": 635.2138189244383
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 669145.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 5273958,
+            "median": 5312375.0,
+            "max": 5350792
+          },
+          "slower_than_best_percent": 693.9043152797112,
+          "delta_vs_compact_percent": 693.9043152797112
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 668208,
+            "median": 669145.5,
+            "max": 670083
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 710334,
+            "median": 745229.5,
+            "max": 780125
+          },
+          "slower_than_best_percent": 11.370322299111324,
+          "delta_vs_compact_percent": 11.370322299111324
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 4591209,
+            "median": 4636333.5,
+            "max": 4681458
+          },
+          "slower_than_best_percent": 592.8737471895125,
+          "delta_vs_compact_percent": 592.8737471895125
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 589500.0,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 578791,
+            "median": 589500.0,
+            "max": 600209
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -49.29032258064516
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1117583,
+            "median": 1162500.0,
+            "max": 1207417
+          },
+          "slower_than_best_percent": 97.20101781170483,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 8532917,
+            "median": 8607625.5,
+            "max": 8682334
+          },
+          "slower_than_best_percent": 1360.1569974554707,
+          "delta_vs_compact_percent": 640.4409032258064
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1112417,
+            "median": 1121979.5,
+            "max": 1131542
+          },
+          "slower_than_best_percent": 90.3273112807464,
+          "delta_vs_compact_percent": -3.485634408602145
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 620833.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1123416,
+            "median": 1124604.0,
+            "max": 1125792
+          },
+          "slower_than_best_percent": 81.14421982705508,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 619792,
+            "median": 620833.5,
+            "max": 621875
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -44.795367969525266
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 8340084,
+            "median": 8344625.0,
+            "max": 8349166
+          },
+          "slower_than_best_percent": 1244.1003103086416,
+          "delta_vs_compact_percent": 642.0056304263545
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1082958,
+            "median": 1123270.5,
+            "max": 1163583
+          },
+          "slower_than_best_percent": 80.92942793840861,
+          "delta_vs_compact_percent": -0.1185750717585976
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 1828250.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1826083,
+            "median": 1828250.0,
+            "max": 1830417
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 17994500,
+            "median": 19205083.0,
+            "max": 20415666
+          },
+          "slower_than_best_percent": 950.4626281963626,
+          "delta_vs_compact_percent": 950.4626281963626
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 205370583,
+            "median": 205655833.5,
+            "max": 205941084
+          },
+          "slower_than_best_percent": 11148.780719267059,
+          "delta_vs_compact_percent": 11148.780719267059
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8486958,
+            "median": 8604146.0,
+            "max": 8721334
+          },
+          "slower_than_best_percent": 370.621960891563,
+          "delta_vs_compact_percent": 370.621960891563
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 1869708.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 1823208,
+            "median": 1869708.0,
+            "max": 1916208
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 205595875,
+            "median": 207788854.0,
+            "max": 209981833
+          },
+          "slower_than_best_percent": 11013.438782954345,
+          "delta_vs_compact_percent": 11013.438782954345
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8761083,
+            "median": 9197520.5,
+            "max": 9633958
+          },
+          "slower_than_best_percent": 391.9228296611021,
+          "delta_vs_compact_percent": 391.9228296611021
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 19082209,
+            "median": 19447125.5,
+            "max": 19812042
+          },
+          "slower_than_best_percent": 940.1156490746148,
+          "delta_vs_compact_percent": 940.1156490746148
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8731666.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 9106750,
+            "median": 9129562.5,
+            "max": 9152375
+          },
+          "slower_than_best_percent": 4.556930798948855,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 98639500,
+            "median": 106431958.5,
+            "max": 114224417
+          },
+          "slower_than_best_percent": 1118.9191891376063,
+          "delta_vs_compact_percent": 1065.7947300322442
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 118354708,
+            "median": 121004021.0,
+            "max": 123653334
+          },
+          "slower_than_best_percent": 1285.8067185685575,
+          "delta_vs_compact_percent": 1225.4087586343815
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8619208,
+            "median": 8731666.5,
+            "max": 8844125
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -4.358324947115488
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8382271.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 9000500,
+            "median": 9058229.0,
+            "max": 9115958
+          },
+          "slower_than_best_percent": 8.064139181374586,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 96944000,
+            "median": 97606270.5,
+            "max": 98268541
+          },
+          "slower_than_best_percent": 1064.4370660409334,
+          "delta_vs_compact_percent": 977.5425361845015
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 118411000,
+            "median": 118789250.0,
+            "max": 119167500
+          },
+          "slower_than_best_percent": 1317.1487655314413,
+          "delta_vs_compact_percent": 1211.3959693445595
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8316000,
+            "median": 8382271.0,
+            "max": 8448542
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -7.462363779939762
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8354020.5,
+      "winner_range_separated": true,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 170064417,
+            "median": 171648021.0,
+            "max": 173231625
+          },
+          "slower_than_best_percent": 1954.6756020050466,
+          "delta_vs_compact_percent": 949.4164758329866
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 22589250,
+            "median": 22693187.5,
+            "max": 22797125
+          },
+          "slower_than_best_percent": 171.64390487191164,
+          "delta_vs_compact_percent": 38.74092292428577
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8058708,
+            "median": 8354020.5,
+            "max": 8649333
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -48.92544230296413
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 16004166,
+            "median": 16356520.5,
+            "max": 16708875
+          },
+          "slower_than_best_percent": 95.79219969594281,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 8318375.0,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 22641000,
+            "median": 23120854.0,
+            "max": 23600708
+          },
+          "slower_than_best_percent": 177.94916675432398,
+          "delta_vs_compact_percent": 43.53145861188603
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 15937833,
+            "median": 16108562.0,
+            "max": 16279291
+          },
+          "slower_than_best_percent": 93.65034637173726,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 169510750,
+            "median": 169807896.0,
+            "max": 170105042
+          },
+          "slower_than_best_percent": 1941.3589913895444,
+          "delta_vs_compact_percent": 954.1468319766842
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 8009250,
+            "median": 8318375.0,
+            "max": 8627500
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -48.3605364650178
+        }
+      }
+    },
+    {
+      "family": "repeats",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 839229.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 24593333,
+            "median": 24623958.0,
+            "max": 24654583
+          },
+          "slower_than_best_percent": 2834.114923271882,
+          "delta_vs_compact_percent": 193.15469406956592
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 815584,
+            "median": 839229.5,
+            "max": 862875
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -90.0087521540341
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 11612000,
+            "median": 11626646.0,
+            "max": 11641292
+          },
+          "slower_than_best_percent": 1285.395294135871,
+          "delta_vs_compact_percent": 38.418277483463136
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 8274584,
+            "median": 8399646.5,
+            "max": 8524709
+          },
+          "slower_than_best_percent": 900.8759820764166,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "repeats",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 742999.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 24006708,
+            "median": 24078729.0,
+            "max": 24150750
+          },
+          "slower_than_best_percent": 3140.7463262088336,
+          "delta_vs_compact_percent": 192.66524912621196
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 8163792,
+            "median": 8227396.0,
+            "max": 8291000
+          },
+          "slower_than_best_percent": 1007.321875721316,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 733083,
+            "median": 742999.5,
+            "max": 752916
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -90.96920216311455
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 11521875,
+            "median": 13292562.5,
+            "max": 15063250
+          },
+          "slower_than_best_percent": 1689.0405713597386,
+          "delta_vs_compact_percent": 61.564637219358346
+        }
+      }
+    },
+    {
+      "family": "repeats",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 686000.0,
+      "winner_range_separated": false,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 684250,
+            "median": 686000.0,
+            "max": 687750
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -90.8264241775876
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 5941625,
+            "median": 7034812.5,
+            "max": 8128000
+          },
+          "slower_than_best_percent": 925.4828717201166,
+          "delta_vs_compact_percent": -5.92655121690292
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 653417,
+            "median": 705500.5,
+            "max": 757584
+          },
+          "slower_than_best_percent": 2.842638483965021,
+          "delta_vs_compact_percent": -90.56565258090399
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 7206333,
+            "median": 7478000.0,
+            "max": 7749667
+          },
+          "slower_than_best_percent": 990.0874635568514,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "repeats",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 493708.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 506041,
+            "median": 514687.0,
+            "max": 523333
+          },
+          "slower_than_best_percent": 4.249167271780818,
+          "delta_vs_compact_percent": -93.0886085723158
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 6099208,
+            "median": 6099500.0,
+            "max": 6099792
+          },
+          "slower_than_best_percent": 1135.4456121375265,
+          "delta_vs_compact_percent": -18.093847303002075
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 493542,
+            "median": 493708.5,
+            "max": 493875
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -93.37031497847269
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 7365250,
+            "median": 7446937.5,
+            "max": 7528625
+          },
+          "slower_than_best_percent": 1408.3672855541274,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 105146.0,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 3879750,
+            "median": 3892937.5,
+            "max": 3906125
+          },
+          "slower_than_best_percent": 3602.4114088981037,
+          "delta_vs_compact_percent": 2054.514008993428
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 105083,
+            "median": 105146.0,
+            "max": 105209
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -41.807817364233834
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1001458,
+            "median": 1006687.5,
+            "max": 1011917
+          },
+          "slower_than_best_percent": 857.4187320487703,
+          "delta_vs_compact_percent": 457.1428571428571
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 178625,
+            "median": 180687.5,
+            "max": 182750
+          },
+          "slower_than_best_percent": 71.84438780362544,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 96937.0,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 3433041,
+            "median": 3572083.0,
+            "max": 3711125
+          },
+          "slower_than_best_percent": 3584.9531138780853,
+          "delta_vs_compact_percent": 2656.151816301966
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 902667,
+            "median": 920562.5,
+            "max": 938458
+          },
+          "slower_than_best_percent": 849.6502883315967,
+          "delta_vs_compact_percent": 610.2886484985031
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 123791,
+            "median": 129604.0,
+            "max": 135417
+          },
+          "slower_than_best_percent": 33.699206701259584,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 96666,
+            "median": 96937.0,
+            "max": 97208
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -25.20524057899447
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 245208.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 413083,
+            "median": 418083.0,
+            "max": 423083
+          },
+          "slower_than_best_percent": 70.50137026524419,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 2897083,
+            "median": 3053812.5,
+            "max": 3210542
+          },
+          "slower_than_best_percent": 1145.3967651952628,
+          "delta_vs_compact_percent": 630.432115154168
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 237583,
+            "median": 245208.0,
+            "max": 252833
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -41.3494449666693
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 651709,
+            "median": 690958.5,
+            "max": 730208
+          },
+          "slower_than_best_percent": 181.7846481354605,
+          "delta_vs_compact_percent": 65.26826013016553
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 281562.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 616458,
+            "median": 632104.0,
+            "max": 647750
+          },
+          "slower_than_best_percent": 124.49864594894562,
+          "delta_vs_compact_percent": 85.73076115045977
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 272875,
+            "median": 281562.5,
+            "max": 290250
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -17.268649721523154
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 330792,
+            "median": 340333.5,
+            "max": 349875
+          },
+          "slower_than_best_percent": 20.873163152053277,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 2924791,
+            "median": 2938270.5,
+            "max": 2951750
+          },
+          "slower_than_best_percent": 943.5588901220866,
+          "delta_vs_compact_percent": 763.3503607490887
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 276771.0,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 263375,
+            "median": 276771.0,
+            "max": 290167
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -60.474216292098724
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 2159334,
+            "median": 2167209.0,
+            "max": 2175084
+          },
+          "slower_than_best_percent": 683.0332657684512,
+          "delta_vs_compact_percent": 209.50003498855375
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 697125,
+            "median": 700229.0,
+            "max": 703333
+          },
+          "slower_than_best_percent": 152.9994110654657,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 486959,
+            "median": 514583.5,
+            "max": 542208
+          },
+          "slower_than_best_percent": 85.92392266530815,
+          "delta_vs_compact_percent": -26.512112466064675
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 248792.0,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 1949917,
+            "median": 2013708.5,
+            "max": 2077500
+          },
+          "slower_than_best_percent": 709.3943937104086,
+          "delta_vs_compact_percent": 229.62090563931406
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 489708,
+            "median": 498979.0,
+            "max": 508250
+          },
+          "slower_than_best_percent": 100.56070934756747,
+          "delta_vs_compact_percent": -18.322880459113478
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 244209,
+            "median": 248792.0,
+            "max": 253375
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -59.275612952015535
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 576500,
+            "median": 610916.5,
+            "max": 645333
+          },
+          "slower_than_best_percent": 145.55311264027782,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 235229.0,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 37892209,
+            "median": 38990250.5,
+            "max": 40088292
+          },
+          "slower_than_best_percent": 16475.443716548554,
+          "delta_vs_compact_percent": 13611.869887534553
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1511583,
+            "median": 1534625.0,
+            "max": 1557667
+          },
+          "slower_than_best_percent": 552.3961756416088,
+          "delta_vs_compact_percent": 439.68820554660743
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 208958,
+            "median": 235229.0,
+            "max": 261500
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -17.27600104095599
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 274875,
+            "median": 284354.0,
+            "max": 293833
+          },
+          "slower_than_best_percent": 20.883904620603744,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 225208.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 241292,
+            "median": 248875.5,
+            "max": 256459
+          },
+          "slower_than_best_percent": 10.508928393022465,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 36867375,
+            "median": 38092479.0,
+            "max": 39317583
+          },
+          "slower_than_best_percent": 16814.316733160602,
+          "delta_vs_compact_percent": 15205.837255977385
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 218000,
+            "median": 225208.5,
+            "max": 232417
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -9.509574064140502
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1573083,
+            "median": 1687937.5,
+            "max": 1802792
+          },
+          "slower_than_best_percent": 649.4999078631579,
+          "delta_vs_compact_percent": 578.225659014246
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 913645.5,
+      "winner_range_separated": false,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 913334,
+            "median": 977750.5,
+            "max": 1042167
+          },
+          "slower_than_best_percent": 7.016397497716564,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1124917,
+            "median": 1173708.5,
+            "max": 1222500
+          },
+          "slower_than_best_percent": 28.46432232195091,
+          "delta_vs_compact_percent": 20.041718209297766
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 37005584,
+            "median": 38035063.0,
+            "max": 39064542
+          },
+          "slower_than_best_percent": 4063.000091392121,
+          "delta_vs_compact_percent": 3790.0581487813097
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 903083,
+            "median": 913645.5,
+            "max": 924208
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -6.556376089810234
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 859333.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1080167,
+            "median": 1100937.5,
+            "max": 1121708
+          },
+          "slower_than_best_percent": 28.115277712320076,
+          "delta_vs_compact_percent": 28.115277712320076
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 887375,
+            "median": 889125.0,
+            "max": 890875
+          },
+          "slower_than_best_percent": 3.4668146883602313,
+          "delta_vs_compact_percent": 3.4668146883602313
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 852833,
+            "median": 859333.5,
+            "max": 865834
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 35743167,
+            "median": 35865750.0,
+            "max": 35988333
+          },
+          "slower_than_best_percent": 4073.670641258603,
+          "delta_vs_compact_percent": 4073.670641258603
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 619062.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 610416,
+            "median": 619062.5,
+            "max": 627709
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -77.99589890651724
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 3945167,
+            "median": 4409687.5,
+            "max": 4874208
+          },
+          "slower_than_best_percent": 612.3170116102978,
+          "delta_vs_compact_percent": 56.7389553408052
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 24443833,
+            "median": 24532458.0,
+            "max": 24621083
+          },
+          "slower_than_best_percent": 3862.8402624936903,
+          "delta_vs_compact_percent": 771.9873775323489
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 2763084,
+            "median": 2813396.0,
+            "max": 2863708
+          },
+          "slower_than_best_percent": 354.4607370015144,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 569541.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 2851542,
+            "median": 2894062.5,
+            "max": 2936583
+          },
+          "slower_than_best_percent": 408.1390030401647,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 4109875,
+            "median": 4501375.0,
+            "max": 4892875
+          },
+          "slower_than_best_percent": 690.3506592583684,
+          "delta_vs_compact_percent": 55.53827880358493
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 24050208,
+            "median": 24071937.5,
+            "max": 24093667
+          },
+          "slower_than_best_percent": 4126.546704673847,
+          "delta_vs_compact_percent": 731.7697872799913
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 563250,
+            "median": 569541.5,
+            "max": 575833
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -80.32034553503942
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 963437.5,
+      "winner_range_separated": false,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 6069458,
+            "median": 6305312.0,
+            "max": 6541166
+          },
+          "slower_than_best_percent": 554.4598897178074,
+          "delta_vs_compact_percent": 554.4598897178074
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 449057625,
+            "median": 451618771.0,
+            "max": 454179917
+          },
+          "slower_than_best_percent": 46775.77253324684,
+          "delta_vs_compact_percent": 46775.77253324684
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 958875,
+            "median": 996562.5,
+            "max": 1034250
+          },
+          "slower_than_best_percent": 3.4382095361660703,
+          "delta_vs_compact_percent": 3.4382095361660703
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 941000,
+            "median": 963437.5,
+            "max": 985875
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 925958.5,
+      "winner_range_separated": false,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 983000,
+            "median": 992354.5,
+            "max": 1001709
+          },
+          "slower_than_best_percent": 7.170515741256223,
+          "delta_vs_compact_percent": 7.170515741256223
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 444645166,
+            "median": 446044291.0,
+            "max": 447443416
+          },
+          "slower_than_best_percent": 48071.08876909711,
+          "delta_vs_compact_percent": 48071.08876909711
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 5807458,
+            "median": 6025374.5,
+            "max": 6243291
+          },
+          "slower_than_best_percent": 550.7175537564589,
+          "delta_vs_compact_percent": 550.7175537564589
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 835792,
+            "median": 925958.5,
+            "max": 1016125
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 5172437.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 463233667,
+            "median": 467134271.0,
+            "max": 471034875
+          },
+          "slower_than_best_percent": 8931.221179569593,
+          "delta_vs_compact_percent": 8931.221179569593
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 7262375,
+            "median": 7356145.5,
+            "max": 7449916
+          },
+          "slower_than_best_percent": 42.21816116676131,
+          "delta_vs_compact_percent": 42.21816116676131
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 5918625,
+            "median": 6235979.0,
+            "max": 6553333
+          },
+          "slower_than_best_percent": 20.561708092171237,
+          "delta_vs_compact_percent": 20.561708092171237
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 5167125,
+            "median": 5172437.5,
+            "max": 5177750
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "compact-bfs"
+      ],
+      "best_ns": 5169270.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 6188625,
+            "median": 6416208.5,
+            "max": 6643792
+          },
+          "slower_than_best_percent": 24.122127097043954,
+          "delta_vs_compact_percent": 24.122127097043954
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 458050084,
+            "median": 464087021.0,
+            "max": 470123958
+          },
+          "slower_than_best_percent": 8877.80491463931,
+          "delta_vs_compact_percent": 8877.80491463931
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 5116458,
+            "median": 5169270.5,
+            "max": 5222083
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 7449750,
+            "median": 7982354.0,
+            "max": 8514958
+          },
+          "slower_than_best_percent": 54.419351821499774,
+          "delta_vs_compact_percent": 54.419351821499774
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 3568229.0,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 24415625,
+            "median": 24552520.5,
+            "max": 24689416
+          },
+          "slower_than_best_percent": 588.0870173971457,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 38861125,
+            "median": 39398416.5,
+            "max": 39935708
+          },
+          "slower_than_best_percent": 1004.1448432821996,
+          "delta_vs_compact_percent": 60.465873554611214
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 312974375,
+            "median": 314459479.0,
+            "max": 315944583
+          },
+          "slower_than_best_percent": 8712.760587955538,
+          "delta_vs_compact_percent": 1180.7625147894694
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 3455458,
+            "median": 3568229.0,
+            "max": 3681000
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -85.46695440087302
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 3851833.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 23641959,
+            "median": 23883938.0,
+            "max": 24125917
+          },
+          "slower_than_best_percent": 520.0667292602342,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 3613792,
+            "median": 3851833.5,
+            "max": 4089875
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -83.87270348800939
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 39998833,
+            "median": 40000354.0,
+            "max": 40001875
+          },
+          "slower_than_best_percent": 938.4756765836322,
+          "delta_vs_compact_percent": 67.478051567543
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 311654000,
+            "median": 328667729.0,
+            "max": 345681458
+          },
+          "slower_than_best_percent": 8432.760541181233,
+          "delta_vs_compact_percent": 1276.103593134432
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 93500.0,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 508625,
+            "median": 522875.0,
+            "max": 537125
+          },
+          "slower_than_best_percent": 459.22459893048125,
+          "delta_vs_compact_percent": 290.7534451319762
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 552708,
+            "median": 562146.0,
+            "max": 571584
+          },
+          "slower_than_best_percent": 501.2256684491978,
+          "delta_vs_compact_percent": 320.1013362030311
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 132791,
+            "median": 133812.0,
+            "max": 134833
+          },
+          "slower_than_best_percent": 43.1144385026738,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 93292,
+            "median": 93500.0,
+            "max": 93708
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -30.12584820494425
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 77146.0,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 485875,
+            "median": 487354.5,
+            "max": 488834
+          },
+          "slower_than_best_percent": 531.7300961812667,
+          "delta_vs_compact_percent": 367.8610685777097
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 480875,
+            "median": 494541.5,
+            "max": 508208
+          },
+          "slower_than_best_percent": 541.0461981178545,
+          "delta_vs_compact_percent": 374.7605996169594
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 100833,
+            "median": 104166.5,
+            "max": 107500
+          },
+          "slower_than_best_percent": 35.02514712363571,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 77083,
+            "median": 77146.0,
+            "max": 77209
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -25.939721503554402
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 130729.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 402458,
+            "median": 407458.0,
+            "max": 412458
+          },
+          "slower_than_best_percent": 211.68022519783216,
+          "delta_vs_compact_percent": 96.56281130678298
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 200625,
+            "median": 207291.5,
+            "max": 213958
+          },
+          "slower_than_best_percent": 58.5652052520663,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 387500,
+            "median": 390625.0,
+            "max": 393750
+          },
+          "slower_than_best_percent": 198.80401898576832,
+          "delta_vs_compact_percent": 88.44236256672366
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 130584,
+            "median": 130729.5,
+            "max": 130875
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -36.93446185685375
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 110271.0,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 340292,
+            "median": 350791.5,
+            "max": 361291
+          },
+          "slower_than_best_percent": 218.11763745681097,
+          "delta_vs_compact_percent": 92.2366409285452
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 341250,
+            "median": 353437.5,
+            "max": 365625
+          },
+          "slower_than_best_percent": 220.51718040101207,
+          "delta_vs_compact_percent": 93.68667079499559
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 107917,
+            "median": 110271.0,
+            "max": 112625
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -39.57058072435732
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 181833,
+            "median": 182479.0,
+            "max": 183125
+          },
+          "slower_than_best_percent": 65.4823117592114,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 204687.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 204292,
+            "median": 204687.5,
+            "max": 205083
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -57.84706219122169
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 212917,
+            "median": 215458.5,
+            "max": 218000
+          },
+          "slower_than_best_percent": 5.262167938931306,
+          "delta_vs_compact_percent": -55.6289038125305
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 471416,
+            "median": 485583.0,
+            "max": 499750
+          },
+          "slower_than_best_percent": 137.23138931297711,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 304042,
+            "median": 403167.0,
+            "max": 502292
+          },
+          "slower_than_best_percent": 96.96708396946565,
+          "delta_vs_compact_percent": -16.972587590586986
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 181916.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 186125,
+            "median": 189479.0,
+            "max": 192833
+          },
+          "slower_than_best_percent": 4.157127033556596,
+          "delta_vs_compact_percent": -58.7359833793204
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 434666,
+            "median": 459187.0,
+            "max": 483708
+          },
+          "slower_than_best_percent": 152.4163558555711,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 181750,
+            "median": 181916.5,
+            "max": 182083
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -60.382915892653756
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 289375,
+            "median": 325791.5,
+            "max": 362208
+          },
+          "slower_than_best_percent": 79.08848290287027,
+          "delta_vs_compact_percent": -29.05036510179948
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 164666.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 898500,
+            "median": 917479.0,
+            "max": 936458
+          },
+          "slower_than_best_percent": 457.17404572271835,
+          "delta_vs_compact_percent": 349.14684623160844
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 1038583,
+            "median": 1052520.5,
+            "max": 1066458
+          },
+          "slower_than_best_percent": 539.1831368250373,
+          "delta_vs_compact_percent": 415.2556768810138
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 199709,
+            "median": 204271.5,
+            "max": 208834
+          },
+          "slower_than_best_percent": 24.05164377696738,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 158542,
+            "median": 164666.5,
+            "max": 170791
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -19.388411990904263
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 142520.5,
+      "winner_range_separated": true,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 174459,
+            "median": 177229.5,
+            "max": 180000
+          },
+          "slower_than_best_percent": 24.35368946923424,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 142291,
+            "median": 142520.5,
+            "max": 142750
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -19.584211432069722
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 767250,
+            "median": 779583.0,
+            "max": 791916
+          },
+          "slower_than_best_percent": 446.99709866299935,
+          "delta_vs_compact_percent": 339.8720303335506
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 827750,
+            "median": 903479.0,
+            "max": 979208
+          },
+          "slower_than_best_percent": 533.9291540515223,
+          "delta_vs_compact_percent": 409.7791281925413
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 499458.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 728292,
+            "median": 784875.0,
+            "max": 841458
+          },
+          "slower_than_best_percent": 57.1451882388627,
+          "delta_vs_compact_percent": -6.117788907216449
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 431083,
+            "median": 499458.5,
+            "max": 567834
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -40.25766099176935
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 718125,
+            "median": 755583.0,
+            "max": 793041
+          },
+          "slower_than_best_percent": 51.28043671296014,
+          "delta_vs_compact_percent": -9.621528645811528
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 707625,
+            "median": 836021.0,
+            "max": 964417
+          },
+          "slower_than_best_percent": 67.38547847318645,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 513187.5,
+      "winner_range_separated": false,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 635542,
+            "median": 661646.0,
+            "max": 687750
+          },
+          "slower_than_best_percent": 28.92870539520156,
+          "delta_vs_compact_percent": 0.0
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 557542,
+            "median": 569667.0,
+            "max": 581792
+          },
+          "slower_than_best_percent": 11.005626598465469,
+          "delta_vs_compact_percent": -13.901542516693222
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 635709,
+            "median": 834063.0,
+            "max": 1032417
+          },
+          "slower_than_best_percent": 62.525977347460724,
+          "delta_vs_compact_percent": 26.058798813867234
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 467167,
+            "median": 513187.5,
+            "max": 559208
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -22.4377537232901
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "hdt"
+      ],
+      "best_ns": 467916.5,
+      "winner_range_separated": false,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 467833,
+            "median": 467916.5,
+            "max": 468000
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -82.28916991975146
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 458625,
+            "median": 478666.5,
+            "max": 498708
+          },
+          "slower_than_best_percent": 2.297418449659294,
+          "delta_vs_compact_percent": -81.88227804190002
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 2445584,
+            "median": 2641979.5,
+            "max": 2838375
+          },
+          "slower_than_best_percent": 464.6262741322436,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 2110333,
+            "median": 2409208.5,
+            "max": 2708084
+          },
+          "slower_than_best_percent": 414.8800053000909,
+          "delta_vs_compact_percent": -8.810477144126217
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 364312.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 363417,
+            "median": 364312.5,
+            "max": 365208
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -85.88244115722034
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 383167,
+            "median": 667292.0,
+            "max": 951417
+          },
+          "slower_than_best_percent": 83.16472808371933,
+          "delta_vs_compact_percent": -74.14161173356358
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 2538834,
+            "median": 2580563.0,
+            "max": 2622292
+          },
+          "slower_than_best_percent": 608.3377594784697,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 2081208,
+            "median": 2390854.0,
+            "max": 2700500
+          },
+          "slower_than_best_percent": 556.2646079945102,
+          "delta_vs_compact_percent": -7.351457802037775
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 619646.0,
+      "winner_range_separated": true,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 615792,
+            "median": 619646.0,
+            "max": 623500
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -22.70126305941057
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 2835166,
+            "median": 2961979.0,
+            "max": 3088792
+          },
+          "slower_than_best_percent": 378.01147752103617,
+          "delta_vs_compact_percent": 269.49683455481056
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 3264291,
+            "median": 3432208.0,
+            "max": 3600125
+          },
+          "slower_than_best_percent": 453.8981934846671,
+          "delta_vs_compact_percent": 328.15630750038986
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 799750,
+            "median": 801625.0,
+            "max": 803500
+          },
+          "slower_than_best_percent": 29.368219919115113,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "petgraph-dfs"
+      ],
+      "best_ns": 591145.5,
+      "winner_range_separated": true,
+      "engines": {
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 573458,
+            "median": 591145.5,
+            "max": 608833
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -25.75302566730471
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 2427917,
+            "median": 2575479.5,
+            "max": 2723042
+          },
+          "slower_than_best_percent": 335.67607298034073,
+          "delta_vs_compact_percent": 223.47630207940838
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 3418583,
+            "median": 3615208.0,
+            "max": 3811833
+          },
+          "slower_than_best_percent": 511.55975982224345,
+          "delta_vs_compact_percent": 354.0646179043141
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 717292,
+            "median": 796188.0,
+            "max": 875084
+          },
+          "slower_than_best_percent": 34.685623082642095,
+          "delta_vs_compact_percent": 0.0
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 2774312.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 2719625,
+            "median": 2774312.5,
+            "max": 2829000
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -38.851112287370924
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 3397709,
+            "median": 3413875.0,
+            "max": 3430041
+          },
+          "slower_than_best_percent": 23.05300862826376,
+          "delta_vs_compact_percent": -24.75445392689123
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 4370292,
+            "median": 4536979.5,
+            "max": 4703667
+          },
+          "slower_than_best_percent": 63.53527225213453,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 2979292,
+            "median": 3221562.5,
+            "max": 3463833
+          },
+          "slower_than_best_percent": 16.121111086079875,
+          "delta_vs_compact_percent": -28.993232171315743
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 2193520.5,
+      "winner_range_separated": true,
+      "engines": {
+        "hdt": {
+          "runtime_ns": {
+            "min": 2795583,
+            "median": 3133458.0,
+            "max": 3471333
+          },
+          "slower_than_best_percent": 42.85063668199134,
+          "delta_vs_compact_percent": -30.56111844745566
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 4502416,
+            "median": 4512541.0,
+            "max": 4522666
+          },
+          "slower_than_best_percent": 105.7213962668687,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 3588875,
+            "median": 3608979.0,
+            "max": 3629083
+          },
+          "slower_than_best_percent": 64.52907552037924,
+          "delta_vs_compact_percent": -20.02335269640764
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1846791,
+            "median": 2193520.5,
+            "max": 2540250
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -51.39056908291803
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 2127020.5,
+      "winner_range_separated": true,
+      "engines": {
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 2074833,
+            "median": 2127020.5,
+            "max": 2179208
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -90.91398706445307
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 19614833,
+            "median": 19649125.0,
+            "max": 19683417
+          },
+          "slower_than_best_percent": 823.786348086443,
+          "delta_vs_compact_percent": -16.06465291604915
+        },
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 23346750,
+            "median": 23409833.5,
+            "max": 23472917
+          },
+          "slower_than_best_percent": 1000.5927540425679,
+          "delta_vs_compact_percent": 0.0
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 2275792,
+            "median": 3053083.5,
+            "max": 3830375
+          },
+          "slower_than_best_percent": 43.53803830287484,
+          "delta_vs_compact_percent": -86.95811527237048
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "trials": 2,
+      "winners": [
+        "ett-scan"
+      ],
+      "best_ns": 1906395.5,
+      "winner_range_separated": false,
+      "engines": {
+        "compact-bfs": {
+          "runtime_ns": {
+            "min": 23112875,
+            "median": 23253458.5,
+            "max": 23394042
+          },
+          "slower_than_best_percent": 1119.7604589393964,
+          "delta_vs_compact_percent": 0.0
+        },
+        "petgraph-dfs": {
+          "runtime_ns": {
+            "min": 19544250,
+            "median": 19602687.5,
+            "max": 19661125
+          },
+          "slower_than_best_percent": 928.2592200831359,
+          "delta_vs_compact_percent": -15.69990545707427
+        },
+        "ett-scan": {
+          "runtime_ns": {
+            "min": 1503375,
+            "median": 1906395.5,
+            "max": 2309416
+          },
+          "slower_than_best_percent": 0.0,
+          "delta_vs_compact_percent": -91.80166898614243
+        },
+        "hdt": {
+          "runtime_ns": {
+            "min": 2088166,
+            "median": 2190270.5,
+            "max": 2292375
+          },
+          "slower_than_best_percent": 14.890666705833077,
+          "delta_vs_compact_percent": -90.58088283942794
+        }
+      }
+    }
+  ]
+}

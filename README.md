@@ -2,14 +2,32 @@
 
 Reproducible workloads for measuring exact dynamic graph connectivity.
 
-The harness compares [`knotrel-core`](https://github.com/knotrel/knotrel), the compact production core, an experimental BFS, petgraph DFS and outils HDT using four deterministic synthetic
-workloads: a path, a cycle, joining/splitting components, and a degree-skewed hub.
+Latest: [544-run connectivity campaign](results/2026-10-04-connectivity-campaign/README.md),
+including 100,000-vertex sparse workloads, dense controls, repeated queries and
+a real Cogentco topology. The report labels Knotrel and external implementations
+and includes unfavorable results and memory tradeoffs.
+
+The harness compares Knotrel's own connectivity backends with external libraries.
+`compact-bfs` is **Knotrel's default backend**; `ett-scan` and `hdt` are
+**Knotrel's experimental backends**. `petgraph-dfs` and `outils-hdt` are external
+implementations wrapped by benchmark adapters. Historical frozen engines and
+benchmark-only BFS variants are internal controls, not additional competitors.
+The measured calls are embedded kernel operations, not HTTP service requests.
+
+Workloads include deterministic synthetic families and imported topology traces.
 It validates every result and supports trace export, warmup and separate reports
-for repeated fresh-graph runs. GraphScope, HTTP, real-world datasets and memory
-measurement are **not measured**. The prepared GraphScope probe remains unverified.
+for repeated fresh-graph runs. GraphScope and HTTP are **not measured**. A small imported real-topology
+[integration run](results/2026-10-03-topology-import-smoke/README.md) is available;
+it does not establish domain-scale performance. The prepared GraphScope probe remains unverified.
 See [competitor selection and adoption](docs/research/2026-09-26-competitive-landscape.md)
 and the [measured embedded comparison](results/2026-09-26-competitors/README.md).
 Petgraph is the primary external baseline; outils is an algorithmic control.
+
+See the [domain source selection](docs/research/2026-10-03-domain-scenarios.md)
+and [telecom, contacts and AML contracts](docs/scenarios/README.md) for
+literature-based workloads, licensing, projection semantics and cache controls.
+The [Topology Zoo adapter and imported replay](docs/scenarios/topology-zoo.md) are
+implemented; contacts and AML remain planned.
 
 ## Local layout
 

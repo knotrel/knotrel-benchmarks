@@ -14,8 +14,8 @@ refuses to overwrite existing files. The envelope contains workload, config,
 initial edges and operations (`op`, `source`, `target`, and query `expected`).
 Integers are JSON numbers: consumers must parse u64 losslessly, especially seed;
 this is a benchmark interchange format, not the string-ID HTTP protocol.
-Future adapters can read these files or use the Rust generator; the current CLI
-only generates traces, and does not import arbitrary external trace files.
+The CLI also accepts a distinct [validated import envelope](scenarios/topology-zoo.md)
+through `--trace-in`. Historical generated exports are not that import format.
 
 The report contains FNV-1a-64 of the exact compact export bytes (including config
 and expected answers), starting at 0xcbf29ce484222325 and multiplying by
@@ -248,3 +248,10 @@ storage after registration, load and replay and groups cuts by promotion-counter
 deltas. It must not contribute to normal timing tables. Vector capacities and
 live ordered payload exclude B-tree/allocator overhead and are not RSS. See the
 [v3 report](../results/2026-09-28-hdt-v3-sparse/README.md) for the measured tradeoff.
+
+## Domain workloads
+
+The [domain adapter contracts](scenarios/README.md) specify source provenance,
+projection, timestamp batching, independent validation and cache experiments for
+telecom, contacts and AML. Telecom import/replay is implemented and has a small
+integration run; contacts and AML remain prospective contracts.

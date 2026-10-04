@@ -3,7 +3,7 @@
 //! The chain workload derives expected answers from topology, independently of
 //! the engine being measured. This crate contains no GraphScope adapter yet.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub mod engines;
 mod traces;
@@ -21,8 +21,8 @@ pub struct Config {
 }
 
 /// An operation with independently known query results.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(tag = "op", rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
     /// Insert an edge.
     Link {
@@ -50,7 +50,8 @@ pub enum Operation {
 }
 
 /// A deterministic initial graph and operation trace.
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Workload {
     /// Initial undirected edges; vertices are `0..config.nodes`.
     pub initial_edges: Vec<(u64, u64)>,

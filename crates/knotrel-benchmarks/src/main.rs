@@ -1,5 +1,6 @@
 //! Command-line runner for the local Knotrel reference baseline.
 
+mod imported;
 mod metrics;
 
 use knotrel_benchmarks::engines::{Engine, EngineKind};
@@ -19,14 +20,17 @@ use std::{
 struct Report {
     schema_version: u32,
     engine: &'static str,
-    workload: &'static str,
+    workload: String,
     benchmark_version: &'static str,
     compiler: &'static str,
     os: &'static str,
     arch: &'static str,
     debug_assertions: bool,
     timestamp_unix_seconds: u64,
-    config: Config,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    config: Option<Config>,
+    #[serde(rename = "import", skip_serializing_if = "Option::is_none")]
+    imported: Option<serde_json::Value>,
     checkouts_at_run_time: Checkouts,
     warmup: usize,
     query_repeats: usize,
@@ -83,6 +87,7 @@ struct Options {
     warmup: usize,
     repetitions: usize,
     trace_out: Option<String>,
+    trace_in: Option<String>,
     engines: Vec<EngineKind>,
     query_repeats: usize,
     query_percent: u8,
@@ -101,22 +106,54 @@ fn main() -> ExitCode {
 fn run() -> Result<(), Box<dyn Error>> {
     let Some(options) = parse_args()? else {
         println!(
-            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
+            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--trace-in IMPORT_JSON] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nImports require connectivity-import schema 1 and reject generation flags.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
         );
         return Ok(());
     };
-    let config = options.config;
-    let workload = generate_with_query_percent(options.kind, config, options.query_percent)?;
-    let query_percent = options.kind.is_sustained().then_some(options.query_percent);
-    let export = TraceExport {
-        schema_version: 1,
-        workload: options.kind.name(),
-        config,
-        query_percent,
-        trace: &workload,
+    let (workload, nodes, name, config, query_percent, bytes, imported) = if let Some(path) =
+        &options.trace_in
+    {
+        let start = Instant::now();
+        let bytes = std::fs::read(path)?;
+        let input: imported::ImportedTrace = serde_json::from_slice(&bytes)?;
+        let load_parse_ns = start.elapsed().as_nanos();
+        let start = Instant::now();
+        let mut metadata = input.validate()?;
+        metadata["validation_ns"] = serde_json::to_value(start.elapsed().as_nanos())?;
+        metadata["load_parse_ns"] = serde_json::to_value(load_parse_ns)?;
+        (
+            input.trace,
+            metadata["node_count"]
+                .as_u64()
+                .ok_or("invalid node count")?,
+            input.workload,
+            None,
+            None,
+            bytes,
+            Some(metadata),
+        )
+    } else {
+        let config = options.config;
+        let workload = generate_with_query_percent(options.kind, config, options.query_percent)?;
+        let query_percent = options.kind.is_sustained().then_some(options.query_percent);
+        let bytes = serde_json::to_vec(&TraceExport {
+            schema_version: 1,
+            workload: options.kind.name(),
+            config,
+            query_percent,
+            trace: &workload,
+        })?;
+        (
+            workload,
+            config.nodes,
+            options.kind.name().to_owned(),
+            Some(config),
+            query_percent,
+            bytes,
+            None,
+        )
     };
-    let bytes = serde_json::to_vec(&export)?;
-    // Stable fingerprint of exact compact JSON bytes; not a cryptographic hash.
+    // Exact import bytes or compact generated JSON; not a cryptographic hash.
     let fingerprint = bytes.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
         (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
     });
@@ -129,7 +166,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         file.write_all(&bytes)?;
     }
     drop(bytes);
-    let mut degree = vec![0_usize; usize::try_from(config.nodes)?];
+    let mut degree = vec![0_usize; usize::try_from(nodes)?];
     for &(a, b) in &workload.initial_edges {
         degree[a as usize] += 1;
         degree[b as usize] += 1;
@@ -145,17 +182,17 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut reports = Vec::new();
     for &engine in &options.engines {
         for _ in 0..options.warmup {
-            replay(config, &workload, engine, options.query_repeats)?;
+            replay(nodes, &workload, engine, options.query_repeats)?;
         }
         let mut repetitions = Vec::new();
         repetitions.try_reserve_exact(options.repetitions)?;
         for _ in 0..options.repetitions {
-            repetitions.push(replay(config, &workload, engine, options.query_repeats)?);
+            repetitions.push(replay(nodes, &workload, engine, options.query_repeats)?);
         }
         let report = Report {
-            schema_version: 2,
+            schema_version: if imported.is_some() { 4 } else { 2 },
             engine: engine.name(),
-            workload: options.kind.name(),
+            workload: name.clone(),
             benchmark_version: env!("CARGO_PKG_VERSION"),
             compiler: env!("KNOTREL_BUILD_COMPILER"),
             os: std::env::consts::OS,
@@ -163,6 +200,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             debug_assertions: cfg!(debug_assertions),
             timestamp_unix_seconds,
             config,
+            imported: imported.clone(),
             checkouts_at_run_time: checkouts_at_run_time.clone(),
             warmup: options.warmup,
             query_repeats: options.query_repeats,
@@ -170,7 +208,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             trace_fingerprint_fnv1a64: format!("{fingerprint:016x}"),
             initial_edges: workload.initial_edges.len(),
             initial_density: 2.0 * workload.initial_edges.len() as f64
-                / (config.nodes as f64 * (config.nodes - 1) as f64),
+                / (nodes as f64 * (nodes - 1) as f64),
             initial_max_degree,
             repetitions,
         };
@@ -193,13 +231,13 @@ fn run() -> Result<(), Box<dyn Error>> {
 /// then discard summaries. Graph state never carries across repetitions, but
 /// allocator/process caches can remain warm. Setup and sorting are untimed.
 fn replay(
-    config: Config,
+    node_count: u64,
     workload: &Workload,
     engine: EngineKind,
     query_repeats: usize,
 ) -> Result<Run, Box<dyn Error>> {
     let setup_start = Instant::now();
-    let nodes: Vec<u64> = (0..config.nodes).collect();
+    let nodes: Vec<u64> = (0..node_count).collect();
     let mut graph = Engine::new(engine, &nodes)?;
     for &(source, target) in &workload.initial_edges {
         graph.link(source, target)?;
@@ -338,6 +376,8 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
     let mut warmup = 1;
     let mut repetitions = 1;
     let mut trace_out = None;
+    let mut trace_in = None;
+    let mut generation_flags = false;
     let mut engines = vec![EngineKind::Reference];
     let mut query_repeats = 0;
     let mut query_percent = 50;
@@ -345,6 +385,12 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
     while let Some(flag) = args.next() {
         if flag == "--help" || flag == "-h" {
             return Ok(None);
+        }
+        if matches!(
+            flag.as_str(),
+            "--nodes" | "--rounds" | "--seed" | "--workload" | "--query-percent"
+        ) {
+            generation_flags = true;
         }
         match flag.as_str() {
             "--nodes" => config.nodes = args.next().ok_or("--nodes needs a value")?.parse()?,
@@ -385,9 +431,13 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
                     .ok_or("--query-repeats needs a value")?
                     .parse()?
             }
+            "--trace-in" => trace_in = Some(args.next().ok_or("--trace-in needs a value")?),
             "--trace-out" => trace_out = Some(args.next().ok_or("--trace-out needs a value")?),
             _ => return Err(format!("unknown argument: {flag}").into()),
         }
+    }
+    if trace_in.is_some() && generation_flags {
+        return Err("--trace-in conflicts with generation flags".into());
     }
     if repetitions == 0 {
         return Err("repetitions must be at least 1".into());
@@ -398,6 +448,7 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
         warmup,
         repetitions,
         trace_out,
+        trace_in,
         engines,
         query_repeats,
         query_percent,

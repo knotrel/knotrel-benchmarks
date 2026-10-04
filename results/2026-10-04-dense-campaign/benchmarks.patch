@@ -1,0 +1,1415 @@
+diff --git a/README.md b/README.md
+index 9085a47..45eabed 100644
+--- a/README.md
++++ b/README.md
+@@ -2,15 +2,28 @@
+ 
+ Reproducible workloads for measuring exact dynamic graph connectivity.
+ 
+-The harness compares [`knotrel-core`](https://github.com/knotrel/knotrel), the compact production core, an experimental BFS, petgraph DFS and outils HDT using four deterministic synthetic
+-workloads: a path, a cycle, joining/splitting components, and a degree-skewed hub.
++The harness compares Knotrel's own connectivity backends with external libraries.
++`compact-bfs` is **Knotrel's default backend**; `ett-scan` and `hdt` are
++**Knotrel's experimental backends**. `petgraph-dfs` and `outils-hdt` are external
++implementations wrapped by benchmark adapters. Historical frozen engines and
++benchmark-only BFS variants are internal controls, not additional competitors.
++The measured calls are embedded kernel operations, not HTTP service requests.
++
++Workloads include deterministic synthetic families and imported topology traces.
+ It validates every result and supports trace export, warmup and separate reports
+-for repeated fresh-graph runs. GraphScope, HTTP, real-world datasets and memory
+-measurement are **not measured**. The prepared GraphScope probe remains unverified.
++for repeated fresh-graph runs. GraphScope and HTTP are **not measured**. A small imported real-topology
++[integration run](results/2026-10-03-topology-import-smoke/README.md) is available;
++it does not establish domain-scale performance. The prepared GraphScope probe remains unverified.
+ See [competitor selection and adoption](docs/research/2026-09-26-competitive-landscape.md)
+ and the [measured embedded comparison](results/2026-09-26-competitors/README.md).
+ Petgraph is the primary external baseline; outils is an algorithmic control.
+ 
++See the [domain source selection](docs/research/2026-10-03-domain-scenarios.md)
++and [telecom, contacts and AML contracts](docs/scenarios/README.md) for
++literature-based workloads, licensing, projection semantics and cache controls.
++The [Topology Zoo adapter and imported replay](docs/scenarios/topology-zoo.md) are
++implemented; contacts and AML remain planned.
++
+ ## Local layout
+ 
+ Keep both repositories in the same parent directory, named `knotrel` and
+diff --git a/crates/knotrel-benchmarks/src/imported.rs b/crates/knotrel-benchmarks/src/imported.rs
+new file mode 100644
+index 0000000..46350e4
+--- /dev/null
++++ b/crates/knotrel-benchmarks/src/imported.rs
+@@ -0,0 +1,190 @@
++//! Strict offline import validation, independent of every measured backend.
++use knotrel_benchmarks::{Operation, Workload};
++use serde::{Deserialize, Serialize};
++use std::collections::{BTreeSet, VecDeque};
++use std::error::Error;
++
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++pub(crate) struct ImportedTrace {
++    schema_version: u32,
++    kind: String,
++    pub(crate) workload: String,
++    node_ids: Vec<String>,
++    provenance: Provenance,
++    transform: serde_json::Map<String, serde_json::Value>,
++    batches: Vec<Batch>,
++    pub(crate) trace: Workload,
++}
++#[derive(Deserialize, Serialize)]
++#[serde(deny_unknown_fields)]
++struct Provenance {
++    source_url: String,
++    source_revision: String,
++    source_sha256: String,
++    license: String,
++    citation: String,
++    retrieved_date: String,
++}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Batch {
++    time: u64,
++    start: usize,
++    end: usize,
++}
++impl ImportedTrace {
++    pub(crate) fn nodes(&self) -> u64 {
++        self.node_ids.len() as u64
++    }
++
++    /// Validate the normalized trace, not the truth of external provenance claims.
++    /// BFS validation is O(q*(n+m)); it is performed once outside all timers.
++    pub(crate) fn validate(&self) -> Result<serde_json::Value, Box<dyn Error>> {
++        if self.schema_version != 1 || self.kind != "connectivity-import" {
++            return Err("unsupported imported trace schema or kind".into());
++        }
++        if self.workload.trim().is_empty() || self.transform.is_empty() {
++            return Err("workload and transform metadata are required".into());
++        }
++        if self.node_ids.len() < 2
++            || self.node_ids.iter().any(|id| id.is_empty())
++            || self.node_ids.windows(2).any(|ids| ids[0] >= ids[1])
++        {
++            return Err("node_ids must contain at least two sorted unique nonempty IDs".into());
++        }
++        let p = &self.provenance;
++        if [
++            &p.source_url,
++            &p.source_revision,
++            &p.license,
++            &p.citation,
++            &p.retrieved_date,
++        ]
++        .iter()
++        .any(|s| s.trim().is_empty())
++            || p.source_sha256.len() != 64
++            || !p.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
++        {
++            return Err("source provenance and a 64-digit SHA-256 are required".into());
++        }
++        let mut end = 0;
++        let mut time = None;
++        for batch in &self.batches {
++            if batch.start != end
++                || batch.end <= batch.start
++                || batch.end > self.trace.operations.len()
++                || time.is_some_and(|previous| previous >= batch.time)
++            {
++                return Err(
++                    "batches must partition operations with increasing logical times".into(),
++                );
++            }
++            let mut querying = false;
++            let mut linking = false;
++            let mut cut_pairs = BTreeSet::new();
++            let mut last_cut = None;
++            let mut last_link = None;
++            for op in &self.trace.operations[batch.start..batch.end] {
++                match *op {
++                    Operation::Connected { .. } => querying = true,
++                    Operation::Cut { source, target } => {
++                        let pair = (source, target);
++                        if querying || linking || last_cut.is_some_and(|last| last >= pair) {
++                            return Err("batch cuts must be sorted before links and queries".into());
++                        }
++                        cut_pairs.insert(pair);
++                        last_cut = Some(pair);
++                    }
++                    Operation::Link { source, target } => {
++                        let pair = (source, target);
++                        if querying
++                            || cut_pairs.contains(&pair)
++                            || last_link.is_some_and(|last| last >= pair)
++                        {
++                            return Err("batch links must be sorted before queries".into());
++                        }
++                        linking = true;
++                        last_link = Some(pair);
++                    }
++                }
++            }
++            if !querying {
++                return Err("each imported batch requires queries".into());
++            }
++            end = batch.end;
++            time = Some(batch.time);
++        }
++        if end != self.trace.operations.len() || self.batches.is_empty() {
++            return Err("nonempty batches must cover the complete trace".into());
++        }
++        let mut adjacency = vec![BTreeSet::new(); self.node_ids.len()];
++        let check_pair =
++            |a: u64, b: u64, mutation: bool| -> Result<(usize, usize), Box<dyn Error>> {
++                if a >= self.nodes() || b >= self.nodes() || (mutation && a >= b) {
++                    return Err(
++                        "endpoints must exist; mutation pairs must be canonical and distinct"
++                            .into(),
++                    );
++                }
++                Ok((a as usize, b as usize))
++            };
++        for &(a, b) in &self.trace.initial_edges {
++            let (a, b) = check_pair(a, b, true)?;
++            if !adjacency[a].insert(b) {
++                return Err("duplicate initial edge".into());
++            }
++            adjacency[b].insert(a);
++        }
++        let mut validated_queries = 0;
++        for op in &self.trace.operations {
++            match *op {
++                Operation::Link { source, target } => {
++                    let (a, b) = check_pair(source, target, true)?;
++                    if !adjacency[a].insert(b) {
++                        return Err("imported link does not change graph".into());
++                    }
++                    adjacency[b].insert(a);
++                }
++                Operation::Cut { source, target } => {
++                    let (a, b) = check_pair(source, target, true)?;
++                    if !adjacency[a].remove(&b) {
++                        return Err("imported cut does not change graph".into());
++                    }
++                    adjacency[b].remove(&a);
++                }
++                Operation::Connected {
++                    source,
++                    target,
++                    expected,
++                } => {
++                    let (a, b) = check_pair(source, target, false)?;
++                    let mut seen = vec![false; adjacency.len()];
++                    let mut queue = VecDeque::from([a]);
++                    seen[a] = true;
++                    while let Some(vertex) = queue.pop_front() {
++                        if vertex == b {
++                            break;
++                        }
++                        for &neighbor in &adjacency[vertex] {
++                            if !seen[neighbor] {
++                                seen[neighbor] = true;
++                                queue.push_back(neighbor);
++                            }
++                        }
++                    }
++                    if seen[b] != expected {
++                        return Err("imported query disagrees with independent BFS oracle".into());
++                    }
++                    validated_queries += 1;
++                }
++            }
++        }
++        Ok(serde_json::json!({
++            "schema_version": self.schema_version, "node_count": self.nodes(),
++            "source_batches": self.batches.len(), "provenance": p,
++            "transform": self.transform, "validated_queries": validated_queries,
++            "validation": "independent-bfs-before-warmup", "input_file_cache": "uncontrolled"
++        }))
++    }
++}
+diff --git a/crates/knotrel-benchmarks/src/lib.rs b/crates/knotrel-benchmarks/src/lib.rs
+index 41679d9..6b55cae 100644
+--- a/crates/knotrel-benchmarks/src/lib.rs
++++ b/crates/knotrel-benchmarks/src/lib.rs
+@@ -3,7 +3,7 @@
+ //! The chain workload derives expected answers from topology, independently of
+ //! the engine being measured. This crate contains no GraphScope adapter yet.
+ 
+-use serde::Serialize;
++use serde::{Deserialize, Serialize};
+ 
+ pub mod engines;
+ mod traces;
+@@ -21,8 +21,8 @@ pub struct Config {
+ }
+ 
+ /// An operation with independently known query results.
+-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+-#[serde(tag = "op", rename_all = "snake_case")]
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
+ pub enum Operation {
+     /// Insert an edge.
+     Link {
+@@ -50,7 +50,8 @@ pub enum Operation {
+ }
+ 
+ /// A deterministic initial graph and operation trace.
+-#[derive(Debug, PartialEq, Eq, Serialize)]
++#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
+ pub struct Workload {
+     /// Initial undirected edges; vertices are `0..config.nodes`.
+     pub initial_edges: Vec<(u64, u64)>,
+diff --git a/crates/knotrel-benchmarks/src/main.rs b/crates/knotrel-benchmarks/src/main.rs
+index 3e3806f..a93a857 100644
+--- a/crates/knotrel-benchmarks/src/main.rs
++++ b/crates/knotrel-benchmarks/src/main.rs
+@@ -1,5 +1,6 @@
+ //! Command-line runner for the local Knotrel reference baseline.
+ 
++mod imported;
+ mod metrics;
+ 
+ use knotrel_benchmarks::engines::{Engine, EngineKind};
+@@ -19,14 +20,17 @@ use std::{
+ struct Report {
+     schema_version: u32,
+     engine: &'static str,
+-    workload: &'static str,
++    workload: String,
+     benchmark_version: &'static str,
+     compiler: &'static str,
+     os: &'static str,
+     arch: &'static str,
+     debug_assertions: bool,
+     timestamp_unix_seconds: u64,
+-    config: Config,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    config: Option<Config>,
++    #[serde(rename = "import", skip_serializing_if = "Option::is_none")]
++    imported: Option<serde_json::Value>,
+     checkouts_at_run_time: Checkouts,
+     warmup: usize,
+     query_repeats: usize,
+@@ -83,6 +87,7 @@ struct Options {
+     warmup: usize,
+     repetitions: usize,
+     trace_out: Option<String>,
++    trace_in: Option<String>,
+     engines: Vec<EngineKind>,
+     query_repeats: usize,
+     query_percent: u8,
+@@ -101,22 +106,54 @@ fn main() -> ExitCode {
+ fn run() -> Result<(), Box<dyn Error>> {
+     let Some(options) = parse_args()? else {
+         println!(
+-            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
++            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--trace-in IMPORT_JSON] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nImports require connectivity-import schema 1 and reject generation flags.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
+         );
+         return Ok(());
+     };
+-    let config = options.config;
+-    let workload = generate_with_query_percent(options.kind, config, options.query_percent)?;
+-    let query_percent = options.kind.is_sustained().then_some(options.query_percent);
+-    let export = TraceExport {
+-        schema_version: 1,
+-        workload: options.kind.name(),
+-        config,
+-        query_percent,
+-        trace: &workload,
++    let (workload, nodes, name, config, query_percent, bytes, imported) = if let Some(path) =
++        &options.trace_in
++    {
++        let start = Instant::now();
++        let bytes = std::fs::read(path)?;
++        let input: imported::ImportedTrace = serde_json::from_slice(&bytes)?;
++        let load_parse_ns = start.elapsed().as_nanos();
++        let start = Instant::now();
++        let mut metadata = input.validate()?;
++        metadata["validation_ns"] = serde_json::to_value(start.elapsed().as_nanos())?;
++        metadata["load_parse_ns"] = serde_json::to_value(load_parse_ns)?;
++        (
++            input.trace,
++            metadata["node_count"]
++                .as_u64()
++                .ok_or("invalid node count")?,
++            input.workload,
++            None,
++            None,
++            bytes,
++            Some(metadata),
++        )
++    } else {
++        let config = options.config;
++        let workload = generate_with_query_percent(options.kind, config, options.query_percent)?;
++        let query_percent = options.kind.is_sustained().then_some(options.query_percent);
++        let bytes = serde_json::to_vec(&TraceExport {
++            schema_version: 1,
++            workload: options.kind.name(),
++            config,
++            query_percent,
++            trace: &workload,
++        })?;
++        (
++            workload,
++            config.nodes,
++            options.kind.name().to_owned(),
++            Some(config),
++            query_percent,
++            bytes,
++            None,
++        )
+     };
+-    let bytes = serde_json::to_vec(&export)?;
+-    // Stable fingerprint of exact compact JSON bytes; not a cryptographic hash.
++    // Exact import bytes or compact generated JSON; not a cryptographic hash.
+     let fingerprint = bytes.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
+         (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+     });
+@@ -129,7 +166,7 @@ fn run() -> Result<(), Box<dyn Error>> {
+         file.write_all(&bytes)?;
+     }
+     drop(bytes);
+-    let mut degree = vec![0_usize; usize::try_from(config.nodes)?];
++    let mut degree = vec![0_usize; usize::try_from(nodes)?];
+     for &(a, b) in &workload.initial_edges {
+         degree[a as usize] += 1;
+         degree[b as usize] += 1;
+@@ -145,17 +182,17 @@ fn run() -> Result<(), Box<dyn Error>> {
+     let mut reports = Vec::new();
+     for &engine in &options.engines {
+         for _ in 0..options.warmup {
+-            replay(config, &workload, engine, options.query_repeats)?;
++            replay(nodes, &workload, engine, options.query_repeats)?;
+         }
+         let mut repetitions = Vec::new();
+         repetitions.try_reserve_exact(options.repetitions)?;
+         for _ in 0..options.repetitions {
+-            repetitions.push(replay(config, &workload, engine, options.query_repeats)?);
++            repetitions.push(replay(nodes, &workload, engine, options.query_repeats)?);
+         }
+         let report = Report {
+-            schema_version: 2,
++            schema_version: if imported.is_some() { 4 } else { 2 },
+             engine: engine.name(),
+-            workload: options.kind.name(),
++            workload: name.clone(),
+             benchmark_version: env!("CARGO_PKG_VERSION"),
+             compiler: env!("KNOTREL_BUILD_COMPILER"),
+             os: std::env::consts::OS,
+@@ -163,6 +200,7 @@ fn run() -> Result<(), Box<dyn Error>> {
+             debug_assertions: cfg!(debug_assertions),
+             timestamp_unix_seconds,
+             config,
++            imported: imported.clone(),
+             checkouts_at_run_time: checkouts_at_run_time.clone(),
+             warmup: options.warmup,
+             query_repeats: options.query_repeats,
+@@ -170,7 +208,7 @@ fn run() -> Result<(), Box<dyn Error>> {
+             trace_fingerprint_fnv1a64: format!("{fingerprint:016x}"),
+             initial_edges: workload.initial_edges.len(),
+             initial_density: 2.0 * workload.initial_edges.len() as f64
+-                / (config.nodes as f64 * (config.nodes - 1) as f64),
++                / (nodes as f64 * (nodes - 1) as f64),
+             initial_max_degree,
+             repetitions,
+         };
+@@ -193,13 +231,13 @@ fn run() -> Result<(), Box<dyn Error>> {
+ /// then discard summaries. Graph state never carries across repetitions, but
+ /// allocator/process caches can remain warm. Setup and sorting are untimed.
+ fn replay(
+-    config: Config,
++    node_count: u64,
+     workload: &Workload,
+     engine: EngineKind,
+     query_repeats: usize,
+ ) -> Result<Run, Box<dyn Error>> {
+     let setup_start = Instant::now();
+-    let nodes: Vec<u64> = (0..config.nodes).collect();
++    let nodes: Vec<u64> = (0..node_count).collect();
+     let mut graph = Engine::new(engine, &nodes)?;
+     for &(source, target) in &workload.initial_edges {
+         graph.link(source, target)?;
+@@ -338,6 +376,8 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
+     let mut warmup = 1;
+     let mut repetitions = 1;
+     let mut trace_out = None;
++    let mut trace_in = None;
++    let mut generation_flags = false;
+     let mut engines = vec![EngineKind::Reference];
+     let mut query_repeats = 0;
+     let mut query_percent = 50;
+@@ -346,6 +386,12 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
+         if flag == "--help" || flag == "-h" {
+             return Ok(None);
+         }
++        if matches!(
++            flag.as_str(),
++            "--nodes" | "--rounds" | "--seed" | "--workload" | "--query-percent"
++        ) {
++            generation_flags = true;
++        }
+         match flag.as_str() {
+             "--nodes" => config.nodes = args.next().ok_or("--nodes needs a value")?.parse()?,
+             "--rounds" => config.rounds = args.next().ok_or("--rounds needs a value")?.parse()?,
+@@ -385,10 +431,14 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
+                     .ok_or("--query-repeats needs a value")?
+                     .parse()?
+             }
++            "--trace-in" => trace_in = Some(args.next().ok_or("--trace-in needs a value")?),
+             "--trace-out" => trace_out = Some(args.next().ok_or("--trace-out needs a value")?),
+             _ => return Err(format!("unknown argument: {flag}").into()),
+         }
+     }
++    if trace_in.is_some() && generation_flags {
++        return Err("--trace-in conflicts with generation flags".into());
++    }
+     if repetitions == 0 {
+         return Err("repetitions must be at least 1".into());
+     }
+@@ -398,6 +448,7 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
+         warmup,
+         repetitions,
+         trace_out,
++        trace_in,
+         engines,
+         query_repeats,
+         query_percent,
+diff --git a/crates/knotrel-benchmarks/tests/import.rs b/crates/knotrel-benchmarks/tests/import.rs
+new file mode 100644
+index 0000000..ec323c4
+--- /dev/null
++++ b/crates/knotrel-benchmarks/tests/import.rs
+@@ -0,0 +1,191 @@
++//! Imported traces are checked before measurements, independently of the backend.
++use serde_json::{Value, json};
++use std::process::{Command, Output};
++use std::sync::atomic::{AtomicUsize, Ordering};
++
++fn fixture() -> Value {
++    json!({
++        "schema_version": 1, "kind": "connectivity-import", "workload": "fixture-outages-v1",
++        "node_ids": ["A", "B", "isolated"],
++        "provenance": {"source_url": "https://example.org/fixture", "source_revision": "fixture-v1",
++          "source_sha256": "a".repeat(64), "license": "CC0-1.0", "citation": "Synthetic test fixture",
++          "retrieved_date": "2026-10-03"},
++        "transform": {"generator": "fixture-v1"},
++        "batches": [{"time": 0, "start": 0, "end": 2}, {"time": 1, "start": 2, "end": 4}],
++        "trace": {"initial_edges": [[0,1]], "operations": [
++          {"op":"cut", "source":0, "target":1},
++          {"op":"connected", "source":0, "target":1, "expected":false},
++          {"op":"link", "source":0, "target":1},
++          {"op":"connected", "source":0, "target":2, "expected":false}]}
++    })
++}
++fn run(value: &Value, extra: &[&str]) -> Output {
++    run_bytes(&serde_json::to_vec(value).unwrap(), extra)
++}
++fn run_bytes(bytes: &[u8], extra: &[&str]) -> Output {
++    static NEXT: AtomicUsize = AtomicUsize::new(0);
++    let path = std::env::temp_dir().join(format!(
++        "knotrel-import-{}-{}.json",
++        std::process::id(),
++        NEXT.fetch_add(1, Ordering::Relaxed)
++    ));
++    std::fs::write(&path, bytes).unwrap();
++    let output = Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"))
++        .arg("--trace-in")
++        .arg(&path)
++        .args(["--warmup", "0"])
++        .args(extra)
++        .output()
++        .unwrap();
++    std::fs::remove_file(path).unwrap();
++    output
++}
++#[test]
++fn imported_trace_replays_across_engines_with_separate_repeat_queries() {
++    let output = run(
++        &fixture(),
++        &[
++            "--engine",
++            "compact-bfs,ett-scan,hdt,petgraph-dfs",
++            "--query-repeats",
++            "2",
++        ],
++    );
++    assert!(
++        output.status.success(),
++        "{}",
++        String::from_utf8_lossy(&output.stderr)
++    );
++    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
++    for item in report["comparisons"].as_array().unwrap() {
++        assert_eq!(item["schema_version"], 4);
++        assert!(item.get("config").is_none());
++        assert_eq!(item["import"]["node_count"], 3);
++        assert_eq!(item["import"]["validated_queries"], 2);
++        assert_eq!(
++            item["repetitions"][0]["measurements"]["connected"]["count"],
++            2
++        );
++        assert_eq!(item["repetitions"][0]["repeated_queries"]["count"], 4);
++    }
++}
++#[test]
++fn rejects_corrupt_traces_before_output() {
++    let mut cases = vec![];
++    let mut v = fixture();
++    v["trace"]["operations"][1]["expected"] = json!(true);
++    cases.push(v);
++    let mut v = fixture();
++    v["trace"]["operations"][0]["op"] = json!("link");
++    cases.push(v);
++    let mut v = fixture();
++    v["trace"]["initial_edges"] = json!([[0, 1], [0, 1]]);
++    cases.push(v);
++    let mut v = fixture();
++    v["trace"]["operations"][0]["source"] = json!(99);
++    cases.push(v);
++    let mut v = fixture();
++    v["batches"][0]["end"] = json!(1);
++    cases.push(v);
++    let mut v = fixture();
++    v["batches"][1]["time"] = json!(0);
++    cases.push(v);
++    let mut v = fixture();
++    v["node_ids"] = json!(["A", "A", "B"]);
++    cases.push(v);
++    let mut v = fixture();
++    v["provenance"]["source_sha256"] = json!("invalid");
++    cases.push(v);
++    let mut v = fixture();
++    v["schema_version"] = json!(2);
++    cases.push(v);
++    let mut v = fixture();
++    v["surprise"] = json!(1);
++    cases.push(v);
++    for case in cases {
++        let output = run(&case, &[]);
++        assert!(!output.status.success());
++        assert!(output.stdout.is_empty());
++        assert!(!output.stderr.is_empty());
++    }
++}
++#[test]
++fn generation_flags_cannot_silently_override_imports() {
++    for flag in [
++        "--nodes",
++        "--rounds",
++        "--seed",
++        "--workload",
++        "--query-percent",
++    ] {
++        let value = if flag == "--workload" {
++            "chain-split-rejoin-v1"
++        } else {
++            "50"
++        };
++        let output = run(&fixture(), &[flag, value]);
++        assert!(!output.status.success());
++        assert!(output.stdout.is_empty());
++    }
++}
++
++#[test]
++fn rejects_transient_cut_and_relink_inside_one_source_batch() {
++    let mut value = fixture();
++    value["trace"]["operations"] = json!([
++        {"op":"cut","source":0,"target":1},
++        {"op":"link","source":0,"target":1},
++        {"op":"connected","source":0,"target":1,"expected":true}
++    ]);
++    value["batches"] = json!([{"time":0,"start":0,"end":3}]);
++    let output = run(&value, &[]);
++    assert!(
++        !output.status.success(),
++        "net-zero source changes must not emit kernel mutations"
++    );
++}
++
++#[test]
++fn importing_and_exporting_preserves_exact_bytes() {
++    let path =
++        std::env::temp_dir().join(format!("knotrel-import-export-{}.json", std::process::id()));
++    let bytes = format!(
++        " \n{}\n ",
++        serde_json::to_string_pretty(&fixture()).unwrap()
++    )
++    .into_bytes();
++    let output = run_bytes(
++        &bytes,
++        &[
++            "--trace-out",
++            path.to_str().unwrap(),
++            "--query-repeats",
++            "1",
++            "--warmup",
++            "1",
++            "--repetitions",
++            "2",
++        ],
++    );
++    assert!(
++        output.status.success(),
++        "{}",
++        String::from_utf8_lossy(&output.stderr)
++    );
++    assert_eq!(std::fs::read(&path).unwrap(), bytes);
++    let first: Value = serde_json::from_slice(&output.stdout).unwrap();
++    let different = run_bytes(&bytes, &[]);
++    assert!(different.status.success());
++    let second: Value = serde_json::from_slice(&different.stdout).unwrap();
++    assert_eq!(
++        first["trace_fingerprint_fnv1a64"],
++        second["trace_fingerprint_fnv1a64"]
++    );
++    assert_eq!(
++        first["import"]["provenance"],
++        second["import"]["provenance"]
++    );
++    let again = run_bytes(&bytes, &["--trace-out", path.to_str().unwrap()]);
++    assert!(!again.status.success());
++    std::fs::remove_file(path).unwrap();
++}
+diff --git a/docs/methodology.md b/docs/methodology.md
+index a37ebd6..4288230 100644
+--- a/docs/methodology.md
++++ b/docs/methodology.md
+@@ -14,8 +14,8 @@ refuses to overwrite existing files. The envelope contains workload, config,
+ initial edges and operations (`op`, `source`, `target`, and query `expected`).
+ Integers are JSON numbers: consumers must parse u64 losslessly, especially seed;
+ this is a benchmark interchange format, not the string-ID HTTP protocol.
+-Future adapters can read these files or use the Rust generator; the current CLI
+-only generates traces, and does not import arbitrary external trace files.
++The CLI also accepts a distinct [validated import envelope](scenarios/topology-zoo.md)
++through `--trace-in`. Historical generated exports are not that import format.
+ 
+ The report contains FNV-1a-64 of the exact compact export bytes (including config
+ and expected answers), starting at 0xcbf29ce484222325 and multiplying by
+@@ -248,3 +248,10 @@ storage after registration, load and replay and groups cuts by promotion-counter
+ deltas. It must not contribute to normal timing tables. Vector capacities and
+ live ordered payload exclude B-tree/allocator overhead and are not RSS. See the
+ [v3 report](../results/2026-09-28-hdt-v3-sparse/README.md) for the measured tradeoff.
++
++## Domain workloads
++
++The [domain adapter contracts](scenarios/README.md) specify source provenance,
++projection, timestamp batching, independent validation and cache experiments for
++telecom, contacts and AML. Telecom import/replay is implemented and has a small
++integration run; contacts and AML remain prospective contracts.
+diff --git a/docs/research/2026-10-03-domain-scenarios.md b/docs/research/2026-10-03-domain-scenarios.md
+new file mode 100644
+index 0000000..9b4a47d
+--- /dev/null
++++ b/docs/research/2026-10-03-domain-scenarios.md
+@@ -0,0 +1,69 @@
++# Domain scenario selection — 2026-10-03
++
++Status: source selection and adapter contracts. The [Abilene adapter integration
++run](../../results/2026-10-03-topology-import-smoke/README.md) now pins and validates
++one GraphML artifact. Contacts/AML acquisition and domain-scale studies remain pending.
++See the [implementation contract](../scenarios/README.md).
++
++## Decision
++
++Start with **Internet Topology Zoo**, then add **SocioPatterns high-school
++contacts** subject to its usage terms, and **IBM AML-Data**. These exercise
++structural failures, observed temporal changes, and transaction multiplicity,
++respectively. They are workload sources, not competing connectivity engines.
++Keep petgraph as the primary external embedded baseline; retain algorithmic
++controls without presenting their popularity as market adoption.
++
++| Source | Evidence and provenance | License / acquisition boundary | Decision |
++| --- | --- | --- | --- |
++| [Internet Topology Zoo](https://github.com/mroughan/InternetTopologyZoo) | More than 250 telecom topologies transcribed from maps; [2011 paper](https://doi.org/10.1109/JSAC.2011.111002), [archival DOI](https://doi.org/10.25909/30153949). | Archive [license](https://github.com/mroughan/InternetTopologyZoo/blob/main/LICENSE): CC-BY-4.0. Pin selected GraphML files and retain attribution. Do not bundle map images. | First adapter. Real topology, **simulated outages**. |
++| [SocioPatterns high-school contacts](https://sociopatterns.org/datasets/high-school-dynamic-contact-networks/) | Observed proximity; [Fournet and Barrat, 2014](https://doi.org/10.1371/journal.pone.0107878). Timestamped 20-second contact intervals. | Publisher links [CC-BY-NC-SA-3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/). Public access is not unrestricted commercial reuse. Keep acquisition optional and separate from repository fixtures. | Conditional research scenario. Use 2012 release; preserve its temporal semantics. |
++| [IBM AML-Data](https://github.com/IBM/AML-Data) | Synthetic transactions generated by a multi-agent virtual world, not anonymized customer records. | Repository Apache-2.0; **data CDLA-Sharing-1.0**. Pin the actual selected download and its accompanying terms independently. | First AML source: offline CSV avoids a simulator runtime dependency. |
++| [IBM AMLSim](https://github.com/IBM/AMLSim) | Configurable transaction simulator; [original research](https://arxiv.org/abs/1812.00076). | Apache-2.0 repository. Recheck generated-output terms when selecting a version. Documented setup includes Java/MASON and older Python dependencies. | Later generator control, separate from AML-Data; do not assume identical schemas or generators. |
++
++## Adoption: evidence rather than a popularity claim
++
++The objection to relying on obscure competitors is valid. Evaluate software
++competitors by users, maintenance, integration and comparable semantics; evaluate
++data sources additionally by published methodology and independent reuse.
++
++The Topology Zoo mirror displayed 22 stars and 3 forks on this inspection. That
++small mirror is not evidence of commercial adoption. The independently published
++[T-Garden dataset](https://zenodo.org/records/21116252) explicitly reuses Topology
++Zoo: this supports scientific reuse, without establishing a citation count or a
++market ranking. Its old helper tools are described by the maintainer as
++unmaintained; use the data format, not those tools.
++
++IBM AML-Data and AMLSim have institutional provenance and accessible artifacts,
++but that alone does not establish production adoption. Their published examples
++and author papers do not prove independent deployment. SocioPatterns has a
++published measurement protocol; independent usage counts were not audited here.
++No candidate is labelled an industry standard based on stars or branding.
++
++## What Knotrel can and cannot demonstrate
++
++Knotrel answers undirected, instantaneous connectivity in a simple graph.
++Telecom connectivity does not establish routing feasibility, capacity or latency.
++Contact connectivity does not establish a time-respecting infection path.
++AML connectivity can identify association components, but does not classify fraud,
++trace directed money flows, enforce account permissions or prove laundering.
++Do not report detection accuracy from a connectivity benchmark.
++
++Node types, amounts, classes and bank identity belong in the importer and
++provenance sidecar for now. A class or bank membership must not silently create
++edges. Nested graphs and typed traversal require their own query semantics and
++ADR; these scenarios will supply concrete requirements before core changes.
++
++## Broader literature and deferred work
++
++[Temporal Graph Benchmark](https://arxiv.org/abs/2307.01026) and its
++[dataset catalogue](https://tgb-website.pages.dev/docs/dataset_overview/) cover
++additional interaction and transaction domains. Its link/node prediction tasks
++are different from exact connectivity. Dataset-specific licenses and projection
++rules must be checked before selecting an artifact; a software license is not a
++data license. Electrical networks remain useful future cases, but require an
++explicit distinction between topological reachability and electrical feasibility.
++
++The selected cases are not proof of scale or realism for every application.
++Topology archives are historical; contact observations have sampling boundaries;
++synthetic AML reflects its generator. Publish those limits beside results.
+diff --git a/docs/scenarios/README.md b/docs/scenarios/README.md
+new file mode 100644
+index 0000000..ae32a59
+--- /dev/null
++++ b/docs/scenarios/README.md
+@@ -0,0 +1,136 @@
++# Domain adapter contracts
++
++Status: imported replay and the [Topology Zoo adapter](topology-zoo.md) are
++implemented. Contacts and AML remain planned. See the
++[source selection and licensing review](../research/2026-10-03-domain-scenarios.md).
++The sections below define shared contracts and the remaining implementation gates.
++
++## Shared normalization and reproducibility
++
++1. Acquire an explicit artifact outside tracked results. Record source URL,
++   retrieval date, immutable revision/version, file SHA-256, accompanying license
++   and citation. Fail acquisition on checksum mismatch. No automatic bulk download.
++2. Validate source schema and timestamp units. Keep original IDs as strings;
++   assign dense u64 IDs by sorted UTF-8 source keys, using structured composite
++   keys where necessary. Persist the mapping. Register the complete node universe,
++   including isolates, before replay; this is an offline experiment.
++3. Project to canonical undirected pairs `(min(u,v), max(u,v))`. Report discarded
++   self-loops, duplicates, malformed records and every filter. Reject malformed
++   records by default. Distinguish duplicate records from separate parallel events.
++4. Process all changes at the same logical timestamp as one source batch. Compute
++   the final active-pair set, then emit sorted cuts and sorted links for its set
++   difference. Query only after the entire batch. Intermediate states are not
++   domain observations; this does not add transactional semantics to the server.
++5. Store batch boundaries and source time in a sidecar. The existing operation
++   vector can express the kernel replay, but its generated-workload envelope must
++   not be mislabelled as an imported trace. The implemented [import schema](topology-zoo.md#import-schema-1-and-report-schema-4)
++   separates this envelope from generated trace exports.
++6. Record query schedule, seed and exact PRNG/version. Include a fixed probe set
++   and seeded distinct-node pairs independent of expected answers. Publish actual
++   positive/negative counts and mutation/query ratios; do not force a 50/50 mix or
++   select queries by an oracle outcome. Reject pair sampling if fewer than 2 nodes.
++
++A repeated source event need not cause a kernel operation. Report source records,
++source batches, normalized links/cuts and query counts separately. Every emitted
++mutation must change the simple graph. Preserve all seed, window, selection and
++horizon parameters in the manifest; never use process-randomized hash iteration
++for ordering. Explicitly record whether IDs were selected from the full artifact
++or a declared subset before mapping.
++
++## Three scenarios
++
++### Telecom: `topology-zoo-outages-v1` (implemented)
++
++Use selected undirected GraphML topologies. Reject directed/mixed graphs and
++unsupported hyperedges rather than silently changing their meaning. Preserve
++parallel source edges as separate links with stable source identities; a pair is
++active while at least one such link is up. Ignore self-loops with a reported count.
++
++Start from the complete topology. Generate a seeded permutation of source links,
++fail the first `k` one at a time, then restore them in reverse order. Persist the
++exact permutation, PRNG, seed and `k` (bounded by link count). Query after each
++failure/restoration batch, including batches without a projected mutation. This
++is a controlled outage experiment, not a historical failure log. Select and pin
++at least one topology with alternative paths; report bridges and component sizes
++rather than claiming the sample represents all telecom networks.
++
++### Contacts: `sociopatterns-contacts-20s-v1` (proposed)
++
++Select the 2012 high-school release and its node metadata, subject to its license.
++Each row `t i j Ci Cj` describes contact in the publisher's interval `[t-20s,t]`.
++Treat each timestamp as a **discrete observation bucket**, not an instantaneous
++arrival event or a cumulative historical relationship. Validate the 20-second
++grid. Deduplicate identical bucket/pair observations and report their count.
++
++For every bucket from first to last observed timestamp, the active set is exactly
++its listed pairs. Empty buckets clear the graph, including overnight gaps; they
++mean no recorded contacts, not proof nobody met. Consecutive buckets containing
++the same pair produce no cut/link. Add one explicitly labelled empty terminal
++bucket to expire the last contacts. Register metadata nodes even when unobserved;
++reject unknown contact IDs pending explicit source reconciliation. Class is
++metadata; gender is unnecessary and need not be imported. Query at bucket end.
++This tests static connectivity of each observation, not temporal reachability.
++
++### AML: `aml-data-window-v1` (proposed)
++
++Pin one IBM AML-Data CSV artifact before fixing its concrete column mapping.
++Identify accounts by `(bank_id, account_id)`, preserving strings and both endpoint
++namespaces. Require an explicit source timestamp format, resolution and timezone
++policy; reject ambiguity rather than inventing UTC. Amounts, currencies, direction
++and laundering labels are metadata, not connectivity predicates.
++
++A transaction at source time `s` contributes to its undirected pair at time `t`
++exactly when `t-W < s <= t`, for configurable positive `W`. A 30-day window is an
++experimental choice, not an AML rule. Process both transaction and expiry times,
++including expiry-only batches. Stop after the final transaction's expiry, marking
++this tail explicitly. Aggregate all expirations and arrivals at a timestamp before
++computing transitions: link only on count 0 to positive, cut only on positive to 0.
++Distinct identical transactions still count separately unless a verified source
++transaction identifier proves duplication. Do not deduplicate by account pair.
++
++For example, A-B transactions at times 0 and 5 with W=10 produce one link at 0,
++no cut at 10, and one cut at 15. An arrival exactly when the last earlier event
++expires keeps the pair active after that batch. This model measures association
++within a window, not directed payment reachability or fraud detection quality.
++
++## Correctness and measurement gates
++
++Build small source fixtures without redistributing third-party data. Verify
++parallel telecom links, isolates, contact gaps and duplicates, AML overlapping
++transactions, exact expiry boundaries, composite IDs and same-time replacements.
++Derive fixture expected adjacency directly from source records and the formal
++interval predicates, independently of importer counters; compare all pairs with
++an independent traversal or transitive closure. For acquired data, validate every
++scheduled query outside timing, recording validation coverage and cost. Do not
++use one projection implementation as both producer and sole oracle.
++
++Time parsing, projection, setup and validation separately from kernel operations.
++Report both kernel-only replay and, when implemented, end-to-end adapter cost.
++Use identical normalized traces across backends, preserving immediate visibility.
++Record repetitions separately, actual operation counts, tail latencies, source and
++projected graph sizes, peak memory measurement method, build flags, hardware,
++compiler, dependency locks, both repository revisions and dirty diffs.
++
++Cache experiments must distinguish fresh graph state from cold hardware caches.
++Run reproducible warmups and fresh-graph repetitions, repeated endpoint queries
++and a seeded varied-endpoint schedule as separate variants. Rotate backend order
++and preserve seeds. Record whether input files were already cached. Do not label
++fresh-process or fresh-graph runs “cold cache” without a measured cache-control
++protocol. Repeated fixtures alone do not establish production performance.
++
++## Implementation order and acceptance
++
++1. Add a validated imported-trace envelope/replay path, provenance manifest and
++   independent fixture oracle. Preserve existing generated-trace compatibility.
++2. Implement GraphML normalization and the telecom outage generator. Pin a small
++   permitted source artifact by checksum; keep raw inputs outside Git. Validate
++   queries, then compare compact, ETT/HDT and petgraph on identical operations.
++3. Add bucket-contact normalization with synthetic fixtures first. Acquire real
++   data only for usage consistent with its terms; document that boundary.
++4. Add AML CSV schema mapping and window expiry with multiplicity. Pin the data
++   version independently of the repository software revision.
++5. Publish results and limitations only after reproducible runs. Use observed
++   bottlenecks to decide further algorithm work; no speedup target is a result.
++
++These steps do not require typed or nested graph support in the core. Any such
++extension needs an explicit domain query contract and a separate ADR.
+diff --git a/docs/scenarios/topology-zoo.md b/docs/scenarios/topology-zoo.md
+new file mode 100644
+index 0000000..e1c18ef
+--- /dev/null
++++ b/docs/scenarios/topology-zoo.md
+@@ -0,0 +1,112 @@
++# Topology Zoo import and replay
++
++Implemented: Python standard-library adapter and Rust `--trace-in` replay.
++[Abilene integration run](../../results/2026-10-03-topology-import-smoke/README.md)
++checks a pinned real topology across four engines. This is not a scale study.
++
++## Reproduce the input
++
++Retrieve only the following file, preserving its bytes:
++
++- [Abilene.graphml at revision 51118849b99534f01010d885d66321433a7eef9e](https://raw.githubusercontent.com/mroughan/InternetTopologyZoo/51118849b99534f01010d885d66321433a7eef9e/graphml/Abilene.graphml)
++- SHA-256: `8cd694280d98b336bb9b51fc3b2129a514f1b1b1ac80f2022aca02a57ef1e371`
++- [CC-BY-4.0 license at the same revision](https://raw.githubusercontent.com/mroughan/InternetTopologyZoo/51118849b99534f01010d885d66321433a7eef9e/LICENSE)
++- License SHA-256: `ea6250adc8affe14f68e97532da2ae64224d31e13363c9c89040810cbd8c06c9`
++- Attribution: Knight, Nguyen, Falkner, Bowden and Roughan, *The Internet Topology
++  Zoo*, IEEE JSAC 29(9), 1765–1775 (2011), DOI 10.1109/JSAC.2011.111002.
++
++Put the GraphML outside Git, for example `/tmp/Abilene.graphml`. Record your actual
++retrieval date. The following command records the original acquisition date for
++byte-identical reproduction of our trace (change it for a new acquisition):
++
++```sh
++python3 scripts/import_topology_zoo.py /tmp/Abilene.graphml \
++  --output /tmp/abilene.trace.json \
++  --sha256 8cd694280d98b336bb9b51fc3b2129a514f1b1b1ac80f2022aca02a57ef1e371 \
++  --source-url https://raw.githubusercontent.com/mroughan/InternetTopologyZoo/51118849b99534f01010d885d66321433a7eef9e/graphml/Abilene.graphml \
++  --source-revision 51118849b99534f01010d885d66321433a7eef9e \
++  --retrieved-date 2026-10-03 --license CC-BY-4.0 \
++  --citation 'Knight et al., The Internet Topology Zoo, IEEE JSAC 2011, doi:10.1109/JSAC.2011.111002' \
++  --failures 10 --seed 42 --queries 8
++
++cargo run --release --locked -- \
++  --trace-in /tmp/abilene.trace.json \
++  --engine compact-bfs,ett-scan,hdt,petgraph-dfs \
++  --warmup 1 --repetitions 3 --query-repeats 2
++```
++
++Both adapter output and runner `--trace-out` refuse to overwrite files. No network
++access occurs in the adapter. The supplied source checksum is verified; provenance
++strings are caller assertions, not authenticated evidence of license or origin.
++
++## Normalization and oracle
++
++Only UTF-8, namespaced GraphML containing one flat undirected graph is supported.
++Reject duplicate node/edge IDs, unknown endpoints, nested graphs, directed edges,
++hyperedges, ports, external references and DTD/entity declarations. Preserve every
++node, including isolates. Sort original IDs by UTF-8 bytes; their array positions
++are dense IDs. Edge IDs use `id:SOURCE_ID`; missing IDs use `index:SOURCE_POSITION`.
++Preserve each non-loop physical link separately, sort identities, and record them.
++Self-loops are discarded with a count. Metadata has no effect on connectivity;
++retain the original artifact for node attributes and map provenance.
++
++Shuffle physical-link indices with descending Fisher–Yates, using wrapping u64
++LCG `state = state * 6364136223846793005 + 1442695040888963407` and `state % bound`.
++Modulo bias is accepted and documented; this is not uniform statistical sampling.
++Fail the first `--failures` links in permutation order, then repair in reverse.
++Maintain pair reference counts to emit only effective cuts/links. Each batch
++queries `(0,n-1)` plus `--queries` seeded distinct endpoint pairs with replacement
++across queries. The same LCG stream continues after the shuffle: draw source modulo
++n, target modulo n-1, increment target when target >= source. Default seed is 42,
++default seeded pairs per batch is 8; zero permits a fixed-probe-only variant.
++
++The generator rebuilds union-find from active **source links** for each batch's
++expected answers. The Rust loader independently replays normalized mutations and
++validates all answers with BFS before warmup or operation timers. Synthetic tests
++compare all pairs on a cycle, bridge and isolate, plus parallel physical links.
++The loader does not independently re-fetch/re-interpret the original GraphML.
++
++This first adapter prioritizes auditability for small topology archives. It loads
++input and trace in memory, rebuilds source components per batch, and counts initial
++projected bridges by removal experiments. It is not a streaming million-edge
++preprocessor. Parsing/projection/serialization cost is not included in kernel
++latencies and is not yet separately instrumented. No peak-memory claim is made.
++
++## Import schema 1 and report schema 4
++
++The import envelope has exactly these fields:
++
++| Field | Contract |
++| --- | --- |
++| `schema_version`, `kind` | `1`, `"connectivity-import"` |
++| `workload` | Nonempty versioned scenario name |
++| `node_ids` | At least two sorted, unique, nonempty source-ID strings |
++| `provenance` | Nonempty `source_url`, `source_revision`, `license`, `citation`, `retrieved_date`; 64 hexadecimal digits in `source_sha256` |
++| `transform` | Nonempty object of scenario-specific parameters, counts and source-link identities; retained without scenario-specific validation by the generic loader |
++| `batches` | `{time,start,end}`; strictly increasing u64 logical times, contiguous nonempty half-open operation ranges covering the complete trace |
++| `trace` | `initial_edges` and `operations`, using the existing link/cut/connected operation fields |
++
++Unknown envelope, provenance, batch, trace and operation fields are rejected.
++Initial edges are unique canonical pairs. Mutation endpoints must be canonical
++and distinct; every operation references registered IDs. Each batch has sorted
++cuts, sorted links, then at least one query. A pair cannot be cut and linked in
++one batch: only net transitions are allowed. Query `expected` is checked by BFS.
++There is no partial reporting on input validation failure.
++
++`--trace-in` rejects `--nodes`, `--rounds`, `--seed`, `--workload` and
++`--query-percent`; these would misrepresent the imported experiment. Replay,
++engine and repeat options remain available. Optional `--trace-out` copies exact
++input bytes, including whitespace; the FNV diagnostic fingerprint covers these
++bytes. Use an external SHA-256 for artifact integrity.
++
++Imported individual reports use schema 4, omit generated `config`, and add
++`import`: node count, source-batch count, provenance, transform, validated query
++count, load/parse time and validation time. Multi-engine reports retain the schema
++3 comparisons envelope. Existing generated trace schema 1 and report schema 2
++are unchanged. Historical result-summary scripts are not extended to schema 4;
++consume its explicit import metadata rather than assuming generated rounds.
++
++Validation runs once before all backends. Input cache state is recorded as
++uncontrolled. Fresh-graph repetitions do not imply cold hardware caches. Query
++repeats are separately reported. For comparative studies rotate engine order and
++use fixed-only and varied-pair schedules as separate trace variants.
+diff --git a/docs/superpowers/plans/2026-10-03-topology-import.md b/docs/superpowers/plans/2026-10-03-topology-import.md
+new file mode 100644
+index 0000000..b0c70a7
+--- /dev/null
++++ b/docs/superpowers/plans/2026-10-03-topology-import.md
+@@ -0,0 +1,39 @@
++# Topology import implementation plan
++
++**Goal:** Replay independently validated imported traces and convert one pinned
++Topology Zoo GraphML artifact into a deterministic outage experiment.
++
++**Architecture:** Python standard-library GraphML preprocessing; strict versioned
++JSON import in the existing Rust runner. Reuse existing engine timing and report
++fields; keep generated trace bytes and report schema unchanged. Imported reports
++use schema 4 with import metadata instead of generated rounds/config.
++
++**Spec:** [Domain adapter contracts](../../scenarios/README.md).
++
++**Constraints:** Rust 1.98.1; no new dependencies; no core edits; no commits.
++Retain existing user documentation edits. Execute inline in the authorized checkout.
++
++## Tasks
++
++- [x] Add CLI tests for import replay, incorrect oracles, invalid mutations,
++  invalid endpoints/batches/provenance and incompatible generation flags.
++- [x] Add strict import schema and independent untimed BFS validation; expose
++  `--trace-in`, preserve imported bytes on optional export, report validation time.
++- [x] Add Python fixture tests for parallel links, isolates, directed/nested graphs,
++  missing endpoints, checksum mismatch, deterministic queries and no overwrite.
++- [x] Implement `scripts/import_topology_zoo.py` with SHA-256 input pin, explicit
++  provenance, sorted ID map, seeded LCG/Fisher-Yates outages and reverse repairs.
++  Queries comprise a fixed probe and seeded distinct pairs; expected answers
++  derive from active source links rather than projected mutation counters.
++- [x] Pin and acquire one small real GraphML artifact outside Git; verify license,
++  exercise import/replay across compact, ETT, HDT and petgraph, retain provenance.
++- [x] Update runnable documentation and run Python tests, Rust tests, fmt, Clippy,
++  Rustdoc and diff checks. Review changes and report limits without extrapolation.
++
++## Review focus
++
++- Parallel physical links must not disconnect a still-live pair.
++- Queries with false expected answers must be rejected before timed replay.
++- Unsupported GraphML semantics must fail rather than silently lose connectivity.
++- Isolates and nonnumeric IDs must survive normalization.
++- Cache/repetition options must not alter imported bytes or provenance.
+diff --git a/scripts/import_topology_zoo.py b/scripts/import_topology_zoo.py
+new file mode 100644
+index 0000000..4268e69
+--- /dev/null
++++ b/scripts/import_topology_zoo.py
+@@ -0,0 +1,193 @@
++#!/usr/bin/env python3
++"""Convert a pinned, flat undirected GraphML topology into an offline import trace.
++
++Only Python's standard library is required. No network access or timed kernel
++operations occur here. Original input files and generated traces stay local.
++"""
++import argparse
++from collections import Counter
++from datetime import date
++import hashlib
++import json
++from pathlib import Path
++import xml.etree.ElementTree as ET
++
++NS = '{http://graphml.graphdrawing.org/xmlns}'
++MASK = (1 << 64) - 1
++
++
++class Lcg:
++    """Explicit wrapping LCG; modulo reduction is reproducible but biased."""
++    def __init__(self, seed):
++        self.state = seed
++
++    def below(self, bound):
++        self.state = (self.state * 6364136223846793005 + 1442695040888963407) & MASK
++        return self.state % bound
++
++
++def parse_graphml(raw):
++    """Return sorted source IDs and physical links, rejecting semantic loss."""
++    text = raw.decode('utf-8-sig')
++    if '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():
++        raise ValueError('DTD and entity declarations are unsupported')
++    root = ET.fromstring(text)
++    if root.tag != NS + 'graphml':
++        raise ValueError('expected namespaced GraphML root')
++    graphs = list(root.iter(NS + 'graph'))
++    if len(graphs) != 1 or graphs[0] not in list(root):
++        raise ValueError('exactly one flat graph is required')
++    graph = graphs[0]
++    if graph.get('edgedefault') != 'undirected':
++        raise ValueError('only undirected graphs are supported')
++    for element in root.iter():
++        if element.tag in {NS+'hyperedge', NS+'port', NS+'locator', NS+'endpoint'}:
++            raise ValueError('hyperedges, ports and external references are unsupported')
++    allowed = {NS+'node', NS+'edge', NS+'data', NS+'desc'}
++    if any(child.tag not in allowed for child in graph):
++        raise ValueError('unsupported graph child')
++    for kind in ('node', 'edge'):
++        if list(root.iter(NS+kind)) != graph.findall(NS+kind):
++            raise ValueError('structural elements must be direct graph children')
++    node_elements = graph.findall(NS+'node')
++    ids = [node.get('id') for node in node_elements]
++    if any(not key for key in ids) or len(set(ids)) != len(ids) or len(ids) < 2:
++        raise ValueError('at least two unique nonempty node IDs are required')
++    ids.sort(key=lambda key: key.encode('utf-8'))
++    mapping = {key: i for i, key in enumerate(ids)}
++    links, edge_ids, loops = [], set(), 0
++    edges = graph.findall(NS+'edge')
++    for index, edge in enumerate(edges):
++        if edge.get('directed', 'false') not in ('false', '0'):
++            raise ValueError('directed edges are unsupported')
++        if any(attr in edge.attrib for attr in ('sourceport','targetport')):
++            raise ValueError('edge ports are unsupported')
++        a, b = edge.get('source'), edge.get('target')
++        if a not in mapping or b not in mapping:
++            raise ValueError('edge references an unknown node')
++        supplied_id = edge.get('id')
++        if supplied_id is not None:
++            if not supplied_id or supplied_id in edge_ids:
++                raise ValueError('edge IDs must be nonempty and unique when supplied')
++            edge_ids.add(supplied_id)
++        identity = 'id:' + supplied_id if supplied_id is not None else f'index:{index}'
++        if a == b:
++            loops += 1
++            continue
++        source, target = sorted((mapping[a], mapping[b]))
++        links.append({'id': identity, 'source': source, 'target': target})
++    links.sort(key=lambda link: link['id'].encode('utf-8'))
++    return ids, links, loops, len(edges)
++
++
++def components(node_count, links, active):
++    """Independent source-link union-find oracle, rebuilt for each source batch."""
++    parent = list(range(node_count))
++    def root(node):
++        while parent[node] != node:
++            parent[node] = parent[parent[node]]
++            node = parent[node]
++        return node
++    for index in sorted(active):
++        edge = links[index]
++        a, b = root(edge['source']), root(edge['target'])
++        parent[a] = b
++    return [root(node) for node in range(node_count)]
++
++
++def build_trace(raw, args):
++    """Produce normalized mutations and source-derived expected query answers."""
++    if hashlib.sha256(raw).hexdigest() != args.sha256.lower():
++        raise ValueError('source SHA-256 mismatch')
++    if not 0 <= args.seed <= MASK or args.queries < 0 or args.failures < 1:
++        raise ValueError('seed must be u64, queries nonnegative, failures positive')
++    date.fromisoformat(args.retrieved_date)
++    for field in ('source_url', 'source_revision', 'license', 'citation'):
++        if not getattr(args, field).strip():
++            raise ValueError(f'{field} must be nonempty')
++    ids, links, loops, records = parse_graphml(raw)
++    if args.failures > len(links):
++        raise ValueError('failures exceeds non-loop physical link count')
++    counts = Counter((edge['source'], edge['target']) for edge in links)
++    initial = sorted(counts)
++    order = list(range(len(links)))
++    rng = Lcg(args.seed)
++    for index in range(len(order)-1, 0, -1):
++        other = rng.below(index+1)
++        order[index], order[other] = order[other], order[index]
++    failed = order[:args.failures]
++    active = set(range(len(links)))
++    initial_components = components(len(ids), links, active)
++    # Bridge count for the projected simple graph, outside benchmark timing.
++    # Removing all physical links of a pair distinguishes projected from physical bridges.
++    initial_component_count = len(set(initial_components))
++    bridges = 0
++    for pair in initial:
++        without = {i for i,e in enumerate(links) if (e['source'],e['target']) != pair}
++        bridges += len(set(components(len(ids), links, without))) > initial_component_count
++    operations, batches = [], []
++    for time, (index, restore) in enumerate([(i,False) for i in failed] + [(i,True) for i in reversed(failed)]):
++        start = len(operations)
++        edge = links[index]
++        pair = (edge['source'],edge['target'])
++        before = counts[pair]
++        if restore:
++            active.add(index)
++            counts[pair] += 1
++        else:
++            active.remove(index)
++            counts[pair] -= 1
++        if (before == 0) != (counts[pair] == 0):
++            operations.append({'op': 'link' if restore else 'cut', 'source': pair[0], 'target': pair[1]})
++        labels = components(len(ids), links, active)
++        probes = [(0,len(ids)-1)]
++        for _ in range(args.queries):
++            source = rng.below(len(ids))
++            target = rng.below(len(ids)-1)
++            target += target >= source
++            probes.append((source,target))
++        for source,target in probes:
++            operations.append({'op':'connected','source':source,'target':target,'expected':labels[source]==labels[target]})
++        batches.append({'time':time,'start':start,'end':len(operations)})
++    return {
++        'schema_version':1, 'kind':'connectivity-import', 'workload':'topology-zoo-outages-v1',
++        'node_ids':ids,
++        'provenance': {field:getattr(args,field) for field in
++                       ('source_url','source_revision','license','citation','retrieved_date')} | {'source_sha256':args.sha256.lower()},
++        'transform': {'generator':'topology-zoo-outages-v1', 'seed':args.seed,
++                      'prng':'lcg64-6364136223846793005-1442695040888963407-fisher-yates-modulo-v1',
++                      'queries_per_batch':{'fixed':[[0,len(ids)-1]], 'seeded_distinct_pairs':args.queries},
++                      'failures':args.failures, 'failure_order':[links[i]['id'] for i in failed],
++                      'permutation':[links[i]['id'] for i in order], 'source_links':links,
++                      'source_edge_records':records, 'discarded_self_loops':loops,
++                      'parallel_links':len(links)-len(initial), 'discarded_records':0,
++                      'initial_projected_bridges':bridges,
++                      'initial_component_sizes':sorted(Counter(initial_components).values(), reverse=True),
++                      'time_unit':'synthetic-source-event-index', 'node_selection':'all-source-nodes',
++                      'oracle':'rebuild-union-find-from-active-source-links'},
++        'batches':batches, 'trace':{'initial_edges':initial, 'operations':operations},
++    }
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('input', type=Path)
++    parser.add_argument('--output', type=Path, required=True)
++    for name in ('sha256','source-url','source-revision','retrieved-date','license','citation'):
++        parser.add_argument('--'+name, required=True)
++    parser.add_argument('--failures', type=int, required=True)
++    parser.add_argument('--seed', type=int, default=42)
++    parser.add_argument('--queries', type=int, default=8, help='seeded pairs per batch, in addition to fixed probe')
++    args = parser.parse_args()
++    try:
++        raw = args.input.read_bytes()
++        trace = build_trace(raw,args)
++        serialized = json.dumps(trace, sort_keys=True, separators=(',',':'), ensure_ascii=False)+'\n'
++        with args.output.open('x', encoding='utf-8') as output:
++            output.write(serialized)
++    except (OSError, ValueError, ET.ParseError) as error:
++        parser.exit(1, f'import_topology_zoo: {error}\n')
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/scripts/tests/test_import_topology_zoo.py b/scripts/tests/test_import_topology_zoo.py
+new file mode 100644
+index 0000000..717f3e1
+--- /dev/null
++++ b/scripts/tests/test_import_topology_zoo.py
+@@ -0,0 +1,125 @@
++"""Behavioral checks using original synthetic GraphML, not third-party data."""
++import hashlib
++import json
++from pathlib import Path
++import subprocess
++import tempfile
++import unittest
++
++SCRIPT = Path(__file__).resolve().parents[1] / 'import_topology_zoo.py'
++GRAPH = '''<graphml xmlns="http://graphml.graphdrawing.org/xmlns"><graph edgedefault="undirected">
++<node id="z"/><node id="A"/><node id="isolated"/>
++<edge id="one" source="A" target="z"/><edge id="two" source="z" target="A"/>
++<edge id="loop" source="A" target="A"/>
++</graph></graphml>'''
++
++class TopologyImportTests(unittest.TestCase):
++    def invoke(self, directory, graph=GRAPH, extra=(), name='trace.json'):
++        source = Path(directory) / 'input.graphml'
++        source.write_text(graph)
++        output = Path(directory) / name
++        command = ['python3', str(SCRIPT), str(source), '--output', str(output),
++                   '--sha256', hashlib.sha256(source.read_bytes()).hexdigest(),
++                   '--source-url', 'https://example.org/fixture.graphml',
++                   '--source-revision', 'fixture-v1', '--retrieved-date', '2026-10-03',
++                   '--license', 'CC0-1.0', '--citation', 'Original test fixture',
++                   '--failures', '2', '--seed', '42', '--queries', '3', *extra]
++        return subprocess.run(command, capture_output=True, text=True), output
++
++    def test_parallel_edges_isolates_and_expected_query_answers(self):
++        with tempfile.TemporaryDirectory() as directory:
++            result, output = self.invoke(directory)
++            self.assertEqual(result.returncode, 0, result.stderr)
++            trace = json.loads(output.read_text())
++            self.assertEqual(trace['node_ids'], ['A', 'isolated', 'z'])
++            self.assertEqual(trace['trace']['initial_edges'], [[0, 2]])
++            self.assertEqual(trace['transform']['discarded_self_loops'], 1)
++            self.assertEqual(len(trace['batches']), 4)
++            ops = trace['trace']['operations']
++            self.assertEqual([op['op'] for op in ops if op['op'] != 'connected'], ['cut','link'])
++            # Independent expected states by count of physical links remaining.
++            # One failure keeps A-z connected, two split it; first restoration reconnects.
++            for batch, connected in zip(trace['batches'], [True,False,True,True]):
++                queries = [op for op in ops[batch['start']:batch['end']] if op['op']=='connected']
++                self.assertEqual(len(queries), 4)
++                for op in queries:
++                    expected = connected and {op['source'],op['target']} == {0,2}
++                    self.assertEqual(op['expected'], expected)
++            again, second = self.invoke(directory, name='second.json')
++            self.assertEqual(again.returncode, 0, again.stderr)
++            self.assertEqual(output.read_bytes(), second.read_bytes())
++
++    def test_rejects_semantic_loss_and_bad_metadata_without_output(self):
++        invalid = [GRAPH.replace('<node id="z"/>','<data key="hidden"><node id="hidden"/></data><node id="z"/>'),
++                   GRAPH.replace('undirected','directed'),
++                   GRAPH.replace('source="A" target="z"','source="missing" target="z"'),
++                   GRAPH.replace('<node id="z"/>','<node id="z"/><node id="z"/>'),
++                   GRAPH.replace('<edge id="one"','<edge directed="true" id="one"'),
++                   GRAPH.replace('<node id="z"/>','<node id="z"><graph edgedefault="undirected"/></node>'),
++                   GRAPH.replace('</graph>','<hyperedge id="h"/></graph>'),
++                   GRAPH.replace('<edge id="one"','<edge sourceport="p" id="one"'),
++                   '<!DOCTYPE graphml [<!ENTITY x "foo">]>'+GRAPH]
++        for graph in invalid:
++            with self.subTest(graph=graph), tempfile.TemporaryDirectory() as directory:
++                result, output = self.invoke(directory, graph)
++                self.assertNotEqual(result.returncode, 0)
++                self.assertFalse(output.exists())
++        for extra in [('--sha256','0'*64),('--failures','3'),('--queries','-1'),('--seed','-1')]:
++            with self.subTest(extra=extra), tempfile.TemporaryDirectory() as directory:
++                result, output = self.invoke(directory, extra=extra)
++                self.assertNotEqual(result.returncode, 0)
++                self.assertFalse(output.exists())
++
++    def test_multihop_cycle_bridge_and_isolate_all_pairs(self):
++        # Original source fixture: triangle A-B-C, bridge C-D, isolate E.
++        edges = [('A','B'),('B','C'),('C','A'),('C','D')]
++        graph = '<graphml xmlns="http://graphml.graphdrawing.org/xmlns"><graph edgedefault="undirected">'
++        graph += ''.join(f'<node id="{node}"/>' for node in 'ABCDE')
++        graph += ''.join(f'<edge id="e{i}" source="{a}" target="{b}"/>' for i,(a,b) in enumerate(edges))
++        graph += '</graph></graphml>'
++        def reach(pairs, start, end):
++            seen, pending = {start}, [start]
++            while pending:
++                node = pending.pop()
++                for a,b in pairs:
++                    neighbor = b if a == node else a if b == node else None
++                    if neighbor is not None and neighbor not in seen:
++                        seen.add(neighbor)
++                        pending.append(neighbor)
++            return end in seen
++        for seed in ('0','42','18446744073709551615'):
++            with self.subTest(seed=seed), tempfile.TemporaryDirectory() as directory:
++                result, output = self.invoke(directory,graph,('--failures','4','--seed',seed))
++                self.assertEqual(result.returncode,0,result.stderr)
++                data=json.loads(output.read_text())
++                self.assertEqual(data['transform']['initial_projected_bridges'],1)
++                self.assertEqual(data['transform']['initial_component_sizes'],[4,1])
++                active=set(range(4))
++                order=[int(key.removeprefix('id:e')) for key in data['transform']['failure_order']]
++                schedule=[(i,False) for i in order]+[(i,True) for i in reversed(order)]
++                projected={tuple(pair) for pair in data['trace']['initial_edges']}
++                for batch,(index,restore) in zip(data['batches'],schedule):
++                    active.add(index) if restore else active.remove(index)
++                    source_pairs=[edges[i] for i in active]
++                    for op in data['trace']['operations'][batch['start']:batch['end']]:
++                        pair=(op['source'],op['target'])
++                        if op['op']=='cut': projected.remove(pair)
++                        elif op['op']=='link':
++                            self.assertNotIn(pair,projected)
++                            projected.add(pair)
++                        else:
++                            self.assertEqual(op['expected'],reach(source_pairs,'ABCDE'[pair[0]],'ABCDE'[pair[1]]))
++                    for a in range(5):
++                        for b in range(5):
++                            self.assertEqual(reach(projected,a,b),reach(source_pairs,'ABCDE'[a],'ABCDE'[b]))
++
++    def test_never_overwrites_existing_output(self):
++        with tempfile.TemporaryDirectory() as directory:
++            target=Path(directory)/'trace.json'
++            target.write_text('keep me')
++            result, _ = self.invoke(directory)
++            self.assertNotEqual(result.returncode,0)
++            self.assertEqual(target.read_text(),'keep me')
++
++if __name__ == '__main__':
++    unittest.main()
