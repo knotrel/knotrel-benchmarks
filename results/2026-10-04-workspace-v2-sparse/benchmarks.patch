@@ -1,0 +1,131 @@
+diff --git a/crates/knotrel-benchmarks/src/engines.rs b/crates/knotrel-benchmarks/src/engines.rs
+index ed7ba3b..9f13693 100644
+--- a/crates/knotrel-benchmarks/src/engines.rs
++++ b/crates/knotrel-benchmarks/src/engines.rs
+@@ -7,7 +7,7 @@
+ use crate::ett_baseline::ForestGraph as BaselineForest;
+ use crate::hdt_baseline::HdtGraph as BaselineHdt;
+ use knotrel_core::{
+-    ForestGraph, ForestStats, Graph, GraphError, HdtGraph, HdtStats, ReferenceGraph,
++    BfsWorkspace, ForestGraph, ForestStats, Graph, GraphError, HdtGraph, HdtStats, ReferenceGraph,
+ };
+ use outils::prelude::{DynamicConnectivity, DynamicGraph, Edge, EmptyWeight, VertexIndex};
+ use petgraph::{
+@@ -28,6 +28,8 @@ pub enum EngineKind {
+     Reference,
+     /// Growing-node production core with compact sorted adjacency and local BFS scratch.
+     Compact,
++    /// Same compact core with caller-owned reusable traversal storage.
++    CompactWorkspace,
+     /// AVL Euler-tour forest with exhaustive smaller-side replacement search.
+     EttScan,
+     /// Experimental Knotrel HDT with growing vertices and exact-level promotions.
+@@ -45,9 +47,10 @@ pub enum EngineKind {
+ }
+ impl EngineKind {
+     /// Stable default comparison order; collectors should rotate this order.
+-    pub const ALL: [Self; 9] = [
++    pub const ALL: [Self; 10] = [
+         Self::Reference,
+         Self::Compact,
++        Self::CompactWorkspace,
+         Self::EttScan,
+         Self::Hdt,
+         Self::HdtV2,
+@@ -62,6 +65,7 @@ impl EngineKind {
+         match self {
+             Self::Reference => "reference-bfs",
+             Self::Compact => "compact-bfs",
++            Self::CompactWorkspace => "compact-workspace",
+             Self::EttScan => "ett-scan",
+             Self::Hdt => "hdt",
+             Self::HdtV2 => "hdt-v2",
+@@ -77,6 +81,7 @@ impl EngineKind {
+         match self {
+             Self::Reference => "knotrel-core/reference-bfs",
+             Self::Compact => "knotrel-core/compact-bfs-v1",
++            Self::CompactWorkspace => "knotrel-core/compact-workspace-v2",
+             Self::EttScan => "knotrel-core/ett-pruned-v2",
+             Self::Hdt => "knotrel-core/hdt-sparse-levels-v3",
+             Self::HdtV2 => "knotrel-core/hdt-levels-v2",
+@@ -110,6 +115,7 @@ pub struct Engine {
+ enum Storage {
+     Reference(ReferenceGraph),
+     Compact(Graph),
++    CompactWorkspace(Graph, BfsWorkspace),
+     EttScan(ForestGraph),
+     Hdt(HdtGraph),
+     HdtV2(BaselineHdt),
+@@ -165,13 +171,17 @@ impl Engine {
+                 storage: Storage::Reference(graph),
+             });
+         }
+-        if kind == EngineKind::Compact {
++        if matches!(kind, EngineKind::Compact | EngineKind::CompactWorkspace) {
+             let mut graph = Graph::new();
+             for &node in nodes {
+                 graph.add_node(node);
+             }
+             return Ok(Self {
+-                storage: Storage::Compact(graph),
++                storage: if kind == EngineKind::Compact {
++                    Storage::Compact(graph)
++                } else {
++                    Storage::CompactWorkspace(graph, BfsWorkspace::default())
++                },
+             });
+         }
+         if kind == EngineKind::EttScan {
+@@ -230,6 +240,7 @@ impl Engine {
+             },
+             EngineKind::Reference
+             | EngineKind::Compact
++            | EngineKind::CompactWorkspace
+             | EngineKind::Hdt
+             | EngineKind::HdtV2
+             | EngineKind::EttScan
+@@ -322,6 +333,9 @@ impl Engine {
+         let indexed = match &mut self.storage {
+             Storage::Reference(graph) => return graph.connected(source, target),
+             Storage::Compact(graph) => return graph.connected(source, target),
++            Storage::CompactWorkspace(graph, workspace) => {
++                return graph.connected_with_workspace(source, target, workspace);
++            }
+             Storage::EttScan(graph) => return graph.connected(source, target),
+             Storage::Hdt(graph) => return graph.connected(source, target),
+             Storage::HdtV2(graph) => return graph.connected(source, target),
+@@ -386,7 +400,7 @@ impl Engine {
+                     graph.cut(source, target)
+                 };
+             }
+-            Storage::Compact(graph) => {
++            Storage::Compact(graph) | Storage::CompactWorkspace(graph, _) => {
+                 return if insert {
+                     graph.link(source, target)
+                 } else {
+diff --git a/crates/knotrel-benchmarks/src/main.rs b/crates/knotrel-benchmarks/src/main.rs
+index a93a857..3fc63c3 100644
+--- a/crates/knotrel-benchmarks/src/main.rs
++++ b/crates/knotrel-benchmarks/src/main.rs
+@@ -106,7 +106,7 @@ fn main() -> ExitCode {
+ fn run() -> Result<(), Box<dyn Error>> {
+     let Some(options) = parse_args()? else {
+         println!(
+-            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--trace-in IMPORT_JSON] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nImports require connectivity-import schema 1 and reject generation flags.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
++            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--trace-in IMPORT_JSON] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, compact-workspace (reusable BFS scratch), dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nImports require connectivity-import schema 1 and reject generation flags.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
+         );
+         return Ok(());
+     };
+diff --git a/crates/knotrel-benchmarks/tests/cli.rs b/crates/knotrel-benchmarks/tests/cli.rs
+index da7a3d8..a5d9701 100644
+--- a/crates/knotrel-benchmarks/tests/cli.rs
++++ b/crates/knotrel-benchmarks/tests/cli.rs
+@@ -232,7 +232,7 @@ fn all_engines_share_trace_and_keep_repeat_queries_separate() {
+     );
+     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+     let comparisons = report["comparisons"].as_array().unwrap();
+-    assert_eq!(comparisons.len(), 9);
++    assert_eq!(comparisons.len(), 10);
+     for backend in comparisons {
+         assert_eq!(
+             backend["trace_fingerprint_fnv1a64"],

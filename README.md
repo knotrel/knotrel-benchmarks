@@ -2,6 +2,10 @@
 
 Reproducible workloads for measuring exact dynamic graph connectivity.
 
+New: [BFS workspace before/after](results/2026-10-04-workspace-v2-comparison/README.md),
+with preserved v1 regressions, generation-mark v2, and dense confirmation.
+The `compact-workspace` selector uses the optional caller-owned workspace API.
+
 Latest: [544-run connectivity campaign](results/2026-10-04-connectivity-campaign/README.md),
 including 100,000-vertex sparse workloads, dense controls, repeated queries and
 a real Cogentco topology. The report labels Knotrel and external implementations

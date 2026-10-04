@@ -1,0 +1,14 @@
+diff --git a/crates/knotrel-core/src/lib.rs b/crates/knotrel-core/src/lib.rs
+index 9bf5540..c86d885 100644
+--- a/crates/knotrel-core/src/lib.rs
++++ b/crates/knotrel-core/src/lib.rs
+@@ -21,6 +21,9 @@ use std::{
+     fmt,
+ };
+ 
++mod workspace;
++pub use workspace::BfsWorkspace;
++
+ mod configuration;
+ mod dynamic;
+ mod forest;

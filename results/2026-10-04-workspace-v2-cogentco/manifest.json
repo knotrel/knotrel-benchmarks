@@ -1,0 +1,2074 @@
+{
+  "purpose": "real-topology-progressive-outages",
+  "source_sha256": {
+    "benchmarks/Cargo.toml": "f01ec1fff1cbb77a3e20d58345f3c75b785cd45a108aa30f4a7201c6b000dc5e",
+    "benchmarks/Cargo.lock": "a43f3e46684b794ee9e3b630878915101357bd6989f80b3bfc197812827156fc",
+    "benchmarks/rust-toolchain.toml": "c910997cb152c6dc8ed13b1fdf9fa28a4ed30d6776123e27dd6170e5c66067a0",
+    "benchmarks/crates/knotrel-benchmarks/build.rs": "9cfd0e7da6a27c2c221e98622f101d92eee445e08b85c0c84ab56818d6a527c2",
+    "benchmarks/crates/knotrel-benchmarks/src/bin/hdt-profile.rs": "f1671da5b6775a1a3c0d96800d616d2a49e81fc656db67ba7a3576a3d9dea6d1",
+    "benchmarks/crates/knotrel-benchmarks/src/engines.rs": "0a42da73c4f2ecce81c4d90dbbc59c75e785a10227e14cc71a9470993c6a9525",
+    "benchmarks/crates/knotrel-benchmarks/src/ett_baseline/dynamic.rs": "474fb38e3d73bf38740c54803abc5aac032a199d19e5ca29bc8065f78de522a2",
+    "benchmarks/crates/knotrel-benchmarks/src/ett_baseline/forest.rs": "dee05d1377bf42ece20ad20eefcc1832883f66367126bf970f0efee7cf238d38",
+    "benchmarks/crates/knotrel-benchmarks/src/ett_baseline/mod.rs": "12162ac7ba2b99032ea97662e779eeefafd63165e05c3ef8740b6b299fe263d0",
+    "benchmarks/crates/knotrel-benchmarks/src/hdt_baseline/forest.rs": "632a2641b28fad1c99a1e043a6ac1133470445d20bd2a4226ce8496547c9c5f4",
+    "benchmarks/crates/knotrel-benchmarks/src/hdt_baseline/hdt.rs": "7a3c9df25f2a6e9c2d01a3569defb51189479e3d245f0b7e2b9df53c0aa17b57",
+    "benchmarks/crates/knotrel-benchmarks/src/hdt_baseline/mod.rs": "75e7f5ec95f29784db5a8e0eb872b6a29eb742253fa681be2a78444603df5726",
+    "benchmarks/crates/knotrel-benchmarks/src/imported.rs": "a1e89b47f78e9edf792b8a3ead5f26f7f9e69c4e78b1063fc1ac0083c099f64a",
+    "benchmarks/crates/knotrel-benchmarks/src/lib.rs": "9e48f62ee4124fe86b0bd12fa27f6c8839898598eb26835234e4d82b5c4492a4",
+    "benchmarks/crates/knotrel-benchmarks/src/main.rs": "54df5b0b4bc8c0dca69ff192c7b299a59f29c77943863761de554e311d3f4a6d",
+    "benchmarks/crates/knotrel-benchmarks/src/metrics.rs": "264a468d79d54e2c3a0758090c965be5962105d4f60ef8e7d149bb7c62d6ea49",
+    "benchmarks/crates/knotrel-benchmarks/src/traces.rs": "639acd02ed0a43ec2565cb74c9e7a642bbe7337d85a868cb033adeb499718958",
+    "benchmarks/crates/knotrel-benchmarks/tests/cli.rs": "71d7dd1f2c77a90017fbd0b97b23f0d97ea8496a1685ee143b96e8afcbc3c103",
+    "benchmarks/crates/knotrel-benchmarks/tests/dense_workloads.rs": "f8da7594adf1392f16524e792da47756a87ac59d820408b3f469b5432d927352",
+    "benchmarks/crates/knotrel-benchmarks/tests/engines.rs": "d1c1bbef0208a9956a5ad8ca49025ada1a0815c773edc2e1e6cb86f8cc3f9a26",
+    "benchmarks/crates/knotrel-benchmarks/tests/hdt_profile.rs": "8f683add0ddfce8be9e1eafa474681914c3d6f540478db31fefa134c78668278",
+    "benchmarks/crates/knotrel-benchmarks/tests/import.rs": "a8e24a8f80edf67bc8b17cdccd7177e67688a7fa00f6e81dcfbf04775d04aa55",
+    "benchmarks/crates/knotrel-benchmarks/tests/workload.rs": "3ac80c20bb482c9d861687350ed3af289baaafbcdfa43927c424377bde4a3077",
+    "benchmarks/crates/knotrel-benchmarks/Cargo.toml": "701d65b04ed5c61638f862274574280a9931727bc85561d550b73c814aa43e2c",
+    "core/Cargo.toml": "fae40e37b5dca126257598d4987591a5b6da1393e830c9ac9fbfff44b86caba6",
+    "core/Cargo.lock": "a0799ad7b33886f3032f96173635010db2b2321a309949bd06ff688d06449391",
+    "core/rust-toolchain.toml": "c910997cb152c6dc8ed13b1fdf9fa28a4ed30d6776123e27dd6170e5c66067a0",
+    "core/crates/knotrel-core/src/configuration.rs": "2b7a5ca71c6ecffb7ec2bafd875220b44dc83883578adab6ecba64df77fc3b55",
+    "core/crates/knotrel-core/src/dynamic.rs": "bef76276f3d18f27eb0ae2d32b2909a968d084e7fa02a26e55dd025ee6d6f642",
+    "core/crates/knotrel-core/src/forest.rs": "53e244899edfa3c3c097f3ef44c5cafc40dcfadb9f913ead9b78761482396f01",
+    "core/crates/knotrel-core/src/hdt.rs": "00314620494a67c023c8963d805d8c7a3647ada74c2f9958262b73fcaa826d32",
+    "core/crates/knotrel-core/src/hdt_forest.rs": "e0e1c90d2ae1c0c1f2ca18c4f83b8906e0b400ea7bd9a06dcf5c47a852e9987d",
+    "core/crates/knotrel-core/src/hdt_profile.rs": "4d247f6e4e7816325f051272b20f8c7d37daaa9872defad7be930901ef0cae28",
+    "core/crates/knotrel-core/src/lib.rs": "6cf29264eae722ecde0b6254b5578a540ec14c23a107c0c20e6f53cc3a750a87",
+    "core/crates/knotrel-core/src/reference.rs": "aa60159e34033c36d73911fd475309d85306fdf85dc84a25257bd2083a8131b6",
+    "core/crates/knotrel-core/src/workspace.rs": "81f83da0b96e41c1308587f3e44ce1e1d5204c86cc927fd8eada42af4fc81bb2",
+    "core/crates/knotrel-core/tests/configuration.rs": "a6bf0a8caf3c67e061a42581d457a88cfc2c183760d7d43016ba329da3c19161",
+    "core/crates/knotrel-core/tests/connectivity.rs": "4984a2036cf566e2b2c3798bdd798a9640a33768426e71aa5e6554bee51fbb22",
+    "core/crates/knotrel-core/tests/forest.rs": "2d7e3f11867dd5c63ca8808eab5554c3676c1011d238b609cc191a2a18549233",
+    "core/crates/knotrel-core/tests/hdt.rs": "0e5936b4ffa4234d7459cdcf7e02288f87b2bda28ec311ce13406384d1d99c68",
+    "core/crates/knotrel-core/tests/limits.rs": "7bee0d6c4c95c383e054846f59e49f722ff06dbb29840b4908ec0d9889076f86",
+    "core/crates/knotrel-core/tests/workspace.rs": "a10b1e96b5ca1bbf0a0e7a1888fd09f8cf3f7231b1df745611c7b7103930da59",
+    "core/crates/knotrel-server/src/api.rs": "e575819faf0ce5c562c3d94f06a1a61655e19cbd6d4aa29b0d29541e02e519d7",
+    "core/crates/knotrel-server/src/configuration.rs": "0c040398445a96cd2e2670f752ec68e6e3f5d2d2360048967e0844ee97fd905c",
+    "core/crates/knotrel-server/src/lib.rs": "1332edba226cd70917c26c13965a05e7b95a30e13d4ed97a849120c355361361",
+    "core/crates/knotrel-server/src/main.rs": "ae0544ce8766f7cb11d97cce7e887912f6d4dd0eddaad85a0a5e19890e840fbc",
+    "core/crates/knotrel-server/src/service.rs": "8bbb319e9250e4ea02ad435a49347d9c72f3cf321ffddc010b2aa45568142f27",
+    "core/crates/knotrel-server/tests/http.rs": "433e20dbad8476885fd5fb4bc5baad9a2f49819ba6260541ae2a385937fb282c",
+    "core/crates/knotrel-server/tests/startup.rs": "843e88c4b2a2965ca1139f5d7f9dbb76af49e7d9c3b1e64a34542cbeb179fdc9",
+    "core/crates/knotrel-server/tests/stats.rs": "4758fab9a089febbae332ee99f182f91b935302f0e0c32ec68851d324bd500dc",
+    "core/crates/knotrel-core/Cargo.toml": "fd1f26f15709e61bae486a2c506bc69f255d2c18da54da09320fc5fd93fcdd81",
+    "core/crates/knotrel-server/Cargo.toml": "9b8902d0463ef3549d2fb8a050721e65bd9bf3bdc3056e2e773f897a4dbcc249"
+  },
+  "binary_sha256": "f5177ff48869a9eb5b7e85ef8e6f409f76edc0474b6109d1829ed3b2e2cf4f65",
+  "trace_sha256": "d56e9371c2e290d7b115c43df65fd0a31949639821cbcf3f96617e15a1b82760",
+  "provenance": {
+    "citation": "Knight et al., The Internet Topology Zoo, IEEE JSAC 2011, doi:10.1109/JSAC.2011.111002",
+    "license": "CC-BY-4.0",
+    "retrieved_date": "2026-10-04",
+    "source_revision": "51118849b99534f01010d885d66321433a7eef9e",
+    "source_sha256": "fca525c7484c1044feb09add79fec0861d4b234622e5d07b7d202470ad0a09ca",
+    "source_url": "https://raw.githubusercontent.com/mroughan/InternetTopologyZoo/51118849b99534f01010d885d66321433a7eef9e/graphml/Cogentco.graphml"
+  },
+  "transform": {
+    "discarded_records": 0,
+    "discarded_self_loops": 0,
+    "failure_order": [
+      "index:113",
+      "index:216",
+      "index:87",
+      "index:23",
+      "index:44",
+      "index:99",
+      "index:42",
+      "index:91",
+      "index:11",
+      "index:107",
+      "index:224",
+      "index:145",
+      "index:31",
+      "index:146",
+      "index:139",
+      "index:122",
+      "index:161",
+      "index:63",
+      "index:30",
+      "index:215",
+      "index:84",
+      "index:173",
+      "index:1",
+      "index:125",
+      "index:171",
+      "index:28",
+      "index:219",
+      "index:60",
+      "index:148",
+      "index:131",
+      "index:151",
+      "index:133",
+      "index:126",
+      "index:190",
+      "index:193",
+      "index:109",
+      "index:53",
+      "index:175",
+      "index:7",
+      "index:155",
+      "index:94",
+      "index:144",
+      "index:233",
+      "index:140",
+      "index:15",
+      "index:68",
+      "index:111",
+      "index:188",
+      "index:71",
+      "index:5",
+      "index:39",
+      "index:164",
+      "index:128",
+      "index:186",
+      "index:61",
+      "index:72",
+      "index:157",
+      "index:77",
+      "index:184",
+      "index:182",
+      "index:231",
+      "index:114",
+      "index:197",
+      "index:168",
+      "index:137",
+      "index:143",
+      "index:227",
+      "index:191",
+      "index:119",
+      "index:65",
+      "index:117",
+      "index:25",
+      "index:121",
+      "index:66",
+      "index:207",
+      "index:134",
+      "index:13",
+      "index:17",
+      "index:108",
+      "index:177",
+      "index:76",
+      "index:51",
+      "index:95",
+      "index:74",
+      "index:217",
+      "index:123",
+      "index:179",
+      "index:195",
+      "index:199",
+      "index:136",
+      "index:226",
+      "index:223",
+      "index:142",
+      "index:105",
+      "index:103",
+      "index:50",
+      "index:20",
+      "index:229",
+      "index:169",
+      "index:181"
+    ],
+    "failures": 100,
+    "generator": "topology-zoo-outages-v1",
+    "initial_component_sizes": [
+      197
+    ],
+    "initial_projected_bridges": 32,
+    "node_selection": "all-source-nodes",
+    "oracle": "rebuild-union-find-from-active-source-links",
+    "parallel_links": 2,
+    "permutation": [
+      "index:113",
+      "index:216",
+      "index:87",
+      "index:23",
+      "index:44",
+      "index:99",
+      "index:42",
+      "index:91",
+      "index:11",
+      "index:107",
+      "index:224",
+      "index:145",
+      "index:31",
+      "index:146",
+      "index:139",
+      "index:122",
+      "index:161",
+      "index:63",
+      "index:30",
+      "index:215",
+      "index:84",
+      "index:173",
+      "index:1",
+      "index:125",
+      "index:171",
+      "index:28",
+      "index:219",
+      "index:60",
+      "index:148",
+      "index:131",
+      "index:151",
+      "index:133",
+      "index:126",
+      "index:190",
+      "index:193",
+      "index:109",
+      "index:53",
+      "index:175",
+      "index:7",
+      "index:155",
+      "index:94",
+      "index:144",
+      "index:233",
+      "index:140",
+      "index:15",
+      "index:68",
+      "index:111",
+      "index:188",
+      "index:71",
+      "index:5",
+      "index:39",
+      "index:164",
+      "index:128",
+      "index:186",
+      "index:61",
+      "index:72",
+      "index:157",
+      "index:77",
+      "index:184",
+      "index:182",
+      "index:231",
+      "index:114",
+      "index:197",
+      "index:168",
+      "index:137",
+      "index:143",
+      "index:227",
+      "index:191",
+      "index:119",
+      "index:65",
+      "index:117",
+      "index:25",
+      "index:121",
+      "index:66",
+      "index:207",
+      "index:134",
+      "index:13",
+      "index:17",
+      "index:108",
+      "index:177",
+      "index:76",
+      "index:51",
+      "index:95",
+      "index:74",
+      "index:217",
+      "index:123",
+      "index:179",
+      "index:195",
+      "index:199",
+      "index:136",
+      "index:226",
+      "index:223",
+      "index:142",
+      "index:105",
+      "index:103",
+      "index:50",
+      "index:20",
+      "index:229",
+      "index:169",
+      "index:181",
+      "index:70",
+      "index:174",
+      "index:89",
+      "index:78",
+      "index:165",
+      "index:234",
+      "index:18",
+      "index:212",
+      "index:160",
+      "index:200",
+      "index:69",
+      "index:201",
+      "index:232",
+      "index:218",
+      "index:154",
+      "index:46",
+      "index:19",
+      "index:86",
+      "index:35",
+      "index:240",
+      "index:10",
+      "index:202",
+      "index:59",
+      "index:85",
+      "index:100",
+      "index:172",
+      "index:153",
+      "index:243",
+      "index:38",
+      "index:129",
+      "index:120",
+      "index:49",
+      "index:115",
+      "index:196",
+      "index:236",
+      "index:97",
+      "index:147",
+      "index:194",
+      "index:211",
+      "index:57",
+      "index:34",
+      "index:150",
+      "index:118",
+      "index:156",
+      "index:203",
+      "index:82",
+      "index:90",
+      "index:16",
+      "index:124",
+      "index:2",
+      "index:80",
+      "index:206",
+      "index:221",
+      "index:73",
+      "index:210",
+      "index:116",
+      "index:135",
+      "index:204",
+      "index:88",
+      "index:43",
+      "index:241",
+      "index:58",
+      "index:36",
+      "index:83",
+      "index:32",
+      "index:81",
+      "index:209",
+      "index:163",
+      "index:205",
+      "index:222",
+      "index:106",
+      "index:45",
+      "index:6",
+      "index:189",
+      "index:132",
+      "index:228",
+      "index:24",
+      "index:4",
+      "index:75",
+      "index:138",
+      "index:9",
+      "index:198",
+      "index:208",
+      "index:112",
+      "index:104",
+      "index:98",
+      "index:244",
+      "index:178",
+      "index:33",
+      "index:54",
+      "index:162",
+      "index:52",
+      "index:158",
+      "index:8",
+      "index:238",
+      "index:21",
+      "index:56",
+      "index:0",
+      "index:12",
+      "index:242",
+      "index:102",
+      "index:141",
+      "index:93",
+      "index:167",
+      "index:27",
+      "index:192",
+      "index:130",
+      "index:37",
+      "index:166",
+      "index:176",
+      "index:183",
+      "index:101",
+      "index:41",
+      "index:96",
+      "index:214",
+      "index:127",
+      "index:47",
+      "index:152",
+      "index:225",
+      "index:55",
+      "index:159",
+      "index:79",
+      "index:48",
+      "index:92",
+      "index:230",
+      "index:220",
+      "index:14",
+      "index:149",
+      "index:62",
+      "index:64",
+      "index:22",
+      "index:235",
+      "index:29",
+      "index:3",
+      "index:237",
+      "index:40",
+      "index:67",
+      "index:170",
+      "index:180",
+      "index:213",
+      "index:110",
+      "index:239",
+      "index:26",
+      "index:185",
+      "index:187"
+    ],
+    "prng": "lcg64-6364136223846793005-1442695040888963407-fisher-yates-modulo-v1",
+    "queries_per_batch": {
+      "fixed": [
+        [
+          0,
+          196
+        ]
+      ],
+      "seeded_distinct_pairs": 8
+    },
+    "seed": 42,
+    "source_edge_records": 245,
+    "source_links": [
+      {
+        "id": "index:0",
+        "source": 0,
+        "target": 86
+      },
+      {
+        "id": "index:1",
+        "source": 0,
+        "target": 186
+      },
+      {
+        "id": "index:10",
+        "source": 120,
+        "target": 172
+      },
+      {
+        "id": "index:100",
+        "source": 56,
+        "target": 157
+      },
+      {
+        "id": "index:101",
+        "source": 158,
+        "target": 159
+      },
+      {
+        "id": "index:102",
+        "source": 158,
+        "target": 161
+      },
+      {
+        "id": "index:103",
+        "source": 158,
+        "target": 162
+      },
+      {
+        "id": "index:104",
+        "source": 159,
+        "target": 160
+      },
+      {
+        "id": "index:105",
+        "source": 160,
+        "target": 161
+      },
+      {
+        "id": "index:106",
+        "source": 161,
+        "target": 163
+      },
+      {
+        "id": "index:107",
+        "source": 51,
+        "target": 163
+      },
+      {
+        "id": "index:108",
+        "source": 94,
+        "target": 165
+      },
+      {
+        "id": "index:109",
+        "source": 165,
+        "target": 174
+      },
+      {
+        "id": "index:11",
+        "source": 131,
+        "target": 153
+      },
+      {
+        "id": "index:110",
+        "source": 166,
+        "target": 167
+      },
+      {
+        "id": "index:111",
+        "source": 166,
+        "target": 174
+      },
+      {
+        "id": "index:112",
+        "source": 167,
+        "target": 168
+      },
+      {
+        "id": "index:113",
+        "source": 168,
+        "target": 169
+      },
+      {
+        "id": "index:114",
+        "source": 94,
+        "target": 169
+      },
+      {
+        "id": "index:115",
+        "source": 83,
+        "target": 170
+      },
+      {
+        "id": "index:116",
+        "source": 94,
+        "target": 170
+      },
+      {
+        "id": "index:117",
+        "source": 83,
+        "target": 171
+      },
+      {
+        "id": "index:118",
+        "source": 60,
+        "target": 172
+      },
+      {
+        "id": "index:119",
+        "source": 71,
+        "target": 172
+      },
+      {
+        "id": "index:12",
+        "source": 41,
+        "target": 131
+      },
+      {
+        "id": "index:120",
+        "source": 39,
+        "target": 172
+      },
+      {
+        "id": "index:121",
+        "source": 173,
+        "target": 191
+      },
+      {
+        "id": "index:122",
+        "source": 173,
+        "target": 174
+      },
+      {
+        "id": "index:123",
+        "source": 176,
+        "target": 177
+      },
+      {
+        "id": "index:124",
+        "source": 176,
+        "target": 177
+      },
+      {
+        "id": "index:125",
+        "source": 176,
+        "target": 182
+      },
+      {
+        "id": "index:126",
+        "source": 176,
+        "target": 183
+      },
+      {
+        "id": "index:127",
+        "source": 178,
+        "target": 184
+      },
+      {
+        "id": "index:128",
+        "source": 178,
+        "target": 179
+      },
+      {
+        "id": "index:129",
+        "source": 58,
+        "target": 178
+      },
+      {
+        "id": "index:13",
+        "source": 37,
+        "target": 142
+      },
+      {
+        "id": "index:130",
+        "source": 55,
+        "target": 179
+      },
+      {
+        "id": "index:131",
+        "source": 55,
+        "target": 180
+      },
+      {
+        "id": "index:132",
+        "source": 180,
+        "target": 181
+      },
+      {
+        "id": "index:133",
+        "source": 182,
+        "target": 183
+      },
+      {
+        "id": "index:134",
+        "source": 183,
+        "target": 184
+      },
+      {
+        "id": "index:135",
+        "source": 58,
+        "target": 185
+      },
+      {
+        "id": "index:136",
+        "source": 82,
+        "target": 187
+      },
+      {
+        "id": "index:137",
+        "source": 188,
+        "target": 196
+      },
+      {
+        "id": "index:138",
+        "source": 188,
+        "target": 189
+      },
+      {
+        "id": "index:139",
+        "source": 189,
+        "target": 193
+      },
+      {
+        "id": "index:14",
+        "source": 142,
+        "target": 153
+      },
+      {
+        "id": "index:140",
+        "source": 189,
+        "target": 190
+      },
+      {
+        "id": "index:141",
+        "source": 94,
+        "target": 189
+      },
+      {
+        "id": "index:142",
+        "source": 81,
+        "target": 191
+      },
+      {
+        "id": "index:143",
+        "source": 192,
+        "target": 193
+      },
+      {
+        "id": "index:144",
+        "source": 81,
+        "target": 192
+      },
+      {
+        "id": "index:145",
+        "source": 193,
+        "target": 194
+      },
+      {
+        "id": "index:146",
+        "source": 82,
+        "target": 194
+      },
+      {
+        "id": "index:147",
+        "source": 106,
+        "target": 195
+      },
+      {
+        "id": "index:148",
+        "source": 37,
+        "target": 195
+      },
+      {
+        "id": "index:149",
+        "source": 3,
+        "target": 196
+      },
+      {
+        "id": "index:15",
+        "source": 153,
+        "target": 164
+      },
+      {
+        "id": "index:150",
+        "source": 3,
+        "target": 38
+      },
+      {
+        "id": "index:151",
+        "source": 4,
+        "target": 7
+      },
+      {
+        "id": "index:152",
+        "source": 4,
+        "target": 91
+      },
+      {
+        "id": "index:153",
+        "source": 4,
+        "target": 5
+      },
+      {
+        "id": "index:154",
+        "source": 5,
+        "target": 12
+      },
+      {
+        "id": "index:155",
+        "source": 6,
+        "target": 7
+      },
+      {
+        "id": "index:156",
+        "source": 6,
+        "target": 9
+      },
+      {
+        "id": "index:157",
+        "source": 8,
+        "target": 9
+      },
+      {
+        "id": "index:158",
+        "source": 8,
+        "target": 10
+      },
+      {
+        "id": "index:159",
+        "source": 8,
+        "target": 89
+      },
+      {
+        "id": "index:16",
+        "source": 164,
+        "target": 175
+      },
+      {
+        "id": "index:160",
+        "source": 10,
+        "target": 11
+      },
+      {
+        "id": "index:161",
+        "source": 10,
+        "target": 34
+      },
+      {
+        "id": "index:162",
+        "source": 11,
+        "target": 89
+      },
+      {
+        "id": "index:163",
+        "source": 12,
+        "target": 14
+      },
+      {
+        "id": "index:164",
+        "source": 14,
+        "target": 33
+      },
+      {
+        "id": "index:165",
+        "source": 15,
+        "target": 16
+      },
+      {
+        "id": "index:166",
+        "source": 15,
+        "target": 47
+      },
+      {
+        "id": "index:167",
+        "source": 16,
+        "target": 43
+      },
+      {
+        "id": "index:168",
+        "source": 17,
+        "target": 18
+      },
+      {
+        "id": "index:169",
+        "source": 17,
+        "target": 103
+      },
+      {
+        "id": "index:17",
+        "source": 84,
+        "target": 164
+      },
+      {
+        "id": "index:170",
+        "source": 19,
+        "target": 20
+      },
+      {
+        "id": "index:171",
+        "source": 19,
+        "target": 22
+      },
+      {
+        "id": "index:172",
+        "source": 21,
+        "target": 25
+      },
+      {
+        "id": "index:173",
+        "source": 21,
+        "target": 22
+      },
+      {
+        "id": "index:174",
+        "source": 23,
+        "target": 86
+      },
+      {
+        "id": "index:175",
+        "source": 23,
+        "target": 85
+      },
+      {
+        "id": "index:176",
+        "source": 25,
+        "target": 85
+      },
+      {
+        "id": "index:177",
+        "source": 26,
+        "target": 27
+      },
+      {
+        "id": "index:178",
+        "source": 26,
+        "target": 29
+      },
+      {
+        "id": "index:179",
+        "source": 28,
+        "target": 29
+      },
+      {
+        "id": "index:18",
+        "source": 106,
+        "target": 175
+      },
+      {
+        "id": "index:180",
+        "source": 28,
+        "target": 30
+      },
+      {
+        "id": "index:181",
+        "source": 28,
+        "target": 31
+      },
+      {
+        "id": "index:182",
+        "source": 32,
+        "target": 33
+      },
+      {
+        "id": "index:183",
+        "source": 32,
+        "target": 36
+      },
+      {
+        "id": "index:184",
+        "source": 34,
+        "target": 36
+      },
+      {
+        "id": "index:185",
+        "source": 37,
+        "target": 49
+      },
+      {
+        "id": "index:186",
+        "source": 38,
+        "target": 41
+      },
+      {
+        "id": "index:187",
+        "source": 39,
+        "target": 83
+      },
+      {
+        "id": "index:188",
+        "source": 40,
+        "target": 43
+      },
+      {
+        "id": "index:189",
+        "source": 40,
+        "target": 44
+      },
+      {
+        "id": "index:19",
+        "source": 103,
+        "target": 175
+      },
+      {
+        "id": "index:190",
+        "source": 40,
+        "target": 41
+      },
+      {
+        "id": "index:191",
+        "source": 42,
+        "target": 45
+      },
+      {
+        "id": "index:192",
+        "source": 43,
+        "target": 82
+      },
+      {
+        "id": "index:193",
+        "source": 44,
+        "target": 84
+      },
+      {
+        "id": "index:194",
+        "source": 44,
+        "target": 48
+      },
+      {
+        "id": "index:195",
+        "source": 45,
+        "target": 84
+      },
+      {
+        "id": "index:196",
+        "source": 47,
+        "target": 48
+      },
+      {
+        "id": "index:197",
+        "source": 49,
+        "target": 50
+      },
+      {
+        "id": "index:198",
+        "source": 50,
+        "target": 96
+      },
+      {
+        "id": "index:199",
+        "source": 51,
+        "target": 56
+      },
+      {
+        "id": "index:2",
+        "source": 1,
+        "target": 175
+      },
+      {
+        "id": "index:20",
+        "source": 175,
+        "target": 186
+      },
+      {
+        "id": "index:200",
+        "source": 52,
+        "target": 65
+      },
+      {
+        "id": "index:201",
+        "source": 53,
+        "target": 60
+      },
+      {
+        "id": "index:202",
+        "source": 53,
+        "target": 62
+      },
+      {
+        "id": "index:203",
+        "source": 54,
+        "target": 75
+      },
+      {
+        "id": "index:204",
+        "source": 54,
+        "target": 87
+      },
+      {
+        "id": "index:205",
+        "source": 55,
+        "target": 62
+      },
+      {
+        "id": "index:206",
+        "source": 56,
+        "target": 58
+      },
+      {
+        "id": "index:207",
+        "source": 59,
+        "target": 60
+      },
+      {
+        "id": "index:208",
+        "source": 60,
+        "target": 61
+      },
+      {
+        "id": "index:209",
+        "source": 61,
+        "target": 69
+      },
+      {
+        "id": "index:21",
+        "source": 2,
+        "target": 13
+      },
+      {
+        "id": "index:210",
+        "source": 61,
+        "target": 62
+      },
+      {
+        "id": "index:211",
+        "source": 62,
+        "target": 94
+      },
+      {
+        "id": "index:212",
+        "source": 62,
+        "target": 67
+      },
+      {
+        "id": "index:213",
+        "source": 63,
+        "target": 107
+      },
+      {
+        "id": "index:214",
+        "source": 63,
+        "target": 64
+      },
+      {
+        "id": "index:215",
+        "source": 63,
+        "target": 74
+      },
+      {
+        "id": "index:216",
+        "source": 64,
+        "target": 65
+      },
+      {
+        "id": "index:217",
+        "source": 65,
+        "target": 66
+      },
+      {
+        "id": "index:218",
+        "source": 66,
+        "target": 74
+      },
+      {
+        "id": "index:219",
+        "source": 66,
+        "target": 108
+      },
+      {
+        "id": "index:22",
+        "source": 2,
+        "target": 35
+      },
+      {
+        "id": "index:220",
+        "source": 66,
+        "target": 94
+      },
+      {
+        "id": "index:221",
+        "source": 70,
+        "target": 71
+      },
+      {
+        "id": "index:222",
+        "source": 71,
+        "target": 72
+      },
+      {
+        "id": "index:223",
+        "source": 71,
+        "target": 76
+      },
+      {
+        "id": "index:224",
+        "source": 72,
+        "target": 98
+      },
+      {
+        "id": "index:225",
+        "source": 72,
+        "target": 73
+      },
+      {
+        "id": "index:226",
+        "source": 74,
+        "target": 87
+      },
+      {
+        "id": "index:227",
+        "source": 74,
+        "target": 92
+      },
+      {
+        "id": "index:228",
+        "source": 74,
+        "target": 95
+      },
+      {
+        "id": "index:229",
+        "source": 74,
+        "target": 97
+      },
+      {
+        "id": "index:23",
+        "source": 13,
+        "target": 68
+      },
+      {
+        "id": "index:230",
+        "source": 75,
+        "target": 80
+      },
+      {
+        "id": "index:231",
+        "source": 75,
+        "target": 94
+      },
+      {
+        "id": "index:232",
+        "source": 76,
+        "target": 77
+      },
+      {
+        "id": "index:233",
+        "source": 77,
+        "target": 78
+      },
+      {
+        "id": "index:234",
+        "source": 78,
+        "target": 96
+      },
+      {
+        "id": "index:235",
+        "source": 88,
+        "target": 89
+      },
+      {
+        "id": "index:236",
+        "source": 92,
+        "target": 108
+      },
+      {
+        "id": "index:237",
+        "source": 93,
+        "target": 100
+      },
+      {
+        "id": "index:238",
+        "source": 94,
+        "target": 95
+      },
+      {
+        "id": "index:239",
+        "source": 94,
+        "target": 97
+      },
+      {
+        "id": "index:24",
+        "source": 24,
+        "target": 123
+      },
+      {
+        "id": "index:240",
+        "source": 97,
+        "target": 98
+      },
+      {
+        "id": "index:241",
+        "source": 102,
+        "target": 103
+      },
+      {
+        "id": "index:242",
+        "source": 104,
+        "target": 105
+      },
+      {
+        "id": "index:243",
+        "source": 105,
+        "target": 106
+      },
+      {
+        "id": "index:244",
+        "source": 107,
+        "target": 108
+      },
+      {
+        "id": "index:25",
+        "source": 24,
+        "target": 35
+      },
+      {
+        "id": "index:26",
+        "source": 24,
+        "target": 121
+      },
+      {
+        "id": "index:27",
+        "source": 35,
+        "target": 68
+      },
+      {
+        "id": "index:28",
+        "source": 35,
+        "target": 57
+      },
+      {
+        "id": "index:29",
+        "source": 46,
+        "target": 158
+      },
+      {
+        "id": "index:3",
+        "source": 1,
+        "target": 86
+      },
+      {
+        "id": "index:30",
+        "source": 34,
+        "target": 46
+      },
+      {
+        "id": "index:31",
+        "source": 46,
+        "target": 57
+      },
+      {
+        "id": "index:32",
+        "source": 68,
+        "target": 79
+      },
+      {
+        "id": "index:33",
+        "source": 90,
+        "target": 101
+      },
+      {
+        "id": "index:34",
+        "source": 90,
+        "target": 121
+      },
+      {
+        "id": "index:35",
+        "source": 101,
+        "target": 185
+      },
+      {
+        "id": "index:36",
+        "source": 101,
+        "target": 162
+      },
+      {
+        "id": "index:37",
+        "source": 101,
+        "target": 178
+      },
+      {
+        "id": "index:38",
+        "source": 110,
+        "target": 111
+      },
+      {
+        "id": "index:39",
+        "source": 110,
+        "target": 113
+      },
+      {
+        "id": "index:4",
+        "source": 1,
+        "target": 18
+      },
+      {
+        "id": "index:40",
+        "source": 111,
+        "target": 116
+      },
+      {
+        "id": "index:41",
+        "source": 99,
+        "target": 112
+      },
+      {
+        "id": "index:42",
+        "source": 112,
+        "target": 113
+      },
+      {
+        "id": "index:43",
+        "source": 114,
+        "target": 117
+      },
+      {
+        "id": "index:44",
+        "source": 81,
+        "target": 115
+      },
+      {
+        "id": "index:45",
+        "source": 115,
+        "target": 148
+      },
+      {
+        "id": "index:46",
+        "source": 116,
+        "target": 117
+      },
+      {
+        "id": "index:47",
+        "source": 116,
+        "target": 118
+      },
+      {
+        "id": "index:48",
+        "source": 116,
+        "target": 119
+      },
+      {
+        "id": "index:49",
+        "source": 118,
+        "target": 144
+      },
+      {
+        "id": "index:5",
+        "source": 1,
+        "target": 20
+      },
+      {
+        "id": "index:50",
+        "source": 118,
+        "target": 147
+      },
+      {
+        "id": "index:51",
+        "source": 119,
+        "target": 173
+      },
+      {
+        "id": "index:52",
+        "source": 121,
+        "target": 126
+      },
+      {
+        "id": "index:53",
+        "source": 122,
+        "target": 128
+      },
+      {
+        "id": "index:54",
+        "source": 123,
+        "target": 124
+      },
+      {
+        "id": "index:55",
+        "source": 123,
+        "target": 128
+      },
+      {
+        "id": "index:56",
+        "source": 125,
+        "target": 128
+      },
+      {
+        "id": "index:57",
+        "source": 126,
+        "target": 128
+      },
+      {
+        "id": "index:58",
+        "source": 127,
+        "target": 129
+      },
+      {
+        "id": "index:59",
+        "source": 127,
+        "target": 130
+      },
+      {
+        "id": "index:6",
+        "source": 1,
+        "target": 85
+      },
+      {
+        "id": "index:60",
+        "source": 69,
+        "target": 128
+      },
+      {
+        "id": "index:61",
+        "source": 128,
+        "target": 129
+      },
+      {
+        "id": "index:62",
+        "source": 108,
+        "target": 129
+      },
+      {
+        "id": "index:63",
+        "source": 92,
+        "target": 130
+      },
+      {
+        "id": "index:64",
+        "source": 132,
+        "target": 133
+      },
+      {
+        "id": "index:65",
+        "source": 132,
+        "target": 134
+      },
+      {
+        "id": "index:66",
+        "source": 133,
+        "target": 135
+      },
+      {
+        "id": "index:67",
+        "source": 100,
+        "target": 133
+      },
+      {
+        "id": "index:68",
+        "source": 134,
+        "target": 135
+      },
+      {
+        "id": "index:69",
+        "source": 50,
+        "target": 134
+      },
+      {
+        "id": "index:7",
+        "source": 109,
+        "target": 171
+      },
+      {
+        "id": "index:70",
+        "source": 50,
+        "target": 134
+      },
+      {
+        "id": "index:71",
+        "source": 136,
+        "target": 137
+      },
+      {
+        "id": "index:72",
+        "source": 136,
+        "target": 139
+      },
+      {
+        "id": "index:73",
+        "source": 137,
+        "target": 140
+      },
+      {
+        "id": "index:74",
+        "source": 73,
+        "target": 137
+      },
+      {
+        "id": "index:75",
+        "source": 138,
+        "target": 141
+      },
+      {
+        "id": "index:76",
+        "source": 138,
+        "target": 139
+      },
+      {
+        "id": "index:77",
+        "source": 63,
+        "target": 140
+      },
+      {
+        "id": "index:78",
+        "source": 92,
+        "target": 140
+      },
+      {
+        "id": "index:79",
+        "source": 87,
+        "target": 141
+      },
+      {
+        "id": "index:8",
+        "source": 109,
+        "target": 172
+      },
+      {
+        "id": "index:80",
+        "source": 54,
+        "target": 141
+      },
+      {
+        "id": "index:81",
+        "source": 74,
+        "target": 141
+      },
+      {
+        "id": "index:82",
+        "source": 143,
+        "target": 150
+      },
+      {
+        "id": "index:83",
+        "source": 143,
+        "target": 144
+      },
+      {
+        "id": "index:84",
+        "source": 99,
+        "target": 144
+      },
+      {
+        "id": "index:85",
+        "source": 145,
+        "target": 146
+      },
+      {
+        "id": "index:86",
+        "source": 145,
+        "target": 148
+      },
+      {
+        "id": "index:87",
+        "source": 146,
+        "target": 151
+      },
+      {
+        "id": "index:88",
+        "source": 147,
+        "target": 148
+      },
+      {
+        "id": "index:89",
+        "source": 149,
+        "target": 150
+      },
+      {
+        "id": "index:9",
+        "source": 120,
+        "target": 131
+      },
+      {
+        "id": "index:90",
+        "source": 149,
+        "target": 152
+      },
+      {
+        "id": "index:91",
+        "source": 151,
+        "target": 152
+      },
+      {
+        "id": "index:92",
+        "source": 154,
+        "target": 155
+      },
+      {
+        "id": "index:93",
+        "source": 154,
+        "target": 163
+      },
+      {
+        "id": "index:94",
+        "source": 33,
+        "target": 155
+      },
+      {
+        "id": "index:95",
+        "source": 27,
+        "target": 155
+      },
+      {
+        "id": "index:96",
+        "source": 51,
+        "target": 156
+      },
+      {
+        "id": "index:97",
+        "source": 156,
+        "target": 182
+      },
+      {
+        "id": "index:98",
+        "source": 156,
+        "target": 157
+      },
+      {
+        "id": "index:99",
+        "source": 157,
+        "target": 162
+      }
+    ],
+    "time_unit": "synthetic-source-event-index"
+  },
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8",
+  "memory_scope": "Peak whole process including importer validation, trace, warmup and sampling; not engine-only.",
+  "cases": [
+    {
+      "name": "cogentco-fresh-p0-compact-bfs",
+      "trial": 0,
+      "regime": "fresh",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7127040
+    },
+    {
+      "name": "cogentco-fresh-p0-compact-workspace",
+      "trial": 0,
+      "regime": "fresh",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7192576
+    },
+    {
+      "name": "cogentco-warmed-p0-compact-bfs",
+      "trial": 0,
+      "regime": "warmed",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7127040
+    },
+    {
+      "name": "cogentco-warmed-p0-compact-workspace",
+      "trial": 0,
+      "regime": "warmed",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7127040
+    },
+    {
+      "name": "cogentco-fresh-p1-compact-workspace",
+      "trial": 1,
+      "regime": "fresh",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7159808
+    },
+    {
+      "name": "cogentco-fresh-p1-compact-bfs",
+      "trial": 1,
+      "regime": "fresh",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7192576
+    },
+    {
+      "name": "cogentco-warmed-p1-compact-workspace",
+      "trial": 1,
+      "regime": "warmed",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7208960
+    },
+    {
+      "name": "cogentco-warmed-p1-compact-bfs",
+      "trial": 1,
+      "regime": "warmed",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7159808
+    },
+    {
+      "name": "cogentco-fresh-p2-compact-bfs",
+      "trial": 2,
+      "regime": "fresh",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7127040
+    },
+    {
+      "name": "cogentco-fresh-p2-compact-workspace",
+      "trial": 2,
+      "regime": "fresh",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7110656
+    },
+    {
+      "name": "cogentco-warmed-p2-compact-bfs",
+      "trial": 2,
+      "regime": "warmed",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7127040
+    },
+    {
+      "name": "cogentco-warmed-p2-compact-workspace",
+      "trial": 2,
+      "regime": "warmed",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7176192
+    },
+    {
+      "name": "cogentco-fresh-p3-compact-workspace",
+      "trial": 3,
+      "regime": "fresh",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7192576
+    },
+    {
+      "name": "cogentco-fresh-p3-compact-bfs",
+      "trial": 3,
+      "regime": "fresh",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7127040
+    },
+    {
+      "name": "cogentco-warmed-p3-compact-workspace",
+      "trial": 3,
+      "regime": "warmed",
+      "engine": "compact-workspace",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-workspace",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7192576
+    },
+    {
+      "name": "cogentco-warmed-p3-compact-bfs",
+      "trial": 3,
+      "regime": "warmed",
+      "engine": "compact-bfs",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks",
+        "--trace-in",
+        "/private/tmp/knotrel-topology-zoo-20261004/cogentco.trace.json",
+        "--engine",
+        "compact-bfs",
+        "--warmup",
+        "1",
+        "--repetitions",
+        "1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "peak_process_rss_bytes": 7192576
+    }
+  ],
+  "benchmarks": {
+    "revision": "885b8ecc04cd132c1fc93957b4e56965be13ba36",
+    "status": "M crates/knotrel-benchmarks/src/engines.rs\n M crates/knotrel-benchmarks/src/main.rs\n M crates/knotrel-benchmarks/tests/cli.rs\n?? docs/experiments/2026-10-04-before-after-policy.md\n?? results/2026-10-04-workspace-cogentco/\n?? results/2026-10-04-workspace-comparison/\n?? results/2026-10-04-workspace-dense/\n?? results/2026-10-04-workspace-repeats/\n?? results/2026-10-04-workspace-sparse/\n?? results/2026-10-04-workspace-v2-dense/\n?? results/2026-10-04-workspace-v2-repeats/\n?? results/2026-10-04-workspace-v2-sparse/"
+  },
+  "core": {
+    "revision": "86b2be58b4c22e4b0a110cd34a5b9fae84f44723",
+    "status": "M crates/knotrel-core/src/lib.rs\n?? crates/knotrel-core/src/workspace.rs\n?? crates/knotrel-core/tests/workspace.rs"
+  },
+  "artifact_sha256": {
+    "benchmarks.patch": "abc698c59e884e791c07d6b271e4962cae4085e836e254cfb621389d19b97eef",
+    "cogentco-fresh-p0-compact-bfs.json": "02d413af60e7e46cc9ce0933e96b085197569ebb1e70a7cd5be40e6b80c1b0ac",
+    "cogentco-fresh-p0-compact-bfs.stderr.txt": "329df85a3cbaa3261ddb43d81372bc0eae38a546a56876b1fc712785297a1f39",
+    "cogentco-fresh-p0-compact-workspace.json": "c18cff25628426eecd870cd468ea54d893d0bdfda0a52017f519faf0d423bcf4",
+    "cogentco-fresh-p0-compact-workspace.stderr.txt": "5a52594ae95e981b1738e0bb2c4ce6e8386cb4818a6fe1cb91bfe2bb385e0017",
+    "cogentco-fresh-p1-compact-bfs.json": "e500424237a43fdc3c5514544b410fb2f849fc64a7929e5f2bd5694a8b09bc05",
+    "cogentco-fresh-p1-compact-bfs.stderr.txt": "9308daf5f3e67cfadff23e3a36a49f1daadf957199fcfea30dcdf1dcb3e952eb",
+    "cogentco-fresh-p1-compact-workspace.json": "67385c601981938d7f4564975999d97d3756af86eb4a874d5eb79318017d9fcd",
+    "cogentco-fresh-p1-compact-workspace.stderr.txt": "263bc1097f2fb3994d1803f6b28c977f1f0ca231e99a11101a161a63e78ad61d",
+    "cogentco-fresh-p2-compact-bfs.json": "7aba3a250e375249a02c6e425183991dc10f9faac74b01e35fc69bc83b3ffbd0",
+    "cogentco-fresh-p2-compact-bfs.stderr.txt": "aa11f292fd65f418f70f78b85160065bffbef470866b3e705846b902a1d850ae",
+    "cogentco-fresh-p2-compact-workspace.json": "917c762384193cfd8ebc5c29e8620cb2996a20acda82741fe1785a331102020f",
+    "cogentco-fresh-p2-compact-workspace.stderr.txt": "e3c56ff9269118b405212f01832d89dca87eeba94cbe505afd02211220914984",
+    "cogentco-fresh-p3-compact-bfs.json": "405a420f41daec0be50f4dd8ff8f14c7ed9caea36c450a1c29c7a9912e89face",
+    "cogentco-fresh-p3-compact-bfs.stderr.txt": "83158aa467941e58f1456742abaab32a43ba45f4fcc9823fd71f6119a6794b32",
+    "cogentco-fresh-p3-compact-workspace.json": "618fdb535e1ba086697007830a7df5d397cabbbc2ea3bc8f93d29e6a86d8d16d",
+    "cogentco-fresh-p3-compact-workspace.stderr.txt": "21b291f2254a0e2f8229087a4f133bc2d5b5762c739a10381032fafd3ed4e0f8",
+    "cogentco-warmed-p0-compact-bfs.json": "839a642c0133208aef8995ea8a378fbcb8230e40217086687324113d3e446929",
+    "cogentco-warmed-p0-compact-bfs.stderr.txt": "c2e0d8a761b619d44982718be6854daa34151620d3e620f2b61cdedec3311fa8",
+    "cogentco-warmed-p0-compact-workspace.json": "e85604fed8eb379809f0a34ed026b0efc92a4bf7cde3b68543d72e4330888b13",
+    "cogentco-warmed-p0-compact-workspace.stderr.txt": "eaa584a49f45decb4552417fc3f1c80cb7dda3528dc3d051f802aeaa976cec69",
+    "cogentco-warmed-p1-compact-bfs.json": "1f7dbf4df5e18ecdac77daaa78de6e8d8e5dd6a2c83b34fc008d7ac927fb8002",
+    "cogentco-warmed-p1-compact-bfs.stderr.txt": "d696e0672e006b8b8cbb6a33245b5d05ff353bb48bc32f402591d0ef66dc5bd2",
+    "cogentco-warmed-p1-compact-workspace.json": "302aefcb73cfeab33787f9ac8b2b8c7478cc35d44817284bb8d4b1e824ec6ad1",
+    "cogentco-warmed-p1-compact-workspace.stderr.txt": "96613e8a65d3c9ff191500d5ec6c8cb5d13f4b4bd5bcf6fdb359f98b166a13eb",
+    "cogentco-warmed-p2-compact-bfs.json": "96f7dfe403c40b7a10a13fb73815d4cb034fd07666209d6b9fb33fea7f9b1a20",
+    "cogentco-warmed-p2-compact-bfs.stderr.txt": "22b8433cff35f274e1164f247619b001dcdc44926ddfec9f798489a26c80a1b5",
+    "cogentco-warmed-p2-compact-workspace.json": "224b47d8c7934fca6d52d4825738fef3bc51b11b72ccdeb69544f1b90d8e8837",
+    "cogentco-warmed-p2-compact-workspace.stderr.txt": "13db9664095374df8026effd51794bcd2569b341a782f7bb2f41043af6983bb2",
+    "cogentco-warmed-p3-compact-bfs.json": "e152cac119fca2204adaac15fe0c38423414a9fea5a13b0bf9ec64f8768de871",
+    "cogentco-warmed-p3-compact-bfs.stderr.txt": "95e10c15b0a423207fd39cbddcef9584630cdd18da418c25d55db24eff811ffe",
+    "cogentco-warmed-p3-compact-workspace.json": "6f2f3ad4d27e02c392af4cf251152abe039455abcf5281d2a2ff492625578b0c",
+    "cogentco-warmed-p3-compact-workspace.stderr.txt": "ada7b79f7579ae44210886295a749a13c2a4ae45aa67fae28b9cc1afb3765ec4",
+    "collect.py": "1486d077e2b674e4129d94cc6aa9d7efbbaa983fba86fca5b1c3028993523591",
+    "core.patch": "04c04e862279eec12c5365988d481e2789ec0d0bdb2a0201283b35eadd3ba2ef",
+    "import_topology_zoo.py": "f93d4bb9444750016cf225bce3d8f43cd03690f3f4f2052aca03c56e49715bda",
+    "run_baseline.py": "68a5579dbd45d3c419bacc395ee3fbda4b397e29a82ad54dfe7fcdc34de5f04c",
+    "run_scale.py": "7fb45267f6bf53820e97fbdd7d48c547eb9aaecdd73f1e2a9e66ae614ea7ae38"
+  }
+}
