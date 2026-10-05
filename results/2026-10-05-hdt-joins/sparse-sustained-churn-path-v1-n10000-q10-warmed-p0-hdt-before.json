@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791189513,
+  "config": {
+    "nodes": 10000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "9ee4c0c53aeed04b2d3b8892bf0c817c91cbf5a3",
+      "dirty": true
+    },
+    "benchmarks": {
+      "revision": "1e750907c1e1b9c0a790c0df56d7957401099924",
+      "dirty": true
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 10,
+  "trace_fingerprint_fnv1a64": "dd6f131aa10291a2",
+  "initial_edges": 9999,
+  "initial_density": 0.0002,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 12651500,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 862,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 862,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 2,
+        "total_ns": 749,
+        "min_ns": 166,
+        "p50_ns": 166,
+        "p95_ns": 583,
+        "p99_ns": 583,
+        "max_ns": 583
+      },
+      "query_false": {
+        "count": 98,
+        "total_ns": 23410,
+        "min_ns": 125,
+        "p50_ns": 209,
+        "p95_ns": 375,
+        "p99_ns": 500,
+        "max_ns": 500
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 862,
+          "total_ns": 861549,
+          "min_ns": 458,
+          "p50_ns": 917,
+          "p95_ns": 1459,
+          "p99_ns": 2583,
+          "max_ns": 8458
+        },
+        "link": {
+          "count": 38,
+          "total_ns": 41833,
+          "min_ns": 834,
+          "p50_ns": 1083,
+          "p95_ns": 1417,
+          "p99_ns": 1458,
+          "max_ns": 1458
+        },
+        "connected": {
+          "count": 100,
+          "total_ns": 24159,
+          "min_ns": 125,
+          "p50_ns": 209,
+          "p95_ns": 375,
+          "p99_ns": 500,
+          "max_ns": 583
+        }
+      },
+      "workload_wall_ns": 948750
+    }
+  ]
+}

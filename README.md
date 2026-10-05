@@ -2,6 +2,10 @@
 
 Reproducible workloads for measuring exact dynamic graph connectivity.
 
+New: [HDT direct joins before/after](results/2026-10-05-hdt-joins/README.md),
+272 full-matrix processes plus 48 regression-confirmation processes. Includes
+the confirmed warmed-path regression alongside cyclic-block and Cogentco gains.
+
 New: [HDT endpoint reuse before/after](results/2026-10-04-hdt-localids/README.md),
 272 paired processes against the preserved reference matrix, with improvements,
 regressions, unchanged HDT work counters and build-provenance limitations.
