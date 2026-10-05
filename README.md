@@ -2,6 +2,10 @@
 
 Reproducible workloads for measuring exact dynamic graph connectivity.
 
+New: [HDT endpoint reuse before/after](results/2026-10-04-hdt-localids/README.md),
+272 paired processes against the preserved reference matrix, with improvements,
+regressions, unchanged HDT work counters and build-provenance limitations.
+
 New: [BFS workspace before/after](results/2026-10-04-workspace-v2-comparison/README.md),
 with preserved v1 regressions, generation-mark v2, and dense confirmation.
 The `compact-workspace` selector uses the optional caller-owned workspace API.
