@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791580181,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "d1cfb1596927aa08eab7b0fb105cdbb11d722d44",
+      "dirty": false
+    },
+    "benchmarks": {
+      "revision": "bf7ddb0054ccb1d8657d3c20de21bd94e886b36c",
+      "dirty": true
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 50,
+  "trace_fingerprint_fnv1a64": "01a19f08e1152f91",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 3024047000,
+      "forest_stats": {
+        "candidate_edges": 0,
+        "replacements": 0,
+        "scanned_vertices": 0,
+        "tree_cuts": 500
+      },
+      "query_true": {
+        "count": 15,
+        "total_ns": 90833,
+        "min_ns": 1166,
+        "p50_ns": 6375,
+        "p95_ns": 14458,
+        "p99_ns": 14458,
+        "max_ns": 14458
+      },
+      "query_false": {
+        "count": 485,
+        "total_ns": 1640874,
+        "min_ns": 875,
+        "p50_ns": 2959,
+        "p95_ns": 7291,
+        "p99_ns": 10416,
+        "max_ns": 12833
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 500,
+          "total_ns": 2853281,
+          "min_ns": 1083,
+          "p50_ns": 4166,
+          "p95_ns": 12959,
+          "p99_ns": 18333,
+          "max_ns": 22958
+        },
+        "link": null,
+        "connected": {
+          "count": 500,
+          "total_ns": 1731707,
+          "min_ns": 875,
+          "p50_ns": 3000,
+          "p95_ns": 7750,
+          "p99_ns": 11167,
+          "max_ns": 14458
+        }
+      },
+      "workload_wall_ns": 4606041
+    }
+  ]
+}

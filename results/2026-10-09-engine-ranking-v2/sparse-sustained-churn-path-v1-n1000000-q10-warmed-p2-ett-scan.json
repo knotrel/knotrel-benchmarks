@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791580586,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "d1cfb1596927aa08eab7b0fb105cdbb11d722d44",
+      "dirty": false
+    },
+    "benchmarks": {
+      "revision": "bf7ddb0054ccb1d8657d3c20de21bd94e886b36c",
+      "dirty": true
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 10,
+  "trace_fingerprint_fnv1a64": "e39886814af69da5",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 3050714375,
+      "forest_stats": {
+        "candidate_edges": 0,
+        "replacements": 0,
+        "scanned_vertices": 0,
+        "tree_cuts": 900
+      },
+      "query_true": {
+        "count": 2,
+        "total_ns": 19876,
+        "min_ns": 8792,
+        "p50_ns": 8792,
+        "p95_ns": 11084,
+        "p99_ns": 11084,
+        "max_ns": 11084
+      },
+      "query_false": {
+        "count": 98,
+        "total_ns": 773415,
+        "min_ns": 1166,
+        "p50_ns": 6167,
+        "p95_ns": 23292,
+        "p99_ns": 61750,
+        "max_ns": 61750
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 900,
+          "total_ns": 12447746,
+          "min_ns": 1542,
+          "p50_ns": 8084,
+          "p95_ns": 41583,
+          "p99_ns": 113417,
+          "max_ns": 521250
+        },
+        "link": null,
+        "connected": {
+          "count": 100,
+          "total_ns": 793291,
+          "min_ns": 1166,
+          "p50_ns": 6291,
+          "p95_ns": 17333,
+          "p99_ns": 31583,
+          "max_ns": 61750
+        }
+      },
+      "workload_wall_ns": 13262541
+    }
+  ]
+}

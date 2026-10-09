@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "petgraph-0.8.3/dfs",
+  "workload": "sustained-churn-blocks-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791580468,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "d1cfb1596927aa08eab7b0fb105cdbb11d722d44",
+      "dirty": false
+    },
+    "benchmarks": {
+      "revision": "bf7ddb0054ccb1d8657d3c20de21bd94e886b36c",
+      "dirty": true
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 10,
+  "trace_fingerprint_fnv1a64": "14a90b222d96b94d",
+  "initial_edges": 1062499,
+  "initial_density": 2.125000125000125e-6,
+  "initial_max_degree": 3,
+  "repetitions": [
+    {
+      "setup_ns": 81357417,
+      "query_true": {
+        "count": 2,
+        "total_ns": 457375,
+        "min_ns": 60875,
+        "p50_ns": 60875,
+        "p95_ns": 396500,
+        "p99_ns": 396500,
+        "max_ns": 396500
+      },
+      "query_false": {
+        "count": 98,
+        "total_ns": 6384328,
+        "min_ns": 5125,
+        "p50_ns": 34125,
+        "p95_ns": 230167,
+        "p99_ns": 553583,
+        "max_ns": 553583
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 896,
+          "total_ns": 438627,
+          "min_ns": 125,
+          "p50_ns": 500,
+          "p95_ns": 667,
+          "p99_ns": 792,
+          "max_ns": 958
+        },
+        "link": {
+          "count": 4,
+          "total_ns": 1293,
+          "min_ns": 167,
+          "p50_ns": 292,
+          "p95_ns": 417,
+          "p99_ns": 417,
+          "max_ns": 417
+        },
+        "connected": {
+          "count": 100,
+          "total_ns": 6841703,
+          "min_ns": 5125,
+          "p50_ns": 34542,
+          "p95_ns": 230167,
+          "p99_ns": 403584,
+          "max_ns": 553583
+        }
+      },
+      "workload_wall_ns": 7304125
+    }
+  ]
+}
