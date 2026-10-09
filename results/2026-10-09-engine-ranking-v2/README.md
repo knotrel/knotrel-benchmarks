@@ -55,3 +55,13 @@ This campaign evaluates the five dynamic connectivity engines following the migr
 - **ETT Scan**: **+12.4% faster** in geomean runtime (faster in 54 / 74 cells, up to 1.83x)
 - **HDT**: **+20.2% faster** in geomean runtime (faster in 64 / 74 cells, up to 3.25x)
 - **1M node setup time**: Dropped from ~0.219s to **0.083s** (-62% setup overhead)
+
+## Summary and Recommendations
+
+### Production (Default & Opt-in)
+- **[`Graph`](file:///Users/rt/workspace/knotrel/knotrel/crates/knotrel-core/src/lib.rs) with [`BfsWorkspace`](file:///Users/rt/workspace/knotrel/knotrel/crates/knotrel-core/src/workspace.rs) (`compact-workspace`)**: The most balanced and highest-performing solution for 84% of general workloads, consistently outperforming `petgraph` in both mutations (`link`/`cut`) and reachability queries (`connected`).
+
+### Polylogarithmic Specializations
+- **[`ForestGraph`](file:///Users/rt/workspace/knotrel/knotrel/crates/knotrel-core/src/dynamic.rs) (ETT)**: Dominates read-dominated workloads (90% queries) and real-world network topologies (Cogentco), outperforming `petgraph` by 30x–50x.
+- **[`HdtGraph`](file:///Users/rt/workspace/knotrel/knotrel/crates/knotrel-core/src/hdt.rs) (HDT)**: Dominates dense graphs with complex component structures and frequent bridge removals, outperforming `petgraph` by 13x–31x.
+
