@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791374885,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 50,
+  "trace_fingerprint_fnv1a64": "01a19f08e1152f91",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1927477833,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 500,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 500,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 15,
+        "total_ns": 127457,
+        "min_ns": 1791,
+        "p50_ns": 7458,
+        "p95_ns": 16791,
+        "p99_ns": 16791,
+        "max_ns": 16791
+      },
+      "query_false": {
+        "count": 485,
+        "total_ns": 2736674,
+        "min_ns": 1458,
+        "p50_ns": 5125,
+        "p95_ns": 10875,
+        "p99_ns": 14584,
+        "max_ns": 16459
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 500,
+          "total_ns": 5440327,
+          "min_ns": 2167,
+          "p50_ns": 9917,
+          "p95_ns": 22333,
+          "p99_ns": 32500,
+          "max_ns": 58042
+        },
+        "link": null,
+        "connected": {
+          "count": 500,
+          "total_ns": 2864131,
+          "min_ns": 1458,
+          "p50_ns": 5208,
+          "p95_ns": 11125,
+          "p99_ns": 15500,
+          "max_ns": 16791
+        }
+      },
+      "workload_wall_ns": 8326334
+    }
+  ]
+}

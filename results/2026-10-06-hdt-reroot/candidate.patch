@@ -1,0 +1,13 @@
+--- a/crates/knotrel-core/src/hdt_forest.rs
++++ b/crates/knotrel-core/src/hdt_forest.rs
+@@ -218,6 +218,10 @@
+     fn reroot(&mut self, token: usize) -> Option<usize> {
+         let root = self.root(token);
+         let rank = self.rank(token);
++        // The tour already starts at this token; preserve its AVL structure.
++        if rank == 0 {
++            return Some(root);
++        }
+         let (left, right) = self.split(Some(root), rank);
+         self.concat(right, left)
+     }

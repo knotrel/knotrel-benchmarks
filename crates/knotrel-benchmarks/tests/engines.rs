@@ -77,3 +77,19 @@ fn repeated_bridge_and_cycle_queries_do_not_return_stale_answers() {
         }
     }
 }
+
+#[test]
+fn traversal_controls_observe_cuts_and_early_exit_without_stale_marks() {
+    for name in ["traversal-bfs", "traversal-dfs"] {
+        let kind = EngineKind::parse(name).expect("registered traversal control");
+        let mut graph = Engine::new(kind, &[1, 7, 42, u64::MAX]).unwrap();
+        graph.link(1, 7).unwrap();
+        graph.link(7, 42).unwrap();
+        assert_eq!(graph.connected(1, 7), Ok(true));
+        assert_eq!(graph.connected(1, 42), Ok(true));
+        graph.cut(7, 42).unwrap();
+        assert_eq!(graph.connected(1, 42), Ok(false));
+        assert_eq!(graph.connected(42, 42), Ok(true));
+        assert_eq!(graph.connected(1, u64::MAX), Ok(false));
+    }
+}

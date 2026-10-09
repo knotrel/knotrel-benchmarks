@@ -1,0 +1,25 @@
+--- a/crates/knotrel-core/src/hdt_forest.rs
++++ b/crates/knotrel-core/src/hdt_forest.rs
+@@ -215,9 +215,20 @@
+         }
+         rank
+     }
++    /// Find the tour root and in-order token rank in one parent walk, O(log V).
++    /// Moving from a right child adds its parent's left subtree and token.
++    fn root_and_rank(&self, mut token: usize) -> (usize, usize) {
++        let mut rank = self.size(self.tokens[token].left);
++        while let Some(parent) = self.tokens[token].parent {
++            if self.tokens[parent].right == Some(token) {
++                rank += 1 + self.size(self.tokens[parent].left);
++            }
++            token = parent;
++        }
++        (token, rank)
++    }
+     fn reroot(&mut self, token: usize) -> Option<usize> {
+-        let root = self.root(token);
+-        let rank = self.rank(token);
++        let (root, rank) = self.root_and_rank(token);
+         let (left, right) = self.split(Some(root), rank);
+         self.concat(right, left)
+     }

@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-blocks-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791354828,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "2e8e9275071c8a32",
+  "initial_edges": 1062499,
+  "initial_density": 2.125000125000125e-6,
+  "initial_max_degree": 3,
+  "repetitions": [
+    {
+      "setup_ns": 1597651084,
+      "hdt_stats": {
+        "candidate_edges": 134893,
+        "levels_visited": 189,
+        "non_tree_promotions": 134846,
+        "replacements": 47,
+        "tree_cuts": 97,
+        "tree_promotions": 2279725
+      },
+      "query_true": {
+        "count": 125,
+        "total_ns": 4792912,
+        "min_ns": 3125,
+        "p50_ns": 13917,
+        "p95_ns": 64959,
+        "p99_ns": 141459,
+        "max_ns": 2302541
+      },
+      "query_false": {
+        "count": 775,
+        "total_ns": 28535371,
+        "min_ns": 2583,
+        "p50_ns": 16250,
+        "p95_ns": 81042,
+        "p99_ns": 205208,
+        "max_ns": 3829166
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 3293969882,
+          "min_ns": 5042,
+          "p50_ns": 10117959,
+          "p95_ns": 104103792,
+          "p99_ns": 317740667,
+          "max_ns": 735909709
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 33328283,
+          "min_ns": 2583,
+          "p50_ns": 15750,
+          "p95_ns": 80292,
+          "p99_ns": 201042,
+          "max_ns": 3829166
+        }
+      },
+      "workload_wall_ns": 3327350875
+    }
+  ]
+}

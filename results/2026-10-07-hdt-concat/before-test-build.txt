@@ -1,0 +1,21 @@
+error[E0599]: no method named `pop_last` found for struct `hdt_forest::Forest` in the current scope
+   --> /var/folders/6m/b82t8j5j3vqcl026sf_z5k8m0000gn/T/knotrel-concat-test-ev7lxko4/before/hdt_forest.rs:418:39
+    |
+ 41 | pub(crate) struct Forest {
+    | ------------------------ method `pop_last` not found for this struct
+...
+418 |                 let (rest, pivot) = f.pop_last(root.unwrap());
+    |                                       ^^^^^^^^ method not found in `hdt_forest::Forest`
+
+error[E0599]: no method named `pop_last` found for struct `hdt_forest::Forest` in the current scope
+   --> /var/folders/6m/b82t8j5j3vqcl026sf_z5k8m0000gn/T/knotrel-concat-test-ev7lxko4/before/hdt_forest.rs:429:39
+    |
+ 41 | pub(crate) struct Forest {
+    | ------------------------ method `pop_last` not found for this struct
+...
+429 |                 let (rest, pivot) = f.pop_last(root.unwrap());
+    |                                       ^^^^^^^^ method not found in `hdt_forest::Forest`
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0599`.

@@ -1,0 +1,132 @@
+{
+  "checkouts_at_run_time": {
+    "benchmarks": {
+      "dirty": true,
+      "revision": "2ca6b437f891e5cd3830173b964f876a73821d01"
+    },
+    "core": {
+      "dirty": true,
+      "revision": "d799d7a62351f619d2f4186c502a6d2f2d7ea19a"
+    }
+  },
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "counters": {
+    "candidate_edges": 0,
+    "levels_visited": 900,
+    "non_tree_promotions": 0,
+    "replacements": 0,
+    "tree_cuts": 900,
+    "tree_promotions": 0
+  },
+  "diagnostic_stage_timings": {
+    "initial_edges_ns": 1892660125,
+    "registration_ns": 168033750
+  },
+  "diagnostic_timings": {
+    "links": null,
+    "non_tree_cuts": null,
+    "queries": {
+      "count": 100,
+      "max_ns": 387834,
+      "min_ns": 2292,
+      "p50_ns": 11334,
+      "p95_ns": 91625,
+      "p99_ns": 193791,
+      "total_ns": 2796840
+    },
+    "tree_cuts_with_promotions": null,
+    "tree_cuts_without_promotions": {
+      "count": 900,
+      "max_ns": 985584,
+      "min_ns": 1834,
+      "p50_ns": 17375,
+      "p95_ns": 166167,
+      "p99_ns": 492625,
+      "total_ns": 40832495
+    }
+  },
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "query_percent": 10,
+  "schema_version": 1,
+  "snapshots": {
+    "after_initial_edges": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 15999984,
+      "edge_count": 999999,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 999999,
+          "tree_incidences": 1999998,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 79999936,
+      "vector_capacity_bytes": 477374128,
+      "vertex_count": 1000000
+    },
+    "after_node_registration": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 0,
+      "edge_count": 0,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 100663296,
+          "tree_edges": 0,
+          "tree_incidences": 0,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 16000000,
+      "vector_capacity_bytes": 159384256,
+      "vertex_count": 1000000
+    },
+    "after_replay": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 15985584,
+      "edge_count": 999099,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 16384,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 999099,
+          "tree_incidences": 1998198,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 79942336,
+      "vector_capacity_bytes": 477376112,
+      "vertex_count": 1000000
+    }
+  },
+  "timing_note": "Diagnostic timings are cache-perturbed and not comparable to normal benchmark timings",
+  "trace_fingerprint_fnv1a64": "e39886814af69da5",
+  "workload": "sustained-churn-path-v1"
+}

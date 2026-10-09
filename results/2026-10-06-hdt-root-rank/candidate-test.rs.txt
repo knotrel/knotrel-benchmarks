@@ -1,0 +1,42 @@
+#[cfg(test)]
+mod fused_lookup_tests {
+    use super::Forest;
+    fn check(f: &Forest) {
+        f.validate();
+        fn walk(f: &Forest, token: Option<usize>, out: &mut Vec<usize>) {
+            if let Some(i) = token {
+                walk(f, f.tokens[i].left, out);
+                out.push(i);
+                walk(f, f.tokens[i].right, out);
+            }
+        }
+        let roots: std::collections::BTreeSet<_> = f.vertex_tokens.iter().map(|&v| f.root(v)).collect();
+        for root in roots {
+            let mut order = Vec::new();
+            walk(f, Some(root), &mut order);
+            for (rank, token) in order.into_iter().enumerate() {
+                assert_eq!(f.root_and_rank(token), (root, rank));
+            }
+        }
+    }
+    #[test]
+    fn root_and_rank_matches_explicit_order_after_updates() {
+        let mut f = Forest::default();
+        for _ in 0..32 { f.add_vertex(); }
+        check(&f);
+        let mut edges = Vec::new();
+        for i in 1..32 {
+            edges.push(f.link(i - 1, i));
+            check(&f);
+        }
+        for round in 0..4 {
+            for (i, edge) in edges.iter_mut().enumerate() {
+                f.cut(*edge);
+                check(&f);
+                f.set_marks(i, round % 2 == 0, round % 2 != 0);
+                *edge = f.link(i + 1, i);
+                check(&f);
+            }
+        }
+    }
+}

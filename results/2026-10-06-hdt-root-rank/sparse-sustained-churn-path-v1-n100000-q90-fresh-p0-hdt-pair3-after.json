@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791317495,
+  "config": {
+    "nodes": 100000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "4f8ccd68acfa61f8",
+  "initial_edges": 99999,
+  "initial_density": 0.00002,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 124361125,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 100,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 100,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 64,
+        "total_ns": 183917,
+        "min_ns": 583,
+        "p50_ns": 1709,
+        "p95_ns": 7833,
+        "p99_ns": 10708,
+        "max_ns": 10708
+      },
+      "query_false": {
+        "count": 836,
+        "total_ns": 1289835,
+        "min_ns": 333,
+        "p50_ns": 1167,
+        "p95_ns": 3708,
+        "p99_ns": 6292,
+        "max_ns": 10625
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 572292,
+          "min_ns": 1458,
+          "p50_ns": 3375,
+          "p95_ns": 18875,
+          "p99_ns": 34542,
+          "max_ns": 38291
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 1473752,
+          "min_ns": 333,
+          "p50_ns": 1208,
+          "p95_ns": 4084,
+          "p99_ns": 7500,
+          "max_ns": 10708
+        }
+      },
+      "workload_wall_ns": 2068084
+    }
+  ]
+}

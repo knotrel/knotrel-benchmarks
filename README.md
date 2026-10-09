@@ -2,6 +2,81 @@
 
 Reproducible workloads for measuring exact dynamic graph connectivity.
 
+New: [paired resource diagnosis of packed HDT tokens](results/2026-10-09-hdt-packed-resources/README.md).
+
+New: [extended 64-byte HDT token comparison](results/2026-10-08-hdt-packed-tokens-matrix/README.md).
+
+New: [64-byte HDT tokens pilot](results/2026-10-08-hdt-packed-tokens/README.md).
+
+New: [controlled HDT token-page preparation](results/2026-10-08-hdt-token-preparation/README.md).
+
+New: [HDT scheduling and memory phase diagnosis](results/2026-10-08-hdt-phase-resources/README.md).
+
+New: [repeated-replay A/A measurement validation](results/2026-10-08-hdt-repeated-replay/README.md).
+
+New: [HDT A/A regression diagnosis and compiled-code inspection](results/2026-10-08-hdt-promotion-noise/README.md).
+
+New: [extended promotion-only HDT comparison](results/2026-10-07-hdt-promotion-joins-matrix/README.md).
+
+New: [promotion-only HDT joins pilot](results/2026-10-07-hdt-promotion-joins/README.md).
+
+New: [HDT join association and path regression investigation](results/2026-10-07-hdt-join-order/README.md).
+
+New: [dedicated HDT concat extraction pilot](results/2026-10-07-hdt-concat/README.md).
+64 timed processes and eight structural replays test a specialized final-token
+extraction. The predeclared expansion gate is not met; the patch is preserved
+as experimental and the core remains unchanged.
+
+New: [single-pass HDT root/rank experiment](results/2026-10-06-hdt-root-rank/README.md).
+304 timed processes use four balanced pairs per cell. Eight structural replays
+verify halved parent steps during tree promotions, with small/mixed runtime
+changes. Both candidate patches are preserved in the
+[HDT candidate inventory](docs/experiments/2026-10-06-hdt-candidates.md); production
+remains unchanged.
+
+New: [HDT rank-zero reroot experiment](results/2026-10-06-hdt-reroot/README.md).
+292 paired timing processes and 16 isolated structural replays test an early
+return for already-positioned tours. A narrow benefit is confirmed, but the
+matrix is mixed; the candidate remains isolated and production is unchanged.
+
+New: [HDT cyclic-blocks diagnosis](results/2026-10-06-hdt-blocks-profile/README.md).
+24 diagnostics and eight isolated structural replays locate millions of tree
+promotions and higher-level forest maintenance on the preserved block traces.
+No production change or optimization speedup is claimed.
+
+New: [current five-engine ranking](results/2026-10-06-engine-ranking/README.md).
+1,182 processes compare Compact, Workspace, ETT, optimized HDT and external
+petgraph: 74 main cells, separate repeats and exploratory 10M results,
+plus a matched historical comparison. No universal winner; the next target
+is HDT replacement/promotion work on sparse cyclic blocks.
+
+New: [BFS epoch marks versus packed bitset](results/2026-10-05-traversal-bitset/README.md).
+904 timed processes and 76 diagnostic replays retain identical BFS work, with
+mixed/slower bitset timings despite smaller logical mark storage. The
+`traversal-bitset` control is benchmark-only; production keeps generation marks.
+
+New: [controlled BFS versus DFS](results/2026-10-05-traversal-order/README.md),
+904 timed processes and 76 separate structural probes. `traversal-bfs` and
+`traversal-dfs` are benchmark-only controls; production defaults are unchanged.
+DFS is not a universal improvement; the report retains sparse regressions and
+Cogentco gains, with a real Workspace anchor and petgraph context.
+
+New: [Compact / Workspace / petgraph across graph sizes](results/2026-10-05-traversal-scale/README.md).
+678 processes cover 1k–1M sparse graphs, exploratory 10M graphs, dense controls
+and Cogentco, with per-size rankings, tails, setup, RSS and adapter analysis.
+
+[Algorithm and competitor ranking](results/2026-10-04-connectivity-campaign/ranking.md):
+historical shared four-engine campaign, direct petgraph comparisons, and explicit
+limitations for newer workspace/HDT optimizations not yet ranked together.
+
+Diagnosis: [deterministic HDT structural counters](results/2026-10-05-hdt-structural-probe/README.md)
+find identical aggregate cut/query work before and after on the 100k path trace.
+The probe is isolated from production and makes no instrumented timing claims.
+
+Follow-up: [48-process path regression investigation](results/2026-10-05-hdt-path-investigation/README.md).
+The earlier +11.62% warmed observation is not stable in 12 new paired trials;
+the report preserves all earlier results and separates variability from causation.
+
 New: [HDT direct joins before/after](results/2026-10-05-hdt-joins/README.md),
 272 full-matrix processes plus 48 regression-confirmation processes. Includes
 the confirmed warmed-path regression alongside cyclic-block and Cogentco gains.

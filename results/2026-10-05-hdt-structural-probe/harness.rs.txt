@@ -1,0 +1,22 @@
+
+use knotrel_core::{HdtGraph, diagnostic_counts};
+fn main() {
+ let input=std::fs::read_to_string(std::env::args().nth(1).unwrap()).unwrap();
+ let mut graph=HdtGraph::new(); let mut totals=[[0u64;7];5]; let mut calls=[0u64;5];
+ for line in input.lines() {
+  let p:Vec<_>=line.split_whitespace().collect();
+  let a=p[1].parse().unwrap();let b=p[2].parse().unwrap();
+  diagnostic_counts();
+  let group=match p[0] {
+   "node"=>{assert!(graph.add_node(a));0},
+   "initial"=>{assert!(graph.link(a,b).unwrap());1},
+   "cut"=>{assert!(graph.cut(a,b).unwrap());2},
+   "link"=>{assert!(graph.link(a,b).unwrap());3},
+   "connected"=>{assert_eq!(graph.connected(a,b).unwrap(),p[3]=="1");4},
+   _=>panic!("unknown operation")
+  };
+  let values=diagnostic_counts();calls[group]+=1;
+  for i in 0..7 {totals[group][i]+=values[i];}
+ }
+ for group in 0..5 {println!("{} {} {:?}",group,calls[group],totals[group]);}
+}

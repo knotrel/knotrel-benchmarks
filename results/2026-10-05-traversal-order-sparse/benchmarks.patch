@@ -1,0 +1,188 @@
+diff --git a/README.md b/README.md
+index 418909f..522a87c 100644
+--- a/README.md
++++ b/README.md
+@@ -2,6 +2,22 @@
+ 
+ Reproducible workloads for measuring exact dynamic graph connectivity.
+ 
++New: [Compact / Workspace / petgraph across graph sizes](results/2026-10-05-traversal-scale/README.md).
++678 processes cover 1k–1M sparse graphs, exploratory 10M graphs, dense controls
++and Cogentco, with per-size rankings, tails, setup, RSS and adapter analysis.
++
++[Algorithm and competitor ranking](results/2026-10-04-connectivity-campaign/ranking.md):
++last shared four-engine campaign, direct petgraph comparisons, and explicit
++limitations for newer workspace/HDT optimizations not yet ranked together.
++
++Diagnosis: [deterministic HDT structural counters](results/2026-10-05-hdt-structural-probe/README.md)
++find identical aggregate cut/query work before and after on the 100k path trace.
++The probe is isolated from production and makes no instrumented timing claims.
++
++Follow-up: [48-process path regression investigation](results/2026-10-05-hdt-path-investigation/README.md).
++The earlier +11.62% warmed observation is not stable in 12 new paired trials;
++the report preserves all earlier results and separates variability from causation.
++
+ New: [HDT direct joins before/after](results/2026-10-05-hdt-joins/README.md),
+ 272 full-matrix processes plus 48 regression-confirmation processes. Includes
+ the confirmed warmed-path regression alongside cyclic-block and Cogentco gains.
+diff --git a/crates/knotrel-benchmarks/src/engines.rs b/crates/knotrel-benchmarks/src/engines.rs
+index 9f13693..b1dd3a4 100644
+--- a/crates/knotrel-benchmarks/src/engines.rs
++++ b/crates/knotrel-benchmarks/src/engines.rs
+@@ -30,6 +30,10 @@ pub enum EngineKind {
+     Compact,
+     /// Same compact core with caller-owned reusable traversal storage.
+     CompactWorkspace,
++    /// Controlled sorted-adjacency BFS, benchmark-only.
++    TraversalBfs,
++    /// Controlled sorted-adjacency LIFO search, benchmark-only.
++    TraversalDfs,
+     /// AVL Euler-tour forest with exhaustive smaller-side replacement search.
+     EttScan,
+     /// Experimental Knotrel HDT with growing vertices and exact-level promotions.
+@@ -47,10 +51,12 @@ pub enum EngineKind {
+ }
+ impl EngineKind {
+     /// Stable default comparison order; collectors should rotate this order.
+-    pub const ALL: [Self; 10] = [
++    pub const ALL: [Self; 12] = [
+         Self::Reference,
+         Self::Compact,
+         Self::CompactWorkspace,
++        Self::TraversalBfs,
++        Self::TraversalDfs,
+         Self::EttScan,
+         Self::Hdt,
+         Self::HdtV2,
+@@ -66,6 +72,8 @@ impl EngineKind {
+             Self::Reference => "reference-bfs",
+             Self::Compact => "compact-bfs",
+             Self::CompactWorkspace => "compact-workspace",
++            Self::TraversalBfs => "traversal-bfs",
++            Self::TraversalDfs => "traversal-dfs",
+             Self::EttScan => "ett-scan",
+             Self::Hdt => "hdt",
+             Self::HdtV2 => "hdt-v2",
+@@ -82,6 +90,8 @@ impl EngineKind {
+             Self::Reference => "knotrel-core/reference-bfs",
+             Self::Compact => "knotrel-core/compact-bfs-v1",
+             Self::CompactWorkspace => "knotrel-core/compact-workspace-v2",
++            Self::TraversalBfs => "knotrel-benchmarks/traversal-bfs-v1",
++            Self::TraversalDfs => "knotrel-benchmarks/traversal-dfs-v1",
+             Self::EttScan => "knotrel-core/ett-pruned-v2",
+             Self::Hdt => "knotrel-core/hdt-sparse-levels-v3",
+             Self::HdtV2 => "knotrel-core/hdt-levels-v2",
+@@ -116,6 +126,7 @@ enum Storage {
+     Reference(ReferenceGraph),
+     Compact(Graph),
+     CompactWorkspace(Graph, BfsWorkspace),
++    Traversal(crate::traversal::Graph, crate::traversal::SearchSpace, bool),
+     EttScan(ForestGraph),
+     Hdt(HdtGraph),
+     HdtV2(BaselineHdt),
+@@ -162,6 +173,19 @@ impl Engine {
+             return Err("need nonempty unique registered nodes");
+         }
+         let n = nodes.len();
++        if matches!(kind, EngineKind::TraversalBfs | EngineKind::TraversalDfs) {
++            let mut graph = crate::traversal::Graph::new();
++            for &node in nodes {
++                graph.add_node(node);
++            }
++            return Ok(Self {
++                storage: Storage::Traversal(
++                    graph,
++                    crate::traversal::SearchSpace::default(),
++                    kind == EngineKind::TraversalDfs,
++                ),
++            });
++        }
+         if kind == EngineKind::Reference {
+             let mut graph = ReferenceGraph::new();
+             for &node in nodes {
+@@ -241,6 +265,8 @@ impl Engine {
+             EngineKind::Reference
+             | EngineKind::Compact
+             | EngineKind::CompactWorkspace
++            | EngineKind::TraversalBfs
++            | EngineKind::TraversalDfs
+             | EngineKind::Hdt
+             | EngineKind::HdtV2
+             | EngineKind::EttScan
+@@ -331,6 +357,13 @@ impl Engine {
+     /// Returns UnknownNode, checking source before target, for absent IDs.
+     pub fn connected(&mut self, source: u64, target: u64) -> Result<bool, GraphError> {
+         let indexed = match &mut self.storage {
++            Storage::Traversal(graph, space, dfs) => {
++                return if *dfs {
++                    graph.search::<true, false>(source, target, space)
++                } else {
++                    graph.search::<false, false>(source, target, space)
++                };
++            }
+             Storage::Reference(graph) => return graph.connected(source, target),
+             Storage::Compact(graph) => return graph.connected(source, target),
+             Storage::CompactWorkspace(graph, workspace) => {
+@@ -393,6 +426,13 @@ impl Engine {
+             return Err(GraphError::SelfLoop { node: source });
+         }
+         let indexed = match &mut self.storage {
++            Storage::Traversal(graph, _, _) => {
++                return if insert {
++                    graph.link(source, target)
++                } else {
++                    graph.cut(source, target)
++                };
++            }
+             Storage::Reference(graph) => {
+                 return if insert {
+                     graph.link(source, target)
+diff --git a/crates/knotrel-benchmarks/src/lib.rs b/crates/knotrel-benchmarks/src/lib.rs
+index 6b55cae..b96c356 100644
+--- a/crates/knotrel-benchmarks/src/lib.rs
++++ b/crates/knotrel-benchmarks/src/lib.rs
+@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
+ 
+ pub mod engines;
+ mod traces;
++pub mod traversal;
+ pub use traces::{WorkloadKind, generate, generate_with_query_percent};
+ 
+ /// A deterministic workload configuration.
+diff --git a/crates/knotrel-benchmarks/tests/cli.rs b/crates/knotrel-benchmarks/tests/cli.rs
+index a5d9701..e623997 100644
+--- a/crates/knotrel-benchmarks/tests/cli.rs
++++ b/crates/knotrel-benchmarks/tests/cli.rs
+@@ -232,7 +232,7 @@ fn all_engines_share_trace_and_keep_repeat_queries_separate() {
+     );
+     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+     let comparisons = report["comparisons"].as_array().unwrap();
+-    assert_eq!(comparisons.len(), 10);
++    assert_eq!(comparisons.len(), 12);
+     for backend in comparisons {
+         assert_eq!(
+             backend["trace_fingerprint_fnv1a64"],
+diff --git a/crates/knotrel-benchmarks/tests/engines.rs b/crates/knotrel-benchmarks/tests/engines.rs
+index 8d7fa3f..f632731 100644
+--- a/crates/knotrel-benchmarks/tests/engines.rs
++++ b/crates/knotrel-benchmarks/tests/engines.rs
+@@ -77,3 +77,19 @@ fn repeated_bridge_and_cycle_queries_do_not_return_stale_answers() {
+         }
+     }
+ }
++
++#[test]
++fn traversal_controls_observe_cuts_and_early_exit_without_stale_marks() {
++    for name in ["traversal-bfs", "traversal-dfs"] {
++        let kind = EngineKind::parse(name).expect("registered traversal control");
++        let mut graph = Engine::new(kind, &[1, 7, 42, u64::MAX]).unwrap();
++        graph.link(1, 7).unwrap();
++        graph.link(7, 42).unwrap();
++        assert_eq!(graph.connected(1, 7), Ok(true));
++        assert_eq!(graph.connected(1, 42), Ok(true));
++        graph.cut(7, 42).unwrap();
++        assert_eq!(graph.connected(1, 42), Ok(false));
++        assert_eq!(graph.connected(42, 42), Ok(true));
++        assert_eq!(graph.connected(1, u64::MAX), Ok(false));
++    }
++}

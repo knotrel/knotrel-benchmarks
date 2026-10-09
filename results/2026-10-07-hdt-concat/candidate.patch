@@ -1,0 +1,32 @@
+--- a/crates/knotrel-core/src/hdt_forest.rs
++++ b/crates/knotrel-core/src/hdt_forest.rs
+@@ -189,13 +189,27 @@
+             (Some(l), b)
+         }
+     }
++    /// Remove the final token and return the remaining AVL tour and token.
++    /// Only the right spine changes. Deletion decreases subtree height by at
++    /// most one, so balancing each ancestor preserves AVL bounds in O(log V).
++    fn pop_last(&mut self, root: usize) -> (Option<usize>, usize) {
++        if let Some(right) = self.take_right(root) {
++            let (rest, pivot) = self.pop_last(right);
++            self.tokens[root].right = rest;
++            (Some(self.balance(root)), pivot)
++        } else {
++            let left = self.take_left(root);
++            self.pull(root);
++            (left, root)
++        }
++    }
+     fn concat(&mut self, left: Option<usize>, right: Option<usize>) -> Option<usize> {
+         match (left, right) {
+             (None, r) => r,
+             (l, None) => l,
+             (Some(l), Some(r)) => {
+-                let (a, pivot) = self.split(Some(l), self.tokens[l].size - 1);
+-                Some(self.join(a, pivot.expect("last token"), Some(r)))
++                let (a, pivot) = self.pop_last(l);
++                Some(self.join(a, pivot, Some(r)))
+             }
+         }
+     }

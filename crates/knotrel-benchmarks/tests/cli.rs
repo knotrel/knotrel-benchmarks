@@ -232,7 +232,7 @@ fn all_engines_share_trace_and_keep_repeat_queries_separate() {
     );
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
     let comparisons = report["comparisons"].as_array().unwrap();
-    assert_eq!(comparisons.len(), 10);
+    assert_eq!(comparisons.len(), 13);
     for backend in comparisons {
         assert_eq!(
             backend["trace_fingerprint_fnv1a64"],

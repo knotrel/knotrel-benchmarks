@@ -1,0 +1,1634 @@
+{
+  "failed_processes": 0,
+  "complete_cells": 38,
+  "families": [
+    {
+      "family": "sparse",
+      "complete_cells": 24,
+      "faster_cells": 17,
+      "median_cell_delta_percent": -7.104926904794301,
+      "min_cell_delta_percent": -16.302865538581123,
+      "max_cell_delta_percent": 28.5438910949837
+    },
+    {
+      "family": "dense",
+      "complete_cells": 12,
+      "faster_cells": 4,
+      "median_cell_delta_percent": 0.5723315024709685,
+      "min_cell_delta_percent": -1.4489311177300124,
+      "max_cell_delta_percent": 5.126050616293476
+    },
+    {
+      "family": "cogentco",
+      "complete_cells": 2,
+      "faster_cells": 1,
+      "median_cell_delta_percent": -1.8790207631224298,
+      "min_cell_delta_percent": -4.6775055324824955,
+      "max_cell_delta_percent": 0.9194640062376358
+    }
+  ],
+  "flagged_cells": [
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "warmed",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 8569375.0,
+            "min": 8461875,
+            "max": 8837541
+          },
+          "after": {
+            "median": 9008645.5,
+            "min": 8804208,
+            "max": 11694542
+          },
+          "delta_percent": 5.126050616293476
+        },
+        "setup_ns": {
+          "before": {
+            "median": 13546166.5,
+            "min": 13360958,
+            "max": 13609333
+          },
+          "after": {
+            "median": 13497708.0,
+            "min": 13321792,
+            "max": 14430791
+          },
+          "delta_percent": -0.3577285130815455
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 14401536.0,
+            "min": 14385152,
+            "max": 14450688
+          },
+          "after": {
+            "median": 14376960.0,
+            "min": 14352384,
+            "max": 14548992
+          },
+          "delta_percent": -0.17064846416382506
+        },
+        "cut_count": {
+          "before": {
+            "median": 450.0,
+            "min": 450,
+            "max": 450
+          },
+          "after": {
+            "median": 450.0,
+            "min": 450,
+            "max": 450
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 8352968.0,
+            "min": 8246676,
+            "max": 8619708
+          },
+          "after": {
+            "median": 8787759.5,
+            "min": 8588678,
+            "max": 11457268
+          },
+          "delta_percent": 5.2052336367145235
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 667.0,
+            "min": 666,
+            "max": 708
+          },
+          "after": {
+            "median": 667.0,
+            "min": 666,
+            "max": 667
+          },
+          "delta_percent": 0.0
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 708.5,
+            "min": 667,
+            "max": 750
+          },
+          "after": {
+            "median": 709.0,
+            "min": 709,
+            "max": 792
+          },
+          "delta_percent": 0.07057163020465218
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 709.0,
+            "min": 709,
+            "max": 792
+          },
+          "after": {
+            "median": 771.0,
+            "min": 750,
+            "max": 875
+          },
+          "delta_percent": 8.744710860366723
+        },
+        "link_count": {
+          "before": {
+            "median": 450.0,
+            "min": 450,
+            "max": 450
+          },
+          "after": {
+            "median": 450.0,
+            "min": 450,
+            "max": 450
+          },
+          "delta_percent": 0.0
+        },
+        "link_total_ns": {
+          "before": {
+            "median": 181751.5,
+            "min": 181238,
+            "max": 182498
+          },
+          "after": {
+            "median": 185328.5,
+            "min": 177466,
+            "max": 195253
+          },
+          "delta_percent": 1.9680717903290956
+        },
+        "link_p50_ns": {
+          "before": {
+            "median": 416.0,
+            "min": 416,
+            "max": 416
+          },
+          "after": {
+            "median": 416.0,
+            "min": 375,
+            "max": 417
+          },
+          "delta_percent": 0.0
+        },
+        "link_p95_ns": {
+          "before": {
+            "median": 417.0,
+            "min": 417,
+            "max": 417
+          },
+          "after": {
+            "median": 437.5,
+            "min": 417,
+            "max": 500
+          },
+          "delta_percent": 4.916067146282965
+        },
+        "link_p99_ns": {
+          "before": {
+            "median": 458.5,
+            "min": 417,
+            "max": 500
+          },
+          "after": {
+            "median": 479.0,
+            "min": 458,
+            "max": 583
+          },
+          "delta_percent": 4.471101417666312
+        },
+        "connected_count": {
+          "before": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "after": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 13771.0,
+            "min": 12835,
+            "max": 15078
+          },
+          "after": {
+            "median": 14769.0,
+            "min": 12458,
+            "max": 25380
+          },
+          "delta_percent": 7.247113499382762
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 125.0,
+            "min": 125,
+            "max": 125
+          },
+          "after": {
+            "median": 125.0,
+            "min": 125,
+            "max": 167
+          },
+          "delta_percent": 0.0
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 229.0,
+            "min": 167,
+            "max": 334
+          },
+          "after": {
+            "median": 291.5,
+            "min": 167,
+            "max": 584
+          },
+          "delta_percent": 27.292576419213965
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 312.5,
+            "min": 209,
+            "max": 459
+          },
+          "after": {
+            "median": 437.5,
+            "min": 292,
+            "max": 1083
+          },
+          "delta_percent": 39.99999999999999
+        }
+      },
+      "pairs": [
+        {
+          "pair": 30,
+          "runtime_delta_percent": 2.3978142523747525
+        },
+        {
+          "pair": 55,
+          "runtime_delta_percent": 36.983215121383935
+        },
+        {
+          "pair": 82,
+          "runtime_delta_percent": 4.208851760914034
+        },
+        {
+          "pair": 121,
+          "runtime_delta_percent": 4.0455927321072505
+        }
+      ],
+      "pairs_faster": 0
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 3007791.5,
+            "min": 2932583,
+            "max": 3102833
+          },
+          "after": {
+            "median": 3161812.0,
+            "min": 3024916,
+            "max": 3676000
+          },
+          "delta_percent": 5.120717310358769
+        },
+        "setup_ns": {
+          "before": {
+            "median": 127173417.0,
+            "min": 125431125,
+            "max": 148547917
+          },
+          "after": {
+            "median": 127648646.0,
+            "min": 125564000,
+            "max": 193162500
+          },
+          "delta_percent": 0.3736857994465881
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 112599040.0,
+            "min": 112590848,
+            "max": 117964800
+          },
+          "after": {
+            "median": 112599040.0,
+            "min": 112574464,
+            "max": 112607232
+          },
+          "delta_percent": 0.0
+        },
+        "cut_count": {
+          "before": {
+            "median": 894.0,
+            "min": 894,
+            "max": 894
+          },
+          "after": {
+            "median": 894.0,
+            "min": 894,
+            "max": 894
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 2807087.5,
+            "min": 2739754,
+            "max": 2893203
+          },
+          "after": {
+            "median": 2963448.0,
+            "min": 2842127,
+            "max": 3444978
+          },
+          "delta_percent": 5.570203992572376
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 2396.0,
+            "min": 2292,
+            "max": 2459
+          },
+          "after": {
+            "median": 2542.0,
+            "min": 2375,
+            "max": 3042
+          },
+          "delta_percent": 6.093489148580966
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 6521.0,
+            "min": 5917,
+            "max": 7125
+          },
+          "after": {
+            "median": 7145.5,
+            "min": 6458,
+            "max": 8167
+          },
+          "delta_percent": 9.576752031896941
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 23937.5,
+            "min": 21500,
+            "max": 24500
+          },
+          "after": {
+            "median": 24083.5,
+            "min": 22542,
+            "max": 24584
+          },
+          "delta_percent": 0.6099216710182764
+        },
+        "link_count": {
+          "before": {
+            "median": 6.0,
+            "min": 6,
+            "max": 6
+          },
+          "after": {
+            "median": 6.0,
+            "min": 6,
+            "max": 6
+          },
+          "delta_percent": 0.0
+        },
+        "link_total_ns": {
+          "before": {
+            "median": 10375.0,
+            "min": 10292,
+            "max": 13958
+          },
+          "after": {
+            "median": 11333.5,
+            "min": 10166,
+            "max": 13960
+          },
+          "delta_percent": 9.238554216867477
+        },
+        "link_p50_ns": {
+          "before": {
+            "median": 1666.5,
+            "min": 1500,
+            "max": 2000
+          },
+          "after": {
+            "median": 1854.0,
+            "min": 1625,
+            "max": 2375
+          },
+          "delta_percent": 11.25112511251125
+        },
+        "link_p95_ns": {
+          "before": {
+            "median": 2583.5,
+            "min": 2291,
+            "max": 5083
+          },
+          "after": {
+            "median": 2375.0,
+            "min": 2208,
+            "max": 3334
+          },
+          "delta_percent": -8.070447067931097
+        },
+        "link_p99_ns": {
+          "before": {
+            "median": 2583.5,
+            "min": 2291,
+            "max": 5083
+          },
+          "after": {
+            "median": 2375.0,
+            "min": 2208,
+            "max": 3334
+          },
+          "delta_percent": -8.070447067931097
+        },
+        "connected_count": {
+          "before": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "after": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 168691.0,
+            "min": 162292,
+            "max": 174542
+          },
+          "after": {
+            "median": 166335.0,
+            "min": 149248,
+            "max": 194835
+          },
+          "delta_percent": -1.3966364536341591
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 1395.5,
+            "min": 1375,
+            "max": 1500
+          },
+          "after": {
+            "median": 1312.5,
+            "min": 1167,
+            "max": 1750
+          },
+          "delta_percent": -5.947689000358292
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 3583.5,
+            "min": 3083,
+            "max": 3875
+          },
+          "after": {
+            "median": 3520.5,
+            "min": 2917,
+            "max": 3958
+          },
+          "delta_percent": -1.7580577647551276
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 5896.0,
+            "min": 5167,
+            "max": 6792
+          },
+          "after": {
+            "median": 5979.5,
+            "min": 4917,
+            "max": 6333
+          },
+          "delta_percent": 1.416214382632286
+        }
+      },
+      "pairs": [
+        {
+          "pair": 7,
+          "runtime_delta_percent": 4.610542992304056
+        },
+        {
+          "pair": 73,
+          "runtime_delta_percent": 25.019853193498843
+        },
+        {
+          "pair": 91,
+          "runtime_delta_percent": -1.636744980082916
+        },
+        {
+          "pair": 151,
+          "runtime_delta_percent": 4.930977593702268
+        }
+      ],
+      "pairs_faster": 1
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 2909688.0,
+            "min": 2476916,
+            "max": 3723459
+          },
+          "after": {
+            "median": 3344020.5,
+            "min": 2567500,
+            "max": 3550834
+          },
+          "delta_percent": 14.927115896962139
+        },
+        "setup_ns": {
+          "before": {
+            "median": 130253875.0,
+            "min": 125319458,
+            "max": 160617334
+          },
+          "after": {
+            "median": 131669937.5,
+            "min": 127521875,
+            "max": 150428250
+          },
+          "delta_percent": 1.0871557564026357
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 112697344.0,
+            "min": 112689152,
+            "max": 112721920
+          },
+          "after": {
+            "median": 112713728.0,
+            "min": 112672768,
+            "max": 112738304
+          },
+          "delta_percent": 0.014538053354651304
+        },
+        "cut_count": {
+          "before": {
+            "median": 498.0,
+            "min": 498,
+            "max": 498
+          },
+          "after": {
+            "median": 498.0,
+            "min": 498,
+            "max": 498
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 2004085.0,
+            "min": 1770779,
+            "max": 2516221
+          },
+          "after": {
+            "median": 2285374.5,
+            "min": 1849837,
+            "max": 2446204
+          },
+          "delta_percent": 14.035806864479294
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 2812.5,
+            "min": 2666,
+            "max": 3208
+          },
+          "after": {
+            "median": 3041.5,
+            "min": 2667,
+            "max": 3250
+          },
+          "delta_percent": 8.142222222222228
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 11083.5,
+            "min": 9042,
+            "max": 14542
+          },
+          "after": {
+            "median": 13270.5,
+            "min": 9375,
+            "max": 14500
+          },
+          "delta_percent": 19.732034104750305
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 28375.5,
+            "min": 23583,
+            "max": 36167
+          },
+          "after": {
+            "median": 30687.5,
+            "min": 24666,
+            "max": 35750
+          },
+          "delta_percent": 8.147874046272307
+        },
+        "link_count": {
+          "before": {
+            "median": 2.0,
+            "min": 2,
+            "max": 2
+          },
+          "after": {
+            "median": 2.0,
+            "min": 2,
+            "max": 2
+          },
+          "delta_percent": 0.0
+        },
+        "link_total_ns": {
+          "before": {
+            "median": 4125.0,
+            "min": 3874,
+            "max": 5208
+          },
+          "after": {
+            "median": 4312.5,
+            "min": 4041,
+            "max": 4917
+          },
+          "delta_percent": 4.545454545454541
+        },
+        "link_p50_ns": {
+          "before": {
+            "median": 1854.0,
+            "min": 1708,
+            "max": 2375
+          },
+          "after": {
+            "median": 1917.0,
+            "min": 1708,
+            "max": 2292
+          },
+          "delta_percent": 3.398058252427183
+        },
+        "link_p95_ns": {
+          "before": {
+            "median": 2271.0,
+            "min": 2166,
+            "max": 2833
+          },
+          "after": {
+            "median": 2395.5,
+            "min": 2333,
+            "max": 2625
+          },
+          "delta_percent": 5.482166446499348
+        },
+        "link_p99_ns": {
+          "before": {
+            "median": 2271.0,
+            "min": 2166,
+            "max": 2833
+          },
+          "after": {
+            "median": 2395.5,
+            "min": 2333,
+            "max": 2625
+          },
+          "delta_percent": 5.482166446499348
+        },
+        "connected_count": {
+          "before": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "after": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 879966.0,
+            "min": 679920,
+            "max": 1180457
+          },
+          "after": {
+            "median": 1029111.5,
+            "min": 693382,
+            "max": 1085204
+          },
+          "delta_percent": 16.949007120729664
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 1375.0,
+            "min": 1125,
+            "max": 1875
+          },
+          "after": {
+            "median": 1375.0,
+            "min": 1125,
+            "max": 1458
+          },
+          "delta_percent": 0.0
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 3979.5,
+            "min": 3083,
+            "max": 5458
+          },
+          "after": {
+            "median": 5145.5,
+            "min": 3083,
+            "max": 5667
+          },
+          "delta_percent": 29.30016333710266
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 7041.5,
+            "min": 5417,
+            "max": 8625
+          },
+          "after": {
+            "median": 9187.5,
+            "min": 5500,
+            "max": 10708
+          },
+          "delta_percent": 30.476460981324994
+        }
+      },
+      "pairs": [
+        {
+          "pair": 107,
+          "runtime_delta_percent": 23.75945276190179
+        },
+        {
+          "pair": 132,
+          "runtime_delta_percent": 15.750307970193633
+        },
+        {
+          "pair": 137,
+          "runtime_delta_percent": -11.841623608585461
+        },
+        {
+          "pair": 147,
+          "runtime_delta_percent": 3.6571284613608146
+        }
+      ],
+      "pairs_faster": 1
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 2104145.5,
+            "min": 1942459,
+            "max": 2452167
+          },
+          "after": {
+            "median": 2704750.5,
+            "min": 1919125,
+            "max": 2972375
+          },
+          "delta_percent": 28.5438910949837
+        },
+        "setup_ns": {
+          "before": {
+            "median": 126806937.5,
+            "min": 126308333,
+            "max": 128277500
+          },
+          "after": {
+            "median": 129583937.0,
+            "min": 128117375,
+            "max": 132465666
+          },
+          "delta_percent": 2.1899428806882115
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 84688896.0,
+            "min": 84688896,
+            "max": 84705280
+          },
+          "after": {
+            "median": 84672512.0,
+            "min": 84656128,
+            "max": 85229568
+          },
+          "delta_percent": -0.01934610176049789
+        },
+        "cut_count": {
+          "before": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "after": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 594837.0,
+            "min": 515129,
+            "max": 652954
+          },
+          "after": {
+            "median": 797727.5,
+            "min": 531295,
+            "max": 848000
+          },
+          "delta_percent": 34.10858773075649
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 3687.5,
+            "min": 3250,
+            "max": 3958
+          },
+          "after": {
+            "median": 4562.5,
+            "min": 3334,
+            "max": 5375
+          },
+          "delta_percent": 23.728813559322038
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 18875.0,
+            "min": 18250,
+            "max": 19833
+          },
+          "after": {
+            "median": 25625.0,
+            "min": 21833,
+            "max": 27625
+          },
+          "delta_percent": 35.76158940397352
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 31979.0,
+            "min": 29416,
+            "max": 37875
+          },
+          "after": {
+            "median": 36125.0,
+            "min": 29000,
+            "max": 43750
+          },
+          "delta_percent": 12.964758122517894
+        },
+        "link_count": null,
+        "link_total_ns": null,
+        "link_p50_ns": null,
+        "link_p95_ns": null,
+        "link_p99_ns": null,
+        "connected_count": {
+          "before": {
+            "median": 900.0,
+            "min": 900,
+            "max": 900
+          },
+          "after": {
+            "median": 900.0,
+            "min": 900,
+            "max": 900
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 1514610.0,
+            "min": 1350763,
+            "max": 1777978
+          },
+          "after": {
+            "median": 1886263.0,
+            "min": 1366998,
+            "max": 2098741
+          },
+          "delta_percent": 24.537867833963855
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 1395.5,
+            "min": 1083,
+            "max": 1625
+          },
+          "after": {
+            "median": 1333.0,
+            "min": 1167,
+            "max": 1584
+          },
+          "delta_percent": -4.478681476173419
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 4146.0,
+            "min": 3292,
+            "max": 4417
+          },
+          "after": {
+            "median": 6062.5,
+            "min": 3417,
+            "max": 6375
+          },
+          "delta_percent": 46.22527737578388
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 6771.0,
+            "min": 5709,
+            "max": 7334
+          },
+          "after": {
+            "median": 10250.0,
+            "min": 6250,
+            "max": 10625
+          },
+          "delta_percent": 51.38088908580711
+        }
+      },
+      "pairs": [
+        {
+          "pair": 22,
+          "runtime_delta_percent": 24.559959679677434
+        },
+        {
+          "pair": 25,
+          "runtime_delta_percent": 35.352509370854165
+        },
+        {
+          "pair": 49,
+          "runtime_delta_percent": -2.886447798413694
+        },
+        {
+          "pair": 138,
+          "runtime_delta_percent": 21.214215834402793
+        }
+      ],
+      "pairs_faster": 1
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 7496395.5,
+            "min": 4698042,
+            "max": 12519583
+          },
+          "after": {
+            "median": 9176812.5,
+            "min": 8236709,
+            "max": 18388875
+          },
+          "delta_percent": 22.41633328977908
+        },
+        "setup_ns": {
+          "before": {
+            "median": 1900811062.5,
+            "min": 1883493042,
+            "max": 1933014708
+          },
+          "after": {
+            "median": 1947063041.5,
+            "min": 1889939875,
+            "max": 2121247041
+          },
+          "delta_percent": 2.433275979526761
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 718856192.0,
+            "min": 718831616,
+            "max": 718864384
+          },
+          "after": {
+            "median": 718864384.0,
+            "min": 612433920,
+            "max": 718913536
+          },
+          "delta_percent": 0.0011395881528430962
+        },
+        "cut_count": {
+          "before": {
+            "median": 900.0,
+            "min": 900,
+            "max": 900
+          },
+          "after": {
+            "median": 900.0,
+            "min": 900,
+            "max": 900
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 7036379.5,
+            "min": 4444144,
+            "max": 11753772
+          },
+          "after": {
+            "median": 8605983.0,
+            "min": 7732753,
+            "max": 17250001
+          },
+          "delta_percent": 22.30697619422033
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 6145.5,
+            "min": 4334,
+            "max": 11833
+          },
+          "after": {
+            "median": 8416.5,
+            "min": 6542,
+            "max": 14750
+          },
+          "delta_percent": 36.953868684403226
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 18812.5,
+            "min": 6834,
+            "max": 27667
+          },
+          "after": {
+            "median": 19792.0,
+            "min": 18500,
+            "max": 48333
+          },
+          "delta_percent": 5.206644518272419
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 27854.0,
+            "min": 25292,
+            "max": 38291
+          },
+          "after": {
+            "median": 31771.0,
+            "min": 29125,
+            "max": 75916
+          },
+          "delta_percent": 14.062612192144751
+        },
+        "link_count": null,
+        "link_total_ns": null,
+        "link_p50_ns": null,
+        "link_p95_ns": null,
+        "link_p99_ns": null,
+        "connected_count": {
+          "before": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "after": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 439184.5,
+            "min": 232376,
+            "max": 742001
+          },
+          "after": {
+            "median": 549314.0,
+            "min": 484715,
+            "max": 1117090
+          },
+          "delta_percent": 25.07590773353796
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 3916.0,
+            "min": 2167,
+            "max": 7000
+          },
+          "after": {
+            "median": 5104.5,
+            "min": 4291,
+            "max": 9167
+          },
+          "delta_percent": 30.349846782431044
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 8104.0,
+            "min": 3208,
+            "max": 13042
+          },
+          "after": {
+            "median": 10375.5,
+            "min": 9792,
+            "max": 23209
+          },
+          "delta_percent": 28.029368213228032
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 11812.0,
+            "min": 4250,
+            "max": 18250
+          },
+          "after": {
+            "median": 12312.5,
+            "min": 11666,
+            "max": 32958
+          },
+          "delta_percent": 4.237216390111742
+        }
+      },
+      "pairs": [
+        {
+          "pair": 4,
+          "runtime_delta_percent": 30.388721554917876
+        },
+        {
+          "pair": 23,
+          "runtime_delta_percent": -31.99753538117044
+        },
+        {
+          "pair": 54,
+          "runtime_delta_percent": 291.4157216985289
+        },
+        {
+          "pair": 97,
+          "runtime_delta_percent": 13.419589084517192
+        }
+      ],
+      "pairs_faster": 1
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 5233187.5,
+            "min": 4110334,
+            "max": 7900292
+          },
+          "after": {
+            "median": 6207604.0,
+            "min": 5769000,
+            "max": 6731458
+          },
+          "delta_percent": 18.6199424347016
+        },
+        "setup_ns": {
+          "before": {
+            "median": 1870731916.5,
+            "min": 1867984334,
+            "max": 1880708750
+          },
+          "after": {
+            "median": 1901124479.0,
+            "min": 1886122083,
+            "max": 1908722458
+          },
+          "delta_percent": 1.6246348411514955
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 717832192.0,
+            "min": 696008704,
+            "max": 717832192
+          },
+          "after": {
+            "median": 717840384.0,
+            "min": 717815808,
+            "max": 717897728
+          },
+          "delta_percent": 0.00114121379499732
+        },
+        "cut_count": {
+          "before": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "after": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 3374844.0,
+            "min": 2698986,
+            "max": 4886630
+          },
+          "after": {
+            "median": 3972480.5,
+            "min": 3677546,
+            "max": 4267216
+          },
+          "delta_percent": 17.708566677452353
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 5646.0,
+            "min": 4542,
+            "max": 8958
+          },
+          "after": {
+            "median": 7041.5,
+            "min": 6250,
+            "max": 7709
+          },
+          "delta_percent": 24.716613531703867
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 13750.0,
+            "min": 12000,
+            "max": 19292
+          },
+          "after": {
+            "median": 14896.0,
+            "min": 14000,
+            "max": 16625
+          },
+          "delta_percent": 8.334545454545461
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 18104.5,
+            "min": 15084,
+            "max": 25167
+          },
+          "after": {
+            "median": 20958.5,
+            "min": 20458,
+            "max": 22666
+          },
+          "delta_percent": 15.764036565494767
+        },
+        "link_count": null,
+        "link_total_ns": null,
+        "link_p50_ns": null,
+        "link_p95_ns": null,
+        "link_p99_ns": null,
+        "connected_count": {
+          "before": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "after": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 1836580.0,
+            "min": 1389121,
+            "max": 2992796
+          },
+          "after": {
+            "median": 2213764.0,
+            "min": 2069538,
+            "max": 2444126
+          },
+          "delta_percent": 20.537303030633012
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 3104.5,
+            "min": 2167,
+            "max": 5500
+          },
+          "after": {
+            "median": 4104.5,
+            "min": 3792,
+            "max": 4375
+          },
+          "delta_percent": 32.21130616846513
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 7729.0,
+            "min": 5917,
+            "max": 11625
+          },
+          "after": {
+            "median": 8542.0,
+            "min": 8208,
+            "max": 9250
+          },
+          "delta_percent": 10.518825203777983
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 10750.0,
+            "min": 9417,
+            "max": 15667
+          },
+          "after": {
+            "median": 13063.0,
+            "min": 11500,
+            "max": 14917
+          },
+          "delta_percent": 21.516279069767453
+        }
+      },
+      "pairs": [
+        {
+          "pair": 76,
+          "runtime_delta_percent": -17.704522820169178
+        },
+        {
+          "pair": 103,
+          "runtime_delta_percent": 21.683189200590604
+        },
+        {
+          "pair": 118,
+          "runtime_delta_percent": 17.57235115603781
+        },
+        {
+          "pair": 141,
+          "runtime_delta_percent": 43.87212815308925
+        }
+      ],
+      "pairs_faster": 1
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 4344792.0,
+            "min": 3306208,
+            "max": 6036291
+          },
+          "after": {
+            "median": 5117438.0,
+            "min": 2522958,
+            "max": 6897500
+          },
+          "delta_percent": 17.78326787565434
+        },
+        "setup_ns": {
+          "before": {
+            "median": 1921600062.5,
+            "min": 1891079167,
+            "max": 1960543792
+          },
+          "after": {
+            "median": 1917991979.0,
+            "min": 1906685500,
+            "max": 1988289167
+          },
+          "delta_percent": -0.18776453906365065
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 718184448.0,
+            "min": 718159872,
+            "max": 718225408
+          },
+          "after": {
+            "median": 718176256.0,
+            "min": 718159872,
+            "max": 718225408
+          },
+          "delta_percent": -0.0011406540510350283
+        },
+        "cut_count": {
+          "before": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "after": {
+            "median": 100.0,
+            "min": 100,
+            "max": 100
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 889087.5,
+            "min": 612622,
+            "max": 1168788
+          },
+          "after": {
+            "median": 1030021.0,
+            "min": 585831,
+            "max": 1334295
+          },
+          "delta_percent": 15.851476935622188
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 6521.0,
+            "min": 5375,
+            "max": 10125
+          },
+          "after": {
+            "median": 8875.0,
+            "min": 5083,
+            "max": 12959
+          },
+          "delta_percent": 36.09875785922405
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 19188.0,
+            "min": 8250,
+            "max": 26084
+          },
+          "after": {
+            "median": 18979.5,
+            "min": 7292,
+            "max": 23834
+          },
+          "delta_percent": -1.0866166353971196
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 33916.5,
+            "min": 29083,
+            "max": 42500
+          },
+          "after": {
+            "median": 35042.0,
+            "min": 31792,
+            "max": 42250
+          },
+          "delta_percent": 3.3184438252767734
+        },
+        "link_count": null,
+        "link_total_ns": null,
+        "link_p50_ns": null,
+        "link_p95_ns": null,
+        "link_p99_ns": null,
+        "connected_count": {
+          "before": {
+            "median": 900.0,
+            "min": 900,
+            "max": 900
+          },
+          "after": {
+            "median": 900.0,
+            "min": 900,
+            "max": 900
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 3426535.0,
+            "min": 2671669,
+            "max": 4844169
+          },
+          "after": {
+            "median": 4066115.0,
+            "min": 1914911,
+            "max": 5542039
+          },
+          "delta_percent": 18.665503197836884
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 3104.5,
+            "min": 2666,
+            "max": 4958
+          },
+          "after": {
+            "median": 4125.5,
+            "min": 1917,
+            "max": 5500
+          },
+          "delta_percent": 32.887743598002906
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 8271.0,
+            "min": 4792,
+            "max": 10834
+          },
+          "after": {
+            "median": 9083.5,
+            "min": 3375,
+            "max": 12875
+          },
+          "delta_percent": 9.823479627614562
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 11229.0,
+            "min": 7709,
+            "max": 14458
+          },
+          "after": {
+            "median": 12563.0,
+            "min": 6708,
+            "max": 16500
+          },
+          "delta_percent": 11.879953691334943
+        }
+      },
+      "pairs": [
+        {
+          "pair": 8,
+          "runtime_delta_percent": 33.22664597909111
+        },
+        {
+          "pair": 47,
+          "runtime_delta_percent": -23.690282039121556
+        },
+        {
+          "pair": 99,
+          "runtime_delta_percent": 14.267188245232054
+        },
+        {
+          "pair": 112,
+          "runtime_delta_percent": 1.937197983154082
+        }
+      ],
+      "pairs_faster": 1
+    }
+  ],
+  "scope": "Predeclared >5% and >=3/4 slower-pair investigation screen, not statistical significance. No automatic integration."
+}

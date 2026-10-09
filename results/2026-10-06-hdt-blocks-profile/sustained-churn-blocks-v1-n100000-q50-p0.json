@@ -1,0 +1,247 @@
+{
+  "checkouts_at_run_time": {
+    "benchmarks": {
+      "dirty": true,
+      "revision": "2ca6b437f891e5cd3830173b964f876a73821d01"
+    },
+    "core": {
+      "dirty": true,
+      "revision": "d799d7a62351f619d2f4186c502a6d2f2d7ea19a"
+    }
+  },
+  "config": {
+    "nodes": 100000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "counters": {
+    "candidate_edges": 19768,
+    "levels_visited": 1167,
+    "non_tree_promotions": 19534,
+    "replacements": 234,
+    "tree_cuts": 477,
+    "tree_promotions": 328503
+  },
+  "diagnostic_stage_timings": {
+    "initial_edges_ns": 117167666,
+    "registration_ns": 9610208
+  },
+  "diagnostic_timings": {
+    "links": {
+      "count": 10,
+      "max_ns": 8083,
+      "min_ns": 1875,
+      "p50_ns": 4500,
+      "p95_ns": 8083,
+      "p99_ns": 8083,
+      "total_ns": 45959
+    },
+    "non_tree_cuts": {
+      "count": 13,
+      "max_ns": 7083,
+      "min_ns": 1500,
+      "p50_ns": 2500,
+      "p95_ns": 7083,
+      "p99_ns": 7083,
+      "total_ns": 45040
+    },
+    "queries": {
+      "count": 500,
+      "max_ns": 12917,
+      "min_ns": 833,
+      "p50_ns": 2042,
+      "p95_ns": 4375,
+      "p99_ns": 9750,
+      "total_ns": 1189952
+    },
+    "tree_cuts_with_promotions": {
+      "count": 450,
+      "max_ns": 45968833,
+      "min_ns": 11333,
+      "p50_ns": 207541,
+      "p95_ns": 2753458,
+      "p99_ns": 11320583,
+      "total_ns": 325035417
+    },
+    "tree_cuts_without_promotions": {
+      "count": 27,
+      "max_ns": 81750,
+      "min_ns": 12083,
+      "p50_ns": 26458,
+      "p95_ns": 73042,
+      "p99_ns": 81750,
+      "total_ns": 940581
+    }
+  },
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "query_percent": 50,
+  "schema_version": 1,
+  "snapshots": {
+    "after_initial_edges": {
+      "available_levels": 18,
+      "edge_arc_capacity_bytes": 1599984,
+      "edge_count": 106249,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 12500,
+          "token_capacity_bytes": 50331648,
+          "tree_edges": 99999,
+          "tree_incidences": 199998,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 100000
+        }
+      ],
+      "ordered_payload_bytes": 8399936,
+      "vector_capacity_bytes": 59272368,
+      "vertex_count": 100000
+    },
+    "after_node_registration": {
+      "available_levels": 18,
+      "edge_arc_capacity_bytes": 0,
+      "edge_count": 0,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 12582912,
+          "tree_edges": 0,
+          "tree_incidences": 0,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 100000
+        }
+      ],
+      "ordered_payload_bytes": 1600000,
+      "vector_capacity_bytes": 19923648,
+      "vertex_count": 100000
+    },
+    "after_replay": {
+      "available_levels": 18,
+      "edge_arc_capacity_bytes": 8968944,
+      "edge_count": 105769,
+      "level_capacity_bytes": 1408,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 4096,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 6,
+          "token_capacity_bytes": 50331648,
+          "tree_edges": 99763,
+          "tree_incidences": 14,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 100000
+        },
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 4096,
+          "level": 1,
+          "mapping_capacity_bytes": 1048576,
+          "mapping_payload_bytes": 1600000,
+          "non_tree_incidences": 744,
+          "token_capacity_bytes": 50331648,
+          "tree_edges": 99756,
+          "tree_incidences": 5624,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 100000
+        },
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 1024,
+          "level": 2,
+          "mapping_capacity_bytes": 1048576,
+          "mapping_payload_bytes": 1555136,
+          "non_tree_incidences": 2438,
+          "token_capacity_bytes": 50331648,
+          "tree_edges": 96944,
+          "tree_incidences": 41074,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 97196
+        },
+        {
+          "adjacency_capacity_bytes": 6291456,
+          "free_list_capacity_bytes": 256,
+          "level": 3,
+          "mapping_capacity_bytes": 1048576,
+          "mapping_payload_bytes": 1226352,
+          "non_tree_incidences": 4494,
+          "token_capacity_bytes": 25165824,
+          "tree_edges": 76407,
+          "tree_incidences": 71986,
+          "vertex_index_capacity_bytes": 1048576,
+          "vertices": 76647
+        },
+        {
+          "adjacency_capacity_bytes": 3145728,
+          "free_list_capacity_bytes": 128,
+          "level": 4,
+          "mapping_capacity_bytes": 524288,
+          "mapping_payload_bytes": 649296,
+          "non_tree_incidences": 3084,
+          "token_capacity_bytes": 12582912,
+          "tree_edges": 40414,
+          "tree_incidences": 55874,
+          "vertex_index_capacity_bytes": 524288,
+          "vertices": 40581
+        },
+        {
+          "adjacency_capacity_bytes": 786432,
+          "free_list_capacity_bytes": 32,
+          "level": 5,
+          "mapping_capacity_bytes": 131072,
+          "mapping_payload_bytes": 200896,
+          "non_tree_incidences": 1102,
+          "token_capacity_bytes": 6291456,
+          "tree_edges": 12477,
+          "tree_incidences": 21500,
+          "vertex_index_capacity_bytes": 131072,
+          "vertices": 12556
+        },
+        {
+          "adjacency_capacity_bytes": 98304,
+          "free_list_capacity_bytes": 32,
+          "level": 6,
+          "mapping_capacity_bytes": 16384,
+          "mapping_payload_bytes": 27920,
+          "non_tree_incidences": 134,
+          "token_capacity_bytes": 786432,
+          "tree_edges": 1727,
+          "tree_incidences": 3278,
+          "vertex_index_capacity_bytes": 16384,
+          "vertices": 1745
+        },
+        {
+          "adjacency_capacity_bytes": 6144,
+          "free_list_capacity_bytes": 0,
+          "level": 7,
+          "mapping_capacity_bytes": 1024,
+          "mapping_payload_bytes": 1440,
+          "non_tree_incidences": 10,
+          "token_capacity_bytes": 49152,
+          "tree_edges": 88,
+          "tree_incidences": 176,
+          "vertex_index_capacity_bytes": 1024,
+          "vertices": 90
+        }
+      ],
+      "ordered_payload_bytes": 13630256,
+      "vector_capacity_bytes": 242738736,
+      "vertex_count": 100000
+    }
+  },
+  "timing_note": "Diagnostic timings are cache-perturbed and not comparable to normal benchmark timings",
+  "trace_fingerprint_fnv1a64": "1bc5729376b7dc79",
+  "workload": "sustained-churn-blocks-v1"
+}

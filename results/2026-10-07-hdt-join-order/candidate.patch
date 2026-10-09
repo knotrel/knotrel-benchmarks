@@ -1,0 +1,13 @@
+--- a/crates/knotrel-core/src/hdt_forest.rs
++++ b/crates/knotrel-core/src/hdt_forest.rs
+@@ -233,8 +233,8 @@
+         // The new directed tokens are pivots: preserve the tour sequence
+         // left, ab, right, ba without splitting tours to recover pivots.
+         // Both joins retain AVL balance and O(log V) worst-case link cost.
+-        let tour = self.join(left, ab, right);
+-        self.join(Some(tour), ba, None);
++        let right = self.join(right, ba, None);
++        self.join(left, ab, Some(right));
+         (ab, ba)
+     }
+     pub(crate) fn cut(&mut self, arcs: (usize, usize)) {

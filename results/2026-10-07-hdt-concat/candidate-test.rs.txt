@@ -1,0 +1,52 @@
+#[cfg(test)]
+mod pop_last_tests {
+    use super::Forest;
+    fn order(f: &Forest, root: Option<usize>) -> Vec<usize> {
+        fn visit(f: &Forest, root: Option<usize>, out: &mut Vec<usize>) {
+            if let Some(i) = root {
+                visit(f, f.tokens[i].left, out);
+                out.push(i);
+                visit(f, f.tokens[i].right, out);
+            }
+        }
+        let mut out = Vec::new();
+        visit(f, root, &mut out);
+        out
+    }
+    #[test]
+    fn pop_last_preserves_order_balance_and_marks() {
+        for n in 1..96 {
+            let mut f = Forest::default();
+            let mut root = None;
+            for i in 0..n {
+                f.add_vertex();
+                f.set_marks(i, i % 2 == 0, i % 3 == 0);
+                root = Some(f.join(root, f.vertex_tokens[i], None));
+            }
+            let original = order(&f, root);
+            // Exercise both balanced shapes produced by splitting and concat.
+            for k in 0..=n {
+                let (a, b) = f.split(root, k);
+                root = f.concat(a, b);
+                assert_eq!(order(&f, root), original);
+                f.validate();
+                let (rest, pivot) = f.pop_last(root.unwrap());
+                assert_eq!(Some(&pivot), original.last());
+                assert_eq!(order(&f, rest), original[..n - 1]);
+                assert!(f.tokens[pivot].left.is_none());
+                assert!(f.tokens[pivot].right.is_none());
+                assert!(f.tokens[pivot].parent.is_none());
+                f.validate();
+                root = Some(f.join(rest, pivot, None));
+                f.validate();
+            }
+            for expected in original.into_iter().rev() {
+                let (rest, pivot) = f.pop_last(root.unwrap());
+                assert_eq!(pivot, expected);
+                root = rest;
+                f.validate();
+            }
+            assert!(root.is_none());
+        }
+    }
+}

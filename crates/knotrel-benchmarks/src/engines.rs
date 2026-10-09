@@ -30,6 +30,12 @@ pub enum EngineKind {
     Compact,
     /// Same compact core with caller-owned reusable traversal storage.
     CompactWorkspace,
+    /// Controlled sorted-adjacency BFS, benchmark-only.
+    TraversalBfs,
+    /// Controlled sorted-adjacency LIFO search, benchmark-only.
+    TraversalDfs,
+    /// Controlled BFS with packed u64 visit marks, benchmark-only.
+    TraversalBitset,
     /// AVL Euler-tour forest with exhaustive smaller-side replacement search.
     EttScan,
     /// Experimental Knotrel HDT with growing vertices and exact-level promotions.
@@ -47,10 +53,13 @@ pub enum EngineKind {
 }
 impl EngineKind {
     /// Stable default comparison order; collectors should rotate this order.
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 13] = [
         Self::Reference,
         Self::Compact,
         Self::CompactWorkspace,
+        Self::TraversalBfs,
+        Self::TraversalDfs,
+        Self::TraversalBitset,
         Self::EttScan,
         Self::Hdt,
         Self::HdtV2,
@@ -66,6 +75,9 @@ impl EngineKind {
             Self::Reference => "reference-bfs",
             Self::Compact => "compact-bfs",
             Self::CompactWorkspace => "compact-workspace",
+            Self::TraversalBfs => "traversal-bfs",
+            Self::TraversalDfs => "traversal-dfs",
+            Self::TraversalBitset => "traversal-bitset",
             Self::EttScan => "ett-scan",
             Self::Hdt => "hdt",
             Self::HdtV2 => "hdt-v2",
@@ -82,6 +94,9 @@ impl EngineKind {
             Self::Reference => "knotrel-core/reference-bfs",
             Self::Compact => "knotrel-core/compact-bfs-v1",
             Self::CompactWorkspace => "knotrel-core/compact-workspace-v2",
+            Self::TraversalBfs => "knotrel-benchmarks/traversal-bfs-v1",
+            Self::TraversalDfs => "knotrel-benchmarks/traversal-dfs-v1",
+            Self::TraversalBitset => "knotrel-benchmarks/traversal-bitset-v1",
             Self::EttScan => "knotrel-core/ett-pruned-v2",
             Self::Hdt => "knotrel-core/hdt-sparse-levels-v3",
             Self::HdtV2 => "knotrel-core/hdt-levels-v2",
@@ -116,6 +131,8 @@ enum Storage {
     Reference(ReferenceGraph),
     Compact(Graph),
     CompactWorkspace(Graph, BfsWorkspace),
+    Traversal(crate::traversal::Graph, crate::traversal::SearchSpace, bool),
+    Bitset(crate::traversal::Graph, crate::traversal::BitSearchSpace),
     EttScan(ForestGraph),
     Hdt(HdtGraph),
     HdtV2(BaselineHdt),
@@ -162,6 +179,28 @@ impl Engine {
             return Err("need nonempty unique registered nodes");
         }
         let n = nodes.len();
+        if kind == EngineKind::TraversalBitset {
+            let mut graph = crate::traversal::Graph::new();
+            for &node in nodes {
+                graph.add_node(node);
+            }
+            return Ok(Self {
+                storage: Storage::Bitset(graph, crate::traversal::BitSearchSpace::default()),
+            });
+        }
+        if matches!(kind, EngineKind::TraversalBfs | EngineKind::TraversalDfs) {
+            let mut graph = crate::traversal::Graph::new();
+            for &node in nodes {
+                graph.add_node(node);
+            }
+            return Ok(Self {
+                storage: Storage::Traversal(
+                    graph,
+                    crate::traversal::SearchSpace::default(),
+                    kind == EngineKind::TraversalDfs,
+                ),
+            });
+        }
         if kind == EngineKind::Reference {
             let mut graph = ReferenceGraph::new();
             for &node in nodes {
@@ -241,6 +280,9 @@ impl Engine {
             EngineKind::Reference
             | EngineKind::Compact
             | EngineKind::CompactWorkspace
+            | EngineKind::TraversalBfs
+            | EngineKind::TraversalDfs
+            | EngineKind::TraversalBitset
             | EngineKind::Hdt
             | EngineKind::HdtV2
             | EngineKind::EttScan
@@ -331,6 +373,16 @@ impl Engine {
     /// Returns UnknownNode, checking source before target, for absent IDs.
     pub fn connected(&mut self, source: u64, target: u64) -> Result<bool, GraphError> {
         let indexed = match &mut self.storage {
+            Storage::Bitset(graph, space) => {
+                return graph.search_bits::<false>(source, target, space);
+            }
+            Storage::Traversal(graph, space, dfs) => {
+                return if *dfs {
+                    graph.search::<true, false>(source, target, space)
+                } else {
+                    graph.search::<false, false>(source, target, space)
+                };
+            }
             Storage::Reference(graph) => return graph.connected(source, target),
             Storage::Compact(graph) => return graph.connected(source, target),
             Storage::CompactWorkspace(graph, workspace) => {
@@ -393,6 +445,20 @@ impl Engine {
             return Err(GraphError::SelfLoop { node: source });
         }
         let indexed = match &mut self.storage {
+            Storage::Bitset(graph, _) => {
+                return if insert {
+                    graph.link(source, target)
+                } else {
+                    graph.cut(source, target)
+                };
+            }
+            Storage::Traversal(graph, _, _) => {
+                return if insert {
+                    graph.link(source, target)
+                } else {
+                    graph.cut(source, target)
+                };
+            }
             Storage::Reference(graph) => {
                 return if insert {
                     graph.link(source, target)

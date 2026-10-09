@@ -1,0 +1,89 @@
+   Compiling knotrel-core v0.1.0 (/private/tmp/knotrel-join-order-build-ozs5tatl/knotrel/crates/knotrel-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.94s
+     Running unittests src/lib.rs (target/debug/deps/knotrel_core-03fcb204c753c9de)
+
+running 8 tests
+test workspace::tests::generation_rollover_clears_old_marks ... ok
+test hdt::tests::promoted_tree_uses_local_handles_for_sparse_global_indices ... ok
+test hdt::tests::empty_higher_level_search_still_finds_lower_replacement ... ok
+test hdt::tests::promoted_tree_deletions_repair_all_lower_forests_after_growth ... ok
+test hdt::tests::growing_mixed_updates_preserve_every_level_and_incidence ... ok
+test forest::tests::rotations_splits_and_reused_arcs_preserve_invariants ... ok
+test hdt_forest::tests::rotations_splits_and_reused_arcs_preserve_invariants ... ok
+test dynamic::tests::general_graph_updates_preserve_avl_and_edge_classification ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
+
+     Running tests/configuration.rs (target/debug/deps/configuration-826797c695f2496f)
+
+running 2 tests
+test wrapping_a_populated_graph_preserves_isolated_nodes_and_edges ... ok
+test selected_engines_preserve_exact_connectivity_after_mutations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/connectivity.rs (target/debug/deps/connectivity-065e0029f9be84eb)
+
+running 7 tests
+test rejects_loops_without_creating_vertices ... ok
+test distinguishes_unknown_and_isolated_vertices ... ok
+test updates_are_undirected_and_idempotent ... ok
+test cycle_edge_and_bridge_deletion_have_different_effects ... ok
+test growth_preserves_indices_isolation_and_shared_queries ... ok
+test updates_match_independent_transitive_closure ... ok
+test arbitrary_growing_histories_match_original_reference ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/forest.rs (target/debug/deps/forest-97dc77f6fbcc3a69)
+
+running 6 tests
+test deleting_last_non_tree_edge_clears_candidate_flags ... ok
+test forest_replaces_cycles_preserves_bridges_and_recycles_handles ... ok
+test replacement_stops_before_enumerating_empty_vertices ... ok
+test bridge_without_candidates_skips_vertex_enumeration ... ok
+test shared_queries_on_large_growing_forest ... ok
+test growing_random_histories_match_matrix_and_original ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
+     Running tests/hdt.rs (target/debug/deps/hdt-e0d6d469d2523cd2)
+
+running 8 tests
+test storage_snapshot_reports_live_incidence_and_does_not_change_state ... ok
+test candidates_only_on_larger_side_do_not_trigger_promotions ... ok
+test stable_dense_bridge_cuts_do_not_rescan_promoted_internal_edges ... ok
+test upper_levels_materialize_only_vertices_touched_by_promotions ... ok
+test forest_replaces_cycles_preserves_bridges_and_recycles_handles ... ok
+test candidate_free_cuts_do_not_promote_tree_edges ... ok
+test shared_queries_on_large_growing_forest ... ok
+test growing_random_histories_match_matrix_and_original ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
+     Running tests/limits.rs (target/debug/deps/limits-dd5e3dc5c57ec74f)
+
+running 2 tests
+test zero_capacity_preserves_validation_and_never_creates_endpoints ... ok
+test limits_are_atomic_idempotent_and_reusable_after_cut ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/workspace.rs (target/debug/deps/workspace-a925fc08a5ba2b85)
+
+running 2 tests
+test workspace_survives_early_returns_errors_mutations_and_graph_changes ... ok
+test independent_workspaces_allow_concurrent_shared_graph_queries ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests knotrel_core
+
+running 3 tests
+test crates/knotrel-core/src/configuration.rs - configuration::ConnectivityGraph (line 58) ... ok
+test crates/knotrel-core/src/lib.rs - (line 7) ... ok
+test crates/knotrel-core/src/workspace.rs - workspace::Graph::connected_with_workspace (line 29) ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+all doctests ran in 0.44s; merged doctests compilation took 0.15s

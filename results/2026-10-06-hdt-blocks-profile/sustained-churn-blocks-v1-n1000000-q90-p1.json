@@ -1,0 +1,213 @@
+{
+  "checkouts_at_run_time": {
+    "benchmarks": {
+      "dirty": true,
+      "revision": "2ca6b437f891e5cd3830173b964f876a73821d01"
+    },
+    "core": {
+      "dirty": true,
+      "revision": "d799d7a62351f619d2f4186c502a6d2f2d7ea19a"
+    }
+  },
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "counters": {
+    "candidate_edges": 134893,
+    "levels_visited": 189,
+    "non_tree_promotions": 134846,
+    "replacements": 47,
+    "tree_cuts": 97,
+    "tree_promotions": 2279725
+  },
+  "diagnostic_stage_timings": {
+    "initial_edges_ns": 1959673625,
+    "registration_ns": 107939792
+  },
+  "diagnostic_timings": {
+    "links": null,
+    "non_tree_cuts": {
+      "count": 3,
+      "max_ns": 245125,
+      "min_ns": 4500,
+      "p50_ns": 23208,
+      "p95_ns": 245125,
+      "p99_ns": 245125,
+      "total_ns": 272833
+    },
+    "queries": {
+      "count": 900,
+      "max_ns": 838750,
+      "min_ns": 2084,
+      "p50_ns": 8125,
+      "p95_ns": 24000,
+      "p99_ns": 58166,
+      "total_ns": 11669092
+    },
+    "tree_cuts_with_promotions": {
+      "count": 95,
+      "max_ns": 870999542,
+      "min_ns": 274166,
+      "p50_ns": 10519625,
+      "p95_ns": 113918542,
+      "p99_ns": 870999542,
+      "total_ns": 3416615877
+    },
+    "tree_cuts_without_promotions": {
+      "count": 2,
+      "max_ns": 451292,
+      "min_ns": 71917,
+      "p50_ns": 71917,
+      "p95_ns": 451292,
+      "p99_ns": 451292,
+      "total_ns": 523209
+    }
+  },
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "query_percent": 90,
+  "schema_version": 1,
+  "snapshots": {
+    "after_initial_edges": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 15999984,
+      "edge_count": 1062499,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 125000,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 999999,
+          "tree_incidences": 1999998,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 83999936,
+      "vector_capacity_bytes": 477374128,
+      "vertex_count": 1000000
+    },
+    "after_node_registration": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 0,
+      "edge_count": 0,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 100663296,
+          "tree_edges": 0,
+          "tree_incidences": 0,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 16000000,
+      "vector_capacity_bytes": 159384256,
+      "vertex_count": 1000000
+    },
+    "after_replay": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 72413424,
+      "edge_count": 1062399,
+      "level_capacity_bytes": 1408,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 1024,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 8560,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 999949,
+          "tree_incidences": 129042,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        },
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 512,
+          "level": 1,
+          "mapping_capacity_bytes": 8388608,
+          "mapping_payload_bytes": 14967680,
+          "non_tree_incidences": 32894,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 935428,
+          "tree_incidences": 459866,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 935480
+        },
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 64,
+          "level": 2,
+          "mapping_capacity_bytes": 8388608,
+          "mapping_payload_bytes": 11288688,
+          "non_tree_incidences": 31442,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 705495,
+          "tree_incidences": 507530,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 705543
+        },
+        {
+          "adjacency_capacity_bytes": 25165824,
+          "free_list_capacity_bytes": 64,
+          "level": 3,
+          "mapping_capacity_bytes": 4194304,
+          "mapping_payload_bytes": 7228272,
+          "non_tree_incidences": 34884,
+          "token_capacity_bytes": 201326592,
+          "tree_edges": 451730,
+          "tree_incidences": 543644,
+          "vertex_index_capacity_bytes": 4194304,
+          "vertices": 451767
+        },
+        {
+          "adjacency_capacity_bytes": 12582912,
+          "free_list_capacity_bytes": 32,
+          "level": 4,
+          "mapping_capacity_bytes": 2097152,
+          "mapping_payload_bytes": 2878848,
+          "non_tree_incidences": 16508,
+          "token_capacity_bytes": 100663296,
+          "tree_edges": 179908,
+          "tree_incidences": 345672,
+          "vertex_index_capacity_bytes": 2097152,
+          "vertices": 179928
+        },
+        {
+          "adjacency_capacity_bytes": 393216,
+          "free_list_capacity_bytes": 0,
+          "level": 5,
+          "mapping_capacity_bytes": 65536,
+          "mapping_payload_bytes": 113200,
+          "non_tree_incidences": 612,
+          "token_capacity_bytes": 3145728,
+          "tree_edges": 7072,
+          "tree_incidences": 14144,
+          "vertex_index_capacity_bytes": 65536,
+          "vertices": 7075
+        }
+      ],
+      "ordered_payload_bytes": 120470224,
+      "vector_capacity_bytes": 1829305616,
+      "vertex_count": 1000000
+    }
+  },
+  "timing_note": "Diagnostic timings are cache-perturbed and not comparable to normal benchmark timings",
+  "trace_fingerprint_fnv1a64": "2e8e9275071c8a32",
+  "workload": "sustained-churn-blocks-v1"
+}

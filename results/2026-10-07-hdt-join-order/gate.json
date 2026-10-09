@@ -1,0 +1,211 @@
+{
+  "passed": false,
+  "qualifying_blocks": 4,
+  "required_blocks": 3,
+  "control_regressions": [
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "complete": true,
+      "metrics": {
+        "runtime_ns": {
+          "before": {
+            "median": 7319583.5,
+            "min": 3885375,
+            "max": 21687917
+          },
+          "after": {
+            "median": 9683125.5,
+            "min": 5491834,
+            "max": 34872250
+          },
+          "delta_percent": 32.29066244001453
+        },
+        "setup_ns": {
+          "before": {
+            "median": 1923180999.5,
+            "min": 1886828083,
+            "max": 2071466292
+          },
+          "after": {
+            "median": 1596232479.0,
+            "min": 1513013125,
+            "max": 1753133583
+          },
+          "delta_percent": -17.000403008609275
+        },
+        "rss_bytes": {
+          "before": {
+            "median": 717824000.0,
+            "min": 717717504,
+            "max": 717881344
+          },
+          "after": {
+            "median": 682180608.0,
+            "min": 558940160,
+            "max": 718356480
+          },
+          "delta_percent": -4.965477888730385
+        },
+        "cut_count": {
+          "before": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "after": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "delta_percent": 0.0
+        },
+        "cut_total_ns": {
+          "before": {
+            "median": 4774883.0,
+            "min": 2657165,
+            "max": 14513330
+          },
+          "after": {
+            "median": 6782817.0,
+            "min": 3905629,
+            "max": 25149322
+          },
+          "delta_percent": 42.05200420617636
+        },
+        "cut_p50_ns": {
+          "before": {
+            "median": 8270.5,
+            "min": 4542,
+            "max": 20500
+          },
+          "after": {
+            "median": 11354.0,
+            "min": 5375,
+            "max": 24459
+          },
+          "delta_percent": 37.283114684722804
+        },
+        "cut_p95_ns": {
+          "before": {
+            "median": 20854.0,
+            "min": 7709,
+            "max": 68166
+          },
+          "after": {
+            "median": 28271.0,
+            "min": 19500,
+            "max": 171833
+          },
+          "delta_percent": 35.56631821233336
+        },
+        "cut_p99_ns": {
+          "before": {
+            "median": 30645.5,
+            "min": 25875,
+            "max": 205166
+          },
+          "after": {
+            "median": 38854.0,
+            "min": 31834,
+            "max": 378333
+          },
+          "delta_percent": 26.785335530502042
+        },
+        "link_count": null,
+        "link_total_ns": null,
+        "link_p50_ns": null,
+        "link_p95_ns": null,
+        "link_p99_ns": null,
+        "connected_count": {
+          "before": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "after": {
+            "median": 500.0,
+            "min": 500,
+            "max": 500
+          },
+          "delta_percent": 0.0
+        },
+        "connected_total_ns": {
+          "before": {
+            "median": 2523715.5,
+            "min": 1207091,
+            "max": 7133445
+          },
+          "after": {
+            "median": 2878332.5,
+            "min": 1565577,
+            "max": 9696846
+          },
+          "delta_percent": 14.05138574455005
+        },
+        "connected_p50_ns": {
+          "before": {
+            "median": 4416.5,
+            "min": 2083,
+            "max": 11042
+          },
+          "after": {
+            "median": 5020.5,
+            "min": 2292,
+            "max": 12708
+          },
+          "delta_percent": 13.67598777312351
+        },
+        "connected_p95_ns": {
+          "before": {
+            "median": 10187.5,
+            "min": 4958,
+            "max": 24417
+          },
+          "after": {
+            "median": 10812.5,
+            "min": 6750,
+            "max": 55792
+          },
+          "delta_percent": 6.134969325153383
+        },
+        "connected_p99_ns": {
+          "before": {
+            "median": 14895.5,
+            "min": 6875,
+            "max": 104708
+          },
+          "after": {
+            "median": 14229.5,
+            "min": 10792,
+            "max": 126417
+          },
+          "delta_percent": -4.471149004732977
+        }
+      },
+      "pairs": [
+        {
+          "pair": 8,
+          "runtime_delta_percent": 24.459642537113524
+        },
+        {
+          "pair": 10,
+          "runtime_delta_percent": 52.468140140913036
+        },
+        {
+          "pair": 19,
+          "runtime_delta_percent": -38.01944188554391
+        },
+        {
+          "pair": 21,
+          "runtime_delta_percent": 240.9947074425825
+        }
+      ],
+      "pairs_faster": 1
+    }
+  ],
+  "scope": "Engineering screening gate, not statistical significance; no threshold tuning."
+}

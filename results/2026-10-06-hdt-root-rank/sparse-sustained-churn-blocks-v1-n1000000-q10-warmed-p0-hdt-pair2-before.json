@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-blocks-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791317584,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 10,
+  "trace_fingerprint_fnv1a64": "14a90b222d96b94d",
+  "initial_edges": 1062499,
+  "initial_density": 2.125000125000125e-6,
+  "initial_max_degree": 3,
+  "repetitions": [
+    {
+      "setup_ns": 1968686875,
+      "hdt_stats": {
+        "candidate_edges": 206588,
+        "levels_visited": 2197,
+        "non_tree_promotions": 206168,
+        "replacements": 420,
+        "tree_cuts": 868,
+        "tree_promotions": 3464793
+      },
+      "query_true": {
+        "count": 2,
+        "total_ns": 12250,
+        "min_ns": 4416,
+        "p50_ns": 4416,
+        "p95_ns": 7834,
+        "p99_ns": 7834,
+        "max_ns": 7834
+      },
+      "query_false": {
+        "count": 98,
+        "total_ns": 696914,
+        "min_ns": 2750,
+        "p50_ns": 5917,
+        "p95_ns": 15459,
+        "p99_ns": 18708,
+        "max_ns": 18708
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 896,
+          "total_ns": 4463147915,
+          "min_ns": 2083,
+          "p50_ns": 934583,
+          "p95_ns": 12630458,
+          "p99_ns": 58114917,
+          "max_ns": 860910583
+        },
+        "link": {
+          "count": 4,
+          "total_ns": 130042,
+          "min_ns": 3542,
+          "p50_ns": 10959,
+          "p95_ns": 104291,
+          "p99_ns": 104291,
+          "max_ns": 104291
+        },
+        "connected": {
+          "count": 100,
+          "total_ns": 709164,
+          "min_ns": 2750,
+          "p50_ns": 5917,
+          "p95_ns": 13083,
+          "p99_ns": 18083,
+          "max_ns": 18708
+        }
+      },
+      "workload_wall_ns": 4464017625
+    }
+  ]
+}

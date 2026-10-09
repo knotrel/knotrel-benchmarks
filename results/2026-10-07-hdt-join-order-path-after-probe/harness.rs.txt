@@ -1,0 +1,14 @@
+
+use knotrel_core::{HdtGraph,probe_reset};
+use std::io::BufRead;
+fn main(){
+ let input=std::io::BufReader::new(std::fs::File::open(std::env::args().nth(1).unwrap()).unwrap());
+ let mut g=HdtGraph::new();let mut began=false;
+ for line in input.lines(){let line=line.unwrap();let p:Vec<_>=line.split_whitespace().collect();
+ if p[0]=="replay"{probe_reset();g.reset_stats();began=true;continue;}
+ let a=p[1].parse().unwrap();let b=p[2].parse().unwrap();
+ match p[0]{"node"=>{assert!(g.add_node(a));},"initial"|"link"=>{assert!(g.link(a,b).unwrap());},"cut"=>{assert!(g.cut(a,b).unwrap());},"connected"=>assert_eq!(g.connected(a,b).unwrap(),p[3]=="1"),_=>panic!()}
+ }
+ assert!(began);let (a,b)=probe_reset();println!("{:?}",a);println!("{:?}",b);
+ let s=g.stats();println!("[{}, {}, {}, {}, {}, {}]",s.tree_cuts,s.candidate_edges,s.replacements,s.tree_promotions,s.non_tree_promotions,s.levels_visited);
+}

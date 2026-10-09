@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791295165,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "d799d7a62351f619d2f4186c502a6d2f2d7ea19a",
+      "dirty": true
+    },
+    "benchmarks": {
+      "revision": "2ca6b437f891e5cd3830173b964f876a73821d01",
+      "dirty": true
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "5097cf16db2527e7",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 3045533834,
+      "forest_stats": {
+        "candidate_edges": 0,
+        "replacements": 0,
+        "scanned_vertices": 0,
+        "tree_cuts": 100
+      },
+      "query_true": {
+        "count": 51,
+        "total_ns": 490339,
+        "min_ns": 1375,
+        "p50_ns": 9750,
+        "p95_ns": 17792,
+        "p99_ns": 20250,
+        "max_ns": 20250
+      },
+      "query_false": {
+        "count": 849,
+        "total_ns": 4225415,
+        "min_ns": 1125,
+        "p50_ns": 4417,
+        "p95_ns": 9875,
+        "p99_ns": 15000,
+        "max_ns": 16834
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 923081,
+          "min_ns": 3166,
+          "p50_ns": 8500,
+          "p95_ns": 17542,
+          "p99_ns": 24791,
+          "max_ns": 26417
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 4715754,
+          "min_ns": 1125,
+          "p50_ns": 4583,
+          "p95_ns": 10917,
+          "p99_ns": 15959,
+          "max_ns": 20250
+        }
+      },
+      "workload_wall_ns": 5659875
+    }
+  ]
+}

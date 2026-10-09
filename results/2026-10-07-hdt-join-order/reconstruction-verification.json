@@ -1,0 +1,41 @@
+{
+  "directory": "/private/tmp/knotrel-join-order-verification-g5etq1rr",
+  "forest_sha256": "727b501336c7f0957bb2d6a638b024713ef50accac96af8f56f3de23346e215b",
+  "checks": [
+    [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "knotrel-core",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "knotrel-core"
+    ],
+    [
+      "cargo",
+      "doc",
+      "--locked",
+      "-p",
+      "knotrel-core",
+      "--no-deps"
+    ]
+  ],
+  "all_passed": true,
+  "note": "Fresh reconstruction verifies the saved candidate independently of temporary measurement binaries; original test and measurement logs remain unchanged."
+}

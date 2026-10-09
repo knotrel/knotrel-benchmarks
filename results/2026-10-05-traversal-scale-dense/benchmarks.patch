@@ -1,0 +1,23 @@
+diff --git a/README.md b/README.md
+index 418909f..2a469a7 100644
+--- a/README.md
++++ b/README.md
+@@ -2,6 +2,18 @@
+ 
+ Reproducible workloads for measuring exact dynamic graph connectivity.
+ 
++[Algorithm and competitor ranking](results/2026-10-04-connectivity-campaign/ranking.md):
++last shared four-engine campaign, direct petgraph comparisons, and explicit
++limitations for newer workspace/HDT optimizations not yet ranked together.
++
++Diagnosis: [deterministic HDT structural counters](results/2026-10-05-hdt-structural-probe/README.md)
++find identical aggregate cut/query work before and after on the 100k path trace.
++The probe is isolated from production and makes no instrumented timing claims.
++
++Follow-up: [48-process path regression investigation](results/2026-10-05-hdt-path-investigation/README.md).
++The earlier +11.62% warmed observation is not stable in 12 new paired trials;
++the report preserves all earlier results and separates variability from causation.
++
+ New: [HDT direct joins before/after](results/2026-10-05-hdt-joins/README.md),
+ 272 full-matrix processes plus 48 regression-confirmation processes. Includes
+ the confirmed warmed-path regression alongside cyclic-block and Cogentco gains.

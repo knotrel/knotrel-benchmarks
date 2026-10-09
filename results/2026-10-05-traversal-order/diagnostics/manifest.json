@@ -1,0 +1,504 @@
+{
+  "scope": "Structural counts only; no diagnostic timing is a benchmark",
+  "source_sha256": {
+    "benchmarks/Cargo.toml": "f01ec1fff1cbb77a3e20d58345f3c75b785cd45a108aa30f4a7201c6b000dc5e",
+    "benchmarks/Cargo.lock": "a43f3e46684b794ee9e3b630878915101357bd6989f80b3bfc197812827156fc",
+    "benchmarks/rust-toolchain.toml": "c910997cb152c6dc8ed13b1fdf9fa28a4ed30d6776123e27dd6170e5c66067a0",
+    "benchmarks/crates/knotrel-benchmarks/build.rs": "9cfd0e7da6a27c2c221e98622f101d92eee445e08b85c0c84ab56818d6a527c2",
+    "benchmarks/crates/knotrel-benchmarks/src/bin/hdt-profile.rs": "f1671da5b6775a1a3c0d96800d616d2a49e81fc656db67ba7a3576a3d9dea6d1",
+    "benchmarks/crates/knotrel-benchmarks/src/bin/traversal-profile.rs": "f74cbaa0177f208adf56b23b078a077ae4285da43c601a4470711f58c133a9ec",
+    "benchmarks/crates/knotrel-benchmarks/src/engines.rs": "228609048fbc66f7ff80a9ae6a50ef0286cde1d519eb567290404eca9ee3fcfa",
+    "benchmarks/crates/knotrel-benchmarks/src/ett_baseline/dynamic.rs": "474fb38e3d73bf38740c54803abc5aac032a199d19e5ca29bc8065f78de522a2",
+    "benchmarks/crates/knotrel-benchmarks/src/ett_baseline/forest.rs": "dee05d1377bf42ece20ad20eefcc1832883f66367126bf970f0efee7cf238d38",
+    "benchmarks/crates/knotrel-benchmarks/src/ett_baseline/mod.rs": "12162ac7ba2b99032ea97662e779eeefafd63165e05c3ef8740b6b299fe263d0",
+    "benchmarks/crates/knotrel-benchmarks/src/hdt_baseline/forest.rs": "632a2641b28fad1c99a1e043a6ac1133470445d20bd2a4226ce8496547c9c5f4",
+    "benchmarks/crates/knotrel-benchmarks/src/hdt_baseline/hdt.rs": "7a3c9df25f2a6e9c2d01a3569defb51189479e3d245f0b7e2b9df53c0aa17b57",
+    "benchmarks/crates/knotrel-benchmarks/src/hdt_baseline/mod.rs": "75e7f5ec95f29784db5a8e0eb872b6a29eb742253fa681be2a78444603df5726",
+    "benchmarks/crates/knotrel-benchmarks/src/imported.rs": "a1e89b47f78e9edf792b8a3ead5f26f7f9e69c4e78b1063fc1ac0083c099f64a",
+    "benchmarks/crates/knotrel-benchmarks/src/lib.rs": "0b6475c05d052bedb183fda3b318eb73aae71403fb2620b612731c83aca87366",
+    "benchmarks/crates/knotrel-benchmarks/src/main.rs": "f4ce7312ab1f6bdf21f389f6fa4d9c8d96446b7dd201419367ab5d44a9123f61",
+    "benchmarks/crates/knotrel-benchmarks/src/metrics.rs": "264a468d79d54e2c3a0758090c965be5962105d4f60ef8e7d149bb7c62d6ea49",
+    "benchmarks/crates/knotrel-benchmarks/src/traces.rs": "639acd02ed0a43ec2565cb74c9e7a642bbe7337d85a868cb033adeb499718958",
+    "benchmarks/crates/knotrel-benchmarks/src/traversal.rs": "f1fb29b84071acab21f0fbfa97123764b12ba26cf865d93faf1e8e952ad69954",
+    "benchmarks/crates/knotrel-benchmarks/tests/cli.rs": "4cc7864769b2efa9846e88016190e81e9e2f5fdedf60e8a5875f6556a1623a11",
+    "benchmarks/crates/knotrel-benchmarks/tests/dense_workloads.rs": "f8da7594adf1392f16524e792da47756a87ac59d820408b3f469b5432d927352",
+    "benchmarks/crates/knotrel-benchmarks/tests/engines.rs": "c1d840506d924b7be63f753f0fa93e1ca6e6cf5321d0c311767abba6469c2258",
+    "benchmarks/crates/knotrel-benchmarks/tests/hdt_profile.rs": "8f683add0ddfce8be9e1eafa474681914c3d6f540478db31fefa134c78668278",
+    "benchmarks/crates/knotrel-benchmarks/tests/import.rs": "a8e24a8f80edf67bc8b17cdccd7177e67688a7fa00f6e81dcfbf04775d04aa55",
+    "benchmarks/crates/knotrel-benchmarks/tests/traversal_profile.rs": "761e53e11d75ceb15e9279cdb3ed19269cc0ed5807cdd81fb536ec5417959add",
+    "benchmarks/crates/knotrel-benchmarks/tests/workload.rs": "3ac80c20bb482c9d861687350ed3af289baaafbcdfa43927c424377bde4a3077",
+    "benchmarks/crates/knotrel-benchmarks/Cargo.toml": "701d65b04ed5c61638f862274574280a9931727bc85561d550b73c814aa43e2c",
+    "core/Cargo.toml": "fae40e37b5dca126257598d4987591a5b6da1393e830c9ac9fbfff44b86caba6",
+    "core/Cargo.lock": "a0799ad7b33886f3032f96173635010db2b2321a309949bd06ff688d06449391",
+    "core/rust-toolchain.toml": "c910997cb152c6dc8ed13b1fdf9fa28a4ed30d6776123e27dd6170e5c66067a0",
+    "core/crates/knotrel-core/src/configuration.rs": "2b7a5ca71c6ecffb7ec2bafd875220b44dc83883578adab6ecba64df77fc3b55",
+    "core/crates/knotrel-core/src/dynamic.rs": "bef76276f3d18f27eb0ae2d32b2909a968d084e7fa02a26e55dd025ee6d6f642",
+    "core/crates/knotrel-core/src/forest.rs": "53e244899edfa3c3c097f3ef44c5cafc40dcfadb9f913ead9b78761482396f01",
+    "core/crates/knotrel-core/src/hdt.rs": "e6f88cf676b40ca1ac7d3996f49c1df3c5c0727cdd3a7482611ddbf9c875ae55",
+    "core/crates/knotrel-core/src/hdt_forest.rs": "dc2599a966086b173635ac07e2332fb2b69986d93f627e96562d78659e13783a",
+    "core/crates/knotrel-core/src/hdt_profile.rs": "4d247f6e4e7816325f051272b20f8c7d37daaa9872defad7be930901ef0cae28",
+    "core/crates/knotrel-core/src/lib.rs": "6cf29264eae722ecde0b6254b5578a540ec14c23a107c0c20e6f53cc3a750a87",
+    "core/crates/knotrel-core/src/reference.rs": "aa60159e34033c36d73911fd475309d85306fdf85dc84a25257bd2083a8131b6",
+    "core/crates/knotrel-core/src/workspace.rs": "4915176a9171660127ae46977ae1677ca98a5a5b6c1118ab0fecbbd247c73dfa",
+    "core/crates/knotrel-core/tests/configuration.rs": "a6bf0a8caf3c67e061a42581d457a88cfc2c183760d7d43016ba329da3c19161",
+    "core/crates/knotrel-core/tests/connectivity.rs": "4984a2036cf566e2b2c3798bdd798a9640a33768426e71aa5e6554bee51fbb22",
+    "core/crates/knotrel-core/tests/forest.rs": "2d7e3f11867dd5c63ca8808eab5554c3676c1011d238b609cc191a2a18549233",
+    "core/crates/knotrel-core/tests/hdt.rs": "0e5936b4ffa4234d7459cdcf7e02288f87b2bda28ec311ce13406384d1d99c68",
+    "core/crates/knotrel-core/tests/limits.rs": "7bee0d6c4c95c383e054846f59e49f722ff06dbb29840b4908ec0d9889076f86",
+    "core/crates/knotrel-core/tests/workspace.rs": "a10b1e96b5ca1bbf0a0e7a1888fd09f8cf3f7231b1df745611c7b7103930da59",
+    "core/crates/knotrel-server/src/api.rs": "e575819faf0ce5c562c3d94f06a1a61655e19cbd6d4aa29b0d29541e02e519d7",
+    "core/crates/knotrel-server/src/configuration.rs": "0c040398445a96cd2e2670f752ec68e6e3f5d2d2360048967e0844ee97fd905c",
+    "core/crates/knotrel-server/src/lib.rs": "1332edba226cd70917c26c13965a05e7b95a30e13d4ed97a849120c355361361",
+    "core/crates/knotrel-server/src/main.rs": "ae0544ce8766f7cb11d97cce7e887912f6d4dd0eddaad85a0a5e19890e840fbc",
+    "core/crates/knotrel-server/src/service.rs": "8bbb319e9250e4ea02ad435a49347d9c72f3cf321ffddc010b2aa45568142f27",
+    "core/crates/knotrel-server/tests/http.rs": "433e20dbad8476885fd5fb4bc5baad9a2f49819ba6260541ae2a385937fb282c",
+    "core/crates/knotrel-server/tests/startup.rs": "843e88c4b2a2965ca1139f5d7f9dbb76af49e7d9c3b1e64a34542cbeb179fdc9",
+    "core/crates/knotrel-server/tests/stats.rs": "4758fab9a089febbae332ee99f182f91b935302f0e0c32ec68851d324bd500dc",
+    "core/crates/knotrel-core/Cargo.toml": "fd1f26f15709e61bae486a2c506bc69f255d2c18da54da09320fc5fd93fcdd81",
+    "core/crates/knotrel-server/Cargo.toml": "9b8902d0463ef3549d2fb8a050721e65bd9bf3bdc3056e2e773f897a4dbcc249"
+  },
+  "binary_sha256": "3266eb28f3277f9055d372401bada7b62b58e848ab689726c01bc96410019ed6",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8",
+  "cases": [
+    {
+      "name": "sustained-churn-blocks-v1-n1024-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1024",
+        "sustained-churn-blocks-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n1024-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1024",
+        "sustained-churn-blocks-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n1024-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1024",
+        "sustained-churn-blocks-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n10000-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000",
+        "sustained-churn-blocks-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n10000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000",
+        "sustained-churn-blocks-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n10000-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000",
+        "sustained-churn-blocks-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n100000-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "100000",
+        "sustained-churn-blocks-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n100000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "100000",
+        "sustained-churn-blocks-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n100000-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "100000",
+        "sustained-churn-blocks-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n1000000-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1000000",
+        "sustained-churn-blocks-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n1000000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1000000",
+        "sustained-churn-blocks-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n1000000-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1000000",
+        "sustained-churn-blocks-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n1024-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1024",
+        "sustained-churn-path-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n1024-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1024",
+        "sustained-churn-path-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n1024-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1024",
+        "sustained-churn-path-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n10000-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000",
+        "sustained-churn-path-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n10000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000",
+        "sustained-churn-path-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n10000-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000",
+        "sustained-churn-path-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n100000-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "100000",
+        "sustained-churn-path-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n100000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "100000",
+        "sustained-churn-path-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n100000-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "100000",
+        "sustained-churn-path-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n1000000-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1000000",
+        "sustained-churn-path-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n1000000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1000000",
+        "sustained-churn-path-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n1000000-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "1000000",
+        "sustained-churn-path-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "dense-bridge-churn-v1-n128-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "128",
+        "dense-bridge-churn-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "dense-bridge-churn-v1-n128-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "128",
+        "dense-bridge-churn-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "dense-bridge-churn-v1-n128-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "128",
+        "dense-bridge-churn-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "dense-bridge-churn-v1-n512-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "512",
+        "dense-bridge-churn-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "dense-bridge-churn-v1-n512-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "512",
+        "dense-bridge-churn-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "dense-bridge-churn-v1-n512-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "512",
+        "dense-bridge-churn-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "redundant-bridge-churn-v1-n128-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "128",
+        "redundant-bridge-churn-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "redundant-bridge-churn-v1-n128-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "128",
+        "redundant-bridge-churn-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "redundant-bridge-churn-v1-n128-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "128",
+        "redundant-bridge-churn-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "redundant-bridge-churn-v1-n512-q10",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "512",
+        "redundant-bridge-churn-v1",
+        "10"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "redundant-bridge-churn-v1-n512-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "512",
+        "redundant-bridge-churn-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "redundant-bridge-churn-v1-n512-q90",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "512",
+        "redundant-bridge-churn-v1",
+        "90"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-blocks-v1-n10000000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000000",
+        "sustained-churn-blocks-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    },
+    {
+      "name": "sustained-churn-path-v1-n10000000-q50",
+      "command": [
+        "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/traversal-profile",
+        "10000000",
+        "sustained-churn-path-v1",
+        "50"
+      ],
+      "equal_runs": 2
+    }
+  ],
+  "build_command": [
+    "cargo",
+    "build",
+    "--release",
+    "--locked",
+    "--bin",
+    "traversal-profile"
+  ],
+  "environment": {
+    "RUSTFLAGS": null,
+    "CARGO_ENCODED_RUSTFLAGS": null,
+    "CARGO_BUILD_TARGET": null,
+    "CARGO_TARGET_DIR": null,
+    "CARGO_PROFILE_RELEASE_OPT_LEVEL": null,
+    "CARGO_PROFILE_RELEASE_LTO": null,
+    "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": null
+  },
+  "artifact_sha256": {
+    "benchmarks.patch": "c4098ed00a560e131b700aa35f7b648ade44d48a8a8c06533a924f686af2d66d",
+    "dense-bridge-churn-v1-n128-q10.json": "9753e10d17583a27409c7872ef56ebd4ce5ef045cf7e31feb1be3a49a46600a7",
+    "dense-bridge-churn-v1-n128-q50.json": "57fb1aa490fe8525c049e7ebb6cf6836708d1ff4b3e49dff809e7c184ab604a1",
+    "dense-bridge-churn-v1-n128-q90.json": "5c359a1343649991bf68889293f725d2f0c62fdfb2e4eb7a3845dfd211c79d27",
+    "dense-bridge-churn-v1-n512-q10.json": "50055978f866322ee89427771765601f3746f4e2092728805946109b2f9d6f33",
+    "dense-bridge-churn-v1-n512-q50.json": "6c6dc89ac65fa4a021597fbe0a0875307f119eb63855c4b449096a6b512da634",
+    "dense-bridge-churn-v1-n512-q90.json": "4defa7689e025b95c3a4afa94f4b7fe2c7ba217f16f7cbe13eba185fc80b6380",
+    "redundant-bridge-churn-v1-n128-q10.json": "8bf25f0405e7ab170e021cc936d76b585649e89ec318606bec37447962b68b9e",
+    "redundant-bridge-churn-v1-n128-q50.json": "d3a732ec123561ce05bc7675df7c20f4c08253cb756c27e5edf84af24bdf29d1",
+    "redundant-bridge-churn-v1-n128-q90.json": "f1214f5a2f080204d5e79607237e87d573f38e77fadccc7b5c87454043fb0606",
+    "redundant-bridge-churn-v1-n512-q10.json": "0737c29410b9f68e22ca30f9346b4e44ca956fc2f639f39bc8e740279053bfff",
+    "redundant-bridge-churn-v1-n512-q50.json": "e4006857d4220aa31dec56659f9c2a8e23b5db61f4f7ed7e7e90f861b9ef43af",
+    "redundant-bridge-churn-v1-n512-q90.json": "2ed08ae1e9e9245340f7eab5a40249531c88194551f5a42085cd5fa0aacc35f5",
+    "sustained-churn-blocks-v1-n10000-q10.json": "cd399b138ee2ef0de6904581c88aad2f30a4c0518bc132bd161acc53cafe01ef",
+    "sustained-churn-blocks-v1-n10000-q50.json": "8e5d7e90ac3403abfc7367c7412bbd3a10357854037105a5bf188578b20683ca",
+    "sustained-churn-blocks-v1-n10000-q90.json": "b5b52b73400a65bf5a4411e9657c1b8ec26fada2501179c86fb6467b10f71c5e",
+    "sustained-churn-blocks-v1-n100000-q10.json": "d2b3a528eec1fdf5f863a05657b51f4047aba95a0d1919044227a08a42961b00",
+    "sustained-churn-blocks-v1-n100000-q50.json": "3664e61e11b86e7c24c5cf3c297d771e3804359f0c03a9444b08c0be44cf91b8",
+    "sustained-churn-blocks-v1-n100000-q90.json": "d57948150a5015a2ca644094d84cc398555cf9b166b984aed0532dfb0c26d668",
+    "sustained-churn-blocks-v1-n1000000-q10.json": "8a79c64bbf92e2b7dfb9bee60fbbe7dcf04e3ebb772878a1b6869146a9b06edc",
+    "sustained-churn-blocks-v1-n1000000-q50.json": "b323847e57c1451537e59f200fcc41602fd04f5cc9350b96a5f228578023f97a",
+    "sustained-churn-blocks-v1-n1000000-q90.json": "ee2dd77907ef84144e2cd57e22080a49cda0b3c2045cba003d7d4e7cc1ae2db2",
+    "sustained-churn-blocks-v1-n10000000-q50.json": "2dd3bbb96103cfabe7f35e9c3c62c623f72f4794752e318ccf36f3e00f1080c8",
+    "sustained-churn-blocks-v1-n1024-q10.json": "4e693101fd5c45a3865936e5dbc20557e53b86525cea01a46d5fda001f6b974b",
+    "sustained-churn-blocks-v1-n1024-q50.json": "f748260f0a41cb8f07daa0e246418cb088c33ef31627164516c3c3ebd9e13671",
+    "sustained-churn-blocks-v1-n1024-q90.json": "c4959ba8051a57400c20c89bc066bb77f8221f0d5ff5d45b2c7b1cb5738011ef",
+    "sustained-churn-path-v1-n10000-q10.json": "24d598ffa3f06f3e2cf27c42a917087f2477a21f1d36e51af9a0a00a692df22e",
+    "sustained-churn-path-v1-n10000-q50.json": "1459519ddb1136ef9f50b49398df64808bd496c3ea1d198d0fb8a29af3d1cb25",
+    "sustained-churn-path-v1-n10000-q90.json": "2074722fe54603519804f569bcb0621f91101e0bc70acc1ada4114ee9750b621",
+    "sustained-churn-path-v1-n100000-q10.json": "497c1c2f08b087a0c364931733b4e3b950a0b9ef226be4e963f52639c5d8f940",
+    "sustained-churn-path-v1-n100000-q50.json": "ff7e28e863bbccfff256011e5f54abcb365e1ef7e56b2de6510fea21ccaa3557",
+    "sustained-churn-path-v1-n100000-q90.json": "81bc222ff7a3bab34b0cc9e2f20661f41dd7c8287cfcdbc09c20d1eea19122b8",
+    "sustained-churn-path-v1-n1000000-q10.json": "9e96542216c50f196a74f1cf3c0633b588d8b4dbefe50aac6d505ebba621587d",
+    "sustained-churn-path-v1-n1000000-q50.json": "bbb97f839408d73e2dd6558e83bc66752ad2565325fbe2225fdfa004001fcefe",
+    "sustained-churn-path-v1-n1000000-q90.json": "e3773a49c6e635fd06632046fb27f4e09f8401e9dc02febd92bbfdd2397f2451",
+    "sustained-churn-path-v1-n10000000-q50.json": "b0c55dec64edbd689efbcfe2038dca391954bad589ecefb9e289821c217546d2",
+    "sustained-churn-path-v1-n1024-q10.json": "95984f250d854ebf9d813a3e60058afddd1519430e15454b579a65590cf3bc2d",
+    "sustained-churn-path-v1-n1024-q50.json": "7026b5f7d36f0140f590f37e06fe2de2cc604c2454de6a3f0fadda4c29e6c799",
+    "sustained-churn-path-v1-n1024-q90.json": "3f762a52e43127ae979406ed08785ff17a70b66a100a1342516b3cef5d5a992c",
+    "traversal-profile.rs.txt": "f74cbaa0177f208adf56b23b078a077ae4285da43c601a4470711f58c133a9ec",
+    "traversal.rs.txt": "f1fb29b84071acab21f0fbfa97123764b12ba26cf865d93faf1e8e952ad69954"
+  }
+}

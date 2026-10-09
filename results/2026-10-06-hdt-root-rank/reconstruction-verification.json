@@ -1,0 +1,41 @@
+{
+  "directory": "/private/tmp/knotrel-root-rank-verification-l4uv_szo",
+  "forest_sha256": "303fa95a6ce9b728075007e273351cbd5ca546b877d467b61c52e172fad47f1f",
+  "checks": [
+    [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "knotrel-core",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "knotrel-core"
+    ],
+    [
+      "cargo",
+      "doc",
+      "--locked",
+      "-p",
+      "knotrel-core",
+      "--no-deps"
+    ]
+  ],
+  "all_passed": true,
+  "note": "Fresh reconstruction used because the old temporary core crate manifest was no longer present. Initial test logs and measurement manifests remain unchanged."
+}

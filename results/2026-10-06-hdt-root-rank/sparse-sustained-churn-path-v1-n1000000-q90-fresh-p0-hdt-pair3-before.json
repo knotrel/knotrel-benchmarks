@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791317343,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "5097cf16db2527e7",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1899611792,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 100,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 100,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 51,
+        "total_ns": 292371,
+        "min_ns": 1375,
+        "p50_ns": 5166,
+        "p95_ns": 11250,
+        "p99_ns": 13750,
+        "max_ns": 13750
+      },
+      "query_false": {
+        "count": 849,
+        "total_ns": 3451242,
+        "min_ns": 1167,
+        "p50_ns": 3708,
+        "p95_ns": 7875,
+        "p99_ns": 11250,
+        "max_ns": 17375
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 883255,
+          "min_ns": 3167,
+          "p50_ns": 6583,
+          "p95_ns": 15292,
+          "p99_ns": 35375,
+          "max_ns": 47000
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 3743613,
+          "min_ns": 1167,
+          "p50_ns": 3750,
+          "p95_ns": 8250,
+          "p99_ns": 11416,
+          "max_ns": 17375
+        }
+      },
+      "workload_wall_ns": 4647500
+    }
+  ]
+}

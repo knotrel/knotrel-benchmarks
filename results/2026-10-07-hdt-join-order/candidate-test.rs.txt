@@ -1,0 +1,56 @@
+#[cfg(test)]
+mod join_order_tests {
+    use super::Forest;
+    fn order(f: &Forest, token: usize) -> Vec<usize> {
+        fn visit(f: &Forest, node: Option<usize>, out: &mut Vec<usize>) {
+            if let Some(i) = node {
+                visit(f, f.tokens[i].left, out);
+                out.push(i);
+                visit(f, f.tokens[i].right, out);
+            }
+        }
+        let mut out = Vec::new();
+        visit(f, Some(f.root(token)), &mut out);
+        let first = out.iter().position(|&i| i == token).unwrap();
+        out.rotate_left(first);
+        out
+    }
+    fn checked_link(f: &mut Forest, a: usize, b: usize) -> (usize, usize) {
+        let mut expected = order(f, f.vertex_tokens[a]);
+        let right = order(f, f.vertex_tokens[b]);
+        let (ab, ba) = f.link(a, b);
+        expected.push(ab);
+        expected.extend(right);
+        expected.push(ba);
+        assert_eq!(order(f, f.vertex_tokens[a]), expected);
+        f.validate();
+        (ab, ba)
+    }
+    #[test]
+    fn link_preserves_exact_cyclic_order_and_aggregates() {
+        for n in [2, 3, 8, 31, 64] {
+            let mut f = Forest::default();
+            for i in 0..n {
+                f.add_vertex();
+                f.set_marks(i, i % 2 == 0, i % 3 == 0);
+            }
+            let mut edges = Vec::new();
+            for i in 1..n {
+                edges.push(checked_link(&mut f, i - 1, i));
+            }
+            for round in 0..6 {
+                for (i, arcs) in edges.iter_mut().enumerate().rev() {
+                    f.cut(*arcs);
+                    f.validate();
+                    assert!(!f.connected(i, i + 1));
+                    *arcs = if round % 2 == 0 {
+                        checked_link(&mut f, i, i + 1)
+                    } else {
+                        checked_link(&mut f, i + 1, i)
+                    };
+                }
+            }
+            assert_eq!(f.tokens.len(), n + 2 * (n - 1));
+        }
+    }
+}

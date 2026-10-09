@@ -1,0 +1,77 @@
+//! Structural BFS/DFS counts; never use this instrumented binary for timing.
+use knotrel_benchmarks::{
+    Config, Operation, WorkloadKind, generate_with_query_percent,
+    traversal::{Graph, SearchSpace},
+};
+use serde_json::json;
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let args: Vec<_> = std::env::args().collect();
+    if args.len() != 4 {
+        return Err("usage: traversal-profile N WORKLOAD QUERY_PERCENT".into());
+    }
+    let config = Config {
+        nodes: args[1].parse()?,
+        rounds: 10,
+        seed: 42,
+    };
+    let kind = WorkloadKind::parse(&args[2])?;
+    let percent = args[3].parse()?;
+    let trace = generate_with_query_percent(kind, config, percent)?;
+    #[derive(serde::Serialize)]
+    struct Export<'a> {
+        schema_version: u32,
+        workload: &'static str,
+        config: Config,
+        query_percent: Option<u8>,
+        trace: &'a knotrel_benchmarks::Workload,
+    }
+    let bytes = serde_json::to_vec(&Export {
+        schema_version: 1,
+        workload: kind.name(),
+        config,
+        query_percent: Some(percent),
+        trace: &trace,
+    })?;
+    let fingerprint = bytes.iter().fold(0xcbf29ce484222325_u64, |h, b| {
+        (h ^ u64::from(*b)).wrapping_mul(0x100000001b3)
+    });
+    let mut graph = Graph::new();
+    for node in 0..config.nodes {
+        graph.add_node(node);
+    }
+    for &(a, b) in &trace.initial_edges {
+        assert!(graph.link(a, b)?);
+    }
+    let (mut bfs, mut dfs) = (SearchSpace::default(), SearchSpace::default());
+    let mut queries = Vec::new();
+    for (index, operation) in trace.operations.iter().enumerate() {
+        match *operation {
+            Operation::Link { source, target } => assert!(graph.link(source, target)?),
+            Operation::Cut { source, target } => assert!(graph.cut(source, target)?),
+            Operation::Connected {
+                source,
+                target,
+                expected,
+            } => {
+                assert_eq!(
+                    graph.search::<false, true>(source, target, &mut bfs)?,
+                    expected
+                );
+                assert_eq!(
+                    graph.search::<true, true>(source, target, &mut dfs)?,
+                    expected
+                );
+                queries.push(json!({"operation_index":index,"source":source,"target":target,"expected":expected,"bfs":bfs.stats(),"dfs":dfs.stats()}));
+            }
+        }
+    }
+    println!(
+        "{}",
+        serde_json::to_string_pretty(
+            &json!({"scope":"structural counters only, no timings", "config":config,"workload":kind.name(),"query_percent":percent,"trace_fingerprint_fnv1a64":format!("{fingerprint:016x}"),"queries":queries})
+        )?
+    );
+    Ok(())
+}

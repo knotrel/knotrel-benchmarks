@@ -1,0 +1,132 @@
+{
+  "checkouts_at_run_time": {
+    "benchmarks": {
+      "dirty": true,
+      "revision": "2ca6b437f891e5cd3830173b964f876a73821d01"
+    },
+    "core": {
+      "dirty": true,
+      "revision": "d799d7a62351f619d2f4186c502a6d2f2d7ea19a"
+    }
+  },
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "counters": {
+    "candidate_edges": 0,
+    "levels_visited": 100,
+    "non_tree_promotions": 0,
+    "replacements": 0,
+    "tree_cuts": 100,
+    "tree_promotions": 0
+  },
+  "diagnostic_stage_timings": {
+    "initial_edges_ns": 1825531084,
+    "registration_ns": 107619000
+  },
+  "diagnostic_timings": {
+    "links": null,
+    "non_tree_cuts": null,
+    "queries": {
+      "count": 900,
+      "max_ns": 10459,
+      "min_ns": 1208,
+      "p50_ns": 2000,
+      "p95_ns": 3416,
+      "p99_ns": 7416,
+      "total_ns": 1985066
+    },
+    "tree_cuts_with_promotions": null,
+    "tree_cuts_without_promotions": {
+      "count": 100,
+      "max_ns": 44417,
+      "min_ns": 2875,
+      "p50_ns": 5084,
+      "p95_ns": 8333,
+      "p99_ns": 29542,
+      "total_ns": 589580
+    }
+  },
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "query_percent": 90,
+  "schema_version": 1,
+  "snapshots": {
+    "after_initial_edges": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 15999984,
+      "edge_count": 999999,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 999999,
+          "tree_incidences": 1999998,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 79999936,
+      "vector_capacity_bytes": 477374128,
+      "vertex_count": 1000000
+    },
+    "after_node_registration": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 0,
+      "edge_count": 0,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 0,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 100663296,
+          "tree_edges": 0,
+          "tree_incidences": 0,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 16000000,
+      "vector_capacity_bytes": 159384256,
+      "vertex_count": 1000000
+    },
+    "after_replay": {
+      "available_levels": 21,
+      "edge_arc_capacity_bytes": 15998384,
+      "edge_count": 999899,
+      "level_capacity_bytes": 704,
+      "levels": [
+        {
+          "adjacency_capacity_bytes": 50331648,
+          "free_list_capacity_bytes": 2048,
+          "level": 0,
+          "mapping_capacity_bytes": 0,
+          "mapping_payload_bytes": 0,
+          "non_tree_incidences": 0,
+          "token_capacity_bytes": 402653184,
+          "tree_edges": 999899,
+          "tree_incidences": 1999798,
+          "vertex_index_capacity_bytes": 8388608,
+          "vertices": 1000000
+        }
+      ],
+      "ordered_payload_bytes": 79993536,
+      "vector_capacity_bytes": 477374576,
+      "vertex_count": 1000000
+    }
+  },
+  "timing_note": "Diagnostic timings are cache-perturbed and not comparable to normal benchmark timings",
+  "trace_fingerprint_fnv1a64": "5097cf16db2527e7",
+  "workload": "sustained-churn-path-v1"
+}
