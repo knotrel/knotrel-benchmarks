@@ -1,0 +1,24 @@
+#[cfg(test)]
+mod preparation_tests {
+    use super::Forest;
+    #[test]
+    fn preparation_preserves_all_token_fields_and_recycled_tours() {
+        let mut f = Forest::default();
+        for i in 0..64 { f.add_vertex(); f.set_marks(i, i % 2 == 0, i % 3 == 0); }
+        let mut arcs = Vec::new();
+        for i in 1..64 { arcs.push(f.link(i - 1, i)); }
+        for round in 0..4 {
+            for write in [false, true] {
+                let before = format!("{f:?}");
+                assert_eq!(f.diagnostic_touch_tokens(write), f.tokens.len());
+                assert_eq!(format!("{f:?}"), before);
+                f.validate();
+                assert!(f.connected(0, 63));
+            }
+            let i = 10 + round;
+            f.cut(arcs[i]);
+            assert!(!f.connected(i, i + 1));
+            arcs[i] = f.link(i + 1, i);
+        }
+    }
+}

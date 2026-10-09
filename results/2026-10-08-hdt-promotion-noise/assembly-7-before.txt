@@ -1,0 +1,79 @@
+000000010004ef10 <<knotrel_core::hdt::HdtGraph>::connected>:
+10004ef10:     	stp	x20, x19, [sp, #-0x20]!
+10004ef14:     	stp	x29, x30, [sp, #0x10]
+10004ef18:     	add	x29, sp, #0x10
+10004ef1c:     	mov	x19, x8
+10004ef20:     	ldr	x8, [x0, #0x18]
+10004ef24:     	cbz	x8, 0x10004f014 <<knotrel_core::hdt::HdtGraph>::connected+0x104>
+10004ef28:     	ldr	x9, [x0, #0x20]
+10004ef2c:     	mov	x10, x9
+10004ef30:     	mov	x11, x8
+10004ef34:     	ldrh	w14, [x11, #0xba]
+10004ef38:     	add	x13, x11, #0x58
+10004ef3c:     	lsl	x15, x14, #3
+10004ef40:     	mov	x12, #-0x1              ; =-1
+10004ef44:     	cbz	x15, 0x10004ef78 <<knotrel_core::hdt::HdtGraph>::connected+0x68>
+10004ef48:     	ldur	x16, [x13, #-0x50]
+10004ef4c:     	cmp	x1, x16
+10004ef50:     	cset	w16, hi
+10004ef54:     	csinv	w16, w16, wzr, hs
+10004ef58:     	add	x13, x13, #0x8
+10004ef5c:     	add	x12, x12, #0x1
+10004ef60:     	sub	x15, x15, #0x8
+10004ef64:     	and	w16, w16, #0xff
+10004ef68:     	cmp	w16, #0x1
+10004ef6c:     	b.eq	0x10004ef44 <<knotrel_core::hdt::HdtGraph>::connected+0x34>
+10004ef70:     	cbz	w16, 0x10004ef90 <<knotrel_core::hdt::HdtGraph>::connected+0x80>
+10004ef74:     	b	0x10004ef7c <<knotrel_core::hdt::HdtGraph>::connected+0x6c>
+10004ef78:     	mov	x12, x14
+10004ef7c:     	cbz	x10, 0x10004f014 <<knotrel_core::hdt::HdtGraph>::connected+0x104>
+10004ef80:     	add	x11, x11, x12, lsl #3
+10004ef84:     	ldr	x11, [x11, #0xc0]
+10004ef88:     	sub	x10, x10, #0x1
+10004ef8c:     	b	0x10004ef34 <<knotrel_core::hdt::HdtGraph>::connected+0x24>
+10004ef90:     	ldr	x1, [x13]
+10004ef94:     	ldrh	w12, [x8, #0xba]
+10004ef98:     	add	x10, x8, #0x58
+10004ef9c:     	lsl	x13, x12, #3
+10004efa0:     	mov	x11, #-0x1              ; =-1
+10004efa4:     	cbz	x13, 0x10004efd8 <<knotrel_core::hdt::HdtGraph>::connected+0xc8>
+10004efa8:     	ldur	x14, [x10, #-0x50]
+10004efac:     	cmp	x2, x14
+10004efb0:     	cset	w14, hi
+10004efb4:     	csinv	w14, w14, wzr, hs
+10004efb8:     	add	x10, x10, #0x8
+10004efbc:     	add	x11, x11, #0x1
+10004efc0:     	sub	x13, x13, #0x8
+10004efc4:     	and	w14, w14, #0xff
+10004efc8:     	cmp	w14, #0x1
+10004efcc:     	b.eq	0x10004efa4 <<knotrel_core::hdt::HdtGraph>::connected+0x94>
+10004efd0:     	cbz	w14, 0x10004eff0 <<knotrel_core::hdt::HdtGraph>::connected+0xe0>
+10004efd4:     	b	0x10004efdc <<knotrel_core::hdt::HdtGraph>::connected+0xcc>
+10004efd8:     	mov	x11, x12
+10004efdc:     	cbz	x9, 0x10004f028 <<knotrel_core::hdt::HdtGraph>::connected+0x118>
+10004efe0:     	add	x8, x8, x11, lsl #3
+10004efe4:     	ldr	x8, [x8, #0xc0]
+10004efe8:     	sub	x9, x9, #0x1
+10004efec:     	b	0x10004ef94 <<knotrel_core::hdt::HdtGraph>::connected+0x84>
+10004eff0:     	ldr	x8, [x0, #0x10]
+10004eff4:     	cbz	x8, 0x10004f034 <<knotrel_core::hdt::HdtGraph>::connected+0x124>
+10004eff8:     	ldr	x0, [x0, #0x8]
+10004effc:     	ldr	x2, [x10]
+10004f000:     	bl	0x10004d394 <<knotrel_core::hdt_forest::Forest>::connected>
+10004f004:     	strb	w0, [x19, #0x8]
+10004f008:     	mov	x8, #-0x1               ; =-1
+10004f00c:     	str	x8, [x19]
+10004f010:     	b	0x10004f01c <<knotrel_core::hdt::HdtGraph>::connected+0x10c>
+10004f014:     	mov	w8, #0x3                ; =3
+10004f018:     	stp	x8, x1, [x19]
+10004f01c:     	ldp	x29, x30, [sp, #0x10]
+10004f020:     	ldp	x20, x19, [sp], #0x20
+10004f024:     	ret
+10004f028:     	mov	w8, #0x3                ; =3
+10004f02c:     	stp	x8, x2, [x19]
+10004f030:     	b	0x10004f01c <<knotrel_core::hdt::HdtGraph>::connected+0x10c>
+10004f034:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004f038:     	add	x2, x2, #0x710
+10004f03c:     	mov	x0, #0x0                ; =0
+10004f040:     	mov	x1, #0x0                ; =0
+10004f044:     	bl	0x100085828 <core::panicking::panic_bounds_check>

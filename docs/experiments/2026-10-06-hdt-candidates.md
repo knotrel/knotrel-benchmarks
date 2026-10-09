@@ -20,3 +20,14 @@ measurements needed to rebuild a candidate if temporary binaries disappear.
 Packed-index integration preserves the original measurements and adverse pairs.
 See the [follow-up diagnosis](../../results/2026-10-09-hdt-packed-resources/README.md)
 for the separate confirmation and limits; historical result files are unchanged.
+
+## ETT candidate
+
+The [ETT packed-index pilot](../../results/2026-10-09-ett-packed-tokens/README.md)
+ports only the optional-index representation to the separate ETT forest.
+Integrated into ETT on 2026-10-09; this is not a combined HDT patch.
+Saved [patch](../../results/2026-10-09-ett-packed-tokens/candidate.patch) SHA-256: `1c38ea0df38b8a5cdf16cfdc1d5445b9a14f1b1a2a8bbb82cb6b284fc23729db`.
+
+The [full ETT matrix](../../results/2026-10-09-ett-packed-tokens-matrix/README.md)
+completes 38 cells with no runtime screening flags, while retaining sparse setup
+regressions. The measured ETT candidate was integrated on 2026-10-09, retaining the setup tradeoff and experimental status.

@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791379158,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "5097cf16db2527e7",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 2043247917,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 100,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 100,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 51,
+        "total_ns": 286000,
+        "min_ns": 1333,
+        "p50_ns": 5542,
+        "p95_ns": 12459,
+        "p99_ns": 14083,
+        "max_ns": 14083
+      },
+      "query_false": {
+        "count": 849,
+        "total_ns": 2601596,
+        "min_ns": 1208,
+        "p50_ns": 2375,
+        "p95_ns": 6416,
+        "p99_ns": 8125,
+        "max_ns": 11792
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 701542,
+          "min_ns": 3042,
+          "p50_ns": 5875,
+          "p95_ns": 12083,
+          "p99_ns": 14625,
+          "max_ns": 19083
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 2887596,
+          "min_ns": 1208,
+          "p50_ns": 2417,
+          "p95_ns": 6834,
+          "p99_ns": 9416,
+          "max_ns": 14083
+        }
+      },
+      "workload_wall_ns": 3610583
+    }
+  ]
+}

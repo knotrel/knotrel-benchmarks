@@ -1,0 +1,135 @@
+--- a/knotrel/crates/knotrel-core/src/hdt_forest.rs
++++ b/knotrel/crates/knotrel-core/src/hdt_forest.rs
+@@ -44,6 +44,18 @@
+     vertex_tokens: Vec<usize>,
+ }
+ impl Forest {
++    /// Diagnostic: touch initialized token pages without changing their fields.
++    /// O(number of tokens); intentionally perturbs cache and writable-page state.
++    pub(crate) fn diagnostic_touch_tokens(&mut self, write: bool) -> usize {
++        for token in &mut self.tokens {
++            let value = std::hint::black_box(token.candidate);
++            if write {
++                token.candidate = value;
++            }
++        }
++        self.tokens.len()
++    }
++
+     pub(crate) fn storage(&self) -> crate::HdtLevelStorage {
+         crate::HdtLevelStorage {
+             vertices: self.vertex_tokens.len(),
+@@ -382,3 +394,33 @@
+         f.validate();
+     }
+ }
++
++#[cfg(test)]
++mod preparation_tests {
++    use super::Forest;
++    #[test]
++    fn preparation_preserves_all_token_fields_and_recycled_tours() {
++        let mut f = Forest::default();
++        for i in 0..64 {
++            f.add_vertex();
++            f.set_marks(i, i % 2 == 0, i % 3 == 0);
++        }
++        let mut arcs = Vec::new();
++        for i in 1..64 {
++            arcs.push(f.link(i - 1, i));
++        }
++        for round in 0..4 {
++            for write in [false, true] {
++                let before = format!("{f:?}");
++                assert_eq!(f.diagnostic_touch_tokens(write), f.tokens.len());
++                assert_eq!(format!("{f:?}"), before);
++                f.validate();
++                assert!(f.connected(0, 63));
++            }
++            let i = 10 + round;
++            f.cut(arcs[i]);
++            assert!(!f.connected(i, i + 1));
++            arcs[i] = f.link(i + 1, i);
++        }
++    }
++}
+--- a/knotrel/crates/knotrel-core/src/hdt.rs
++++ b/knotrel/crates/knotrel-core/src/hdt.rs
+@@ -162,6 +162,15 @@
+ }
+ 
+ impl HdtGraph {
++    /// Diagnostic-only initialized-token preparation; preserves graph semantics.
++    /// Visits every forest arena in O(total tokens); does not touch all graph storage.
++    pub fn diagnostic_touch_tokens(&mut self, write: bool) -> usize {
++        self.levels
++            .iter_mut()
++            .map(|level| level.forest.diagnostic_touch_tokens(write))
++            .sum()
++    }
++
+     pub(crate) fn contains_edge(&self, source: NodeId, target: NodeId) -> bool {
+         let (Some(&a), Some(&b)) = (self.ids.get(&source), self.ids.get(&target)) else {
+             return false;
+--- a/knotrel-benchmarks/crates/knotrel-benchmarks/src/engines.rs
++++ b/knotrel-benchmarks/crates/knotrel-benchmarks/src/engines.rs
+@@ -160,6 +160,14 @@
+ }
+ 
+ impl Engine {
++    /// Isolated HDT token-arena diagnostic, preserving graph state.
++    pub fn diagnostic_touch_tokens(&mut self, write: bool) -> usize {
++        match &mut self.storage {
++            Storage::Hdt(graph) => graph.diagnostic_touch_tokens(write),
++            _ => panic!("preparation diagnostic requires HDT"),
++        }
++    }
++
+     /// Initialize all registered vertices, including isolated ones.
+     ///
+     /// Setup is measured separately from operations. Dense/petgraph storage is
+--- a/knotrel-benchmarks/crates/knotrel-benchmarks/src/main.rs
++++ b/knotrel-benchmarks/crates/knotrel-benchmarks/src/main.rs
+@@ -55,6 +55,9 @@
+ }
+ #[derive(Serialize)]
+ struct Run {
++    preparation_ns: u128,
++    prepared_tokens: usize,
++    preparation_mode: String,
+     setup_ns: u128,
+     #[serde(skip_serializing_if = "Option::is_none")]
+     forest_stats: Option<serde_json::Value>,
+@@ -277,6 +280,22 @@
+     // Each interval includes the call, a compiler barrier and clock overhead.
+     // Checking and sample insertion follow the interval. Wall time additionally
+     // includes dispatch, checking and sampling; it is not operation throughput.
++
++    let preparation_mode =
++        std::env::var("KNOTREL_DIAGNOSTIC_PREPARATION").unwrap_or_else(|_| "none".into());
++    assert!(matches!(
++        preparation_mode.as_str(),
++        "none" | "read" | "write"
++    ));
++    phase_marker("preparation_start");
++    let preparation_start = Instant::now();
++    let prepared_tokens = match preparation_mode.as_str() {
++        "read" => graph.diagnostic_touch_tokens(false),
++        "write" => graph.diagnostic_touch_tokens(true),
++        _ => 0,
++    };
++    let preparation_ns = preparation_start.elapsed().as_nanos();
++    phase_marker("preparation_end");
+     phase_marker("replay_start");
+     let wall_start = Instant::now();
+     for &operation in &workload.operations {
+@@ -358,6 +377,9 @@
+         }
+     };
+     Ok(Run {
++        preparation_ns,
++        prepared_tokens,
++        preparation_mode,
+         setup_ns,
+         forest_stats,
+         hdt_stats,

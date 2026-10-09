@@ -1,0 +1,734 @@
+000000010004de6c <<knotrel_core::hdt::HdtGraph>::link>:
+10004de6c:     	sub	sp, sp, #0x140
+10004de70:     	stp	x28, x27, [sp, #0xe0]
+10004de74:     	stp	x26, x25, [sp, #0xf0]
+10004de78:     	stp	x24, x23, [sp, #0x100]
+10004de7c:     	stp	x22, x21, [sp, #0x110]
+10004de80:     	stp	x20, x19, [sp, #0x120]
+10004de84:     	stp	x29, x30, [sp, #0x130]
+10004de88:     	add	x29, sp, #0x130
+10004de8c:     	mov	x22, x1
+10004de90:     	mov	x19, x8
+10004de94:     	cmp	x1, x2
+10004de98:     	b.ne	0x10004dea8 <<knotrel_core::hdt::HdtGraph>::link+0x3c>
+10004de9c:     	mov	w8, #0x2                ; =2
+10004dea0:     	stp	x8, x22, [x19]
+10004dea4:     	b	0x10004e188 <<knotrel_core::hdt::HdtGraph>::link+0x31c>
+10004dea8:     	mov	x21, x2
+10004deac:     	mov	x20, x0
+10004deb0:     	mov	x1, x22
+10004deb4:     	bl	0x10004ef18 <<knotrel_core::hdt::HdtGraph>::add_node>
+10004deb8:     	mov	x0, x20
+10004debc:     	mov	x1, x21
+10004dec0:     	bl	0x10004ef18 <<knotrel_core::hdt::HdtGraph>::add_node>
+10004dec4:     	ldr	x8, [x20, #0x18]
+10004dec8:     	cbz	x8, 0x10004e8cc <<knotrel_core::hdt::HdtGraph>::link+0xa60>
+10004decc:     	ldr	x9, [x20, #0x20]
+10004ded0:     	mov	x10, x9
+10004ded4:     	mov	x11, x8
+10004ded8:     	ldrh	w14, [x11, #0xba]
+10004dedc:     	add	x13, x11, #0x58
+10004dee0:     	lsl	x15, x14, #3
+10004dee4:     	mov	x12, #-0x1              ; =-1
+10004dee8:     	cbz	x15, 0x10004df1c <<knotrel_core::hdt::HdtGraph>::link+0xb0>
+10004deec:     	ldur	x16, [x13, #-0x50]
+10004def0:     	cmp	x22, x16
+10004def4:     	cset	w16, hi
+10004def8:     	csinv	w16, w16, wzr, hs
+10004defc:     	add	x13, x13, #0x8
+10004df00:     	add	x12, x12, #0x1
+10004df04:     	sub	x15, x15, #0x8
+10004df08:     	and	w16, w16, #0xff
+10004df0c:     	cmp	w16, #0x1
+10004df10:     	b.eq	0x10004dee8 <<knotrel_core::hdt::HdtGraph>::link+0x7c>
+10004df14:     	cbz	w16, 0x10004df34 <<knotrel_core::hdt::HdtGraph>::link+0xc8>
+10004df18:     	b	0x10004df20 <<knotrel_core::hdt::HdtGraph>::link+0xb4>
+10004df1c:     	mov	x12, x14
+10004df20:     	cbz	x10, 0x10004e8cc <<knotrel_core::hdt::HdtGraph>::link+0xa60>
+10004df24:     	add	x11, x11, x12, lsl #3
+10004df28:     	ldr	x11, [x11, #0xc0]
+10004df2c:     	sub	x10, x10, #0x1
+10004df30:     	b	0x10004ded8 <<knotrel_core::hdt::HdtGraph>::link+0x6c>
+10004df34:     	ldr	x22, [x13]
+10004df38:     	ldrh	w12, [x8, #0xba]
+10004df3c:     	add	x11, x8, #0x58
+10004df40:     	lsl	x13, x12, #3
+10004df44:     	mov	x10, #-0x1              ; =-1
+10004df48:     	cbz	x13, 0x10004df7c <<knotrel_core::hdt::HdtGraph>::link+0x110>
+10004df4c:     	ldur	x14, [x11, #-0x50]
+10004df50:     	cmp	x21, x14
+10004df54:     	cset	w14, hi
+10004df58:     	csinv	w14, w14, wzr, hs
+10004df5c:     	add	x11, x11, #0x8
+10004df60:     	add	x10, x10, #0x1
+10004df64:     	sub	x13, x13, #0x8
+10004df68:     	and	w14, w14, #0xff
+10004df6c:     	cmp	w14, #0x1
+10004df70:     	b.eq	0x10004df48 <<knotrel_core::hdt::HdtGraph>::link+0xdc>
+10004df74:     	cbz	w14, 0x10004df94 <<knotrel_core::hdt::HdtGraph>::link+0x128>
+10004df78:     	b	0x10004df80 <<knotrel_core::hdt::HdtGraph>::link+0x114>
+10004df7c:     	mov	x10, x12
+10004df80:     	cbz	x9, 0x10004e8e4 <<knotrel_core::hdt::HdtGraph>::link+0xa78>
+10004df84:     	add	x8, x8, x10, lsl #3
+10004df88:     	ldr	x8, [x8, #0xc0]
+10004df8c:     	sub	x9, x9, #0x1
+10004df90:     	b	0x10004df38 <<knotrel_core::hdt::HdtGraph>::link+0xcc>
+10004df94:     	ldr	x24, [x11]
+10004df98:     	cmp	x24, x22
+10004df9c:     	csel	x25, x24, x22, lo
+10004dfa0:     	csel	x28, x24, x22, hi
+10004dfa4:     	ldr	x8, [x20, #0x30]
+10004dfa8:     	cbz	x8, 0x10004e020 <<knotrel_core::hdt::HdtGraph>::link+0x1b4>
+10004dfac:     	ldr	x9, [x20, #0x38]
+10004dfb0:     	add	x13, x8, #0x160
+10004dfb4:     	ldrh	w11, [x8, #0x21a]
+10004dfb8:     	lsl	x12, x11, #4
+10004dfbc:     	mov	x10, #-0x1              ; =-1
+10004dfc0:     	cbz	x12, 0x10004e000 <<knotrel_core::hdt::HdtGraph>::link+0x194>
+10004dfc4:     	ldp	x14, x15, [x13], #0x10
+10004dfc8:     	cmp	x28, x15
+10004dfcc:     	cset	w15, hi
+10004dfd0:     	csinv	w15, w15, wzr, hs
+10004dfd4:     	cmp	x25, x14
+10004dfd8:     	cset	w14, hi
+10004dfdc:     	csinv	w14, w14, wzr, hs
+10004dfe0:     	csel	w14, w15, w14, eq
+10004dfe4:     	add	x10, x10, #0x1
+10004dfe8:     	sub	x12, x12, #0x10
+10004dfec:     	and	w14, w14, #0xff
+10004dff0:     	cmp	w14, #0x1
+10004dff4:     	b.eq	0x10004dfc0 <<knotrel_core::hdt::HdtGraph>::link+0x154>
+10004dff8:     	cbz	w14, 0x10004e018 <<knotrel_core::hdt::HdtGraph>::link+0x1ac>
+10004dffc:     	b	0x10004e004 <<knotrel_core::hdt::HdtGraph>::link+0x198>
+10004e000:     	mov	x10, x11
+10004e004:     	cbz	x9, 0x10004e020 <<knotrel_core::hdt::HdtGraph>::link+0x1b4>
+10004e008:     	add	x8, x8, x10, lsl #3
+10004e00c:     	ldr	x8, [x8, #0x220]
+10004e010:     	sub	x9, x9, #0x1
+10004e014:     	b	0x10004dfb0 <<knotrel_core::hdt::HdtGraph>::link+0x144>
+10004e018:     	strb	wzr, [x19, #0x8]
+10004e01c:     	b	0x10004e180 <<knotrel_core::hdt::HdtGraph>::link+0x314>
+10004e020:     	ldr	x8, [x20, #0x10]
+10004e024:     	cbz	x8, 0x10004e8fc <<knotrel_core::hdt::HdtGraph>::link+0xa90>
+10004e028:     	ldr	x0, [x20, #0x8]
+10004e02c:     	mov	x1, x22
+10004e030:     	mov	x2, x24
+10004e034:     	bl	0x10004d394 <<knotrel_core::hdt_forest::Forest>::connected>
+10004e038:     	mov	x23, x0
+10004e03c:     	tbz	w0, #0x0, 0x10004e04c <<knotrel_core::hdt::HdtGraph>::link+0x1e0>
+10004e040:     	mov	x27, #0x0               ; =0
+10004e044:     	mov	w21, #0x8               ; =8
+10004e048:     	b	0x10004e07c <<knotrel_core::hdt::HdtGraph>::link+0x210>
+10004e04c:     	mov	w0, #0x10               ; =16
+10004e050:     	bl	0x10008cf40 <dyld_stub_binder+0x10008cf40>
+10004e054:     	cbz	x0, 0x10004e7c8 <<knotrel_core::hdt::HdtGraph>::link+0x95c>
+10004e058:     	mov	x21, x0
+10004e05c:     	ldr	x8, [x20, #0x10]
+10004e060:     	cbz	x8, 0x10004e928 <<knotrel_core::hdt::HdtGraph>::link+0xabc>
+10004e064:     	ldr	x0, [x20, #0x8]
+10004e068:     	mov	x1, x22
+10004e06c:     	mov	x2, x24
+10004e070:     	bl	0x10004c7d4 <<knotrel_core::hdt_forest::Forest>::link>
+10004e074:     	stp	x0, x1, [x21]
+10004e078:     	mov	w27, #0x1               ; =1
+10004e07c:     	ldr	x8, [x20, #0x10]
+10004e080:     	cbz	x8, 0x10004e910 <<knotrel_core::hdt::HdtGraph>::link+0xaa4>
+10004e084:     	ldr	x0, [x20, #0x8]
+10004e088:     	eor	w3, w23, #0x1
+10004e08c:     	mov	x1, x22
+10004e090:     	mov	x2, x24
+10004e094:     	mov	w4, #0x1                ; =1
+10004e098:     	bl	0x100047504 <<knotrel_core::hdt::Level>::incidence>
+10004e09c:     	ldr	x15, [x20, #0x30]
+10004e0a0:     	cbz	x15, 0x10004e144 <<knotrel_core::hdt::HdtGraph>::link+0x2d8>
+10004e0a4:     	ldr	x16, [x20, #0x38]
+10004e0a8:     	mov	x9, x16
+10004e0ac:     	mov	x26, x15
+10004e0b0:     	add	x22, x26, #0x160
+10004e0b4:     	ldrh	w24, [x26, #0x21a]
+10004e0b8:     	sub	x10, x26, #0x20
+10004e0bc:     	ubfiz	x11, x24, #4, #32
+10004e0c0:     	mov	x8, #-0x1               ; =-1
+10004e0c4:     	add	x12, x26, #0x160
+10004e0c8:     	cbz	x11, 0x10004e10c <<knotrel_core::hdt::HdtGraph>::link+0x2a0>
+10004e0cc:     	ldp	x13, x14, [x12], #0x10
+10004e0d0:     	cmp	x28, x14
+10004e0d4:     	cset	w14, hi
+10004e0d8:     	csinv	w14, w14, wzr, hs
+10004e0dc:     	cmp	x25, x13
+10004e0e0:     	cset	w13, hi
+10004e0e4:     	csinv	w13, w13, wzr, hs
+10004e0e8:     	csel	w13, w14, w13, eq
+10004e0ec:     	add	x10, x10, #0x20
+10004e0f0:     	add	x8, x8, #0x1
+10004e0f4:     	sub	x11, x11, #0x10
+10004e0f8:     	and	w13, w13, #0xff
+10004e0fc:     	cmp	w13, #0x1
+10004e100:     	b.eq	0x10004e0c8 <<knotrel_core::hdt::HdtGraph>::link+0x25c>
+10004e104:     	cbz	w13, 0x10004e124 <<knotrel_core::hdt::HdtGraph>::link+0x2b8>
+10004e108:     	b	0x10004e110 <<knotrel_core::hdt::HdtGraph>::link+0x2a4>
+10004e10c:     	mov	x8, x24
+10004e110:     	cbz	x9, 0x10004e1a8 <<knotrel_core::hdt::HdtGraph>::link+0x33c>
+10004e114:     	add	x8, x26, x8, lsl #3
+10004e118:     	ldr	x26, [x8, #0x220]
+10004e11c:     	sub	x9, x9, #0x1
+10004e120:     	b	0x10004e0b0 <<knotrel_core::hdt::HdtGraph>::link+0x244>
+10004e124:     	ldp	x8, x0, [x10]
+10004e128:     	stp	x27, x21, [x10]
+10004e12c:     	stp	x27, xzr, [x10, #0x10]
+10004e130:     	sub	x8, x8, #0x1
+10004e134:     	cmn	x8, #0x3
+10004e138:     	b.hi	0x10004e178 <<knotrel_core::hdt::HdtGraph>::link+0x30c>
+10004e13c:     	bl	0x10008cef8 <dyld_stub_binder+0x10008cef8>
+10004e140:     	b	0x10004e178 <<knotrel_core::hdt::HdtGraph>::link+0x30c>
+10004e144:     	mov	w0, #0x220              ; =544
+10004e148:     	bl	0x10008cf40 <dyld_stub_binder+0x10008cf40>
+10004e14c:     	cbz	x0, 0x10004e7d4 <<knotrel_core::hdt::HdtGraph>::link+0x968>
+10004e150:     	str	xzr, [x0, #0x210]
+10004e154:     	stp	x0, xzr, [x20, #0x30]
+10004e158:     	mov	w8, #0x1                ; =1
+10004e15c:     	strh	w8, [x0, #0x21a]
+10004e160:     	stp	x25, x28, [x0, #0x160]
+10004e164:     	stp	x27, x21, [x0]
+10004e168:     	stp	x27, xzr, [x0, #0x10]
+10004e16c:     	ldr	x8, [x20, #0x40]
+10004e170:     	add	x8, x8, #0x1
+10004e174:     	str	x8, [x20, #0x40]
+10004e178:     	mov	w8, #0x1                ; =1
+10004e17c:     	strb	w8, [x19, #0x8]
+10004e180:     	mov	x8, #-0x1               ; =-1
+10004e184:     	str	x8, [x19]
+10004e188:     	ldp	x29, x30, [sp, #0x130]
+10004e18c:     	ldp	x20, x19, [sp, #0x120]
+10004e190:     	ldp	x22, x21, [sp, #0x110]
+10004e194:     	ldp	x24, x23, [sp, #0x100]
+10004e198:     	ldp	x26, x25, [sp, #0xf0]
+10004e19c:     	ldp	x28, x27, [sp, #0xe0]
+10004e1a0:     	add	sp, sp, #0x140
+10004e1a4:     	ret
+10004e1a8:     	cmp	w24, #0xb
+10004e1ac:     	stp	x16, x15, [sp, #0x8]
+10004e1b0:     	b.hs	0x10004e1fc <<knotrel_core::hdt::HdtGraph>::link+0x390>
+10004e1b4:     	add	x9, x22, x8, lsl #4
+10004e1b8:     	add	x23, x26, x8, lsl #5
+10004e1bc:     	subs	x10, x24, x8
+10004e1c0:     	b.ls	0x10004e340 <<knotrel_core::hdt::HdtGraph>::link+0x4d4>
+10004e1c4:     	add	x8, x8, #0x1
+10004e1c8:     	stp	x10, x8, [sp, #0x60]
+10004e1cc:     	add	x0, x22, x8, lsl #4
+10004e1d0:     	lsl	x2, x10, #4
+10004e1d4:     	mov	x22, x9
+10004e1d8:     	mov	x1, x9
+10004e1dc:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e1e0:     	stp	x25, x28, [x22]
+10004e1e4:     	ldp	x11, x8, [sp, #0x60]
+10004e1e8:     	lsl	x2, x11, #5
+10004e1ec:     	add	x0, x26, x8, lsl #5
+10004e1f0:     	mov	x1, x23
+10004e1f4:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e1f8:     	b	0x10004e344 <<knotrel_core::hdt::HdtGraph>::link+0x4d8>
+10004e1fc:     	mov	w9, #0x4                ; =4
+10004e200:     	mov	w10, #0x5               ; =5
+10004e204:     	sub	x11, x8, #0x7
+10004e208:     	mov	w12, #0x1               ; =1
+10004e20c:     	mov	w13, #0x6               ; =6
+10004e210:     	cmp	x8, #0x6
+10004e214:     	csel	x11, xzr, x11, eq
+10004e218:     	csinc	w12, w12, wzr, ne
+10004e21c:     	csel	x10, x10, x13, eq
+10004e220:     	cmp	x8, #0x5
+10004e224:     	csel	x11, x8, x11, eq
+10004e228:     	csel	w12, wzr, w12, eq
+10004e22c:     	csel	x10, x8, x10, eq
+10004e230:     	csel	w12, wzr, w12, lo
+10004e234:     	str	w12, [sp, #0x48]
+10004e238:     	csel	x8, x8, x11, lo
+10004e23c:     	str	x8, [sp, #0x50]
+10004e240:     	csel	x24, x9, x10, lo
+10004e244:     	mov	w0, #0x220              ; =544
+10004e248:     	bl	0x10008cf40 <dyld_stub_binder+0x10008cf40>
+10004e24c:     	cbz	x0, 0x10004e880 <<knotrel_core::hdt::HdtGraph>::link+0xa14>
+10004e250:     	str	xzr, [x0, #0x210]
+10004e254:     	ldrh	w8, [x26, #0x21a]
+10004e258:     	mvn	x9, x24
+10004e25c:     	add	x10, x8, x9
+10004e260:     	strh	w10, [x0, #0x21a]
+10004e264:     	add	x9, x26, x24, lsl #5
+10004e268:     	ldp	x11, x8, [x9]
+10004e26c:     	stp	x8, x11, [sp, #0x60]
+10004e270:     	str	x9, [sp, #0x40]
+10004e274:     	cmp	x10, #0xc
+10004e278:     	b.hs	0x10004e860 <<knotrel_core::hdt::HdtGraph>::link+0x9f4>
+10004e27c:     	add	x8, x22, x24, lsl #4
+10004e280:     	ldp	x9, x8, [x8]
+10004e284:     	stp	x9, x24, [sp, #0x30]
+10004e288:     	str	x8, [sp, #0x58]
+10004e28c:     	add	x8, x24, #0x1
+10004e290:     	add	x1, x22, x8, lsl #4
+10004e294:     	add	x22, x24, #0x1
+10004e298:     	lsl	x2, x10, #4
+10004e29c:     	mov	x24, x0
+10004e2a0:     	add	x0, x0, #0x160
+10004e2a4:     	mov	x23, x10
+10004e2a8:     	bl	0x10008cf58 <dyld_stub_binder+0x10008cf58>
+10004e2ac:     	lsl	x2, x23, #5
+10004e2b0:     	add	x1, x26, x22, lsl #5
+10004e2b4:     	mov	x0, x24
+10004e2b8:     	bl	0x10008cf58 <dyld_stub_binder+0x10008cf58>
+10004e2bc:     	ldp	x9, x8, [sp, #0x38]
+10004e2c0:     	strh	w9, [x26, #0x21a]
+10004e2c4:     	ldr	q0, [x8, #0x10]
+10004e2c8:     	stur	q0, [x29, #-0x70]
+10004e2cc:     	ldr	w8, [sp, #0x48]
+10004e2d0:     	cmp	w8, #0x0
+10004e2d4:     	csel	x11, x24, x26, ne
+10004e2d8:     	ldrh	w13, [x11, #0x21a]
+10004e2dc:     	add	x8, x11, #0x160
+10004e2e0:     	ldr	x9, [sp, #0x50]
+10004e2e4:     	add	x22, x8, x9, lsl #4
+10004e2e8:     	add	x23, x11, x9, lsl #5
+10004e2ec:     	subs	x10, x13, x9
+10004e2f0:     	mov	x12, x24
+10004e2f4:     	b.ls	0x10004e360 <<knotrel_core::hdt::HdtGraph>::link+0x4f4>
+10004e2f8:     	add	x9, x9, #0x1
+10004e2fc:     	stp	x9, x13, [sp, #0x40]
+10004e300:     	add	x0, x8, x9, lsl #4
+10004e304:     	lsl	x2, x10, #4
+10004e308:     	str	x12, [sp, #0x50]
+10004e30c:     	mov	x1, x22
+10004e310:     	mov	x24, x11
+10004e314:     	str	x10, [sp, #0x38]
+10004e318:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e31c:     	stp	x25, x28, [x22]
+10004e320:     	ldp	x9, x8, [sp, #0x38]
+10004e324:     	lsl	x2, x9, #5
+10004e328:     	add	x0, x24, x8, lsl #5
+10004e32c:     	mov	x1, x23
+10004e330:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e334:     	ldp	x13, x12, [sp, #0x48]
+10004e338:     	mov	x11, x24
+10004e33c:     	b	0x10004e364 <<knotrel_core::hdt::HdtGraph>::link+0x4f8>
+10004e340:     	stp	x25, x28, [x9]
+10004e344:     	add	w10, w24, #0x1
+10004e348:     	stp	x27, x21, [x23]
+10004e34c:     	stp	x27, xzr, [x23, #0x10]
+10004e350:     	mov	x8, #-0x1               ; =-1
+10004e354:     	add	x9, sp, #0x90
+10004e358:     	strh	w10, [x26, #0x21a]
+10004e35c:     	b	0x10004e394 <<knotrel_core::hdt::HdtGraph>::link+0x528>
+10004e360:     	stp	x25, x28, [x22]
+10004e364:     	ldr	x10, [sp, #0x68]
+10004e368:     	mov	x8, #0x0                ; =0
+10004e36c:     	add	w9, w13, #0x1
+10004e370:     	stp	x27, x21, [x23]
+10004e374:     	stp	x27, xzr, [x23, #0x10]
+10004e378:     	strh	w9, [x11, #0x21a]
+10004e37c:     	str	x10, [sp, #0x90]
+10004e380:     	ldur	q0, [x29, #-0x70]
+10004e384:     	stur	q0, [x29, #-0x80]
+10004e388:     	sub	x9, x29, #0x88
+10004e38c:     	ldr	x11, [sp, #0x58]
+10004e390:     	ldr	x27, [sp, #0x30]
+10004e394:     	str	x8, [x9]
+10004e398:     	ldr	x25, [sp, #0x90]
+10004e39c:     	cmn	x25, #0x1
+10004e3a0:     	b.eq	0x10004e16c <<knotrel_core::hdt::HdtGraph>::link+0x300>
+10004e3a4:     	ldur	q0, [x29, #-0x80]
+10004e3a8:     	str	q0, [sp, #0x70]
+10004e3ac:     	ldur	x22, [x29, #-0x88]
+10004e3b0:     	ldr	x28, [x26, #0x210]
+10004e3b4:     	cbz	x28, 0x10004e754 <<knotrel_core::hdt::HdtGraph>::link+0x8e8>
+10004e3b8:     	mov	x13, #0x0               ; =0
+10004e3bc:     	ldr	x21, [sp, #0x60]
+10004e3c0:     	cmp	x22, x13
+10004e3c4:     	str	x25, [sp, #0x68]
+10004e3c8:     	b.ne	0x10004e7e4 <<knotrel_core::hdt::HdtGraph>::link+0x978>
+10004e3cc:     	ldrh	w24, [x26, #0x218]
+10004e3d0:     	ldrh	w22, [x28, #0x21a]
+10004e3d4:     	cmp	w22, #0xb
+10004e3d8:     	b.hs	0x10004e46c <<knotrel_core::hdt::HdtGraph>::link+0x600>
+10004e3dc:     	add	x8, x28, #0x160
+10004e3e0:     	add	x14, x24, #0x1
+10004e3e4:     	add	x25, x8, x24, lsl #4
+10004e3e8:     	cmp	w24, w22
+10004e3ec:     	b.hs	0x10004e634 <<knotrel_core::hdt::HdtGraph>::link+0x7c8>
+10004e3f0:     	add	x0, x8, x14, lsl #4
+10004e3f4:     	sub	x8, x22, x24
+10004e3f8:     	lsl	x2, x8, #4
+10004e3fc:     	stp	x12, x11, [sp, #0x50]
+10004e400:     	mov	x1, x25
+10004e404:     	str	x13, [sp, #0x38]
+10004e408:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e40c:     	ldr	x8, [sp, #0x58]
+10004e410:     	stp	x27, x8, [x25]
+10004e414:     	add	x25, x28, x24, lsl #5
+10004e418:     	sub	x27, x22, x24
+10004e41c:     	lsl	x2, x27, #5
+10004e420:     	add	x8, x24, #0x1
+10004e424:     	add	x0, x28, x8, lsl #5
+10004e428:     	mov	x1, x25
+10004e42c:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e430:     	ldr	x8, [sp, #0x68]
+10004e434:     	stp	x8, x21, [x25]
+10004e438:     	ldr	q0, [sp, #0x70]
+10004e43c:     	str	q0, [x25, #0x10]
+10004e440:     	add	x8, x28, #0x220
+10004e444:     	add	x9, x24, #0x1
+10004e448:     	add	x1, x8, x9, lsl #3
+10004e44c:     	add	x8, x8, x24, lsl #3
+10004e450:     	lsl	x2, x27, #3
+10004e454:     	add	x0, x8, #0x10
+10004e458:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e45c:     	add	x14, x24, #0x1
+10004e460:     	ldr	x13, [sp, #0x38]
+10004e464:     	ldr	x12, [sp, #0x50]
+10004e468:     	b	0x10004e64c <<knotrel_core::hdt::HdtGraph>::link+0x7e0>
+10004e46c:     	stp	x12, x11, [sp, #0x50]
+10004e470:     	add	x13, x13, #0x1
+10004e474:     	str	x13, [sp, #0x38]
+10004e478:     	sub	x8, x24, #0x7
+10004e47c:     	cmp	w24, #0x6
+10004e480:     	mov	w9, #0x5                ; =5
+10004e484:     	mov	w10, #0x6               ; =6
+10004e488:     	csel	x9, x9, x10, eq
+10004e48c:     	csel	x8, xzr, x8, eq
+10004e490:     	mov	w10, #0x1               ; =1
+10004e494:     	csinc	w10, w10, wzr, ne
+10004e498:     	cmp	w24, #0x5
+10004e49c:     	csel	w10, wzr, w10, eq
+10004e4a0:     	csel	x9, x24, x9, eq
+10004e4a4:     	csel	x8, x24, x8, eq
+10004e4a8:     	mov	w11, #0x4               ; =4
+10004e4ac:     	csel	x26, x11, x9, lo
+10004e4b0:     	csel	x8, x24, x8, lo
+10004e4b4:     	str	x8, [sp, #0x20]
+10004e4b8:     	csel	w8, wzr, w10, lo
+10004e4bc:     	str	w8, [sp, #0x1c]
+10004e4c0:     	mov	w0, #0x280              ; =640
+10004e4c4:     	bl	0x10008cf40 <dyld_stub_binder+0x10008cf40>
+10004e4c8:     	cbz	x0, 0x10004e834 <<knotrel_core::hdt::HdtGraph>::link+0x9c8>
+10004e4cc:     	mov	x23, x0
+10004e4d0:     	str	xzr, [x0, #0x210]
+10004e4d4:     	ldrh	w8, [x28, #0x21a]
+10004e4d8:     	mvn	x9, x26
+10004e4dc:     	add	x25, x8, x9
+10004e4e0:     	strh	w25, [x0, #0x21a]
+10004e4e4:     	add	x24, x28, x26, lsl #5
+10004e4e8:     	ldp	x9, x8, [x24]
+10004e4ec:     	stp	x9, x27, [sp, #0x28]
+10004e4f0:     	str	x8, [sp, #0x60]
+10004e4f4:     	cmp	x25, #0xc
+10004e4f8:     	b.hs	0x10004e800 <<knotrel_core::hdt::HdtGraph>::link+0x994>
+10004e4fc:     	add	x8, x28, #0x160
+10004e500:     	add	x9, x8, x26, lsl #4
+10004e504:     	ldp	x10, x9, [x9]
+10004e508:     	stp	x10, x9, [sp, #0x40]
+10004e50c:     	add	x27, x26, #0x1
+10004e510:     	add	x1, x8, x27, lsl #4
+10004e514:     	lsl	x2, x25, #4
+10004e518:     	add	x0, x23, #0x160
+10004e51c:     	bl	0x10008cf58 <dyld_stub_binder+0x10008cf58>
+10004e520:     	lsl	x2, x25, #5
+10004e524:     	add	x1, x28, x27, lsl #5
+10004e528:     	mov	x0, x23
+10004e52c:     	bl	0x10008cf58 <dyld_stub_binder+0x10008cf58>
+10004e530:     	strh	w26, [x28, #0x21a]
+10004e534:     	ldr	q0, [x24, #0x10]
+10004e538:     	stur	q0, [x29, #-0x70]
+10004e53c:     	ldrh	w25, [x23, #0x21a]
+10004e540:     	add	x1, x25, #0x1
+10004e544:     	cmp	x25, #0xb
+10004e548:     	b.hi	0x10004e81c <<knotrel_core::hdt::HdtGraph>::link+0x9b0>
+10004e54c:     	sub	x8, x22, x26
+10004e550:     	cmp	x8, x1
+10004e554:     	b.ne	0x10004e844 <<knotrel_core::hdt::HdtGraph>::link+0x9d8>
+10004e558:     	add	x22, x23, #0x220
+10004e55c:     	lsl	x2, x1, #3
+10004e560:     	add	x8, x28, x26, lsl #3
+10004e564:     	add	x0, x23, #0x220
+10004e568:     	add	x1, x8, #0x228
+10004e56c:     	bl	0x10008cf58 <dyld_stub_binder+0x10008cf58>
+10004e570:     	mov	x8, #0x0                ; =0
+10004e574:     	ldr	x9, [x22, x8, lsl #3]
+10004e578:     	str	x23, [x9, #0x210]
+10004e57c:     	strh	w8, [x9, #0x218]
+10004e580:     	cmp	x8, x25
+10004e584:     	cinc	x9, x8, lo
+10004e588:     	b.hs	0x10004e598 <<knotrel_core::hdt::HdtGraph>::link+0x72c>
+10004e58c:     	mov	x8, x9
+10004e590:     	cmp	x9, x25
+10004e594:     	b.ls	0x10004e574 <<knotrel_core::hdt::HdtGraph>::link+0x708>
+10004e598:     	ldur	q0, [x29, #-0x70]
+10004e59c:     	stur	q0, [x29, #-0x80]
+10004e5a0:     	ldr	w8, [sp, #0x1c]
+10004e5a4:     	cmp	w8, #0x0
+10004e5a8:     	csel	x22, x23, x28, ne
+10004e5ac:     	ldrh	w24, [x22, #0x21a]
+10004e5b0:     	add	x8, x22, #0x160
+10004e5b4:     	ldr	x25, [sp, #0x20]
+10004e5b8:     	add	x12, x25, #0x1
+10004e5bc:     	add	x26, x8, x25, lsl #4
+10004e5c0:     	add	x9, x22, x25, lsl #5
+10004e5c4:     	subs	x27, x24, x25
+10004e5c8:     	b.ls	0x10004e69c <<knotrel_core::hdt::HdtGraph>::link+0x830>
+10004e5cc:     	lsl	x2, x27, #4
+10004e5d0:     	add	x0, x8, x12, lsl #4
+10004e5d4:     	mov	x1, x26
+10004e5d8:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e5dc:     	ldr	x9, [sp, #0x30]
+10004e5e0:     	ldr	x8, [sp, #0x58]
+10004e5e4:     	stp	x9, x8, [x26]
+10004e5e8:     	lsl	x2, x27, #5
+10004e5ec:     	add	x8, x25, #0x1
+10004e5f0:     	add	x0, x22, x8, lsl #5
+10004e5f4:     	add	x26, x22, x25, lsl #5
+10004e5f8:     	mov	x1, x26
+10004e5fc:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e600:     	ldr	x8, [sp, #0x68]
+10004e604:     	stp	x8, x21, [x26]
+10004e608:     	ldr	q0, [sp, #0x70]
+10004e60c:     	str	q0, [x26, #0x10]
+10004e610:     	add	x8, x22, #0x220
+10004e614:     	add	x9, x25, #0x1
+10004e618:     	add	x1, x8, x9, lsl #3
+10004e61c:     	add	x8, x8, x25, lsl #3
+10004e620:     	lsl	x2, x27, #3
+10004e624:     	add	x0, x8, #0x10
+10004e628:     	bl	0x10008cf64 <dyld_stub_binder+0x10008cf64>
+10004e62c:     	add	x12, x25, #0x1
+10004e630:     	b	0x10004e6b8 <<knotrel_core::hdt::HdtGraph>::link+0x84c>
+10004e634:     	stp	x27, x11, [x25]
+10004e638:     	add	x8, x28, x24, lsl #5
+10004e63c:     	ldr	x9, [sp, #0x68]
+10004e640:     	stp	x9, x21, [x8]
+10004e644:     	ldr	q0, [sp, #0x70]
+10004e648:     	str	q0, [x8, #0x10]
+10004e64c:     	add	w8, w22, #0x1
+10004e650:     	add	x9, x28, x14, lsl #3
+10004e654:     	add	x10, x22, #0x2
+10004e658:     	str	x12, [x9, #0x220]
+10004e65c:     	strh	w8, [x28, #0x21a]
+10004e660:     	cmp	x14, x10
+10004e664:     	b.hs	0x10004e690 <<knotrel_core::hdt::HdtGraph>::link+0x824>
+10004e668:     	add	x8, x24, #0x45
+10004e66c:     	neg	x9, x22
+10004e670:     	ldr	x10, [x28, x8, lsl #3]
+10004e674:     	sub	w11, w8, #0x44
+10004e678:     	str	x28, [x10, #0x210]
+10004e67c:     	strh	w11, [x10, #0x218]
+10004e680:     	add	x8, x8, #0x1
+10004e684:     	add	x10, x9, x8
+10004e688:     	cmp	x10, #0x46
+10004e68c:     	b.ne	0x10004e670 <<knotrel_core::hdt::HdtGraph>::link+0x804>
+10004e690:     	mov	x9, #-0x1               ; =-1
+10004e694:     	sub	x8, x29, #0x88
+10004e698:     	b	0x10004e720 <<knotrel_core::hdt::HdtGraph>::link+0x8b4>
+10004e69c:     	ldr	x10, [sp, #0x30]
+10004e6a0:     	ldr	x8, [sp, #0x58]
+10004e6a4:     	stp	x10, x8, [x26]
+10004e6a8:     	ldr	x8, [sp, #0x68]
+10004e6ac:     	stp	x8, x21, [x9]
+10004e6b0:     	ldr	q0, [sp, #0x70]
+10004e6b4:     	str	q0, [x9, #0x10]
+10004e6b8:     	ldr	x11, [sp, #0x50]
+10004e6bc:     	ldr	x13, [sp, #0x38]
+10004e6c0:     	add	w8, w24, #0x1
+10004e6c4:     	add	x9, x22, x12, lsl #3
+10004e6c8:     	add	x10, x24, #0x2
+10004e6cc:     	str	x11, [x9, #0x220]
+10004e6d0:     	strh	w8, [x22, #0x21a]
+10004e6d4:     	cmp	x12, x10
+10004e6d8:     	b.hs	0x10004e704 <<knotrel_core::hdt::HdtGraph>::link+0x898>
+10004e6dc:     	add	x8, x25, #0x45
+10004e6e0:     	neg	x9, x24
+10004e6e4:     	ldr	x10, [x22, x8, lsl #3]
+10004e6e8:     	sub	w11, w8, #0x44
+10004e6ec:     	str	x22, [x10, #0x210]
+10004e6f0:     	strh	w11, [x10, #0x218]
+10004e6f4:     	add	x8, x8, #0x1
+10004e6f8:     	add	x10, x9, x8
+10004e6fc:     	cmp	x10, #0x46
+10004e700:     	b.ne	0x10004e6e4 <<knotrel_core::hdt::HdtGraph>::link+0x878>
+10004e704:     	ldr	x8, [sp, #0x28]
+10004e708:     	stur	x8, [x29, #-0x88]
+10004e70c:     	ldur	q0, [x29, #-0x80]
+10004e710:     	str	q0, [sp, #0x90]
+10004e714:     	add	x8, sp, #0x88
+10004e718:     	mov	x26, x28
+10004e71c:     	mov	x9, x13
+10004e720:     	str	x9, [x8]
+10004e724:     	ldur	x25, [x29, #-0x88]
+10004e728:     	cmn	x25, #0x1
+10004e72c:     	b.eq	0x10004e16c <<knotrel_core::hdt::HdtGraph>::link+0x300>
+10004e730:     	ldr	q0, [sp, #0x90]
+10004e734:     	str	q0, [sp, #0x70]
+10004e738:     	ldr	x22, [sp, #0x88]
+10004e73c:     	ldr	x28, [x26, #0x210]
+10004e740:     	ldp	x27, x11, [sp, #0x40]
+10004e744:     	ldr	x21, [sp, #0x60]
+10004e748:     	mov	x12, x23
+10004e74c:     	cbnz	x28, 0x10004e3c0 <<knotrel_core::hdt::HdtGraph>::link+0x554>
+10004e750:     	b	0x10004e75c <<knotrel_core::hdt::HdtGraph>::link+0x8f0>
+10004e754:     	mov	x23, x12
+10004e758:     	stp	x27, x11, [sp, #0x40]
+10004e75c:     	mov	w0, #0x280              ; =640
+10004e760:     	bl	0x10008cf40 <dyld_stub_binder+0x10008cf40>
+10004e764:     	cbz	x0, 0x10004e890 <<knotrel_core::hdt::HdtGraph>::link+0xa24>
+10004e768:     	mov	x21, x0
+10004e76c:     	str	xzr, [x0, #0x210]
+10004e770:     	strh	wzr, [x0, #0x21a]
+10004e774:     	ldp	x10, x9, [sp, #0x8]
+10004e778:     	str	x9, [x0, #0x220]
+10004e77c:     	adds	x8, x10, #0x1
+10004e780:     	b.hs	0x10004e8a0 <<knotrel_core::hdt::HdtGraph>::link+0xa34>
+10004e784:     	str	x21, [x9, #0x210]
+10004e788:     	strh	wzr, [x9, #0x218]
+10004e78c:     	stp	x21, x8, [x20, #0x30]
+10004e790:     	cmp	x22, x10
+10004e794:     	b.ne	0x10004e8b0 <<knotrel_core::hdt::HdtGraph>::link+0xa44>
+10004e798:     	mov	w8, #0x1                ; =1
+10004e79c:     	strh	w8, [x21, #0x21a]
+10004e7a0:     	ldp	x10, x9, [sp, #0x40]
+10004e7a4:     	stp	x10, x9, [x21, #0x160]
+10004e7a8:     	ldr	x9, [sp, #0x60]
+10004e7ac:     	stp	x25, x9, [x21]
+10004e7b0:     	ldr	q0, [sp, #0x70]
+10004e7b4:     	str	q0, [x21, #0x10]
+10004e7b8:     	str	x23, [x21, #0x228]
+10004e7bc:     	str	x21, [x23, #0x210]
+10004e7c0:     	strh	w8, [x23, #0x218]
+10004e7c4:     	b	0x10004e16c <<knotrel_core::hdt::HdtGraph>::link+0x300>
+10004e7c8:     	mov	w0, #0x8                ; =8
+10004e7cc:     	mov	w1, #0x10               ; =16
+10004e7d0:     	bl	0x100085840 <alloc::alloc::handle_alloc_error>
+10004e7d4:     	mov	w0, #0x8                ; =8
+10004e7d8:     	mov	w1, #0x220              ; =544
+10004e7dc:     	bl	0x100085840 <alloc::alloc::handle_alloc_error>
+10004e7e0:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e7e4:     	adrp	x0, 0x100098000 <_anon.c1864f187df4a490ff7dd1d016e95c39.459+0xd77>
+10004e7e8:     	add	x0, x0, #0xac4
+10004e7ec:     	adrp	x2, 0x1000b7000 <_anon.e9244e66cb85b22de61b27b952e51a38.1766+0x2390>
+10004e7f0:     	add	x2, x2, #0xb98
+10004e7f4:     	mov	w1, #0x35               ; =53
+10004e7f8:     	bl	0x100085b88 <core::panicking::panic>
+10004e7fc:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e800:     	adrp	x3, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e804:     	add	x3, x3, #0x248
+10004e808:     	mov	x0, #0x0                ; =0
+10004e80c:     	mov	x1, x25
+10004e810:     	mov	w2, #0xb                ; =11
+10004e814:     	bl	0x100085bc4 <core::slice::index::slice_index_fail>
+10004e818:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e81c:     	adrp	x3, 0x1000b7000 <_anon.e9244e66cb85b22de61b27b952e51a38.1766+0x2390>
+10004e820:     	add	x3, x3, #0xbb0
+10004e824:     	mov	x0, #0x0                ; =0
+10004e828:     	mov	w2, #0xc                ; =12
+10004e82c:     	bl	0x100085bc4 <core::slice::index::slice_index_fail>
+10004e830:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e834:     	mov	w0, #0x8                ; =8
+10004e838:     	mov	w1, #0x280              ; =640
+10004e83c:     	bl	0x100085840 <alloc::alloc::handle_alloc_error>
+10004e840:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e844:     	adrp	x0, 0x100098000 <_anon.c1864f187df4a490ff7dd1d016e95c39.459+0xd77>
+10004e848:     	add	x0, x0, #0xb1a
+10004e84c:     	adrp	x2, 0x1000b7000 <_anon.e9244e66cb85b22de61b27b952e51a38.1766+0x2390>
+10004e850:     	add	x2, x2, #0xc10
+10004e854:     	mov	w1, #0x28               ; =40
+10004e858:     	bl	0x100085b88 <core::panicking::panic>
+10004e85c:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e860:     	mov	x20, x0
+10004e864:     	adrp	x3, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e868:     	add	x3, x3, #0x248
+10004e86c:     	mov	x0, #0x0                ; =0
+10004e870:     	mov	x1, x10
+10004e874:     	mov	w2, #0xb                ; =11
+10004e878:     	bl	0x100085bc4 <core::slice::index::slice_index_fail>
+10004e87c:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e880:     	mov	w0, #0x8                ; =8
+10004e884:     	mov	w1, #0x220              ; =544
+10004e888:     	bl	0x100085840 <alloc::alloc::handle_alloc_error>
+10004e88c:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e890:     	mov	w0, #0x8                ; =8
+10004e894:     	mov	w1, #0x280              ; =640
+10004e898:     	bl	0x100085840 <alloc::alloc::handle_alloc_error>
+10004e89c:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e8a0:     	adrp	x0, 0x1000b7000 <_anon.e9244e66cb85b22de61b27b952e51a38.1766+0x2390>
+10004e8a4:     	add	x0, x0, #0xb80
+10004e8a8:     	bl	0x100085990 <core::option::unwrap_failed>
+10004e8ac:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e8b0:     	adrp	x0, 0x100098000 <_anon.c1864f187df4a490ff7dd1d016e95c39.459+0xd77>
+10004e8b4:     	add	x0, x0, #0xd9c
+10004e8b8:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e8bc:     	add	x2, x2, #0xab8
+10004e8c0:     	mov	w1, #0x30               ; =48
+10004e8c4:     	bl	0x100085b88 <core::panicking::panic>
+10004e8c8:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e8cc:     	adrp	x0, 0x100098000 <_anon.c1864f187df4a490ff7dd1d016e95c39.459+0xd77>
+10004e8d0:     	add	x0, x0, #0xb91
+10004e8d4:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e8d8:     	add	x2, x2, #0x5f0
+10004e8dc:     	mov	w1, #0x16               ; =22
+10004e8e0:     	bl	0x100085960 <core::option::expect_failed>
+10004e8e4:     	adrp	x0, 0x100098000 <_anon.c1864f187df4a490ff7dd1d016e95c39.459+0xd77>
+10004e8e8:     	add	x0, x0, #0xb91
+10004e8ec:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e8f0:     	add	x2, x2, #0x608
+10004e8f4:     	mov	w1, #0x16               ; =22
+10004e8f8:     	bl	0x100085960 <core::option::expect_failed>
+10004e8fc:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e900:     	add	x2, x2, #0x620
+10004e904:     	mov	x0, #0x0                ; =0
+10004e908:     	mov	x1, #0x0                ; =0
+10004e90c:     	bl	0x100085a2c <core::panicking::panic_bounds_check>
+10004e910:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e914:     	add	x2, x2, #0x650
+10004e918:     	mov	x0, #0x0                ; =0
+10004e91c:     	mov	x1, #0x0                ; =0
+10004e920:     	bl	0x100085a2c <core::panicking::panic_bounds_check>
+10004e924:     	b	0x10004e93c <<knotrel_core::hdt::HdtGraph>::link+0xad0>
+10004e928:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+10004e92c:     	add	x2, x2, #0x638
+10004e930:     	mov	x0, #0x0                ; =0
+10004e934:     	mov	x1, #0x0                ; =0
+10004e938:     	bl	0x100085a2c <core::panicking::panic_bounds_check>
+10004e93c:     	brk	#0x1
+10004e940:     	mov	x19, x0
+10004e944:     	b	0x10004e9c4 <<knotrel_core::hdt::HdtGraph>::link+0xb58>
+10004e948:     	b	0x10004e9d4 <<knotrel_core::hdt::HdtGraph>::link+0xb68>
+10004e94c:     	mov	x19, x0
+10004e950:     	ldr	x21, [sp, #0x60]
+10004e954:     	cbnz	x25, 0x10004e9c4 <<knotrel_core::hdt::HdtGraph>::link+0xb58>
+10004e958:     	b	0x10004e9cc <<knotrel_core::hdt::HdtGraph>::link+0xb60>
+10004e95c:     	mov	x0, x21
+10004e960:     	bl	0x10008cef8 <dyld_stub_binder+0x10008cef8>
+10004e964:     	brk	#0x1
+10004e968:     	brk	#0x1
+10004e96c:     	b	0x10004e9d4 <<knotrel_core::hdt::HdtGraph>::link+0xb68>
+10004e970:     	mov	x19, x0
+10004e974:     	ldr	x8, [sp, #0x68]
+10004e978:     	cbz	x8, 0x10004e984 <<knotrel_core::hdt::HdtGraph>::link+0xb18>
+10004e97c:     	ldr	x0, [sp, #0x60]
+10004e980:     	bl	0x10008cef8 <dyld_stub_binder+0x10008cef8>
+10004e984:     	mov	x0, x20
+10004e988:     	bl	0x10008cef8 <dyld_stub_binder+0x10008cef8>
+10004e98c:     	tbz	w23, #0x0, 0x10004e9c4 <<knotrel_core::hdt::HdtGraph>::link+0xb58>
+10004e990:     	b	0x10004e9cc <<knotrel_core::hdt::HdtGraph>::link+0xb60>
+10004e994:     	b	0x10004e998 <<knotrel_core::hdt::HdtGraph>::link+0xb2c>
+10004e998:     	mov	x19, x0
+10004e99c:     	ldr	x8, [sp, #0x28]
+10004e9a0:     	cbz	x8, 0x10004e9ac <<knotrel_core::hdt::HdtGraph>::link+0xb40>
+10004e9a4:     	ldr	x0, [sp, #0x60]
+10004e9a8:     	bl	0x10008cef8 <dyld_stub_binder+0x10008cef8>
+10004e9ac:     	mov	x0, x23
+10004e9b0:     	bl	0x10008cef8 <dyld_stub_binder+0x10008cef8>
+10004e9b4:     	b	0x10004e9bc <<knotrel_core::hdt::HdtGraph>::link+0xb50>
+10004e9b8:     	mov	x19, x0
+10004e9bc:     	ldr	x8, [sp, #0x68]
+10004e9c0:     	cbz	x8, 0x10004e9cc <<knotrel_core::hdt::HdtGraph>::link+0xb60>
+10004e9c4:     	mov	x0, x21
+10004e9c8:     	bl	0x10008cef8 <dyld_stub_binder+0x10008cef8>
+10004e9cc:     	mov	x0, x19
+10004e9d0:     	bl	0x10008cd9c <dyld_stub_binder+0x10008cd9c>
+10004e9d4:     	mov	x19, x0
+10004e9d8:     	tbz	w23, #0x0, 0x10004e9c4 <<knotrel_core::hdt::HdtGraph>::link+0xb58>
+10004e9dc:     	b	0x10004e9cc <<knotrel_core::hdt::HdtGraph>::link+0xb60>

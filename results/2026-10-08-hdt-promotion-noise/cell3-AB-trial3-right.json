@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791410976,
+  "config": {
+    "nodes": 100000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "4f8ccd68acfa61f8",
+  "initial_edges": 99999,
+  "initial_density": 0.00002,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 131305542,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 100,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 100,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 64,
+        "total_ns": 180540,
+        "min_ns": 667,
+        "p50_ns": 2083,
+        "p95_ns": 7584,
+        "p99_ns": 8500,
+        "max_ns": 8500
+      },
+      "query_false": {
+        "count": 836,
+        "total_ns": 1363421,
+        "min_ns": 375,
+        "p50_ns": 1250,
+        "p95_ns": 3625,
+        "p99_ns": 6542,
+        "max_ns": 9583
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 615503,
+          "min_ns": 1542,
+          "p50_ns": 3667,
+          "p95_ns": 18625,
+          "p99_ns": 41209,
+          "max_ns": 46208
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 1543961,
+          "min_ns": 375,
+          "p50_ns": 1291,
+          "p95_ns": 4209,
+          "p99_ns": 7500,
+          "max_ns": 9583
+        }
+      },
+      "workload_wall_ns": 2181584
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791488757,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 50,
+  "trace_fingerprint_fnv1a64": "01a19f08e1152f91",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1913666125,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 500,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 500,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 15,
+        "total_ns": 118331,
+        "min_ns": 2041,
+        "p50_ns": 8208,
+        "p95_ns": 13500,
+        "p99_ns": 13500,
+        "max_ns": 13500
+      },
+      "query_false": {
+        "count": 485,
+        "total_ns": 2406836,
+        "min_ns": 1292,
+        "p50_ns": 4542,
+        "p95_ns": 9041,
+        "p99_ns": 12625,
+        "max_ns": 18459
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 500,
+          "total_ns": 4134578,
+          "min_ns": 1542,
+          "p50_ns": 7708,
+          "p95_ns": 15541,
+          "p99_ns": 20750,
+          "max_ns": 22375
+        },
+        "link": null,
+        "connected": {
+          "count": 500,
+          "total_ns": 2525167,
+          "min_ns": 1292,
+          "p50_ns": 4583,
+          "p95_ns": 9417,
+          "p99_ns": 12667,
+          "max_ns": 18459
+        }
+      },
+      "workload_wall_ns": 6680667
+    }
+  ]
+}

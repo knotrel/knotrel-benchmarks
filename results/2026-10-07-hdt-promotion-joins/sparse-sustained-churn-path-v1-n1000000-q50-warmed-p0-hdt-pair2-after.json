@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791377940,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 50,
+  "trace_fingerprint_fnv1a64": "01a19f08e1152f91",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1939330875,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 500,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 500,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 15,
+        "total_ns": 75336,
+        "min_ns": 1417,
+        "p50_ns": 4083,
+        "p95_ns": 11292,
+        "p99_ns": 11292,
+        "max_ns": 11292
+      },
+      "query_false": {
+        "count": 485,
+        "total_ns": 1484791,
+        "min_ns": 1292,
+        "p50_ns": 2417,
+        "p95_ns": 6291,
+        "p99_ns": 9583,
+        "max_ns": 12667
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 500,
+          "total_ns": 3089497,
+          "min_ns": 2000,
+          "p50_ns": 5084,
+          "p95_ns": 12792,
+          "p99_ns": 18667,
+          "max_ns": 40458
+        },
+        "link": null,
+        "connected": {
+          "count": 500,
+          "total_ns": 1560127,
+          "min_ns": 1292,
+          "p50_ns": 2458,
+          "p95_ns": 6375,
+          "p99_ns": 9667,
+          "max_ns": 12667
+        }
+      },
+      "workload_wall_ns": 4671917
+    }
+  ]
+}

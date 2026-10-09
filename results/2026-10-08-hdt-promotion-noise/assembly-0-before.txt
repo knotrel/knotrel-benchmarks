@@ -1,0 +1,151 @@
+000000010004c7d4 <<knotrel_core::hdt_forest::Forest>::link>:
+10004c7d4:     	stp	x26, x25, [sp, #-0x50]!
+10004c7d8:     	stp	x24, x23, [sp, #0x10]
+10004c7dc:     	stp	x22, x21, [sp, #0x20]
+10004c7e0:     	stp	x20, x19, [sp, #0x30]
+10004c7e4:     	stp	x29, x30, [sp, #0x40]
+10004c7e8:     	add	x29, sp, #0x40
+10004c7ec:     	ldr	x8, [x0, #0x40]
+10004c7f0:     	cmp	x1, x8
+10004c7f4:     	b.hs	0x10004c9e8 <<knotrel_core::hdt_forest::Forest>::link+0x214>
+10004c7f8:     	mov	x22, x2
+10004c7fc:     	mov	x19, x0
+10004c800:     	ldr	x8, [x0, #0x38]
+10004c804:     	ldr	x1, [x8, x1, lsl #3]
+10004c808:     	bl	0x10004cf68 <<knotrel_core::hdt_forest::Forest>::reroot>
+10004c80c:     	mov	x21, x1
+10004c810:     	ldr	x1, [x19, #0x40]
+10004c814:     	cmp	x22, x1
+10004c818:     	b.hs	0x10004c9fc <<knotrel_core::hdt_forest::Forest>::link+0x228>
+10004c81c:     	mov	x20, x0
+10004c820:     	ldr	x8, [x19, #0x38]
+10004c824:     	ldr	x1, [x8, x22, lsl #3]
+10004c828:     	mov	x0, x19
+10004c82c:     	bl	0x10004cf68 <<knotrel_core::hdt_forest::Forest>::reroot>
+10004c830:     	mov	x23, x0
+10004c834:     	mov	x24, x1
+10004c838:     	ldr	x8, [x19, #0x28]
+10004c83c:     	cbz	x8, 0x10004c8e4 <<knotrel_core::hdt_forest::Forest>::link+0x110>
+10004c840:     	sub	x8, x8, #0x1
+10004c844:     	str	x8, [x19, #0x28]
+10004c848:     	ldr	x9, [x19, #0x20]
+10004c84c:     	ldr	x22, [x9, x8, lsl #3]
+10004c850:     	ldr	x1, [x19, #0x10]
+10004c854:     	cmp	x22, x1
+10004c858:     	b.hs	0x10004ca0c <<knotrel_core::hdt_forest::Forest>::link+0x238>
+10004c85c:     	ldr	x8, [x19, #0x8]
+10004c860:     	mov	w9, #0x60               ; =96
+10004c864:     	madd	x8, x22, x9, x8
+10004c868:     	str	xzr, [x8]
+10004c86c:     	str	xzr, [x8, #0x10]
+10004c870:     	str	xzr, [x8, #0x20]
+10004c874:     	str	xzr, [x8, #0x30]
+10004c878:     	mov	w9, #0x1                ; =1
+10004c87c:     	dup.2d	v0, x9
+10004c880:     	str	q0, [x8, #0x40]
+10004c884:     	str	xzr, [x8, #0x50]
+10004c888:     	strh	wzr, [x8, #0x58]
+10004c88c:     	ldr	x8, [x19, #0x28]
+10004c890:     	cbz	x8, 0x10004c934 <<knotrel_core::hdt_forest::Forest>::link+0x160>
+10004c894:     	sub	x8, x8, #0x1
+10004c898:     	str	x8, [x19, #0x28]
+10004c89c:     	ldr	x9, [x19, #0x20]
+10004c8a0:     	ldr	x25, [x9, x8, lsl #3]
+10004c8a4:     	ldr	x1, [x19, #0x10]
+10004c8a8:     	cmp	x25, x1
+10004c8ac:     	b.hs	0x10004ca1c <<knotrel_core::hdt_forest::Forest>::link+0x248>
+10004c8b0:     	ldr	x8, [x19, #0x8]
+10004c8b4:     	mov	w9, #0x60               ; =96
+10004c8b8:     	madd	x8, x25, x9, x8
+10004c8bc:     	str	xzr, [x8]
+10004c8c0:     	str	xzr, [x8, #0x10]
+10004c8c4:     	str	xzr, [x8, #0x20]
+10004c8c8:     	str	xzr, [x8, #0x30]
+10004c8cc:     	mov	w9, #0x1                ; =1
+10004c8d0:     	dup.2d	v0, x9
+10004c8d4:     	str	q0, [x8, #0x40]
+10004c8d8:     	str	xzr, [x8, #0x50]
+10004c8dc:     	strh	wzr, [x8, #0x58]
+10004c8e0:     	b	0x10004c97c <<knotrel_core::hdt_forest::Forest>::link+0x1a8>
+10004c8e4:     	ldr	x22, [x19, #0x10]
+10004c8e8:     	ldr	x8, [x19]
+10004c8ec:     	cmp	x22, x8
+10004c8f0:     	b.eq	0x10004c9d0 <<knotrel_core::hdt_forest::Forest>::link+0x1fc>
+10004c8f4:     	ldr	x8, [x19, #0x8]
+10004c8f8:     	mov	w9, #0x60               ; =96
+10004c8fc:     	madd	x8, x22, x9, x8
+10004c900:     	str	xzr, [x8]
+10004c904:     	str	xzr, [x8, #0x10]
+10004c908:     	str	xzr, [x8, #0x20]
+10004c90c:     	mov	w9, #0x1                ; =1
+10004c910:     	dup.2d	v0, x9
+10004c914:     	str	xzr, [x8, #0x30]
+10004c918:     	str	q0, [x8, #0x40]
+10004c91c:     	str	xzr, [x8, #0x50]
+10004c920:     	strh	wzr, [x8, #0x58]
+10004c924:     	add	x8, x22, #0x1
+10004c928:     	str	x8, [x19, #0x10]
+10004c92c:     	ldr	x8, [x19, #0x28]
+10004c930:     	cbnz	x8, 0x10004c894 <<knotrel_core::hdt_forest::Forest>::link+0xc0>
+10004c934:     	ldr	x25, [x19, #0x10]
+10004c938:     	ldr	x8, [x19]
+10004c93c:     	cmp	x25, x8
+10004c940:     	b.eq	0x10004c9dc <<knotrel_core::hdt_forest::Forest>::link+0x208>
+10004c944:     	ldr	x8, [x19, #0x8]
+10004c948:     	mov	w9, #0x60               ; =96
+10004c94c:     	madd	x8, x25, x9, x8
+10004c950:     	str	xzr, [x8]
+10004c954:     	str	xzr, [x8, #0x10]
+10004c958:     	str	xzr, [x8, #0x20]
+10004c95c:     	mov	w9, #0x1                ; =1
+10004c960:     	dup.2d	v0, x9
+10004c964:     	str	xzr, [x8, #0x30]
+10004c968:     	str	q0, [x8, #0x40]
+10004c96c:     	str	xzr, [x8, #0x50]
+10004c970:     	strh	wzr, [x8, #0x58]
+10004c974:     	add	x8, x25, #0x1
+10004c978:     	str	x8, [x19, #0x10]
+10004c97c:     	mov	x0, x19
+10004c980:     	mov	x1, x20
+10004c984:     	mov	x2, x21
+10004c988:     	mov	x3, x22
+10004c98c:     	mov	x4, x23
+10004c990:     	mov	x5, x24
+10004c994:     	bl	0x10004c53c <<knotrel_core::hdt_forest::Forest>::join>
+10004c998:     	mov	x2, x0
+10004c99c:     	mov	x0, x19
+10004c9a0:     	mov	w1, #0x1                ; =1
+10004c9a4:     	mov	x3, x25
+10004c9a8:     	mov	x4, #0x0                ; =0
+10004c9ac:     	bl	0x10004c53c <<knotrel_core::hdt_forest::Forest>::join>
+10004c9b0:     	mov	x0, x22
+10004c9b4:     	mov	x1, x25
+10004c9b8:     	ldp	x29, x30, [sp, #0x40]
+10004c9bc:     	ldp	x20, x19, [sp, #0x30]
+10004c9c0:     	ldp	x22, x21, [sp, #0x20]
+10004c9c4:     	ldp	x24, x23, [sp, #0x10]
+10004c9c8:     	ldp	x26, x25, [sp], #0x50
+10004c9cc:     	ret
+10004c9d0:     	mov	x0, x19
+10004c9d4:     	bl	0x100087cb4 <<alloc::raw_vec::RawVec<knotrel_core::forest::Token>>::grow_one>
+10004c9d8:     	b	0x10004c8f4 <<knotrel_core::hdt_forest::Forest>::link+0x120>
+10004c9dc:     	mov	x0, x19
+10004c9e0:     	bl	0x100087cb4 <<alloc::raw_vec::RawVec<knotrel_core::forest::Token>>::grow_one>
+10004c9e4:     	b	0x10004c944 <<knotrel_core::hdt_forest::Forest>::link+0x170>
+10004c9e8:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004c9ec:     	add	x2, x2, #0x398
+10004c9f0:     	mov	x0, x1
+10004c9f4:     	mov	x1, x8
+10004c9f8:     	bl	0x100085828 <core::panicking::panic_bounds_check>
+10004c9fc:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004ca00:     	add	x2, x2, #0x3b0
+10004ca04:     	mov	x0, x22
+10004ca08:     	bl	0x100085828 <core::panicking::panic_bounds_check>
+10004ca0c:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004ca10:     	add	x2, x2, #0x500
+10004ca14:     	mov	x0, x22
+10004ca18:     	bl	0x100085828 <core::panicking::panic_bounds_check>
+10004ca1c:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004ca20:     	add	x2, x2, #0x500
+10004ca24:     	mov	x0, x25
+10004ca28:     	bl	0x100085828 <core::panicking::panic_bounds_check>

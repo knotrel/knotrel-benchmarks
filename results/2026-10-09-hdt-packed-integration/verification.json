@@ -1,0 +1,14 @@
+{
+  "all_passed": true,
+  "passed_tests_including_doctests": {
+    "core": 63,
+    "benchmarks": 35
+  },
+  "checks": [
+    "cargo fmt --all -- --check",
+    "cargo clippy --locked --workspace --all-targets -- -D warnings",
+    "cargo test --locked --workspace",
+    "RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked --workspace --no-deps"
+  ],
+  "scope": "Both workspaces. Core tests rerun with local socket permission after sandbox startup test denial."
+}

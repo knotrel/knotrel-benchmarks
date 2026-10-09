@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791379254,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "5097cf16db2527e7",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1937684708,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 100,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 100,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 51,
+        "total_ns": 493834,
+        "min_ns": 1083,
+        "p50_ns": 9875,
+        "p95_ns": 17041,
+        "p99_ns": 18333,
+        "max_ns": 18333
+      },
+      "query_false": {
+        "count": 849,
+        "total_ns": 4755017,
+        "min_ns": 1209,
+        "p50_ns": 5250,
+        "p95_ns": 10958,
+        "p99_ns": 13417,
+        "max_ns": 17083
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 1191541,
+          "min_ns": 3375,
+          "p50_ns": 11083,
+          "p95_ns": 20375,
+          "p99_ns": 27625,
+          "max_ns": 32875
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 5248851,
+          "min_ns": 1083,
+          "p50_ns": 5375,
+          "p95_ns": 11875,
+          "p99_ns": 15292,
+          "max_ns": 18333
+        }
+      },
+      "workload_wall_ns": 6463041
+    }
+  ]
+}

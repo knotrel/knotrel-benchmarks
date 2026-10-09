@@ -252,3 +252,9 @@ python3 scripts/run_hdt_profile.py results/NEW_PROFILE \
 Result publication keeps compact measurements and provenance in Git; bulky trace
 exports remain local. See the [artifact policy](results/README.md) and trace hash
 inventory before attempting a full historical artifact audit from a fresh clone.
+
+ETT representation experiment: [packed-index pilot](results/2026-10-09-ett-packed-tokens/README.md),
+with preserved before/after measurements and missing-input completion provenance.
+
+[Full ETT packed-token matrix](results/2026-10-09-ett-packed-tokens-matrix/README.md):
+38 before/after cells with runtime, memory and setup tradeoffs.

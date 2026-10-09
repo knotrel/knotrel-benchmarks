@@ -1,0 +1,11 @@
+#[cfg(all(test, target_pointer_width = "64"))]
+mod compact_layout_tests {
+    use super::{Forest, Token};
+    #[test]
+    fn token_budget_and_storage_accounting() {
+        assert_eq!(size_of::<Token>(), 64);
+        let mut f = Forest::default();
+        for _ in 0..17 { f.add_vertex(); }
+        assert_eq!(f.storage().token_capacity_bytes, f.tokens.capacity() * 64);
+    }
+}

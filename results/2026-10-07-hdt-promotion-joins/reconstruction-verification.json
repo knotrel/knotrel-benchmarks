@@ -1,0 +1,38 @@
+{
+  "directory": "/private/tmp/knotrel-promotion-joins-verification-u66z_ivb",
+  "forest_sha256": "53d09b1a9b677f093a1134e9492c9a40c31d65014bf3d5b1a01cd443bd1ed853",
+  "checks": [
+    [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--workspace",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "cargo",
+      "test",
+      "--locked",
+      "--workspace"
+    ],
+    [
+      "cargo",
+      "doc",
+      "--locked",
+      "--workspace",
+      "--no-deps"
+    ]
+  ],
+  "all_passed": true,
+  "note": "Fresh reconstruction verifies the saved candidate independently of temporary measurement binaries; original test and measurement logs remain unchanged."
+}

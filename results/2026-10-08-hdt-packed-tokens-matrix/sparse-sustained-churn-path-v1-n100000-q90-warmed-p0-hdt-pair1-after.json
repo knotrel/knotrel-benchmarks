@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791488389,
+  "config": {
+    "nodes": 100000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "4f8ccd68acfa61f8",
+  "initial_edges": 99999,
+  "initial_density": 0.00002,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 132839958,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 100,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 100,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 64,
+        "total_ns": 108170,
+        "min_ns": 333,
+        "p50_ns": 1292,
+        "p95_ns": 4459,
+        "p99_ns": 7500,
+        "max_ns": 7500
+      },
+      "query_false": {
+        "count": 836,
+        "total_ns": 1009659,
+        "min_ns": 250,
+        "p50_ns": 1042,
+        "p95_ns": 2333,
+        "p99_ns": 5042,
+        "max_ns": 11334
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 485837,
+          "min_ns": 1417,
+          "p50_ns": 3209,
+          "p95_ns": 15625,
+          "p99_ns": 25209,
+          "max_ns": 44708
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 1117829,
+          "min_ns": 250,
+          "p50_ns": 1083,
+          "p95_ns": 2500,
+          "p99_ns": 5541,
+          "max_ns": 11334
+        }
+      },
+      "workload_wall_ns": 1625000
+    }
+  ]
+}

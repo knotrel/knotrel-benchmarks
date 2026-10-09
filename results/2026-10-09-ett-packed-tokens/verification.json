@@ -1,0 +1,39 @@
+{
+  "all_passed": true,
+  "workspaces": [
+    "knotrel",
+    "knotrel-benchmarks"
+  ],
+  "checks": [
+    [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--workspace",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "cargo",
+      "test",
+      "--locked",
+      "--workspace"
+    ],
+    [
+      "cargo",
+      "doc",
+      "--locked",
+      "--workspace",
+      "--no-deps"
+    ]
+  ]
+}

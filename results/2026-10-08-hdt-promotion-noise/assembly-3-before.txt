@@ -1,0 +1,55 @@
+000000010004d394 <<knotrel_core::hdt_forest::Forest>::connected>:
+10004d394:     	stp	x29, x30, [sp, #-0x10]!
+10004d398:     	mov	x29, sp
+10004d39c:     	mov	x10, x1
+10004d3a0:     	ldr	x8, [x0, #0x40]
+10004d3a4:     	cmp	x1, x8
+10004d3a8:     	b.hs	0x10004d440 <<knotrel_core::hdt_forest::Forest>::connected+0xac>
+10004d3ac:     	mov	x9, x0
+10004d3b0:     	ldr	x11, [x0, #0x38]
+10004d3b4:     	ldr	x1, [x0, #0x10]
+10004d3b8:     	ldr	x0, [x11, x10, lsl #3]
+10004d3bc:     	cmp	x0, x1
+10004d3c0:     	b.hs	0x10004d3e4 <<knotrel_core::hdt_forest::Forest>::connected+0x50>
+10004d3c4:     	ldr	x9, [x9, #0x8]
+10004d3c8:     	mov	w10, #0x60              ; =96
+10004d3cc:     	madd	x12, x0, x10, x9
+10004d3d0:     	ldr	w13, [x12, #0x20]
+10004d3d4:     	tbz	w13, #0x0, 0x10004d3f0 <<knotrel_core::hdt_forest::Forest>::connected+0x5c>
+10004d3d8:     	ldr	x0, [x12, #0x28]
+10004d3dc:     	cmp	x0, x1
+10004d3e0:     	b.lo	0x10004d3cc <<knotrel_core::hdt_forest::Forest>::connected+0x38>
+10004d3e4:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004d3e8:     	add	x2, x2, #0x2c0
+10004d3ec:     	bl	0x100085828 <core::panicking::panic_bounds_check>
+10004d3f0:     	cmp	x2, x8
+10004d3f4:     	b.hs	0x10004d454 <<knotrel_core::hdt_forest::Forest>::connected+0xc0>
+10004d3f8:     	ldr	x8, [x11, x2, lsl #3]
+10004d3fc:     	cmp	x8, x1
+10004d400:     	b.hs	0x10004d420 <<knotrel_core::hdt_forest::Forest>::connected+0x8c>
+10004d404:     	mov	w10, #0x60              ; =96
+10004d408:     	madd	x11, x8, x10, x9
+10004d40c:     	ldr	w12, [x11, #0x20]
+10004d410:     	tbz	w12, #0x0, 0x10004d430 <<knotrel_core::hdt_forest::Forest>::connected+0x9c>
+10004d414:     	ldr	x8, [x11, #0x28]
+10004d418:     	cmp	x8, x1
+10004d41c:     	b.lo	0x10004d408 <<knotrel_core::hdt_forest::Forest>::connected+0x74>
+10004d420:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004d424:     	add	x2, x2, #0x2c0
+10004d428:     	mov	x0, x8
+10004d42c:     	bl	0x100085828 <core::panicking::panic_bounds_check>
+10004d430:     	cmp	x0, x8
+10004d434:     	cset	w0, eq
+10004d438:     	ldp	x29, x30, [sp], #0x10
+10004d43c:     	ret
+10004d440:     	adrp	x2, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004d444:     	add	x2, x2, #0x518
+10004d448:     	mov	x0, x10
+10004d44c:     	mov	x1, x8
+10004d450:     	bl	0x100085828 <core::panicking::panic_bounds_check>
+10004d454:     	adrp	x9, 0x1000b8000 <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+10004d458:     	add	x9, x9, #0x530
+10004d45c:     	mov	x0, x2
+10004d460:     	mov	x1, x8
+10004d464:     	mov	x2, x9
+10004d468:     	bl	0x100085828 <core::panicking::panic_bounds_check>

@@ -1,0 +1,61 @@
+0000000100014338 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens>:
+100014338:     	sub	sp, sp, #0x20
+10001433c:     	stp	x29, x30, [sp, #0x10]
+100014340:     	add	x29, sp, #0x10
+100014344:     	ldrb	w8, [x0]
+100014348:     	cmp	w8, #0x6
+10001434c:     	b.ne	0x10001440c <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0xd4>
+100014350:     	ldr	x8, [x0, #0x18]
+100014354:     	cbz	x8, 0x1000143fc <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0xc4>
+100014358:     	ldr	x9, [x0, #0x10]
+10001435c:     	mov	x10, #0x0               ; =0
+100014360:     	mov	x0, #0x0                ; =0
+100014364:     	mov	w11, #0xb0              ; =176
+100014368:     	sub	x12, x29, #0x1
+10001436c:     	tbnz	w1, #0x0, 0x100014384 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0x4c>
+100014370:     	b	0x1000143cc <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0x94>
+100014374:     	add	x0, x13, x0
+100014378:     	add	x10, x10, #0x1
+10001437c:     	cmp	x10, x8
+100014380:     	b.eq	0x100014400 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0xc8>
+100014384:     	madd	x14, x10, x11, x9
+100014388:     	ldr	x13, [x14, #0x10]
+10001438c:     	cbz	x13, 0x100014374 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0x3c>
+100014390:     	ldr	x15, [x14, #0x8]
+100014394:     	add	x14, x13, x13, lsl #1
+100014398:     	lsl	x14, x14, #5
+10001439c:     	add	x15, x15, #0x58
+1000143a0:     	ldrb	w16, [x15]
+1000143a4:     	sturb	w16, [x29, #-0x1]
+1000143a8:     	ldurb	w16, [x29, #-0x1]
+1000143ac:     	strb	w16, [x15], #0x60
+1000143b0:     	subs	x14, x14, #0x60
+1000143b4:     	b.ne	0x1000143a0 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0x68>
+1000143b8:     	b	0x100014374 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0x3c>
+1000143bc:     	add	x0, x13, x0
+1000143c0:     	add	x10, x10, #0x1
+1000143c4:     	cmp	x10, x8
+1000143c8:     	b.eq	0x100014400 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0xc8>
+1000143cc:     	madd	x14, x10, x11, x9
+1000143d0:     	ldr	x13, [x14, #0x10]
+1000143d4:     	cbz	x13, 0x1000143bc <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0x84>
+1000143d8:     	ldr	x15, [x14, #0x8]
+1000143dc:     	add	x14, x13, x13, lsl #1
+1000143e0:     	lsl	x14, x14, #5
+1000143e4:     	add	x15, x15, #0x58
+1000143e8:     	ldrb	w16, [x15], #0x60
+1000143ec:     	sturb	w16, [x29, #-0x1]
+1000143f0:     	subs	x14, x14, #0x60
+1000143f4:     	b.ne	0x1000143e8 <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0xb0>
+1000143f8:     	b	0x1000143bc <<knotrel_benchmarks::engines::Engine>::diagnostic_touch_tokens+0x84>
+1000143fc:     	mov	x0, #0x0                ; =0
+100014400:     	ldp	x29, x30, [sp, #0x10]
+100014404:     	add	sp, sp, #0x20
+100014408:     	ret
+10001440c:     	adrp	x0, 0x100097000 <core::num::imp::flt2dec::strategy::dragon::POW5TO256+0xa4>
+100014410:     	add	x0, x0, #0xc54
+100014414:     	adrp	x2, 0x1000b5000 <_anon.e9244e66cb85b22de61b27b952e51a38.1766+0x390>
+100014418:     	add	x2, x2, #0x7d0
+10001441c:     	mov	w1, #0x47               ; =71
+100014420:     	bl	0x100086a2c <core::panicking::panic_fmt>
+

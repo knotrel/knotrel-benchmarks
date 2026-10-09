@@ -1,0 +1,25 @@
+   Compiling knotrel-core v0.1.0 (/private/tmp/knotrel-ett-packed-zjvcz4l8/knotrel/crates/knotrel-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.85s
+     Running unittests src/lib.rs (target/debug/deps/knotrel_core-03fcb204c753c9de)
+
+running 2 tests
+test hdt_forest::compact_layout_tests::token_budget_and_storage_accounting ... ok
+test forest::compact_layout_tests::token_budget ... FAILED
+
+failures:
+
+---- forest::compact_layout_tests::token_budget stdout ----
+
+thread 'forest::compact_layout_tests::token_budget' (24855722) panicked at crates/knotrel-core/src/forest.rs:388:25:
+assertion `left == right` failed
+  left: 96
+ right: 64
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    forest::compact_layout_tests::token_budget
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p knotrel-core --lib`

@@ -1,0 +1,208 @@
+   Compiling itoa v1.0.18
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-core v0.3.34
+   Compiling once_cell v1.21.4
+   Compiling libc v0.2.189
+   Compiling bytes v1.12.1
+   Compiling log v0.4.34
+   Compiling serde_core v1.0.229
+   Compiling smallvec v1.16.2
+   Compiling tower-service v0.3.3
+   Compiling tracing-core v0.1.36
+   Compiling futures-channel v0.3.34
+   Compiling httparse v1.10.1
+   Compiling slab v0.4.12
+   Compiling regex-syntax v0.8.11
+   Compiling httpdate v1.0.3
+   Compiling sync_wrapper v1.0.2
+   Compiling futures-task v0.3.34
+   Compiling percent-encoding v2.3.2
+   Compiling errno v0.3.14
+   Compiling http v1.5.0
+   Compiling signal-hook-registry v1.4.8
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling tracing v0.1.44
+   Compiling atomic-waker v1.1.2
+   Compiling tower-layer v0.3.3
+   Compiling form_urlencoded v1.2.2
+   Compiling futures-util v0.3.34
+   Compiling tokio v1.53.1
+   Compiling zmij v1.0.23
+   Compiling memchr v2.8.3
+   Compiling http-body v1.1.0
+   Compiling http-body-util v0.1.5
+   Compiling regex-automata v0.4.18
+   Compiling mime v0.3.17
+   Compiling ryu v1.0.23
+   Compiling lazy_static v1.5.0
+   Compiling cfg-if v1.0.5
+   Compiling axum-core v0.5.6
+   Compiling thread_local v1.1.10
+   Compiling sharded-slab v0.1.7
+   Compiling serde v1.0.229
+   Compiling serde_path_to_error v0.1.20
+   Compiling serde_json v1.0.151
+   Compiling tracing-log v0.2.0
+   Compiling serde_urlencoded v0.7.1
+   Compiling matchit v0.8.4
+   Compiling nu-ansi-term v0.50.3
+   Compiling matchers v0.2.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling hyper v1.11.1
+   Compiling tower v0.5.3
+   Compiling hyper-util v0.1.21
+   Compiling axum v0.8.9
+   Compiling knotrel-server v0.1.0 (/private/tmp/knotrel-ett-packed-zjvcz4l8/knotrel/crates/knotrel-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.40s
+     Running unittests src/lib.rs (target/debug/deps/knotrel_core-03fcb204c753c9de)
+
+running 14 tests
+test forest::compact_layout_tests::token_budget ... ok
+test forest::index_tests::optional_indices_round_trip_and_clear ... ok
+test hdt_forest::compact_layout_tests::token_budget_and_storage_accounting ... ok
+test hdt::tests::promoted_tree_uses_local_handles_for_sparse_global_indices ... ok
+test hdt_forest::index_tests::optional_indices_round_trip_and_clear ... ok
+test hdt::tests::empty_higher_level_search_still_finds_lower_replacement ... ok
+test workspace::tests::generation_rollover_clears_old_marks ... ok
+test forest::index_tests::rejects_unrepresentable_index_without_wrapping - should panic ... ok
+test hdt_forest::index_tests::rejects_unrepresentable_index_without_wrapping - should panic ... ok
+test hdt::tests::promoted_tree_deletions_repair_all_lower_forests_after_growth ... ok
+test hdt::tests::growing_mixed_updates_preserve_every_level_and_incidence ... ok
+test hdt_forest::tests::rotations_splits_and_reused_arcs_preserve_invariants ... ok
+test forest::tests::rotations_splits_and_reused_arcs_preserve_invariants ... ok
+test dynamic::tests::general_graph_updates_preserve_avl_and_edge_classification ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
+
+     Running tests/configuration.rs (target/debug/deps/configuration-826797c695f2496f)
+
+running 2 tests
+test wrapping_a_populated_graph_preserves_isolated_nodes_and_edges ... ok
+test selected_engines_preserve_exact_connectivity_after_mutations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/connectivity.rs (target/debug/deps/connectivity-065e0029f9be84eb)
+
+running 7 tests
+test rejects_loops_without_creating_vertices ... ok
+test updates_are_undirected_and_idempotent ... ok
+test distinguishes_unknown_and_isolated_vertices ... ok
+test cycle_edge_and_bridge_deletion_have_different_effects ... ok
+test growth_preserves_indices_isolation_and_shared_queries ... ok
+test updates_match_independent_transitive_closure ... ok
+test arbitrary_growing_histories_match_original_reference ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/forest.rs (target/debug/deps/forest-97dc77f6fbcc3a69)
+
+running 6 tests
+test deleting_last_non_tree_edge_clears_candidate_flags ... ok
+test forest_replaces_cycles_preserves_bridges_and_recycles_handles ... ok
+test replacement_stops_before_enumerating_empty_vertices ... ok
+test bridge_without_candidates_skips_vertex_enumeration ... ok
+test shared_queries_on_large_growing_forest ... ok
+test growing_random_histories_match_matrix_and_original ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running tests/hdt.rs (target/debug/deps/hdt-e0d6d469d2523cd2)
+
+running 8 tests
+test candidates_only_on_larger_side_do_not_trigger_promotions ... ok
+test storage_snapshot_reports_live_incidence_and_does_not_change_state ... ok
+test stable_dense_bridge_cuts_do_not_rescan_promoted_internal_edges ... ok
+test forest_replaces_cycles_preserves_bridges_and_recycles_handles ... ok
+test upper_levels_materialize_only_vertices_touched_by_promotions ... ok
+test candidate_free_cuts_do_not_promote_tree_edges ... ok
+test shared_queries_on_large_growing_forest ... ok
+test growing_random_histories_match_matrix_and_original ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests/limits.rs (target/debug/deps/limits-dd5e3dc5c57ec74f)
+
+running 2 tests
+test zero_capacity_preserves_validation_and_never_creates_endpoints ... ok
+test limits_are_atomic_idempotent_and_reusable_after_cut ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/workspace.rs (target/debug/deps/workspace-a925fc08a5ba2b85)
+
+running 2 tests
+test workspace_survives_early_returns_errors_mutations_and_graph_changes ... ok
+test independent_workspaces_allow_concurrent_shared_graph_queries ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/knotrel_server-90deb3ab007a7b66)
+
+running 8 tests
+test configuration::tests::non_unicode_configuration_is_rejected_but_unrelated_environment_is_ignored ... ok
+test configuration::tests::graph_limits_load_independently_and_accept_zero ... ok
+test configuration::tests::snapshot_defaults_and_explicit_values_do_not_depend_on_process_environment ... ok
+test service::tests::decimal_version_carries_without_wrapping_or_losing_precision ... ok
+test service::tests::saturated_service_rejects_without_mutating ... ok
+test service::tests::dropped_caller_does_not_release_a_running_workers_permit ... ok
+test service::tests::admitted_stats_wait_for_the_entire_locked_job_and_retain_permit_on_cancel ... ok
+test service::tests::stats_admission_does_not_block_info_and_poison_fails_closed ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/knotrel_server-fa90c613b126ca08)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/http.rs (target/debug/deps/http-1e129a7a1386c0e8)
+
+running 10 tests
+test invalid_admission_limits_are_rejected_before_router_construction ... ok
+test malformed_batch_executes_no_operations ... ok
+test batch_preserves_order_and_continues_after_operation_errors ... ok
+test legacy_router_retains_populated_state_and_reports_defaults ... ok
+test oversized_bodies_are_rejected_before_mutation ... ok
+test concurrent_duplicate_links_change_the_graph_once ... ok
+test serves_mutations_and_exact_queries_with_full_width_ids ... ok
+test graph_limits_apply_to_batches_and_concurrent_requests ... ok
+test configured_engines_report_actual_settings_and_observe_every_mutation ... ok
+test rejects_invalid_ids_fields_and_batch_sizes ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/startup.rs (target/debug/deps/startup-168995a9478a831e)
+
+running 1 test
+test invalid_environment_exits_promptly_with_the_setting_name ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+     Running tests/stats.rs (target/debug/deps/stats-d2bd9178796a9450)
+
+running 3 tests
+test populated_legacy_router_starts_at_zero_and_instances_are_independent ... ok
+test concurrent_snapshots_never_observe_half_of_an_http_batch ... ok
+test snapshots_count_only_effective_operations_for_every_engine ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests knotrel_core
+
+running 3 tests
+test crates/knotrel-core/src/workspace.rs - workspace::Graph::connected_with_workspace (line 29) ... ok
+test crates/knotrel-core/src/lib.rs - (line 7) ... ok
+test crates/knotrel-core/src/configuration.rs - configuration::ConnectivityGraph (line 58) ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 1.19s; merged doctests compilation took 0.20s
+   Doc-tests knotrel_server
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

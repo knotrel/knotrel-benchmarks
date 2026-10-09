@@ -1,0 +1,12 @@
+error[E0599]: no method named `diagnostic_touch_tokens` found for struct `hdt_forest::Forest` in the current scope
+   --> /private/tmp/knotrel-prep-red-3ojda__y/src/hdt_forest.rs:398:30
+    |
+ 41 | pub(crate) struct Forest {
+    | ------------------------ method `diagnostic_touch_tokens` not found for this struct
+...
+398 |                 assert_eq!(f.diagnostic_touch_tokens(write), f.tokens.len());
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^ method not found in `hdt_forest::Forest`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0599`.

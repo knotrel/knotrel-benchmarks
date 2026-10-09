@@ -1,0 +1,52 @@
+--- a/crates/knotrel-benchmarks/src/main.rs
++++ b/crates/knotrel-benchmarks/src/main.rs
+@@ -236,6 +236,9 @@
+     engine: EngineKind,
+     query_repeats: usize,
+ ) -> Result<Run, Box<dyn Error>> {
++    phase_marker("empty_before_start");
++    phase_marker("empty_before_end");
++    phase_marker("setup_start");
+     let setup_start = Instant::now();
+     let nodes: Vec<u64> = (0..node_count).collect();
+     let mut graph = Engine::new(engine, &nodes)?;
+@@ -243,6 +246,7 @@
+         graph.link(source, target)?;
+     }
+     let setup_ns = setup_start.elapsed().as_nanos();
++    phase_marker("setup_end");
+     graph.reset_stats();
+     let mut counts = [0_usize; 4];
+     for operation in &workload.operations {
+@@ -273,6 +277,7 @@
+     // Each interval includes the call, a compiler barrier and clock overhead.
+     // Checking and sample insertion follow the interval. Wall time additionally
+     // includes dispatch, checking and sampling; it is not operation throughput.
++    phase_marker("replay_start");
+     let wall_start = Instant::now();
+     for &operation in &workload.operations {
+         match operation {
+@@ -324,6 +329,9 @@
+         }
+     }
+     let workload_wall_ns = wall_start.elapsed().as_nanos();
++    phase_marker("replay_end");
++    phase_marker("empty_after_start");
++    phase_marker("empty_after_end");
+     let forest_stats = graph.forest_stats().map(|stats| {
+         serde_json::json!({
+             "tree_cuts": stats.tree_cuts,
+@@ -474,3 +482,13 @@
+         dirty: command(&["status", "--porcelain"]).map(|status| !status.is_empty()),
+     }
+ }
++
++/// Isolated external observation point; outside original operation timers.
++fn phase_marker(name: &str) {
++    eprintln!("KNOTREL_PHASE {name}");
++    let mut ack = String::new();
++    std::io::stdin()
++        .read_line(&mut ack)
++        .expect("observer acknowledgement");
++    assert_eq!(ack, "ok\n", "observer disconnected");
++}

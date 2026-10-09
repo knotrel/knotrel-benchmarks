@@ -1,0 +1,38 @@
+--- before
++++ after
+@@ -18,8 +18,8 @@
+ ldr	x0, [x12, #0x28]
+ cmp	x0, x1
+ b.lo	<<knotrel_core::hdt_forest::Forest>::connected+0x38>
+-adrp	x2, <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+-add	x2, x2, #0x2c0
++adrp	x2, <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
++add	x2, x2, #0x2f0
+ bl	<core::panicking::panic_bounds_check>
+ cmp	x2, x8
+ b.hs	<<knotrel_core::hdt_forest::Forest>::connected+0xc0>
+@@ -33,20 +33,20 @@
+ ldr	x8, [x11, #0x28]
+ cmp	x8, x1
+ b.lo	<<knotrel_core::hdt_forest::Forest>::connected+0x74>
+-adrp	x2, <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
+-add	x2, x2, #0x2c0
++adrp	x2, <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
++add	x2, x2, #0x2f0
+ mov	x0, x8
+ bl	<core::panicking::panic_bounds_check>
+ cmp	x0, x8
+ cset	w0, eq
+ ldp	x29, x30, [sp], #0x10
+ ret
+-adrp	x2, <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
++adrp	x2, <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+ add	x2, x2, #0x518
+ mov	x0, x10
+ mov	x1, x8
+ bl	<core::panicking::panic_bounds_check>
+-adrp	x9, <_anon.5428248bfca22007a258af42ad1975b1.68+0x70>
++adrp	x9, <_anon.5428248bfca22007a258af42ad1975b1.70+0x40>
+ add	x9, x9, #0x530
+ mov	x0, x2
+ mov	x1, x8

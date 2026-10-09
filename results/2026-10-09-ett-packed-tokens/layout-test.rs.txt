@@ -1,0 +1,6 @@
+#[cfg(all(test, target_pointer_width = "64"))]
+mod compact_layout_tests {
+    use super::Token;
+    #[test]
+    fn token_budget() { assert_eq!(size_of::<Token>(), 64); }
+}

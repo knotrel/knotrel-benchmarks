@@ -1,0 +1,38 @@
+{
+  "directory": "/private/tmp/knotrel-packed-verification-5muy0fsv",
+  "forest_sha256": "8079e673ab0e5642ceb5cc20fb58345c0d05c2baa993d35672ef90103aea882d",
+  "checks": [
+    [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--workspace",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "cargo",
+      "test",
+      "--locked",
+      "--workspace"
+    ],
+    [
+      "cargo",
+      "doc",
+      "--locked",
+      "--workspace",
+      "--no-deps"
+    ]
+  ],
+  "all_passed": true,
+  "note": "Fresh reconstruction verifies the saved candidate independently of temporary measurement binaries; original test and measurement logs remain unchanged."
+}

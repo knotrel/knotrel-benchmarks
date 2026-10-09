@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791411022,
+  "config": {
+    "nodes": 100000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "4f8ccd68acfa61f8",
+  "initial_edges": 99999,
+  "initial_density": 0.00002,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 133697416,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 100,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 100,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 64,
+        "total_ns": 232792,
+        "min_ns": 584,
+        "p50_ns": 1958,
+        "p95_ns": 10250,
+        "p99_ns": 15917,
+        "max_ns": 15917
+      },
+      "query_false": {
+        "count": 836,
+        "total_ns": 1561586,
+        "min_ns": 417,
+        "p50_ns": 1250,
+        "p95_ns": 5000,
+        "p99_ns": 7250,
+        "max_ns": 11583
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 751462,
+          "min_ns": 1584,
+          "p50_ns": 4875,
+          "p95_ns": 21125,
+          "p99_ns": 40250,
+          "max_ns": 46750
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 1794378,
+          "min_ns": 417,
+          "p50_ns": 1291,
+          "p95_ns": 5750,
+          "p99_ns": 9000,
+          "max_ns": 15917
+        }
+      },
+      "workload_wall_ns": 2567167
+    }
+  ]
+}

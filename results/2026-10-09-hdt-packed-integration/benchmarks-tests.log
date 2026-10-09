@@ -1,0 +1,116 @@
+   Compiling knotrel-core v0.1.0 (/Users/rt/workspace/knotrel/knotrel/crates/knotrel-core)
+   Compiling knotrel-benchmarks v0.1.0 (/Users/rt/workspace/knotrel/knotrel-benchmarks/crates/knotrel-benchmarks)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.82s
+     Running unittests src/lib.rs (target/debug/deps/knotrel_benchmarks-871d570194838b5b)
+
+running 7 tests
+test hdt_baseline::hdt::tests::empty_higher_level_search_still_finds_lower_replacement ... ok
+test traversal::tests::branching_order_counts_and_rollover_are_exact ... ok
+test hdt_baseline::hdt::tests::promoted_tree_deletions_repair_all_lower_forests_after_growth ... ok
+test ett_baseline::forest::tests::rotations_splits_and_reused_arcs_preserve_invariants ... ok
+test hdt_baseline::forest::tests::rotations_splits_and_reused_arcs_preserve_invariants ... ok
+test hdt_baseline::hdt::tests::growing_mixed_updates_preserve_every_level_and_incidence ... ok
+test ett_baseline::dynamic::tests::general_graph_updates_preserve_avl_and_edge_classification ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.63s
+
+     Running unittests src/bin/hdt-profile.rs (target/debug/deps/hdt_profile-693ebf112a3b72dc)
+
+running 1 test
+test metrics::tests::percentiles_use_nearest_rank_with_short_and_unsorted_samples ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/knotrel_benchmarks-f4c359bcf80419e6)
+
+running 1 test
+test metrics::tests::percentiles_use_nearest_rank_with_short_and_unsorted_samples ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/traversal-profile.rs (target/debug/deps/traversal_profile-1ae71259aa8d6129)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (target/debug/deps/cli-522ab2d9e0d2642a)
+
+running 7 tests
+test invalid_arguments_fail_without_printing_measurements ... ok
+test smoke_run_emits_machine_readable_measurements_and_configuration ... ok
+test all_engines_share_trace_and_keep_repeat_queries_separate ... ok
+test export_is_stable_across_sampling_options_and_never_overwrites_files ... ok
+test hdt_dense_replays_validate_oracle_and_report_level_work ... ok
+test sustained_ratios_exports_repeats_and_fingerprints_are_consistent ... ok
+test reusable_traces_match_an_independent_matrix_oracle ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.96s
+
+     Running tests/dense_workloads.rs (target/debug/deps/dense_workloads-feb4e71742f60570)
+
+running 2 tests
+test dense_bridge_seeds_change_queries_and_invalid_bounds_fail ... ok
+test dense_bridge_traces_preserve_cliques_and_match_closure ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/engines.rs (target/debug/deps/engines-9b1456fb9a8f64ca)
+
+running 3 tests
+test traversal_controls_observe_cuts_and_early_exit_without_stale_marks ... ok
+test repeated_bridge_and_cycle_queries_do_not_return_stale_answers ... ok
+test every_engine_preserves_registered_graph_semantics_and_cache_invalidation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/hdt_profile.rs (target/debug/deps/hdt_profile-bd7ba855a8d5f98c)
+
+running 2 tests
+test profiler_rejects_non_hdt_engines ... ok
+test profiler_matches_normal_fingerprint_and_accounts_for_every_operation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+     Running tests/import.rs (target/debug/deps/import-4131669ab38573d6)
+
+running 5 tests
+test rejects_transient_cut_and_relink_inside_one_source_batch ... ok
+test generation_flags_cannot_silently_override_imports ... ok
+test rejects_corrupt_traces_before_output ... ok
+test imported_trace_replays_across_engines_with_separate_repeat_queries ... ok
+test importing_and_exporting_preserves_exact_bytes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/traversal_bitset.rs (target/debug/deps/traversal_bitset-90c256fa580ad0c8)
+
+running 1 test
+test bitset_matches_epochs_after_growth_cuts_and_early_exits ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/traversal_profile.rs (target/debug/deps/traversal_profile-439eb3c385bfc699)
+
+running 1 test
+test legacy_and_sustained_profiles_match_timing_fingerprints ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+
+     Running tests/workload.rs (target/debug/deps/workload-48cb4c98914fe085)
+
+running 5 tests
+test invalid_sizes_fail_before_allocation ... ok
+test seeds_reproduce_the_same_trace ... ok
+test all_families_are_reproducible_and_reject_unaddressable_sizes ... ok
+test known_chain_answers_hold_after_every_split_and_rejoin ... ok
+test sustained_traces_match_independent_matrix_oracle_and_exact_ratios ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+
+   Doc-tests knotrel_benchmarks
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

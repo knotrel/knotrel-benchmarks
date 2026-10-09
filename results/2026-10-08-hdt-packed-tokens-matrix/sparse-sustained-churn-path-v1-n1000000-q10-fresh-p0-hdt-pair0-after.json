@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/hdt-sparse-levels-v3",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791488489,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 10,
+  "trace_fingerprint_fnv1a64": "e39886814af69da5",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1890095708,
+      "hdt_stats": {
+        "candidate_edges": 0,
+        "levels_visited": 900,
+        "non_tree_promotions": 0,
+        "replacements": 0,
+        "tree_cuts": 900,
+        "tree_promotions": 0
+      },
+      "query_true": {
+        "count": 2,
+        "total_ns": 16333,
+        "min_ns": 7708,
+        "p50_ns": 7708,
+        "p95_ns": 8625,
+        "p99_ns": 8625,
+        "max_ns": 8625
+      },
+      "query_false": {
+        "count": 98,
+        "total_ns": 490297,
+        "min_ns": 1250,
+        "p50_ns": 4084,
+        "p95_ns": 10709,
+        "p99_ns": 12250,
+        "max_ns": 12250
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 900,
+          "total_ns": 8709993,
+          "min_ns": 1500,
+          "p50_ns": 6833,
+          "p95_ns": 24250,
+          "p99_ns": 34084,
+          "max_ns": 49709
+        },
+        "link": null,
+        "connected": {
+          "count": 100,
+          "total_ns": 506630,
+          "min_ns": 1250,
+          "p50_ns": 4250,
+          "p95_ns": 10500,
+          "p99_ns": 11834,
+          "max_ns": 12250
+        }
+      },
+      "workload_wall_ns": 9238709
+    }
+  ]
+}

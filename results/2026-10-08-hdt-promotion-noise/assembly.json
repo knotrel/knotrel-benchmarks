@@ -1,0 +1,94 @@
+{
+  "commands": {
+    "before": [
+      "/Library/Developer/CommandLineTools/usr/bin/llvm-objdump",
+      "--disassemble",
+      "--demangle",
+      "--no-show-raw-insn",
+      "/private/tmp/knotrel-promotion-joins-build-e7p9u6w8/before"
+    ],
+    "after": [
+      "/Library/Developer/CommandLineTools/usr/bin/llvm-objdump",
+      "--disassemble",
+      "--demangle",
+      "--no-show-raw-insn",
+      "/private/tmp/knotrel-promotion-joins-build-e7p9u6w8/after"
+    ]
+  },
+  "tool_version": "Apple LLVM version 21.0.0\n  Optimized build.\n\n\n  Registered Targets:\n    aarch64    - AArch64 (little endian)\n    aarch64_32 - AArch64 (little endian ILP32)\n    aarch64_be - AArch64 (big endian)\n    arm        - ARM\n    arm64      - ARM64 (little endian)\n    arm64_32   - ARM64 (little endian ILP32)\n    armeb      - ARM (big endian)\n    thumb      - Thumb\n    thumbeb    - Thumb (big endian)\n    x86        - 32-bit X86: Pentium-Pro and above\n    x86-64     - 64-bit X86: EM64T and AMD64\n",
+  "normalization": "Remove instruction-address prefixes and numeric address preceding a symbol annotation; retain annotation, offsets, registers and immediate operands. This is textual disassembly comparison, not byte equality or semantic proof.",
+  "rows": [
+    {
+      "symbol": "<knotrel_core::hdt_forest::Forest>::link",
+      "before_address": "000000010004c7d4",
+      "after_address": "000000010004c7d4",
+      "before_instructions": 150,
+      "after_instructions": 150,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 128
+    },
+    {
+      "symbol": "<knotrel_core::hdt_forest::Forest>::join",
+      "before_address": "000000010004c53c",
+      "after_address": "000000010004c53c",
+      "before_instructions": 166,
+      "after_instructions": 166,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 69
+    },
+    {
+      "symbol": "<knotrel_core::hdt_forest::Forest>::reroot",
+      "before_address": "000000010004cf68",
+      "after_address": "000000010004cf68",
+      "before_instructions": 79,
+      "after_instructions": 79,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 18
+    },
+    {
+      "symbol": "<knotrel_core::hdt_forest::Forest>::connected",
+      "before_address": "000000010004d394",
+      "after_address": "000000010004d394",
+      "before_instructions": 54,
+      "after_instructions": 54,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 20
+    },
+    {
+      "symbol": "<knotrel_core::hdt::HdtGraph>::cut",
+      "before_address": "000000010004d46c",
+      "after_address": "000000010004d46c",
+      "before_instructions": 640,
+      "after_instructions": 640,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 169
+    },
+    {
+      "symbol": "<knotrel_core::hdt::HdtGraph>::link",
+      "before_address": "000000010004de6c",
+      "after_address": "000000010004de6c",
+      "before_instructions": 733,
+      "after_instructions": 733,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 18
+    },
+    {
+      "symbol": "<knotrel_core::hdt::HdtGraph>::promote",
+      "before_address": "000000010004e9e0",
+      "after_address": "000000010004e9e0",
+      "before_instructions": 205,
+      "after_instructions": 334,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 0
+    },
+    {
+      "symbol": "<knotrel_core::hdt::HdtGraph>::connected",
+      "before_address": "000000010004ef10",
+      "after_address": "000000010004f114",
+      "before_instructions": 78,
+      "after_instructions": 78,
+      "normalized_equal": false,
+      "exact_disassembly_prefix_instructions": 0
+    }
+  ]
+}
