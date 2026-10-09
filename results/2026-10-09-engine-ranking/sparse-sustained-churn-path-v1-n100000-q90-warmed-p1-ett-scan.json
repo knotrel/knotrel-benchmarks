@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791577809,
+  "config": {
+    "nodes": 100000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "0c3a02338d43dcb699337b1bd60d72fcd3f3aa7e",
+      "dirty": false
+    },
+    "benchmarks": {
+      "revision": "046c42e19c5198c6b51ca40cba445b4a5fbbcae9",
+      "dirty": true
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "4f8ccd68acfa61f8",
+  "initial_edges": 99999,
+  "initial_density": 0.00002,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 207922459,
+      "forest_stats": {
+        "candidate_edges": 0,
+        "replacements": 0,
+        "scanned_vertices": 0,
+        "tree_cuts": 100
+      },
+      "query_true": {
+        "count": 64,
+        "total_ns": 218045,
+        "min_ns": 458,
+        "p50_ns": 2208,
+        "p95_ns": 9875,
+        "p99_ns": 11166,
+        "max_ns": 11166
+      },
+      "query_false": {
+        "count": 836,
+        "total_ns": 1353543,
+        "min_ns": 291,
+        "p50_ns": 1125,
+        "p95_ns": 4417,
+        "p99_ns": 7750,
+        "max_ns": 9875
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 379498,
+          "min_ns": 1458,
+          "p50_ns": 2959,
+          "p95_ns": 7458,
+          "p99_ns": 16917,
+          "max_ns": 17708
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 1571588,
+          "min_ns": 291,
+          "p50_ns": 1167,
+          "p95_ns": 5000,
+          "p99_ns": 9000,
+          "max_ns": 11166
+        }
+      },
+      "workload_wall_ns": 1972583
+    }
+  ]
+}

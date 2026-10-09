@@ -1,0 +1,4966 @@
+{
+  "matched_complete_cells": 74,
+  "historical_cells": 74,
+  "identity_checks": "fingerprint, query true/false counts, and cut/link/query counts match across all 74 cells",
+  "interpretation": "Comparisons across separate benchmark sessions (2026-10-06 vs 2026-10-09). Drift is descriptive of observed changes and must not be attributed solely to the token packing patch.",
+  "rows": [
+    {
+      "family": "cogentco",
+      "workload": "topology-zoo-outages-v1",
+      "nodes": 197,
+      "query_percent": null,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1087917,
+          "new_runtime_ns": 1080542,
+          "runtime_drift_percent": -0.6779009795784052,
+          "old_setup_ns": 50750,
+          "new_setup_ns": 53125,
+          "setup_drift_percent": 4.679802955665036,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.977412731006154
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 727458,
+          "new_runtime_ns": 733958,
+          "runtime_drift_percent": 0.8935223751749266,
+          "old_setup_ns": 47792,
+          "new_setup_ns": 52125,
+          "setup_drift_percent": 9.06637094074323,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "ett-scan": {
+          "old_runtime_ns": 393167,
+          "new_runtime_ns": 340125,
+          "runtime_drift_percent": -13.490959312455008,
+          "old_setup_ns": 191542,
+          "new_setup_ns": 176959,
+          "setup_drift_percent": -7.6134738073111885,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.41478439425052
+        },
+        "hdt": {
+          "old_runtime_ns": 494792,
+          "new_runtime_ns": 479208,
+          "runtime_drift_percent": -3.149606299212604,
+          "old_setup_ns": 159000,
+          "new_setup_ns": 154791,
+          "setup_drift_percent": -2.64716981132076,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 52.85714285714285
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 715458,
+          "new_runtime_ns": 710708,
+          "runtime_drift_percent": -0.663910390267497,
+          "old_setup_ns": 26208,
+          "new_setup_ns": 29916,
+          "setup_drift_percent": 14.148351648351642,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12238848,
+          "rss_drift_percent": 53.388090349075966
+        }
+      }
+    },
+    {
+      "family": "cogentco",
+      "workload": "topology-zoo-outages-v1",
+      "nodes": 197,
+      "query_percent": null,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 956583,
+          "new_runtime_ns": 904208,
+          "runtime_drift_percent": -5.475217519023445,
+          "old_setup_ns": 37167,
+          "new_setup_ns": 35000,
+          "setup_drift_percent": -5.830440982592089,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 51.73116089613035
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 583750,
+          "new_runtime_ns": 587042,
+          "runtime_drift_percent": 0.5639400428265606,
+          "old_setup_ns": 38125,
+          "new_setup_ns": 35375,
+          "setup_drift_percent": -7.21311475409836,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        },
+        "ett-scan": {
+          "old_runtime_ns": 313500,
+          "new_runtime_ns": 309750,
+          "runtime_drift_percent": -1.1961722488038284,
+          "old_setup_ns": 144291,
+          "new_setup_ns": 148875,
+          "setup_drift_percent": 3.1769133209971434,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12189696,
+          "rss_drift_percent": 52.772073921971256
+        },
+        "hdt": {
+          "old_runtime_ns": 433250,
+          "new_runtime_ns": 412708,
+          "runtime_drift_percent": -4.741373341027122,
+          "old_setup_ns": 121708,
+          "new_setup_ns": 117125,
+          "setup_drift_percent": -3.765570052913536,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 648458,
+          "new_runtime_ns": 648208,
+          "runtime_drift_percent": -0.03855299803533496,
+          "old_setup_ns": 17250,
+          "new_setup_ns": 16375,
+          "setup_drift_percent": -5.072463768115942,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 173417,
+          "new_runtime_ns": 176417,
+          "runtime_drift_percent": 1.729934204835737,
+          "old_setup_ns": 281000,
+          "new_setup_ns": 278708,
+          "setup_drift_percent": -0.8156583629893244,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 161958,
+          "new_runtime_ns": 155125,
+          "runtime_drift_percent": -4.218995048098895,
+          "old_setup_ns": 280625,
+          "new_setup_ns": 277500,
+          "setup_drift_percent": -1.1135857461024523,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 15019000,
+          "new_runtime_ns": 14009667,
+          "runtime_drift_percent": -6.72037419268926,
+          "old_setup_ns": 859333,
+          "new_setup_ns": 833250,
+          "setup_drift_percent": -3.035261068759143,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.265306122448976
+        },
+        "hdt": {
+          "old_runtime_ns": 837709,
+          "new_runtime_ns": 787750,
+          "runtime_drift_percent": -5.963765460320946,
+          "old_setup_ns": 826583,
+          "new_setup_ns": 803166,
+          "setup_drift_percent": -2.8329883387391175,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 901542,
+          "new_runtime_ns": 894500,
+          "runtime_drift_percent": -0.7811061492420723,
+          "old_setup_ns": 402875,
+          "new_setup_ns": 394292,
+          "setup_drift_percent": -2.130437480608127,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 183791,
+          "new_runtime_ns": 173209,
+          "runtime_drift_percent": -5.757626869650856,
+          "old_setup_ns": 276417,
+          "new_setup_ns": 280166,
+          "setup_drift_percent": 1.356284164866839,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 157541,
+          "new_runtime_ns": 154208,
+          "runtime_drift_percent": -2.115639738226871,
+          "old_setup_ns": 276625,
+          "new_setup_ns": 281833,
+          "setup_drift_percent": 1.8826931766832367,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.35173824130879
+        },
+        "ett-scan": {
+          "old_runtime_ns": 15059417,
+          "new_runtime_ns": 13952958,
+          "runtime_drift_percent": -7.347289739038365,
+          "old_setup_ns": 805625,
+          "new_setup_ns": 818083,
+          "setup_drift_percent": 1.5463770364623652,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 52.96523517382412
+        },
+        "hdt": {
+          "old_runtime_ns": 836625,
+          "new_runtime_ns": 801167,
+          "runtime_drift_percent": -4.238219034812496,
+          "old_setup_ns": 789334,
+          "new_setup_ns": 788333,
+          "setup_drift_percent": -0.12681577127046095,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 905666,
+          "new_runtime_ns": 902875,
+          "runtime_drift_percent": -0.30817100343835113,
+          "old_setup_ns": 370875,
+          "new_setup_ns": 375958,
+          "setup_drift_percent": 1.3705426356589223,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 725959,
+          "new_runtime_ns": 721167,
+          "runtime_drift_percent": -0.6600923743627418,
+          "old_setup_ns": 286625,
+          "new_setup_ns": 278666,
+          "setup_drift_percent": -2.776798953336246,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.59342915811087
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 675583,
+          "new_runtime_ns": 633167,
+          "runtime_drift_percent": -6.278429149342124,
+          "old_setup_ns": 275291,
+          "new_setup_ns": 286500,
+          "setup_drift_percent": 4.071691410180489,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.663934426229496
+        },
+        "ett-scan": {
+          "old_runtime_ns": 8532209,
+          "new_runtime_ns": 7876125,
+          "runtime_drift_percent": -7.689497526373302,
+          "old_setup_ns": 844292,
+          "new_setup_ns": 846500,
+          "setup_drift_percent": 0.2615208956143089,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.37423312883436
+        },
+        "hdt": {
+          "old_runtime_ns": 700375,
+          "new_runtime_ns": 673375,
+          "runtime_drift_percent": -3.8550776369801865,
+          "old_setup_ns": 836792,
+          "new_setup_ns": 816542,
+          "setup_drift_percent": -2.419956213730534,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 4587875,
+          "new_runtime_ns": 4576583,
+          "runtime_drift_percent": -0.24612701958968142,
+          "old_setup_ns": 410333,
+          "new_setup_ns": 396125,
+          "setup_drift_percent": -3.4625535845276834,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12238848,
+          "rss_drift_percent": 53.07377049180329
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 715583,
+          "new_runtime_ns": 728042,
+          "runtime_drift_percent": 1.7410978181426895,
+          "old_setup_ns": 274417,
+          "new_setup_ns": 278833,
+          "setup_drift_percent": 1.609229748885821,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 52.5458248472505
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 658291,
+          "new_runtime_ns": 630417,
+          "runtime_drift_percent": -4.234297597870851,
+          "old_setup_ns": 278917,
+          "new_setup_ns": 277833,
+          "setup_drift_percent": -0.38864608467752415,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.265306122448976
+        },
+        "ett-scan": {
+          "old_runtime_ns": 8417792,
+          "new_runtime_ns": 7902167,
+          "runtime_drift_percent": -6.12541863709628,
+          "old_setup_ns": 807000,
+          "new_setup_ns": 830791,
+          "setup_drift_percent": 2.94807930607186,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        },
+        "hdt": {
+          "old_runtime_ns": 700000,
+          "new_runtime_ns": 673584,
+          "runtime_drift_percent": -3.7737142857142802,
+          "old_setup_ns": 795834,
+          "new_setup_ns": 783792,
+          "setup_drift_percent": -1.5131296225092128,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 4645542,
+          "new_runtime_ns": 4577250,
+          "runtime_drift_percent": -1.4700545167818935,
+          "old_setup_ns": 382500,
+          "new_setup_ns": 373959,
+          "setup_drift_percent": -2.232941176470593,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1198625,
+          "new_runtime_ns": 1203208,
+          "runtime_drift_percent": 0.38235478152048863,
+          "old_setup_ns": 284250,
+          "new_setup_ns": 278166,
+          "setup_drift_percent": -2.1403693931398404,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12189696,
+          "rss_drift_percent": 52.772073921971256
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 1110708,
+          "new_runtime_ns": 1091250,
+          "runtime_drift_percent": -1.7518555732019547,
+          "old_setup_ns": 275000,
+          "new_setup_ns": 290083,
+          "setup_drift_percent": 5.484727272727263,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.663934426229496
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1766208,
+          "new_runtime_ns": 1647000,
+          "runtime_drift_percent": -6.749374932057828,
+          "old_setup_ns": 862958,
+          "new_setup_ns": 831709,
+          "setup_drift_percent": -3.62114958086025,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.59342915811087
+        },
+        "hdt": {
+          "old_runtime_ns": 552708,
+          "new_runtime_ns": 529916,
+          "runtime_drift_percent": -4.1236964183619556,
+          "old_setup_ns": 823042,
+          "new_setup_ns": 809166,
+          "setup_drift_percent": -1.685940693184551,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12369920,
+          "rss_drift_percent": 54.71311475409837
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 8172292,
+          "new_runtime_ns": 8964458,
+          "runtime_drift_percent": 9.693314923157414,
+          "old_setup_ns": 392250,
+          "new_setup_ns": 409167,
+          "setup_drift_percent": 4.312810707456971,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12763136,
+          "rss_drift_percent": 59.95893223819302
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1207125,
+          "new_runtime_ns": 1242667,
+          "runtime_drift_percent": 2.944351247799526,
+          "old_setup_ns": 274708,
+          "new_setup_ns": 279458,
+          "setup_drift_percent": 1.7291087263567206,
+          "old_rss_bytes": 8060928,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 52.032520325203244
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 1034708,
+          "new_runtime_ns": 1043750,
+          "runtime_drift_percent": 0.8738697294309095,
+          "old_setup_ns": 280000,
+          "new_setup_ns": 280166,
+          "setup_drift_percent": 0.05928571428570617,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1732125,
+          "new_runtime_ns": 1615750,
+          "runtime_drift_percent": -6.718625965216141,
+          "old_setup_ns": 819833,
+          "new_setup_ns": 821209,
+          "setup_drift_percent": 0.16783905990609416,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 52.953156822810584
+        },
+        "hdt": {
+          "old_runtime_ns": 556875,
+          "new_runtime_ns": 530375,
+          "runtime_drift_percent": -4.7586980920314215,
+          "old_setup_ns": 794208,
+          "new_setup_ns": 781375,
+          "setup_drift_percent": -1.6158235625931772,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.06122448979591
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 8150041,
+          "new_runtime_ns": 8146750,
+          "runtime_drift_percent": -0.04038016495867547,
+          "old_setup_ns": 384500,
+          "new_setup_ns": 377459,
+          "setup_drift_percent": -1.8312093628088388,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "compact-bfs",
+      "new_winner": "compact-bfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1948583,
+          "new_runtime_ns": 1952417,
+          "runtime_drift_percent": 0.19675836235870658,
+          "old_setup_ns": 4752291,
+          "new_setup_ns": 4707625,
+          "setup_drift_percent": -0.9398835214426082,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12238848,
+          "rss_drift_percent": 53.07377049180329
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 2154292,
+          "new_runtime_ns": 1954167,
+          "runtime_drift_percent": -9.289594910996279,
+          "old_setup_ns": 4854667,
+          "new_setup_ns": 4632583,
+          "setup_drift_percent": -4.574649507370953,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "ett-scan": {
+          "old_runtime_ns": 343589750,
+          "new_runtime_ns": 304134250,
+          "runtime_drift_percent": -11.483316949938116,
+          "old_setup_ns": 15073250,
+          "new_setup_ns": 14444833,
+          "setup_drift_percent": -4.169087622112022,
+          "old_rss_bytes": 12648448,
+          "new_rss_bytes": 12681216,
+          "rss_drift_percent": 0.2590673575129543
+        },
+        "hdt": {
+          "old_runtime_ns": 9308042,
+          "new_runtime_ns": 8514125,
+          "runtime_drift_percent": -8.529366326451903,
+          "old_setup_ns": 14268750,
+          "new_setup_ns": 14347542,
+          "setup_drift_percent": 0.5521997371879195,
+          "old_rss_bytes": 14286848,
+          "new_rss_bytes": 14336000,
+          "rss_drift_percent": 0.34403669724769603
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 18747000,
+          "new_runtime_ns": 18829500,
+          "runtime_drift_percent": 0.4400704112657916,
+          "old_setup_ns": 20459500,
+          "new_setup_ns": 20474166,
+          "setup_drift_percent": 0.07168308120921729,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-bfs",
+      "winner_changed": true,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1953166,
+          "new_runtime_ns": 1967834,
+          "runtime_drift_percent": 0.7509858353053511,
+          "old_setup_ns": 4718834,
+          "new_setup_ns": 4681583,
+          "setup_drift_percent": -0.7894111129995274,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 1931000,
+          "new_runtime_ns": 1994375,
+          "runtime_drift_percent": 3.2819782496116057,
+          "old_setup_ns": 4715291,
+          "new_setup_ns": 4710208,
+          "setup_drift_percent": -0.10779822496639335,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 52.8688524590164
+        },
+        "ett-scan": {
+          "old_runtime_ns": 342881625,
+          "new_runtime_ns": 305335833,
+          "runtime_drift_percent": -10.950074096271567,
+          "old_setup_ns": 14373500,
+          "new_setup_ns": 13942042,
+          "setup_drift_percent": -3.0017601836713426,
+          "old_rss_bytes": 12697600,
+          "new_rss_bytes": 12763136,
+          "rss_drift_percent": 0.5161290322580614
+        },
+        "hdt": {
+          "old_runtime_ns": 8894375,
+          "new_runtime_ns": 8007125,
+          "runtime_drift_percent": -9.975405804230197,
+          "old_setup_ns": 13659792,
+          "new_setup_ns": 13678792,
+          "setup_drift_percent": 0.13909435809857928,
+          "old_rss_bytes": 14385152,
+          "new_rss_bytes": 14467072,
+          "rss_drift_percent": 0.5694760820045497
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 18894416,
+          "new_runtime_ns": 17327125,
+          "runtime_drift_percent": -8.294995727838316,
+          "old_setup_ns": 20471125,
+          "new_setup_ns": 20343667,
+          "setup_drift_percent": -0.6226233292014993,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 9674791,
+          "new_runtime_ns": 9636458,
+          "runtime_drift_percent": -0.3962152774152905,
+          "old_setup_ns": 4802625,
+          "new_setup_ns": 4663458,
+          "setup_drift_percent": -2.897727805106587,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 10299958,
+          "new_runtime_ns": 9658375,
+          "runtime_drift_percent": -6.2289865647995875,
+          "old_setup_ns": 4788583,
+          "new_setup_ns": 4628416,
+          "setup_drift_percent": -3.3447681704587784,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 191416875,
+          "new_runtime_ns": 165616250,
+          "runtime_drift_percent": -13.478761995252508,
+          "old_setup_ns": 14897709,
+          "new_setup_ns": 14502417,
+          "setup_drift_percent": -2.6533744215301858,
+          "old_rss_bytes": 12664832,
+          "new_rss_bytes": 12664832,
+          "rss_drift_percent": 0.0
+        },
+        "hdt": {
+          "old_runtime_ns": 8873833,
+          "new_runtime_ns": 8341000,
+          "runtime_drift_percent": -6.004541667619845,
+          "old_setup_ns": 14225375,
+          "new_setup_ns": 14329708,
+          "setup_drift_percent": 0.7334288199783767,
+          "old_rss_bytes": 14303232,
+          "new_rss_bytes": 14401536,
+          "rss_drift_percent": 0.6872852233676952
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 98827458,
+          "new_runtime_ns": 110871709,
+          "runtime_drift_percent": 12.187150457719964,
+          "old_setup_ns": 20478917,
+          "new_setup_ns": 20542084,
+          "setup_drift_percent": 0.30844892823189696,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 52.5458248472505
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 9657375,
+          "new_runtime_ns": 9613084,
+          "runtime_drift_percent": -0.45862359077907255,
+          "old_setup_ns": 4693833,
+          "new_setup_ns": 4621875,
+          "setup_drift_percent": -1.5330328113505542,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.16973415132924
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 9609125,
+          "new_runtime_ns": 9619209,
+          "runtime_drift_percent": 0.10494191718808388,
+          "old_setup_ns": 4705334,
+          "new_setup_ns": 4690166,
+          "setup_drift_percent": -0.32235756271499216,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 191144417,
+          "new_runtime_ns": 172534292,
+          "runtime_drift_percent": -9.736159335482974,
+          "old_setup_ns": 14375584,
+          "new_setup_ns": 13807750,
+          "setup_drift_percent": -3.9499890926170345,
+          "old_rss_bytes": 12730368,
+          "new_rss_bytes": 12845056,
+          "rss_drift_percent": 0.9009009009008917
+        },
+        "hdt": {
+          "old_runtime_ns": 8864583,
+          "new_runtime_ns": 7995542,
+          "runtime_drift_percent": -9.803518112470721,
+          "old_setup_ns": 13580375,
+          "new_setup_ns": 13792500,
+          "setup_drift_percent": 1.5619966311681388,
+          "old_rss_bytes": 14450688,
+          "new_rss_bytes": 14532608,
+          "rss_drift_percent": 0.5668934240362855
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 101284625,
+          "new_runtime_ns": 98506292,
+          "runtime_drift_percent": -2.743094521996803,
+          "old_setup_ns": 20374500,
+          "new_setup_ns": 20342584,
+          "setup_drift_percent": -0.15664678887825634,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 17554916,
+          "new_runtime_ns": 17260250,
+          "runtime_drift_percent": -1.6785383649799313,
+          "old_setup_ns": 4965625,
+          "new_setup_ns": 4749958,
+          "setup_drift_percent": -4.343199496538707,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 51.73116089613035
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 18523000,
+          "new_runtime_ns": 17254584,
+          "runtime_drift_percent": -6.847789235005131,
+          "old_setup_ns": 4812583,
+          "new_setup_ns": 4627417,
+          "setup_drift_percent": -3.8475388372522623,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "ett-scan": {
+          "old_runtime_ns": 38435375,
+          "new_runtime_ns": 33270625,
+          "runtime_drift_percent": -13.437490853152855,
+          "old_setup_ns": 15024083,
+          "new_setup_ns": 14413750,
+          "setup_drift_percent": -4.0623644052019685,
+          "old_rss_bytes": 12697600,
+          "new_rss_bytes": 12697600,
+          "rss_drift_percent": 0.0
+        },
+        "hdt": {
+          "old_runtime_ns": 8810959,
+          "new_runtime_ns": 8213250,
+          "runtime_drift_percent": -6.783699708510726,
+          "old_setup_ns": 14310625,
+          "new_setup_ns": 14191083,
+          "setup_drift_percent": -0.8353373804428577,
+          "old_rss_bytes": 14303232,
+          "new_rss_bytes": 14385152,
+          "rss_drift_percent": 0.572737686139746
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 177965209,
+          "new_runtime_ns": 185091167,
+          "runtime_drift_percent": 4.004129818429858,
+          "old_setup_ns": 20467292,
+          "new_setup_ns": 20374708,
+          "setup_drift_percent": -0.4523509998293873,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "dense-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 17366250,
+          "new_runtime_ns": 17243250,
+          "runtime_drift_percent": -0.7082703519758149,
+          "old_setup_ns": 4680709,
+          "new_setup_ns": 4635417,
+          "setup_drift_percent": -0.9676311857883091,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 18686583,
+          "new_runtime_ns": 16995875,
+          "runtime_drift_percent": -9.047710862922342,
+          "old_setup_ns": 4876042,
+          "new_setup_ns": 4631250,
+          "setup_drift_percent": -5.020301301752528,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 38311166,
+          "new_runtime_ns": 33358583,
+          "runtime_drift_percent": -12.927257290994486,
+          "old_setup_ns": 14373584,
+          "new_setup_ns": 13990500,
+          "setup_drift_percent": -2.665194707179508,
+          "old_rss_bytes": 12746752,
+          "new_rss_bytes": 12795904,
+          "rss_drift_percent": 0.3856041131105492
+        },
+        "hdt": {
+          "old_runtime_ns": 8516917,
+          "new_runtime_ns": 7701416,
+          "runtime_drift_percent": -9.575072764006032,
+          "old_setup_ns": 13653959,
+          "new_setup_ns": 13713250,
+          "setup_drift_percent": 0.43424035475718714,
+          "old_rss_bytes": 14434304,
+          "new_rss_bytes": 14516224,
+          "rss_drift_percent": 0.567536889897835
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 174486791,
+          "new_runtime_ns": 170243000,
+          "runtime_drift_percent": -2.4321560249222496,
+          "old_setup_ns": 20328083,
+          "new_setup_ns": 20277542,
+          "setup_drift_percent": -0.2486264937033189,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 182459,
+          "new_runtime_ns": 182250,
+          "runtime_drift_percent": -0.11454628163038993,
+          "old_setup_ns": 273083,
+          "new_setup_ns": 276542,
+          "setup_drift_percent": 1.2666478689629113,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 174667,
+          "new_runtime_ns": 161667,
+          "runtime_drift_percent": -7.442733887912423,
+          "old_setup_ns": 278166,
+          "new_setup_ns": 277458,
+          "setup_drift_percent": -0.25452427687064905,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12337152,
+          "rss_drift_percent": 54.30327868852458
+        },
+        "ett-scan": {
+          "old_runtime_ns": 9832875,
+          "new_runtime_ns": 9478333,
+          "runtime_drift_percent": -3.605679925759253,
+          "old_setup_ns": 892041,
+          "new_setup_ns": 835042,
+          "setup_drift_percent": -6.389728723231336,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "hdt": {
+          "old_runtime_ns": 831375,
+          "new_runtime_ns": 777292,
+          "runtime_drift_percent": -6.505247331228392,
+          "old_setup_ns": 815000,
+          "new_setup_ns": 802125,
+          "setup_drift_percent": -1.5797546012269903,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.41478439425052
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 1076625,
+          "new_runtime_ns": 1046417,
+          "runtime_drift_percent": -2.8058051782189675,
+          "old_setup_ns": 403167,
+          "new_setup_ns": 395250,
+          "setup_drift_percent": -1.9637023863560255,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "compact-bfs",
+      "new_winner": "compact-workspace",
+      "winner_changed": true,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 177584,
+          "new_runtime_ns": 177625,
+          "runtime_drift_percent": 0.023087665555454606,
+          "old_setup_ns": 271917,
+          "new_setup_ns": 277792,
+          "setup_drift_percent": 2.160585766980372,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 178875,
+          "new_runtime_ns": 159834,
+          "runtime_drift_percent": -10.644863731656184,
+          "old_setup_ns": 273458,
+          "new_setup_ns": 281250,
+          "setup_drift_percent": 2.849432088291448,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 9833417,
+          "new_runtime_ns": 9361333,
+          "runtime_drift_percent": -4.800813389689463,
+          "old_setup_ns": 815209,
+          "new_setup_ns": 800125,
+          "setup_drift_percent": -1.8503230459918862,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 52.74949083503056
+        },
+        "hdt": {
+          "old_runtime_ns": 828334,
+          "new_runtime_ns": 778084,
+          "runtime_drift_percent": -6.066393507932788,
+          "old_setup_ns": 812250,
+          "new_setup_ns": 788667,
+          "setup_drift_percent": -2.9034164358264114,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 1064167,
+          "new_runtime_ns": 1085667,
+          "runtime_drift_percent": 2.0203595864183077,
+          "old_setup_ns": 374750,
+          "new_setup_ns": 374417,
+          "setup_drift_percent": -0.0888592394929999,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 52.8688524590164
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "compact-workspace",
+      "winner_changed": true,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 720833,
+          "new_runtime_ns": 720417,
+          "runtime_drift_percent": -0.057711009346128606,
+          "old_setup_ns": 277917,
+          "new_setup_ns": 279084,
+          "setup_drift_percent": 0.4199095413378817,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 737083,
+          "new_runtime_ns": 630292,
+          "runtime_drift_percent": -14.488327637457388,
+          "old_setup_ns": 274708,
+          "new_setup_ns": 275834,
+          "setup_drift_percent": 0.4098897738689766,
+          "old_rss_bytes": 8077312,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 52.33265720081135
+        },
+        "ett-scan": {
+          "old_runtime_ns": 5687292,
+          "new_runtime_ns": 5382375,
+          "runtime_drift_percent": -5.36137409508779,
+          "old_setup_ns": 850625,
+          "new_setup_ns": 845667,
+          "setup_drift_percent": -0.5828655400440863,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.57873210633948
+        },
+        "hdt": {
+          "old_runtime_ns": 704375,
+          "new_runtime_ns": 662291,
+          "runtime_drift_percent": -5.974658385093168,
+          "old_setup_ns": 831208,
+          "new_setup_ns": 802584,
+          "setup_drift_percent": -3.4436627173944467,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12353536,
+          "rss_drift_percent": 53.87755102040816
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 5210708,
+          "new_runtime_ns": 4958250,
+          "runtime_drift_percent": -4.84498459710273,
+          "old_setup_ns": 393000,
+          "new_setup_ns": 396625,
+          "setup_drift_percent": 0.922391857506355,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "compact-workspace",
+      "winner_changed": true,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 719542,
+          "new_runtime_ns": 722292,
+          "runtime_drift_percent": 0.3821875581967449,
+          "old_setup_ns": 272375,
+          "new_setup_ns": 280000,
+          "setup_drift_percent": 2.799449288664535,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 734000,
+          "new_runtime_ns": 623500,
+          "runtime_drift_percent": -15.054495912806543,
+          "old_setup_ns": 271875,
+          "new_setup_ns": 281708,
+          "setup_drift_percent": 3.6167356321838984,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 5626750,
+          "new_runtime_ns": 5270583,
+          "runtime_drift_percent": -6.329888479139822,
+          "old_setup_ns": 817875,
+          "new_setup_ns": 814666,
+          "setup_drift_percent": -0.39235824545316156,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12353536,
+          "rss_drift_percent": 54.82546201232032
+        },
+        "hdt": {
+          "old_runtime_ns": 700042,
+          "new_runtime_ns": 663125,
+          "runtime_drift_percent": -5.273540730413318,
+          "old_setup_ns": 789917,
+          "new_setup_ns": 790291,
+          "setup_drift_percent": 0.04734674655690885,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 4980708,
+          "new_runtime_ns": 4968500,
+          "runtime_drift_percent": -0.2451057158942116,
+          "old_setup_ns": 384417,
+          "new_setup_ns": 376625,
+          "setup_drift_percent": -2.026965508809442,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1207667,
+          "new_runtime_ns": 1203708,
+          "runtime_drift_percent": -0.3278221562732164,
+          "old_setup_ns": 273334,
+          "new_setup_ns": 275375,
+          "setup_drift_percent": 0.7467054958402608,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 1217916,
+          "new_runtime_ns": 1050542,
+          "runtime_drift_percent": -13.742655486913712,
+          "old_setup_ns": 288208,
+          "new_setup_ns": 281458,
+          "setup_drift_percent": -2.3420585132959526,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12238848,
+          "rss_drift_percent": 53.07377049180329
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1207375,
+          "new_runtime_ns": 1101125,
+          "runtime_drift_percent": -8.80008282430893,
+          "old_setup_ns": 852084,
+          "new_setup_ns": 836541,
+          "setup_drift_percent": -1.8241159322320288,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "hdt": {
+          "old_runtime_ns": 552459,
+          "new_runtime_ns": 528667,
+          "runtime_drift_percent": -4.3065639260107975,
+          "old_setup_ns": 820167,
+          "new_setup_ns": 808084,
+          "setup_drift_percent": -1.4732365481664123,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 9074334,
+          "new_runtime_ns": 8929875,
+          "runtime_drift_percent": -1.5919515415676821,
+          "old_setup_ns": 391500,
+          "new_setup_ns": 405416,
+          "setup_drift_percent": 3.554533844189023,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 128,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1232166,
+          "new_runtime_ns": 1220916,
+          "runtime_drift_percent": -0.9130263292446039,
+          "old_setup_ns": 274875,
+          "new_setup_ns": 278041,
+          "setup_drift_percent": 1.1517962710322793,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12189696,
+          "rss_drift_percent": 52.772073921971256
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 1229167,
+          "new_runtime_ns": 1092875,
+          "runtime_drift_percent": -11.088159704905841,
+          "old_setup_ns": 275000,
+          "new_setup_ns": 279917,
+          "setup_drift_percent": 1.7879999999999896,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1164042,
+          "new_runtime_ns": 1065667,
+          "runtime_drift_percent": -8.451155542497613,
+          "old_setup_ns": 853750,
+          "new_setup_ns": 813958,
+          "setup_drift_percent": -4.660849194729133,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "hdt": {
+          "old_runtime_ns": 595167,
+          "new_runtime_ns": 532875,
+          "runtime_drift_percent": -10.466306095600054,
+          "old_setup_ns": 812333,
+          "new_setup_ns": 785833,
+          "setup_drift_percent": -3.2622089709515634,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.16973415132924
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 9131709,
+          "new_runtime_ns": 8952709,
+          "runtime_drift_percent": -1.9602026301976938,
+          "old_setup_ns": 381834,
+          "new_setup_ns": 376666,
+          "setup_drift_percent": -1.3534677372889825,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.265306122448976
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "compact-bfs",
+      "new_winner": "compact-bfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1976959,
+          "new_runtime_ns": 1959500,
+          "runtime_drift_percent": -0.883124030392135,
+          "old_setup_ns": 4888500,
+          "new_setup_ns": 4695833,
+          "setup_drift_percent": -3.941229415976266,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 2093375,
+          "new_runtime_ns": 1976250,
+          "runtime_drift_percent": -5.595031946020179,
+          "old_setup_ns": 4802417,
+          "new_setup_ns": 4705917,
+          "setup_drift_percent": -2.009404847600693,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "ett-scan": {
+          "old_runtime_ns": 218904375,
+          "new_runtime_ns": 191562459,
+          "runtime_drift_percent": -12.490346983700073,
+          "old_setup_ns": 14982041,
+          "new_setup_ns": 14493792,
+          "setup_drift_percent": -3.2588950998064914,
+          "old_rss_bytes": 12664832,
+          "new_rss_bytes": 12681216,
+          "rss_drift_percent": 0.1293661060802087
+        },
+        "hdt": {
+          "old_runtime_ns": 9094666,
+          "new_runtime_ns": 8580375,
+          "runtime_drift_percent": -5.654864070874066,
+          "old_setup_ns": 14350292,
+          "new_setup_ns": 14320750,
+          "setup_drift_percent": -0.2058634068212717,
+          "old_rss_bytes": 14286848,
+          "new_rss_bytes": 14336000,
+          "rss_drift_percent": 0.34403669724769603
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 20345292,
+          "new_runtime_ns": 19929500,
+          "runtime_drift_percent": -2.0436767385791255,
+          "old_setup_ns": 20607959,
+          "new_setup_ns": 20785833,
+          "setup_drift_percent": 0.8631325401996293,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.663934426229496
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "compact-bfs",
+      "new_winner": "compact-workspace",
+      "winner_changed": true,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1982708,
+          "new_runtime_ns": 1967333,
+          "runtime_drift_percent": -0.7754545803012824,
+          "old_setup_ns": 4621750,
+          "new_setup_ns": 4638792,
+          "setup_drift_percent": 0.3687347866067947,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 52.8688524590164
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 2101791,
+          "new_runtime_ns": 1937042,
+          "runtime_drift_percent": -7.838505350912628,
+          "old_setup_ns": 4677792,
+          "new_setup_ns": 4636875,
+          "setup_drift_percent": -0.8747075543333316,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "ett-scan": {
+          "old_runtime_ns": 221373125,
+          "new_runtime_ns": 191407000,
+          "runtime_drift_percent": -13.53647828750667,
+          "old_setup_ns": 14476792,
+          "new_setup_ns": 13803292,
+          "setup_drift_percent": -4.652273791044315,
+          "old_rss_bytes": 12713984,
+          "new_rss_bytes": 12779520,
+          "rss_drift_percent": 0.5154639175257714
+        },
+        "hdt": {
+          "old_runtime_ns": 9039292,
+          "new_runtime_ns": 8119625,
+          "runtime_drift_percent": -10.174104343570267,
+          "old_setup_ns": 13721666,
+          "new_setup_ns": 13677625,
+          "setup_drift_percent": -0.3209595686121447,
+          "old_rss_bytes": 14385152,
+          "new_rss_bytes": 14483456,
+          "rss_drift_percent": 0.6833712984054774
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 19805792,
+          "new_runtime_ns": 19660250,
+          "runtime_drift_percent": -0.734845645152693,
+          "old_setup_ns": 20380875,
+          "new_setup_ns": 20338083,
+          "setup_drift_percent": -0.209961544830628,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 9755750,
+          "new_runtime_ns": 9658833,
+          "runtime_drift_percent": -0.9934346411090922,
+          "old_setup_ns": 4871917,
+          "new_setup_ns": 4793167,
+          "setup_drift_percent": -1.6164068476536064,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 10433958,
+          "new_runtime_ns": 9698000,
+          "runtime_drift_percent": -7.053488235241123,
+          "old_setup_ns": 4832375,
+          "new_setup_ns": 4688500,
+          "setup_drift_percent": -2.9773144675237284,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.663934426229496
+        },
+        "ett-scan": {
+          "old_runtime_ns": 126202708,
+          "new_runtime_ns": 109667583,
+          "runtime_drift_percent": -13.102036606060786,
+          "old_setup_ns": 14868750,
+          "new_setup_ns": 14393792,
+          "setup_drift_percent": -3.194337116435475,
+          "old_rss_bytes": 12664832,
+          "new_rss_bytes": 12664832,
+          "rss_drift_percent": 0.0
+        },
+        "hdt": {
+          "old_runtime_ns": 8936791,
+          "new_runtime_ns": 8462959,
+          "runtime_drift_percent": -5.302037386798009,
+          "old_setup_ns": 14193959,
+          "new_setup_ns": 14320792,
+          "setup_drift_percent": 0.8935702857814309,
+          "old_rss_bytes": 14303232,
+          "new_rss_bytes": 14368768,
+          "rss_drift_percent": 0.45819014891179677
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 103857917,
+          "new_runtime_ns": 99873458,
+          "runtime_drift_percent": -3.836451871069202,
+          "old_setup_ns": 20560417,
+          "new_setup_ns": 20349250,
+          "setup_drift_percent": -1.0270560173949783,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 52.556237218813905
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 9682375,
+          "new_runtime_ns": 9635458,
+          "runtime_drift_percent": -0.4845608644573285,
+          "old_setup_ns": 4703209,
+          "new_setup_ns": 4602167,
+          "setup_drift_percent": -2.1483629581419805,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 10345833,
+          "new_runtime_ns": 10414958,
+          "runtime_drift_percent": 0.6681433964766281,
+          "old_setup_ns": 4667292,
+          "new_setup_ns": 4828792,
+          "setup_drift_percent": 3.460250612132265,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.663934426229496
+        },
+        "ett-scan": {
+          "old_runtime_ns": 125685916,
+          "new_runtime_ns": 110333833,
+          "runtime_drift_percent": -12.21464066029483,
+          "old_setup_ns": 14348584,
+          "new_setup_ns": 14031167,
+          "setup_drift_percent": -2.2121834461156564,
+          "old_rss_bytes": 12763136,
+          "new_rss_bytes": 12828672,
+          "rss_drift_percent": 0.5134788189987249
+        },
+        "hdt": {
+          "old_runtime_ns": 8905417,
+          "new_runtime_ns": 7895167,
+          "runtime_drift_percent": -11.344218917541982,
+          "old_setup_ns": 13618541,
+          "new_setup_ns": 13635041,
+          "setup_drift_percent": 0.121158353159867,
+          "old_rss_bytes": 14450688,
+          "new_rss_bytes": 14499840,
+          "rss_drift_percent": 0.340136054421758
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 105931458,
+          "new_runtime_ns": 99546500,
+          "runtime_drift_percent": -6.027442763980462,
+          "old_setup_ns": 20399166,
+          "new_setup_ns": 20285959,
+          "setup_drift_percent": -0.5549589625379769,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12337152,
+          "rss_drift_percent": 53.360488798370675
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 17162334,
+          "new_runtime_ns": 17045125,
+          "runtime_drift_percent": -0.6829432407037372,
+          "old_setup_ns": 4775583,
+          "new_setup_ns": 4696958,
+          "setup_drift_percent": -1.6463958431881531,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 18338666,
+          "new_runtime_ns": 17141833,
+          "runtime_drift_percent": -6.526281682648016,
+          "old_setup_ns": 4873125,
+          "new_setup_ns": 4762625,
+          "setup_drift_percent": -2.2675387969731897,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.663934426229496
+        },
+        "ett-scan": {
+          "old_runtime_ns": 24122416,
+          "new_runtime_ns": 21477250,
+          "runtime_drift_percent": -10.965593164465782,
+          "old_setup_ns": 14887792,
+          "new_setup_ns": 14583416,
+          "setup_drift_percent": -2.0444670371536633,
+          "old_rss_bytes": 12697600,
+          "new_rss_bytes": 12713984,
+          "rss_drift_percent": 0.1290322580645098
+        },
+        "hdt": {
+          "old_runtime_ns": 8855625,
+          "new_runtime_ns": 8209166,
+          "runtime_drift_percent": -7.2999816500811665,
+          "old_setup_ns": 14182375,
+          "new_setup_ns": 14243791,
+          "setup_drift_percent": 0.43304453591164194,
+          "old_rss_bytes": 14352384,
+          "new_rss_bytes": 14385152,
+          "rss_drift_percent": 0.22831050228311334
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 183394750,
+          "new_runtime_ns": 188493834,
+          "runtime_drift_percent": 2.780387115770755,
+          "old_setup_ns": 20533958,
+          "new_setup_ns": 20775584,
+          "setup_drift_percent": 1.1767142019088572,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 53.18275154004106
+        }
+      }
+    },
+    {
+      "family": "dense",
+      "workload": "redundant-bridge-churn-v1",
+      "nodes": 512,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 17104125,
+          "new_runtime_ns": 17025500,
+          "runtime_drift_percent": -0.4596844328488059,
+          "old_setup_ns": 4652042,
+          "new_setup_ns": 4630708,
+          "setup_drift_percent": -0.45859431191721534,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.59342915811087
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 18336083,
+          "new_runtime_ns": 16999334,
+          "runtime_drift_percent": -7.290264774652256,
+          "old_setup_ns": 4767000,
+          "new_setup_ns": 4623250,
+          "setup_drift_percent": -3.0155233899727296,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 52.953156822810584
+        },
+        "ett-scan": {
+          "old_runtime_ns": 24063250,
+          "new_runtime_ns": 21126459,
+          "runtime_drift_percent": -12.204465315366797,
+          "old_setup_ns": 14470250,
+          "new_setup_ns": 13934333,
+          "setup_drift_percent": -3.7035780307873023,
+          "old_rss_bytes": 12746752,
+          "new_rss_bytes": 12812288,
+          "rss_drift_percent": 0.5141388174807249
+        },
+        "hdt": {
+          "old_runtime_ns": 8699500,
+          "new_runtime_ns": 7740417,
+          "runtime_drift_percent": -11.024576125064655,
+          "old_setup_ns": 13572917,
+          "new_setup_ns": 14004042,
+          "setup_drift_percent": 3.1763621629749883,
+          "old_rss_bytes": 14401536,
+          "new_rss_bytes": 14499840,
+          "rss_drift_percent": 0.6825938566553003
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 184300084,
+          "new_runtime_ns": 180622167,
+          "runtime_drift_percent": -1.9956133063943726,
+          "old_setup_ns": 20288959,
+          "new_setup_ns": 20378917,
+          "setup_drift_percent": 0.4433840099928199,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 179000,
+          "new_runtime_ns": 177958,
+          "runtime_drift_percent": -0.5821229050279375,
+          "old_setup_ns": 181917,
+          "new_setup_ns": 178542,
+          "setup_drift_percent": -1.855241676149011,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.37423312883436
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 148917,
+          "new_runtime_ns": 148084,
+          "runtime_drift_percent": -0.559371999167324,
+          "old_setup_ns": 179375,
+          "new_setup_ns": 179459,
+          "setup_drift_percent": 0.04682926829269185,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1015291,
+          "new_runtime_ns": 941958,
+          "runtime_drift_percent": -7.222855319312393,
+          "old_setup_ns": 1004708,
+          "new_setup_ns": 958334,
+          "setup_drift_percent": -4.615669428331415,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        },
+        "hdt": {
+          "old_runtime_ns": 3196791,
+          "new_runtime_ns": 2926292,
+          "runtime_drift_percent": -8.461579127318618,
+          "old_setup_ns": 768041,
+          "new_setup_ns": 713625,
+          "setup_drift_percent": -7.08503842893804,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.41478439425052
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 112041,
+          "new_runtime_ns": 109958,
+          "runtime_drift_percent": -1.8591408502244722,
+          "old_setup_ns": 81833,
+          "new_setup_ns": 78708,
+          "setup_drift_percent": -3.818752825877092,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.41478439425052
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 132708,
+          "new_runtime_ns": 136000,
+          "runtime_drift_percent": 2.480634174277352,
+          "old_setup_ns": 166334,
+          "new_setup_ns": 169542,
+          "setup_drift_percent": 1.9286495845707963,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 110917,
+          "new_runtime_ns": 112875,
+          "runtime_drift_percent": 1.7652839510625018,
+          "old_setup_ns": 166666,
+          "new_setup_ns": 170083,
+          "setup_drift_percent": 2.0502082008327926,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 929625,
+          "new_runtime_ns": 839209,
+          "runtime_drift_percent": -9.726072340997716,
+          "old_setup_ns": 956750,
+          "new_setup_ns": 883875,
+          "setup_drift_percent": -7.616932322968384,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 53.46938775510204
+        },
+        "hdt": {
+          "old_runtime_ns": 3101375,
+          "new_runtime_ns": 2734167,
+          "runtime_drift_percent": -11.840167667566803,
+          "old_setup_ns": 703667,
+          "new_setup_ns": 660417,
+          "setup_drift_percent": -6.146373213466028,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.57873210633948
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 89708,
+          "new_runtime_ns": 90208,
+          "runtime_drift_percent": 0.5573638917376389,
+          "old_setup_ns": 61000,
+          "new_setup_ns": 63000,
+          "setup_drift_percent": 3.2786885245901676,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.59342915811087
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 416917,
+          "new_runtime_ns": 427041,
+          "runtime_drift_percent": 2.428301076713102,
+          "old_setup_ns": 174875,
+          "new_setup_ns": 181125,
+          "setup_drift_percent": 3.5739814152966343,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 290792,
+          "new_runtime_ns": 291666,
+          "runtime_drift_percent": 0.30055847478609454,
+          "old_setup_ns": 175125,
+          "new_setup_ns": 187125,
+          "setup_drift_percent": 6.85224839400429,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "ett-scan": {
+          "old_runtime_ns": 698542,
+          "new_runtime_ns": 637917,
+          "runtime_drift_percent": -8.67879096747225,
+          "old_setup_ns": 995666,
+          "new_setup_ns": 935459,
+          "setup_drift_percent": -6.046907296221827,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "hdt": {
+          "old_runtime_ns": 2504834,
+          "new_runtime_ns": 2293958,
+          "runtime_drift_percent": -8.418761482796866,
+          "old_setup_ns": 772292,
+          "new_setup_ns": 719041,
+          "setup_drift_percent": -6.895189902264942,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.16973415132924
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 261709,
+          "new_runtime_ns": 253958,
+          "runtime_drift_percent": -2.961686453274437,
+          "old_setup_ns": 79792,
+          "new_setup_ns": 78125,
+          "setup_drift_percent": -2.089181872869461,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.977412731006154
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 348709,
+          "new_runtime_ns": 355959,
+          "runtime_drift_percent": 2.0790974709571586,
+          "old_setup_ns": 166000,
+          "new_setup_ns": 172000,
+          "setup_drift_percent": 3.6144578313253017,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 237375,
+          "new_runtime_ns": 238375,
+          "runtime_drift_percent": 0.42127435492365084,
+          "old_setup_ns": 167125,
+          "new_setup_ns": 169000,
+          "setup_drift_percent": 1.1219147344801783,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "ett-scan": {
+          "old_runtime_ns": 622333,
+          "new_runtime_ns": 574667,
+          "runtime_drift_percent": -7.659243523965465,
+          "old_setup_ns": 962041,
+          "new_setup_ns": 894042,
+          "setup_drift_percent": -7.068201874972068,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12337152,
+          "rss_drift_percent": 53.360488798370675
+        },
+        "hdt": {
+          "old_runtime_ns": 2314209,
+          "new_runtime_ns": 2158708,
+          "runtime_drift_percent": -6.719401748070286,
+          "old_setup_ns": 705334,
+          "new_setup_ns": 682084,
+          "setup_drift_percent": -3.296310684016368,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.16973415132924
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 231500,
+          "new_runtime_ns": 234250,
+          "runtime_drift_percent": 1.1879049676025932,
+          "old_setup_ns": 60708,
+          "new_setup_ns": 64333,
+          "setup_drift_percent": 5.971206430783416,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 51.73116089613035
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 695500,
+          "new_runtime_ns": 711792,
+          "runtime_drift_percent": 2.3424874191229295,
+          "old_setup_ns": 175542,
+          "new_setup_ns": 180042,
+          "setup_drift_percent": 2.5634890795365184,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 464250,
+          "new_runtime_ns": 458000,
+          "runtime_drift_percent": -1.3462574044157294,
+          "old_setup_ns": 174625,
+          "new_setup_ns": 179750,
+          "setup_drift_percent": 2.9348604151753666,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12337152,
+          "rss_drift_percent": 54.62012320328542
+        },
+        "ett-scan": {
+          "old_runtime_ns": 284084,
+          "new_runtime_ns": 267083,
+          "runtime_drift_percent": -5.984497542980249,
+          "old_setup_ns": 1003333,
+          "new_setup_ns": 931042,
+          "setup_drift_percent": -7.205085450194504,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "hdt": {
+          "old_runtime_ns": 1690625,
+          "new_runtime_ns": 1553792,
+          "runtime_drift_percent": -8.093634011090579,
+          "old_setup_ns": 764166,
+          "new_setup_ns": 719166,
+          "setup_drift_percent": -5.8887728582533105,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 524917,
+          "new_runtime_ns": 535583,
+          "runtime_drift_percent": 2.0319402877026382,
+          "old_setup_ns": 75375,
+          "new_setup_ns": 83458,
+          "setup_drift_percent": 10.723714759535664,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 605458,
+          "new_runtime_ns": 615417,
+          "runtime_drift_percent": 1.6448704947329196,
+          "old_setup_ns": 164416,
+          "new_setup_ns": 167709,
+          "setup_drift_percent": 2.002846438302841,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 394708,
+          "new_runtime_ns": 398166,
+          "runtime_drift_percent": 0.8760906796923207,
+          "old_setup_ns": 164875,
+          "new_setup_ns": 168000,
+          "setup_drift_percent": 1.8953752843062999,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "ett-scan": {
+          "old_runtime_ns": 246792,
+          "new_runtime_ns": 232584,
+          "runtime_drift_percent": -5.7570747836234615,
+          "old_setup_ns": 958916,
+          "new_setup_ns": 893375,
+          "setup_drift_percent": -6.834905247174938,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.16973415132924
+        },
+        "hdt": {
+          "old_runtime_ns": 1547959,
+          "new_runtime_ns": 1446000,
+          "runtime_drift_percent": -6.586673161240064,
+          "old_setup_ns": 704542,
+          "new_setup_ns": 665250,
+          "setup_drift_percent": -5.576956377334497,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 506791,
+          "new_runtime_ns": 644916,
+          "runtime_drift_percent": 27.254824967294212,
+          "old_setup_ns": 59375,
+          "new_setup_ns": 62625,
+          "setup_drift_percent": 5.4736842105263195,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.59342915811087
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 299625,
+          "new_runtime_ns": 295125,
+          "runtime_drift_percent": -1.5018773466833557,
+          "old_setup_ns": 1765625,
+          "new_setup_ns": 1786041,
+          "setup_drift_percent": 1.1563044247787646,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 53.15682281059062
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 246958,
+          "new_runtime_ns": 242666,
+          "runtime_drift_percent": -1.7379473432729498,
+          "old_setup_ns": 1763000,
+          "new_setup_ns": 1754000,
+          "setup_drift_percent": -0.5104934770277958,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1607625,
+          "new_runtime_ns": 1411542,
+          "runtime_drift_percent": -12.197060881735478,
+          "old_setup_ns": 12739834,
+          "new_setup_ns": 13296709,
+          "setup_drift_percent": 4.37113230831736,
+          "old_rss_bytes": 9502720,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 28.44827586206897
+        },
+        "hdt": {
+          "old_runtime_ns": 29467375,
+          "new_runtime_ns": 25779625,
+          "runtime_drift_percent": -12.514687853940165,
+          "old_setup_ns": 9322667,
+          "new_setup_ns": 8924542,
+          "setup_drift_percent": -4.270505425110649,
+          "old_rss_bytes": 29294592,
+          "new_rss_bytes": 25051136,
+          "rss_drift_percent": -14.485458612975389
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 216417,
+          "new_runtime_ns": 205416,
+          "runtime_drift_percent": -5.083242074328731,
+          "old_setup_ns": 673333,
+          "new_setup_ns": 667792,
+          "setup_drift_percent": -0.8229211994659424,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.37423312883436
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 257209,
+          "new_runtime_ns": 261958,
+          "runtime_drift_percent": 1.8463584089203788,
+          "old_setup_ns": 1752958,
+          "new_setup_ns": 1754083,
+          "setup_drift_percent": 0.06417723641980455,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 228833,
+          "new_runtime_ns": 220583,
+          "runtime_drift_percent": -3.605249242897657,
+          "old_setup_ns": 1765417,
+          "new_setup_ns": 1740750,
+          "setup_drift_percent": -1.3972336280890008,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 52.8688524590164
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1563083,
+          "new_runtime_ns": 1450875,
+          "runtime_drift_percent": -7.178633508265397,
+          "old_setup_ns": 12395500,
+          "new_setup_ns": 12832416,
+          "setup_drift_percent": 3.524795288612803,
+          "old_rss_bytes": 9584640,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 28.205128205128215
+        },
+        "hdt": {
+          "old_runtime_ns": 28899291,
+          "new_runtime_ns": 26279292,
+          "runtime_drift_percent": -9.065962898536162,
+          "old_setup_ns": 9006375,
+          "new_setup_ns": 8594458,
+          "setup_drift_percent": -4.5736159109519665,
+          "old_rss_bytes": 30244864,
+          "new_rss_bytes": 27885568,
+          "rss_drift_percent": -7.800650054171177
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 195292,
+          "new_runtime_ns": 205125,
+          "runtime_drift_percent": 5.035024476169014,
+          "old_setup_ns": 628958,
+          "new_setup_ns": 638458,
+          "setup_drift_percent": 1.5104347190114442,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 1021333,
+          "new_runtime_ns": 970875,
+          "runtime_drift_percent": -4.940406312143053,
+          "old_setup_ns": 1790583,
+          "new_setup_ns": 1787166,
+          "setup_drift_percent": -0.19083170118335824,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 742916,
+          "new_runtime_ns": 730250,
+          "runtime_drift_percent": -1.7049033807321368,
+          "old_setup_ns": 1778292,
+          "new_setup_ns": 1762042,
+          "setup_drift_percent": -0.913798183875314,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1171084,
+          "new_runtime_ns": 1038042,
+          "runtime_drift_percent": -11.360585577123416,
+          "old_setup_ns": 12687292,
+          "new_setup_ns": 12636625,
+          "setup_drift_percent": -0.39935235982587747,
+          "old_rss_bytes": 9486336,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 29.36096718480139
+        },
+        "hdt": {
+          "old_runtime_ns": 27320875,
+          "new_runtime_ns": 24360875,
+          "runtime_drift_percent": -10.83420644470574,
+          "old_setup_ns": 9179417,
+          "new_setup_ns": 8960834,
+          "setup_drift_percent": -2.3812296576133374,
+          "old_rss_bytes": 30048256,
+          "new_rss_bytes": 25051136,
+          "rss_drift_percent": -16.630316248636856
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 914084,
+          "new_runtime_ns": 883041,
+          "runtime_drift_percent": -3.396077384572971,
+          "old_setup_ns": 659750,
+          "new_setup_ns": 670125,
+          "setup_drift_percent": 1.57256536566881,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 914500,
+          "new_runtime_ns": 878709,
+          "runtime_drift_percent": -3.9137233460907583,
+          "old_setup_ns": 1752459,
+          "new_setup_ns": 1742500,
+          "setup_drift_percent": -0.568287189600436,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 699834,
+          "new_runtime_ns": 664541,
+          "runtime_drift_percent": -5.04305306687014,
+          "old_setup_ns": 1725917,
+          "new_setup_ns": 1736292,
+          "setup_drift_percent": 0.6011297182888953,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1097834,
+          "new_runtime_ns": 964167,
+          "runtime_drift_percent": -12.175520160607157,
+          "old_setup_ns": 12274916,
+          "new_setup_ns": 12365209,
+          "setup_drift_percent": 0.7355895551546032,
+          "old_rss_bytes": 9551872,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 27.787307032590046
+        },
+        "hdt": {
+          "old_runtime_ns": 26558708,
+          "new_runtime_ns": 23359542,
+          "runtime_drift_percent": -12.045638665856783,
+          "old_setup_ns": 8742666,
+          "new_setup_ns": 8505209,
+          "setup_drift_percent": -2.716070818672478,
+          "old_rss_bytes": 31113216,
+          "new_rss_bytes": 27115520,
+          "rss_drift_percent": -12.84886782517114
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 1141709,
+          "new_runtime_ns": 886208,
+          "runtime_drift_percent": -22.378819821863537,
+          "old_setup_ns": 637708,
+          "new_setup_ns": 640958,
+          "setup_drift_percent": 0.5096376397975222,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 2976750,
+          "new_runtime_ns": 2973375,
+          "runtime_drift_percent": -0.11337868480725266,
+          "old_setup_ns": 1762666,
+          "new_setup_ns": 1768958,
+          "setup_drift_percent": 0.3569592878060801,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 53.783231083844576
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 2459125,
+          "new_runtime_ns": 2431042,
+          "runtime_drift_percent": -1.1419915620393462,
+          "old_setup_ns": 1758250,
+          "new_setup_ns": 1798583,
+          "setup_drift_percent": 2.2939286222095845,
+          "old_rss_bytes": 7962624,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 54.11522633744856
+        },
+        "ett-scan": {
+          "old_runtime_ns": 692959,
+          "new_runtime_ns": 542792,
+          "runtime_drift_percent": -21.67040185638689,
+          "old_setup_ns": 12820041,
+          "new_setup_ns": 12665875,
+          "setup_drift_percent": -1.2025390558423332,
+          "old_rss_bytes": 9437184,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 29.861111111111114
+        },
+        "hdt": {
+          "old_runtime_ns": 17282875,
+          "new_runtime_ns": 17407625,
+          "runtime_drift_percent": 0.7218127770987071,
+          "old_setup_ns": 9239666,
+          "new_setup_ns": 9037208,
+          "setup_drift_percent": -2.191183101207339,
+          "old_rss_bytes": 24461312,
+          "new_rss_bytes": 19775488,
+          "rss_drift_percent": -19.156061620897525
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 3943084,
+          "new_runtime_ns": 3963167,
+          "runtime_drift_percent": 0.5093221447983298,
+          "old_setup_ns": 655584,
+          "new_setup_ns": 666667,
+          "setup_drift_percent": 1.6905537658026937,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 2907708,
+          "new_runtime_ns": 2892750,
+          "runtime_drift_percent": -0.5144257951623765,
+          "old_setup_ns": 1733458,
+          "new_setup_ns": 1741209,
+          "setup_drift_percent": 0.44714091717250604,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 2362500,
+          "new_runtime_ns": 2381250,
+          "runtime_drift_percent": 0.7936507936507908,
+          "old_setup_ns": 1729000,
+          "new_setup_ns": 1742875,
+          "setup_drift_percent": 0.8024869866975148,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.59342915811087
+        },
+        "ett-scan": {
+          "old_runtime_ns": 574917,
+          "new_runtime_ns": 487459,
+          "runtime_drift_percent": -15.212282816476119,
+          "old_setup_ns": 12295208,
+          "new_setup_ns": 12464750,
+          "setup_drift_percent": 1.3789274650741978,
+          "old_rss_bytes": 9519104,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 28.743545611015485
+        },
+        "hdt": {
+          "old_runtime_ns": 17058250,
+          "new_runtime_ns": 16880542,
+          "runtime_drift_percent": -1.0417715768030078,
+          "old_setup_ns": 8849166,
+          "new_setup_ns": 8793834,
+          "setup_drift_percent": -0.6252792636051829,
+          "old_rss_bytes": 25198592,
+          "new_rss_bytes": 21643264,
+          "rss_drift_percent": -14.109232769830948
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 4076667,
+          "new_runtime_ns": 4966958,
+          "runtime_drift_percent": 21.8386981325676,
+          "old_setup_ns": 628166,
+          "new_setup_ns": 619666,
+          "setup_drift_percent": -1.353145506124176,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 952084,
+          "new_runtime_ns": 932542,
+          "runtime_drift_percent": -2.05254998508535,
+          "old_setup_ns": 19509834,
+          "new_setup_ns": 19505458,
+          "setup_drift_percent": -0.022429714163640924,
+          "old_rss_bytes": 17596416,
+          "new_rss_bytes": 17580032,
+          "rss_drift_percent": -0.09310986964617962
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 832917,
+          "new_runtime_ns": 816542,
+          "runtime_drift_percent": -1.965982204709471,
+          "old_setup_ns": 20028416,
+          "new_setup_ns": 19846083,
+          "setup_drift_percent": -0.9103715441101334,
+          "old_rss_bytes": 17465344,
+          "new_rss_bytes": 17465344,
+          "rss_drift_percent": 0.0
+        },
+        "ett-scan": {
+          "old_runtime_ns": 6210583,
+          "new_runtime_ns": 4888167,
+          "runtime_drift_percent": -21.292944639818835,
+          "old_setup_ns": 204165417,
+          "new_setup_ns": 214182584,
+          "setup_drift_percent": 4.906397541362262,
+          "old_rss_bytes": 61358080,
+          "new_rss_bytes": 51757056,
+          "rss_drift_percent": -15.647530040053404
+        },
+        "hdt": {
+          "old_runtime_ns": 325562458,
+          "new_runtime_ns": 288695083,
+          "runtime_drift_percent": -11.324209562270848,
+          "old_setup_ns": 133040333,
+          "new_setup_ns": 133493167,
+          "setup_drift_percent": 0.3403734715546669,
+          "old_rss_bytes": 307691520,
+          "new_rss_bytes": 246349824,
+          "rss_drift_percent": -19.936102236421725
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 1035500,
+          "new_runtime_ns": 1029167,
+          "runtime_drift_percent": -0.6115886045388708,
+          "old_setup_ns": 7751709,
+          "new_setup_ns": 7636458,
+          "setup_drift_percent": -1.4867818180481218,
+          "old_rss_bytes": 14761984,
+          "new_rss_bytes": 14794752,
+          "rss_drift_percent": 0.2219755826859071
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 858500,
+          "new_runtime_ns": 833833,
+          "runtime_drift_percent": -2.873267326732676,
+          "old_setup_ns": 18819042,
+          "new_setup_ns": 18778042,
+          "setup_drift_percent": -0.2178644375202543,
+          "old_rss_bytes": 17629184,
+          "new_rss_bytes": 17612800,
+          "rss_drift_percent": -0.09293680297397522
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 740958,
+          "new_runtime_ns": 762375,
+          "runtime_drift_percent": 2.890447231826898,
+          "old_setup_ns": 18953000,
+          "new_setup_ns": 18959000,
+          "setup_drift_percent": 0.03165725742626524,
+          "old_rss_bytes": 17547264,
+          "new_rss_bytes": 17547264,
+          "rss_drift_percent": 0.0
+        },
+        "ett-scan": {
+          "old_runtime_ns": 6268459,
+          "new_runtime_ns": 4905750,
+          "runtime_drift_percent": -21.7391387580265,
+          "old_setup_ns": 205887750,
+          "new_setup_ns": 215945833,
+          "setup_drift_percent": 4.885226537275766,
+          "old_rss_bytes": 87801856,
+          "new_rss_bytes": 71041024,
+          "rss_drift_percent": -19.089382347452887
+        },
+        "hdt": {
+          "old_runtime_ns": 314134916,
+          "new_runtime_ns": 292090125,
+          "runtime_drift_percent": -7.0176188246454,
+          "old_setup_ns": 129880542,
+          "new_setup_ns": 154333875,
+          "setup_drift_percent": 18.82755694074636,
+          "old_rss_bytes": 316964864,
+          "new_rss_bytes": 246366208,
+          "rss_drift_percent": -22.273338157758715
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 1001208,
+          "new_runtime_ns": 1001375,
+          "runtime_drift_percent": 0.016679850740297653,
+          "old_setup_ns": 7214500,
+          "new_setup_ns": 7078750,
+          "setup_drift_percent": -1.8816272783976684,
+          "old_rss_bytes": 14794752,
+          "new_rss_bytes": 14811136,
+          "rss_drift_percent": 0.11074197120708451
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 5238541,
+          "new_runtime_ns": 5181125,
+          "runtime_drift_percent": -1.0960303641796454,
+          "old_setup_ns": 19482541,
+          "new_setup_ns": 19446750,
+          "setup_drift_percent": -0.18370806970199327,
+          "old_rss_bytes": 17563648,
+          "new_rss_bytes": 17596416,
+          "rss_drift_percent": 0.1865671641791078
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 4511958,
+          "new_runtime_ns": 4788542,
+          "runtime_drift_percent": 6.130021600378366,
+          "old_setup_ns": 19403416,
+          "new_setup_ns": 20007250,
+          "setup_drift_percent": 3.111998423370399,
+          "old_rss_bytes": 17448960,
+          "new_rss_bytes": 17481728,
+          "rss_drift_percent": 0.1877934272300541
+        },
+        "ett-scan": {
+          "old_runtime_ns": 6577166,
+          "new_runtime_ns": 4846167,
+          "runtime_drift_percent": -26.318310956421044,
+          "old_setup_ns": 205747000,
+          "new_setup_ns": 219039000,
+          "setup_drift_percent": 6.460361511953994,
+          "old_rss_bytes": 61325312,
+          "new_rss_bytes": 51740672,
+          "rss_drift_percent": -15.629174458990114
+        },
+        "hdt": {
+          "old_runtime_ns": 336349542,
+          "new_runtime_ns": 318875875,
+          "runtime_drift_percent": -5.195091658546092,
+          "old_setup_ns": 132913375,
+          "new_setup_ns": 134073125,
+          "setup_drift_percent": 0.8725607938252944,
+          "old_rss_bytes": 289931264,
+          "new_rss_bytes": 242302976,
+          "rss_drift_percent": -16.427441229656413
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 7437583,
+          "new_runtime_ns": 7607375,
+          "runtime_drift_percent": 2.282892170749551,
+          "old_setup_ns": 7645917,
+          "new_setup_ns": 8217167,
+          "setup_drift_percent": 7.471307888903311,
+          "old_rss_bytes": 14761984,
+          "new_rss_bytes": 14811136,
+          "rss_drift_percent": 0.33296337402886067
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 5096916,
+          "new_runtime_ns": 5058958,
+          "runtime_drift_percent": -0.7447248493010261,
+          "old_setup_ns": 18997958,
+          "new_setup_ns": 18861084,
+          "setup_drift_percent": -0.7204669049168388,
+          "old_rss_bytes": 17645568,
+          "new_rss_bytes": 17678336,
+          "rss_drift_percent": 0.18570102135562205
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 4594833,
+          "new_runtime_ns": 4412916,
+          "runtime_drift_percent": -3.959164565937434,
+          "old_setup_ns": 18987584,
+          "new_setup_ns": 18776250,
+          "setup_drift_percent": -1.1130115342741886,
+          "old_rss_bytes": 17530880,
+          "new_rss_bytes": 17563648,
+          "rss_drift_percent": 0.18691588785046953
+        },
+        "ett-scan": {
+          "old_runtime_ns": 6250541,
+          "new_runtime_ns": 5698750,
+          "runtime_drift_percent": -8.827891857680804,
+          "old_setup_ns": 202590958,
+          "new_setup_ns": 218761875,
+          "setup_drift_percent": 7.9820526837135475,
+          "old_rss_bytes": 87785472,
+          "new_rss_bytes": 71057408,
+          "rss_drift_percent": -19.05561776782382
+        },
+        "hdt": {
+          "old_runtime_ns": 322978583,
+          "new_runtime_ns": 296151542,
+          "runtime_drift_percent": -8.306136199749192,
+          "old_setup_ns": 130125167,
+          "new_setup_ns": 134015750,
+          "setup_drift_percent": 2.989877430858545,
+          "old_rss_bytes": 291979264,
+          "new_rss_bytes": 252149760,
+          "rss_drift_percent": -13.641209808652711
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 7408000,
+          "new_runtime_ns": 7308041,
+          "runtime_drift_percent": -1.3493385529157687,
+          "old_setup_ns": 7089333,
+          "new_setup_ns": 7053917,
+          "setup_drift_percent": -0.49956744872895475,
+          "old_rss_bytes": 14778368,
+          "new_rss_bytes": 14827520,
+          "rss_drift_percent": 0.3325942350332678
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 24664792,
+          "new_runtime_ns": 24420375,
+          "runtime_drift_percent": -0.9909550423129465,
+          "old_setup_ns": 19456625,
+          "new_setup_ns": 19478667,
+          "setup_drift_percent": 0.11328789037152731,
+          "old_rss_bytes": 17580032,
+          "new_rss_bytes": 17580032,
+          "rss_drift_percent": 0.0
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 23975625,
+          "new_runtime_ns": 24109417,
+          "runtime_drift_percent": 0.5580334193582059,
+          "old_setup_ns": 19577500,
+          "new_setup_ns": 19503833,
+          "setup_drift_percent": -0.3762839994892131,
+          "old_rss_bytes": 17448960,
+          "new_rss_bytes": 17432576,
+          "rss_drift_percent": -0.09389671361502705
+        },
+        "ett-scan": {
+          "old_runtime_ns": 4194417,
+          "new_runtime_ns": 4253334,
+          "runtime_drift_percent": 1.4046528993183038,
+          "old_setup_ns": 204277792,
+          "new_setup_ns": 217104458,
+          "setup_drift_percent": 6.279031055906459,
+          "old_rss_bytes": 61276160,
+          "new_rss_bytes": 51707904,
+          "rss_drift_percent": -15.614973262032084
+        },
+        "hdt": {
+          "old_runtime_ns": 214466416,
+          "new_runtime_ns": 209898084,
+          "runtime_drift_percent": -2.1300920140335577,
+          "old_setup_ns": 132492458,
+          "new_setup_ns": 171824250,
+          "setup_drift_percent": 29.6860610737556,
+          "old_rss_bytes": 215318528,
+          "new_rss_bytes": 178372608,
+          "rss_drift_percent": -17.158727743113676
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 39008166,
+          "new_runtime_ns": 39728541,
+          "runtime_drift_percent": 1.846728708035128,
+          "old_setup_ns": 7662541,
+          "new_setup_ns": 7744333,
+          "setup_drift_percent": 1.0674265886472911,
+          "old_rss_bytes": 14761984,
+          "new_rss_bytes": 14794752,
+          "rss_drift_percent": 0.2219755826859071
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 24455542,
+          "new_runtime_ns": 24177041,
+          "runtime_drift_percent": -1.1388052654895175,
+          "old_setup_ns": 18962750,
+          "new_setup_ns": 18792708,
+          "setup_drift_percent": -0.8967159299152261,
+          "old_rss_bytes": 17645568,
+          "new_rss_bytes": 17629184,
+          "rss_drift_percent": -0.09285051067781103
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 23716500,
+          "new_runtime_ns": 24587959,
+          "runtime_drift_percent": 3.67448400902326,
+          "old_setup_ns": 18992375,
+          "new_setup_ns": 20956917,
+          "setup_drift_percent": 10.343845885519842,
+          "old_rss_bytes": 17547264,
+          "new_rss_bytes": 17563648,
+          "rss_drift_percent": 0.09337068160597539
+        },
+        "ett-scan": {
+          "old_runtime_ns": 3690917,
+          "new_runtime_ns": 2971083,
+          "runtime_drift_percent": -19.502849833794688,
+          "old_setup_ns": 202502167,
+          "new_setup_ns": 217800708,
+          "setup_drift_percent": 7.554754216531423,
+          "old_rss_bytes": 87769088,
+          "new_rss_bytes": 70959104,
+          "rss_drift_percent": -19.152510733619565
+        },
+        "hdt": {
+          "old_runtime_ns": 216863500,
+          "new_runtime_ns": 199605792,
+          "runtime_drift_percent": -7.957866584279971,
+          "old_setup_ns": 131182875,
+          "new_setup_ns": 133048958,
+          "setup_drift_percent": 1.4225050335266776,
+          "old_rss_bytes": 216875008,
+          "new_rss_bytes": 192020480,
+          "rss_drift_percent": -11.460300672357782
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 39158875,
+          "new_runtime_ns": 39616125,
+          "runtime_drift_percent": 1.1676791021192567,
+          "old_setup_ns": 7084875,
+          "new_setup_ns": 7092208,
+          "setup_drift_percent": 0.10350217893753122,
+          "old_rss_bytes": 14794752,
+          "new_rss_bytes": 14811136,
+          "rss_drift_percent": 0.11074197120708451
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1000000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 5541458,
+          "new_runtime_ns": 5504417,
+          "runtime_drift_percent": -0.6684341918679171,
+          "old_setup_ns": 216908291,
+          "new_setup_ns": 218594000,
+          "setup_drift_percent": 0.7771528659547666,
+          "old_rss_bytes": 140066816,
+          "new_rss_bytes": 140083200,
+          "rss_drift_percent": 0.011697274535027447
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 5177041,
+          "new_runtime_ns": 4954041,
+          "runtime_drift_percent": -4.307479890539789,
+          "old_setup_ns": 215667250,
+          "new_setup_ns": 211629833,
+          "setup_drift_percent": -1.8720584604292045,
+          "old_rss_bytes": 143572992,
+          "new_rss_bytes": 143622144,
+          "rss_drift_percent": 0.0342348510784074
+        },
+        "ett-scan": {
+          "old_runtime_ns": 64855458,
+          "new_runtime_ns": 51761500,
+          "runtime_drift_percent": -20.189446507339447,
+          "old_setup_ns": 3127543917,
+          "new_setup_ns": 3303909000,
+          "setup_drift_percent": 5.639092133650125,
+          "old_rss_bytes": 509739008,
+          "new_rss_bytes": 414646272,
+          "rss_drift_percent": -18.655181280534837
+        },
+        "hdt": {
+          "old_runtime_ns": 5200543417,
+          "new_runtime_ns": 4800474875,
+          "runtime_drift_percent": -7.692821882655965,
+          "old_setup_ns": 2041171791,
+          "new_setup_ns": 1950554125,
+          "setup_drift_percent": -4.439492373917487,
+          "old_rss_bytes": 2054914048,
+          "new_rss_bytes": 1700855808,
+          "rss_drift_percent": -17.22983208687471
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 7232250,
+          "new_runtime_ns": 7345208,
+          "runtime_drift_percent": 1.5618652563171853,
+          "old_setup_ns": 81495375,
+          "new_setup_ns": 87873834,
+          "setup_drift_percent": 7.826774218782351,
+          "old_rss_bytes": 114868224,
+          "new_rss_bytes": 114900992,
+          "rss_drift_percent": 0.02852660105547855
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1000000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 5277750,
+          "new_runtime_ns": 5253625,
+          "runtime_drift_percent": -0.4571076689877329,
+          "old_setup_ns": 209540541,
+          "new_setup_ns": 207749500,
+          "setup_drift_percent": -0.8547467671184417,
+          "old_rss_bytes": 163741696,
+          "new_rss_bytes": 163741696,
+          "rss_drift_percent": 0.0
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 4792833,
+          "new_runtime_ns": 4777542,
+          "runtime_drift_percent": -0.3190388649051634,
+          "old_setup_ns": 209773208,
+          "new_setup_ns": 209202500,
+          "setup_drift_percent": -0.27205952821200974,
+          "old_rss_bytes": 167608320,
+          "new_rss_bytes": 167624704,
+          "rss_drift_percent": 0.009775171065484756
+        },
+        "ett-scan": {
+          "old_runtime_ns": 67710375,
+          "new_runtime_ns": 54416750,
+          "runtime_drift_percent": -19.633069525903522,
+          "old_setup_ns": 3086575209,
+          "new_setup_ns": 3262661583,
+          "setup_drift_percent": 5.704911174254179,
+          "old_rss_bytes": 736362496,
+          "new_rss_bytes": 600211456,
+          "rss_drift_percent": -18.489676041295834
+        },
+        "hdt": {
+          "old_runtime_ns": 4784706750,
+          "new_runtime_ns": 4663542625,
+          "runtime_drift_percent": -2.5323208156905364,
+          "old_setup_ns": 1978455584,
+          "new_setup_ns": 1899941708,
+          "setup_drift_percent": -3.9684426900937653,
+          "old_rss_bytes": 2239889408,
+          "new_rss_bytes": 1900888064,
+          "rss_drift_percent": -15.134735794955823
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 10316542,
+          "new_runtime_ns": 10154250,
+          "runtime_drift_percent": -1.5731240177183414,
+          "old_setup_ns": 81316458,
+          "new_setup_ns": 80493375,
+          "setup_drift_percent": -1.0121973094302739,
+          "old_rss_bytes": 131629056,
+          "new_rss_bytes": 131678208,
+          "rss_drift_percent": 0.03734129947721154
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1000000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 43296208,
+          "new_runtime_ns": 43518834,
+          "runtime_drift_percent": 0.5141928364719606,
+          "old_setup_ns": 216905166,
+          "new_setup_ns": 216496167,
+          "setup_drift_percent": -0.18856120743570015,
+          "old_rss_bytes": 144670720,
+          "new_rss_bytes": 144769024,
+          "rss_drift_percent": 0.06795016987541924
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 42306958,
+          "new_runtime_ns": 42423792,
+          "runtime_drift_percent": 0.2761578840057455,
+          "old_setup_ns": 223697333,
+          "new_setup_ns": 217222459,
+          "setup_drift_percent": -2.89447974777598,
+          "old_rss_bytes": 147668992,
+          "new_rss_bytes": 147701760,
+          "rss_drift_percent": 0.022190169754798816
+        },
+        "ett-scan": {
+          "old_runtime_ns": 68727583,
+          "new_runtime_ns": 55059625,
+          "runtime_drift_percent": -19.887150694649048,
+          "old_setup_ns": 3189696750,
+          "new_setup_ns": 3289840250,
+          "setup_drift_percent": 3.139593129033358,
+          "old_rss_bytes": 509739008,
+          "new_rss_bytes": 414646272,
+          "rss_drift_percent": -18.655181280534837
+        },
+        "hdt": {
+          "old_runtime_ns": 5305633875,
+          "new_runtime_ns": 4862337458,
+          "runtime_drift_percent": -8.355201799521083,
+          "old_setup_ns": 2086580458,
+          "new_setup_ns": 1992918208,
+          "setup_drift_percent": -4.488791680229564,
+          "old_rss_bytes": 1524973568,
+          "new_rss_bytes": 1641627648,
+          "rss_drift_percent": 7.649580454892191
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 67029916,
+          "new_runtime_ns": 68302000,
+          "runtime_drift_percent": 1.8977854604502298,
+          "old_setup_ns": 82353958,
+          "new_setup_ns": 83370250,
+          "setup_drift_percent": 1.2340536201065122,
+          "old_rss_bytes": 114950144,
+          "new_rss_bytes": 114917376,
+          "rss_drift_percent": -0.028506271379702408
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1000000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "compact-workspace",
+      "new_winner": "compact-workspace",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 43134709,
+          "new_runtime_ns": 43043250,
+          "runtime_drift_percent": -0.21203110469575348,
+          "old_setup_ns": 211027334,
+          "new_setup_ns": 207538125,
+          "setup_drift_percent": -1.6534393596613461,
+          "old_rss_bytes": 168771584,
+          "new_rss_bytes": 168787968,
+          "rss_drift_percent": 0.009707795359670257
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 41586542,
+          "new_runtime_ns": 41331000,
+          "runtime_drift_percent": -0.614482444825537,
+          "old_setup_ns": 210041916,
+          "new_setup_ns": 209594042,
+          "setup_drift_percent": -0.2132307724711513,
+          "old_rss_bytes": 171704320,
+          "new_rss_bytes": 171720704,
+          "rss_drift_percent": 0.009541984732819309
+        },
+        "ett-scan": {
+          "old_runtime_ns": 69550708,
+          "new_runtime_ns": 56821750,
+          "runtime_drift_percent": -18.30169435514589,
+          "old_setup_ns": 3126455000,
+          "new_setup_ns": 3143839292,
+          "setup_drift_percent": 0.5560384524965212,
+          "old_rss_bytes": 769785856,
+          "new_rss_bytes": 633241600,
+          "rss_drift_percent": -17.737953345819857
+        },
+        "hdt": {
+          "old_runtime_ns": 4531607041,
+          "new_runtime_ns": 4247300000,
+          "runtime_drift_percent": -6.27386793311322,
+          "old_setup_ns": 1932033125,
+          "new_setup_ns": 1996396500,
+          "setup_drift_percent": 3.331380511397808,
+          "old_rss_bytes": 2162491392,
+          "new_rss_bytes": 1898741760,
+          "rss_drift_percent": -12.196563323938536
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 68883125,
+          "new_runtime_ns": 73174209,
+          "runtime_drift_percent": 6.229514122653401,
+          "old_setup_ns": 81212792,
+          "new_setup_ns": 80501875,
+          "setup_drift_percent": -0.8753756427928305,
+          "old_rss_bytes": 131694592,
+          "new_rss_bytes": 131760128,
+          "rss_drift_percent": 0.04976362279174307
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1000000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 258588250,
+          "new_runtime_ns": 241072083,
+          "runtime_drift_percent": -6.773767562911304,
+          "old_setup_ns": 218165708,
+          "new_setup_ns": 217068667,
+          "setup_drift_percent": -0.5028475877611349,
+          "old_rss_bytes": 146341888,
+          "new_rss_bytes": 144703488,
+          "rss_drift_percent": -1.1195700850873291
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 245491542,
+          "new_runtime_ns": 244490833,
+          "runtime_drift_percent": -0.40763481782195576,
+          "old_setup_ns": 214418458,
+          "new_setup_ns": 210831209,
+          "setup_drift_percent": -1.6730131507614932,
+          "old_rss_bytes": 147636224,
+          "new_rss_bytes": 147652608,
+          "rss_drift_percent": 0.011097547442018296
+        },
+        "ett-scan": {
+          "old_runtime_ns": 48119250,
+          "new_runtime_ns": 36280000,
+          "runtime_drift_percent": -24.603978657190208,
+          "old_setup_ns": 3344457042,
+          "new_setup_ns": 3140537500,
+          "setup_drift_percent": -6.097239086618833,
+          "old_rss_bytes": 509640704,
+          "new_rss_bytes": 414629888,
+          "rss_drift_percent": -18.642705587346498
+        },
+        "hdt": {
+          "old_runtime_ns": 3549135208,
+          "new_runtime_ns": 3443326459,
+          "runtime_drift_percent": -2.981254384490617,
+          "old_setup_ns": 1992447583,
+          "new_setup_ns": 2074732458,
+          "setup_drift_percent": 4.129838882692449,
+          "old_rss_bytes": 1730527232,
+          "new_rss_bytes": 1371160576,
+          "rss_drift_percent": -20.76631036800697
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 398461958,
+          "new_runtime_ns": 418497833,
+          "runtime_drift_percent": 5.028303103404408,
+          "old_setup_ns": 82705959,
+          "new_setup_ns": 82336000,
+          "setup_drift_percent": -0.4473184332461466,
+          "old_rss_bytes": 114884608,
+          "new_rss_bytes": 114900992,
+          "rss_drift_percent": 0.014261266400450445
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-blocks-v1",
+      "nodes": 1000000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 241660083,
+          "new_runtime_ns": 239377166,
+          "runtime_drift_percent": -0.9446810460625343,
+          "old_setup_ns": 210815084,
+          "new_setup_ns": 208133375,
+          "setup_drift_percent": -1.2720669456460665,
+          "old_rss_bytes": 168787968,
+          "new_rss_bytes": 171278336,
+          "rss_drift_percent": 1.475441661813237
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 244648625,
+          "new_runtime_ns": 252416375,
+          "runtime_drift_percent": 3.1750638287870947,
+          "old_setup_ns": 212029875,
+          "new_setup_ns": 216589166,
+          "setup_drift_percent": 2.150305941556585,
+          "old_rss_bytes": 171704320,
+          "new_rss_bytes": 171704320,
+          "rss_drift_percent": 0.0
+        },
+        "ett-scan": {
+          "old_runtime_ns": 47466417,
+          "new_runtime_ns": 37562208,
+          "runtime_drift_percent": -20.865718598477745,
+          "old_setup_ns": 3141979625,
+          "new_setup_ns": 3199950084,
+          "setup_drift_percent": 1.8450297557228712,
+          "old_rss_bytes": 742555648,
+          "new_rss_bytes": 634011648,
+          "rss_drift_percent": -14.617624994483913
+        },
+        "hdt": {
+          "old_runtime_ns": 3408847250,
+          "new_runtime_ns": 3643520583,
+          "runtime_drift_percent": 6.884243141138113,
+          "old_setup_ns": 1991522708,
+          "new_setup_ns": 1958434833,
+          "setup_drift_percent": -1.6614359890090746,
+          "old_rss_bytes": 1675100160,
+          "new_rss_bytes": 1369145344,
+          "rss_drift_percent": -18.264866979655714
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 399899292,
+          "new_runtime_ns": 426151625,
+          "runtime_drift_percent": 6.564736053596221,
+          "old_setup_ns": 81191375,
+          "new_setup_ns": 82703458,
+          "setup_drift_percent": 1.8623690016334793,
+          "old_rss_bytes": 131710976,
+          "new_rss_bytes": 131727360,
+          "rss_drift_percent": 0.012439358129112676
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 137459,
+          "new_runtime_ns": 141625,
+          "runtime_drift_percent": 3.030721887981147,
+          "old_setup_ns": 165875,
+          "new_setup_ns": 177542,
+          "setup_drift_percent": 7.033609645817629,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.57873210633948
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 117000,
+          "new_runtime_ns": 119209,
+          "runtime_drift_percent": 1.8880341880341822,
+          "old_setup_ns": 165792,
+          "new_setup_ns": 170250,
+          "setup_drift_percent": 2.688911407064265,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "ett-scan": {
+          "old_runtime_ns": 537875,
+          "new_runtime_ns": 508167,
+          "runtime_drift_percent": -5.523216360678596,
+          "old_setup_ns": 982791,
+          "new_setup_ns": 905167,
+          "setup_drift_percent": -7.898322227208022,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        },
+        "hdt": {
+          "old_runtime_ns": 538459,
+          "new_runtime_ns": 521583,
+          "runtime_drift_percent": -3.134129060894142,
+          "old_setup_ns": 746166,
+          "new_setup_ns": 728583,
+          "setup_drift_percent": -2.356446152732772,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 91917,
+          "new_runtime_ns": 91667,
+          "runtime_drift_percent": -0.271984507762435,
+          "old_setup_ns": 63625,
+          "new_setup_ns": 72042,
+          "setup_drift_percent": 13.229076620825154,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 105583,
+          "new_runtime_ns": 107334,
+          "runtime_drift_percent": 1.6584109184243578,
+          "old_setup_ns": 157458,
+          "new_setup_ns": 159416,
+          "setup_drift_percent": 1.2435062048292256,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 95666,
+          "new_runtime_ns": 106792,
+          "runtime_drift_percent": 11.630046202412569,
+          "old_setup_ns": 157417,
+          "new_setup_ns": 175708,
+          "setup_drift_percent": 11.619456602527055,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "ett-scan": {
+          "old_runtime_ns": 486458,
+          "new_runtime_ns": 464667,
+          "runtime_drift_percent": -4.479523412093133,
+          "old_setup_ns": 932708,
+          "new_setup_ns": 876750,
+          "setup_drift_percent": -5.9995196781843845,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "hdt": {
+          "old_runtime_ns": 479917,
+          "new_runtime_ns": 448792,
+          "runtime_drift_percent": -6.485496450427886,
+          "old_setup_ns": 691250,
+          "new_setup_ns": 651750,
+          "setup_drift_percent": -5.714285714285716,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.37423312883436
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 73542,
+          "new_runtime_ns": 73667,
+          "runtime_drift_percent": 0.16997090098174183,
+          "old_setup_ns": 55542,
+          "new_setup_ns": 58459,
+          "setup_drift_percent": 5.251881459076024,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 53.46938775510204
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 213084,
+          "new_runtime_ns": 216875,
+          "runtime_drift_percent": 1.7791105854968015,
+          "old_setup_ns": 165542,
+          "new_setup_ns": 171042,
+          "setup_drift_percent": 3.3224196880550005,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 146042,
+          "new_runtime_ns": 147417,
+          "runtime_drift_percent": 0.9415099765820889,
+          "old_setup_ns": 166792,
+          "new_setup_ns": 175958,
+          "setup_drift_percent": 5.495467408508792,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        },
+        "ett-scan": {
+          "old_runtime_ns": 393542,
+          "new_runtime_ns": 370500,
+          "runtime_drift_percent": -5.855029450477966,
+          "old_setup_ns": 975542,
+          "new_setup_ns": 904333,
+          "setup_drift_percent": -7.299429445374983,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 52.953156822810584
+        },
+        "hdt": {
+          "old_runtime_ns": 398875,
+          "new_runtime_ns": 367625,
+          "runtime_drift_percent": -7.834534628643064,
+          "old_setup_ns": 744000,
+          "new_setup_ns": 689708,
+          "setup_drift_percent": -7.297311827956987,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.41478439425052
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 133125,
+          "new_runtime_ns": 127209,
+          "runtime_drift_percent": -4.4439436619718276,
+          "old_setup_ns": 64166,
+          "new_setup_ns": 70417,
+          "setup_drift_percent": 9.74191939656517,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.57873210633948
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 186875,
+          "new_runtime_ns": 186792,
+          "runtime_drift_percent": -0.04441471571906552,
+          "old_setup_ns": 156792,
+          "new_setup_ns": 156333,
+          "setup_drift_percent": -0.29274452778202953,
+          "old_rss_bytes": 8011776,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.57873210633948
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 126875,
+          "new_runtime_ns": 129375,
+          "runtime_drift_percent": 1.9704433497536922,
+          "old_setup_ns": 155125,
+          "new_setup_ns": 157250,
+          "setup_drift_percent": 1.3698630136986356,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "ett-scan": {
+          "old_runtime_ns": 345208,
+          "new_runtime_ns": 336292,
+          "runtime_drift_percent": -2.5827906653379973,
+          "old_setup_ns": 933833,
+          "new_setup_ns": 874625,
+          "setup_drift_percent": -6.340319950140982,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 52.5458248472505
+        },
+        "hdt": {
+          "old_runtime_ns": 346333,
+          "new_runtime_ns": 329584,
+          "runtime_drift_percent": -4.836097051103994,
+          "old_setup_ns": 695333,
+          "new_setup_ns": 644500,
+          "setup_drift_percent": -7.3105979437190545,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 111042,
+          "new_runtime_ns": 120292,
+          "runtime_drift_percent": 8.330181372813893,
+          "old_setup_ns": 56333,
+          "new_setup_ns": 70500,
+          "setup_drift_percent": 25.14866951875454,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 51.934826883910375
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 523708,
+          "new_runtime_ns": 502125,
+          "runtime_drift_percent": -4.121189670579783,
+          "old_setup_ns": 165083,
+          "new_setup_ns": 173292,
+          "setup_drift_percent": 4.9726501214540475,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 318750,
+          "new_runtime_ns": 318417,
+          "runtime_drift_percent": -0.10447058823529476,
+          "old_setup_ns": 164584,
+          "new_setup_ns": 170583,
+          "setup_drift_percent": 3.6449472609731304,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        },
+        "ett-scan": {
+          "old_runtime_ns": 207708,
+          "new_runtime_ns": 197083,
+          "runtime_drift_percent": -5.115354247308723,
+          "old_setup_ns": 984958,
+          "new_setup_ns": 903042,
+          "setup_drift_percent": -8.316699798367033,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "hdt": {
+          "old_runtime_ns": 211542,
+          "new_runtime_ns": 203042,
+          "runtime_drift_percent": -4.018114606082957,
+          "old_setup_ns": 749875,
+          "new_setup_ns": 702292,
+          "setup_drift_percent": -6.345457576262714,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.7987679671458
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 305958,
+          "new_runtime_ns": 304709,
+          "runtime_drift_percent": -0.4082259656554177,
+          "old_setup_ns": 61917,
+          "new_setup_ns": 69958,
+          "setup_drift_percent": 12.986740313645683,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1024,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 470500,
+          "new_runtime_ns": 480583,
+          "runtime_drift_percent": 2.143039319872475,
+          "old_setup_ns": 151667,
+          "new_setup_ns": 154041,
+          "setup_drift_percent": 1.5652712851180528,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 52.74949083503056
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 306125,
+          "new_runtime_ns": 305500,
+          "runtime_drift_percent": -0.20416496529195305,
+          "old_setup_ns": 154167,
+          "new_setup_ns": 154916,
+          "setup_drift_percent": 0.485836787379923,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "ett-scan": {
+          "old_runtime_ns": 181375,
+          "new_runtime_ns": 172833,
+          "runtime_drift_percent": -4.709579600275671,
+          "old_setup_ns": 932209,
+          "new_setup_ns": 878625,
+          "setup_drift_percent": -5.74806722526815,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12206080,
+          "rss_drift_percent": 52.663934426229496
+        },
+        "hdt": {
+          "old_runtime_ns": 186709,
+          "new_runtime_ns": 177500,
+          "runtime_drift_percent": -4.932274287795446,
+          "old_setup_ns": 690791,
+          "new_setup_ns": 645333,
+          "setup_drift_percent": -6.580572126735873,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 361125,
+          "new_runtime_ns": 330041,
+          "runtime_drift_percent": -8.607545863620626,
+          "old_setup_ns": 53542,
+          "new_setup_ns": 56667,
+          "setup_drift_percent": 5.836539539053454,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12238848,
+          "rss_drift_percent": 53.07377049180329
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 209792,
+          "new_runtime_ns": 213250,
+          "runtime_drift_percent": 1.6482992678462427,
+          "old_setup_ns": 1661459,
+          "new_setup_ns": 1663459,
+          "setup_drift_percent": 0.12037612724720148,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 52.953156822810584
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 170417,
+          "new_runtime_ns": 172959,
+          "runtime_drift_percent": 1.4916352241853836,
+          "old_setup_ns": 1665625,
+          "new_setup_ns": 1672417,
+          "setup_drift_percent": 0.4077748592870467,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12222464,
+          "rss_drift_percent": 52.8688524590164
+        },
+        "ett-scan": {
+          "old_runtime_ns": 923584,
+          "new_runtime_ns": 795334,
+          "runtime_drift_percent": -13.886121890374891,
+          "old_setup_ns": 12318750,
+          "new_setup_ns": 12356875,
+          "setup_drift_percent": 0.30948756976154623,
+          "old_rss_bytes": 9273344,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 32.15547703180213
+        },
+        "hdt": {
+          "old_runtime_ns": 940709,
+          "new_runtime_ns": 831792,
+          "runtime_drift_percent": -11.578181988266302,
+          "old_setup_ns": 8835709,
+          "new_setup_ns": 8692625,
+          "setup_drift_percent": -1.6193833454678064,
+          "old_rss_bytes": 11583488,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 5.799151343705788
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 147500,
+          "new_runtime_ns": 148208,
+          "runtime_drift_percent": 0.47999999999999154,
+          "old_setup_ns": 620292,
+          "new_setup_ns": 628834,
+          "setup_drift_percent": 1.3770933689294829,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 53.15682281059062
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 192167,
+          "new_runtime_ns": 198708,
+          "runtime_drift_percent": 3.403810227562487,
+          "old_setup_ns": 1630625,
+          "new_setup_ns": 1693125,
+          "setup_drift_percent": 3.8328861632809463,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 164875,
+          "new_runtime_ns": 163541,
+          "runtime_drift_percent": -0.8090978013646666,
+          "old_setup_ns": 1635834,
+          "new_setup_ns": 1646500,
+          "setup_drift_percent": 0.6520221489466627,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 53.278688524590166
+        },
+        "ett-scan": {
+          "old_runtime_ns": 797459,
+          "new_runtime_ns": 747334,
+          "runtime_drift_percent": -6.285589603979636,
+          "old_setup_ns": 12043500,
+          "new_setup_ns": 12277708,
+          "setup_drift_percent": 1.9446838543612843,
+          "old_rss_bytes": 9306112,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 31.690140845070424
+        },
+        "hdt": {
+          "old_runtime_ns": 823542,
+          "new_runtime_ns": 765791,
+          "runtime_drift_percent": -7.0125142372823746,
+          "old_setup_ns": 8349125,
+          "new_setup_ns": 8277958,
+          "setup_drift_percent": -0.8523887233692129,
+          "old_rss_bytes": 11632640,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 5.915492957746471
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 142750,
+          "new_runtime_ns": 139625,
+          "runtime_drift_percent": -2.189141856392296,
+          "old_setup_ns": 584500,
+          "new_setup_ns": 585833,
+          "setup_drift_percent": 0.22805816937554457,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 53.68852459016394
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 701000,
+          "new_runtime_ns": 703667,
+          "runtime_drift_percent": 0.38045649072753207,
+          "old_setup_ns": 1675625,
+          "new_setup_ns": 1677791,
+          "setup_drift_percent": 0.12926519955240856,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 54.20944558521561
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 507750,
+          "new_runtime_ns": 507042,
+          "runtime_drift_percent": -0.13943870014770932,
+          "old_setup_ns": 1674917,
+          "new_setup_ns": 1695958,
+          "setup_drift_percent": 1.2562413540491812,
+          "old_rss_bytes": 8028160,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 53.46938775510204
+        },
+        "ett-scan": {
+          "old_runtime_ns": 735583,
+          "new_runtime_ns": 589708,
+          "runtime_drift_percent": -19.831208714720162,
+          "old_setup_ns": 12434667,
+          "new_setup_ns": 12316042,
+          "setup_drift_percent": -0.9539861421299034,
+          "old_rss_bytes": 9240576,
+          "new_rss_bytes": 12255232,
+          "rss_drift_percent": 32.62411347517731
+        },
+        "hdt": {
+          "old_runtime_ns": 752750,
+          "new_runtime_ns": 657250,
+          "runtime_drift_percent": -12.686815011624041,
+          "old_setup_ns": 8918917,
+          "new_setup_ns": 8958750,
+          "setup_drift_percent": 0.44661252033177945,
+          "old_rss_bytes": 11567104,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 6.373937677053831
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 464458,
+          "new_runtime_ns": 462958,
+          "runtime_drift_percent": -0.3229570811569604,
+          "old_setup_ns": 638750,
+          "new_setup_ns": 627917,
+          "setup_drift_percent": -1.6959686888454062,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 54.004106776180706
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "compact-workspace",
+      "winner_changed": true,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 686791,
+          "new_runtime_ns": 676459,
+          "runtime_drift_percent": -1.5043877977434228,
+          "old_setup_ns": 1631959,
+          "new_setup_ns": 1643417,
+          "setup_drift_percent": 0.702100971899422,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 52.74949083503056
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 498541,
+          "new_runtime_ns": 494458,
+          "runtime_drift_percent": -0.8189898122722084,
+          "old_setup_ns": 1662625,
+          "new_setup_ns": 1630708,
+          "setup_drift_percent": -1.9196752123900485,
+          "old_rss_bytes": 8044544,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 52.5458248472505
+        },
+        "ett-scan": {
+          "old_runtime_ns": 629458,
+          "new_runtime_ns": 516750,
+          "runtime_drift_percent": -17.90556319881549,
+          "old_setup_ns": 11986541,
+          "new_setup_ns": 12134334,
+          "setup_drift_percent": 1.232991235753511,
+          "old_rss_bytes": 9273344,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 32.86219081272084
+        },
+        "hdt": {
+          "old_runtime_ns": 608250,
+          "new_runtime_ns": 597125,
+          "runtime_drift_percent": -1.829017673653921,
+          "old_setup_ns": 8362542,
+          "new_setup_ns": 8402791,
+          "setup_drift_percent": 0.4813010206704993,
+          "old_rss_bytes": 11616256,
+          "new_rss_bytes": 12288000,
+          "rss_drift_percent": 5.782792665726366
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 462084,
+          "new_runtime_ns": 564708,
+          "runtime_drift_percent": 22.2089490222557,
+          "old_setup_ns": 585209,
+          "new_setup_ns": 583166,
+          "setup_drift_percent": -0.34910604587421457,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 53.893442622950815
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 2672042,
+          "new_runtime_ns": 2649291,
+          "runtime_drift_percent": -0.8514461973277321,
+          "old_setup_ns": 1684292,
+          "new_setup_ns": 1671167,
+          "setup_drift_percent": -0.7792591783372438,
+          "old_rss_bytes": 7979008,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.41478439425052
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 2216625,
+          "new_runtime_ns": 2201500,
+          "runtime_drift_percent": -0.6823436530761895,
+          "old_setup_ns": 1659584,
+          "new_setup_ns": 1669584,
+          "setup_drift_percent": 0.6025606417029872,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "ett-scan": {
+          "old_runtime_ns": 515250,
+          "new_runtime_ns": 473875,
+          "runtime_drift_percent": -8.03008248423096,
+          "old_setup_ns": 12415000,
+          "new_setup_ns": 12483750,
+          "setup_drift_percent": 0.5537656061216367,
+          "old_rss_bytes": 9191424,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 33.868092691622095
+        },
+        "hdt": {
+          "old_runtime_ns": 488208,
+          "new_runtime_ns": 384208,
+          "runtime_drift_percent": -21.302395700193355,
+          "old_setup_ns": 8824250,
+          "new_setup_ns": 8664583,
+          "setup_drift_percent": -1.8094115647222186,
+          "old_rss_bytes": 11517952,
+          "new_rss_bytes": 12304384,
+          "rss_drift_percent": 6.827880512091045
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 2130834,
+          "new_runtime_ns": 2119834,
+          "runtime_drift_percent": -0.5162297954697581,
+          "old_setup_ns": 618542,
+          "new_setup_ns": 628250,
+          "setup_drift_percent": 1.5694973017192027,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 10000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 2593708,
+          "new_runtime_ns": 2604041,
+          "runtime_drift_percent": 0.398387173883874,
+          "old_setup_ns": 1642375,
+          "new_setup_ns": 1640458,
+          "setup_drift_percent": -0.11672121165994254,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 2229958,
+          "new_runtime_ns": 2224500,
+          "runtime_drift_percent": -0.24475797302011548,
+          "old_setup_ns": 1647666,
+          "new_setup_ns": 1647500,
+          "setup_drift_percent": -0.010074857404351878,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12271616,
+          "rss_drift_percent": 53.48360655737705
+        },
+        "ett-scan": {
+          "old_runtime_ns": 336833,
+          "new_runtime_ns": 297208,
+          "runtime_drift_percent": -11.763989870351189,
+          "old_setup_ns": 11916583,
+          "new_setup_ns": 12165792,
+          "setup_drift_percent": 2.091279018490444,
+          "old_rss_bytes": 9273344,
+          "new_rss_bytes": 12337152,
+          "rss_drift_percent": 33.03886925795052
+        },
+        "hdt": {
+          "old_runtime_ns": 362250,
+          "new_runtime_ns": 308250,
+          "runtime_drift_percent": -14.90683229813664,
+          "old_setup_ns": 8351167,
+          "new_setup_ns": 8268708,
+          "setup_drift_percent": -0.9873949353425671,
+          "old_rss_bytes": 11599872,
+          "new_rss_bytes": 12337152,
+          "rss_drift_percent": 6.355932203389836
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 2151833,
+          "new_runtime_ns": 2105459,
+          "runtime_drift_percent": -2.1550928905728295,
+          "old_setup_ns": 590959,
+          "new_setup_ns": 580042,
+          "setup_drift_percent": -1.8473362788281378,
+          "old_rss_bytes": 7995392,
+          "new_rss_bytes": 12320768,
+          "rss_drift_percent": 54.0983606557377
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 843834,
+          "new_runtime_ns": 792125,
+          "runtime_drift_percent": -6.127864011168072,
+          "old_setup_ns": 18556292,
+          "new_setup_ns": 18473208,
+          "setup_drift_percent": -0.4477403136359359,
+          "old_rss_bytes": 17514496,
+          "new_rss_bytes": 17498112,
+          "rss_drift_percent": -0.093545369504211
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 729584,
+          "new_runtime_ns": 649041,
+          "runtime_drift_percent": -11.039578718831555,
+          "old_setup_ns": 18460875,
+          "new_setup_ns": 18653834,
+          "setup_drift_percent": 1.0452321463635839,
+          "old_rss_bytes": 17367040,
+          "new_rss_bytes": 17383424,
+          "rss_drift_percent": 0.09433962264151496
+        },
+        "ett-scan": {
+          "old_runtime_ns": 2381500,
+          "new_runtime_ns": 3405917,
+          "runtime_drift_percent": 43.01562040730631,
+          "old_setup_ns": 196756833,
+          "new_setup_ns": 224820459,
+          "setup_drift_percent": 14.263101093927455,
+          "old_rss_bytes": 59752448,
+          "new_rss_bytes": 50151424,
+          "rss_drift_percent": -16.068001096791885
+        },
+        "hdt": {
+          "old_runtime_ns": 3894042,
+          "new_runtime_ns": 2701083,
+          "runtime_drift_percent": -30.635493916090272,
+          "old_setup_ns": 127605166,
+          "new_setup_ns": 127970334,
+          "setup_drift_percent": 0.28617023232428984,
+          "old_rss_bytes": 84754432,
+          "new_rss_bytes": 72810496,
+          "rss_drift_percent": -14.09240286100909
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 555417,
+          "new_runtime_ns": 563917,
+          "runtime_drift_percent": 1.5303816771902845,
+          "old_setup_ns": 7065208,
+          "new_setup_ns": 7196000,
+          "setup_drift_percent": 1.8512123068421982,
+          "old_rss_bytes": 14467072,
+          "new_rss_bytes": 14483456,
+          "rss_drift_percent": 0.11325028312569874
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 776542,
+          "new_runtime_ns": 696292,
+          "runtime_drift_percent": -10.334276832418599,
+          "old_setup_ns": 17946416,
+          "new_setup_ns": 17713833,
+          "setup_drift_percent": -1.2959857834567101,
+          "old_rss_bytes": 17563648,
+          "new_rss_bytes": 17563648,
+          "rss_drift_percent": 0.0
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 632333,
+          "new_runtime_ns": 593459,
+          "runtime_drift_percent": -6.147710146394381,
+          "old_setup_ns": 18117542,
+          "new_setup_ns": 17911334,
+          "setup_drift_percent": -1.1381676388552031,
+          "old_rss_bytes": 17448960,
+          "new_rss_bytes": 17465344,
+          "rss_drift_percent": 0.09389671361501595
+        },
+        "ett-scan": {
+          "old_runtime_ns": 2520792,
+          "new_runtime_ns": 2122833,
+          "runtime_drift_percent": -15.787062161415932,
+          "old_setup_ns": 201373917,
+          "new_setup_ns": 213837042,
+          "setup_drift_percent": 6.189046320234204,
+          "old_rss_bytes": 86212608,
+          "new_rss_bytes": 69419008,
+          "rss_drift_percent": -19.479285442797412
+        },
+        "hdt": {
+          "old_runtime_ns": 3074917,
+          "new_runtime_ns": 2681875,
+          "runtime_drift_percent": -12.78219867398047,
+          "old_setup_ns": 127607583,
+          "new_setup_ns": 132220000,
+          "setup_drift_percent": 3.614532061155007,
+          "old_rss_bytes": 112640000,
+          "new_rss_bytes": 92160000,
+          "rss_drift_percent": -18.181818181818176
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 594959,
+          "new_runtime_ns": 537583,
+          "runtime_drift_percent": -9.643689733242123,
+          "old_setup_ns": 6651250,
+          "new_setup_ns": 6608916,
+          "setup_drift_percent": -0.6364818643112224,
+          "old_rss_bytes": 14499840,
+          "new_rss_bytes": 14532608,
+          "rss_drift_percent": 0.2259887005649608
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 4601083,
+          "new_runtime_ns": 4591375,
+          "runtime_drift_percent": -0.21099380298073012,
+          "old_setup_ns": 18544292,
+          "new_setup_ns": 18670750,
+          "setup_drift_percent": 0.6819241198315895,
+          "old_rss_bytes": 17481728,
+          "new_rss_bytes": 17481728,
+          "rss_drift_percent": 0.0
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 4096833,
+          "new_runtime_ns": 4254666,
+          "runtime_drift_percent": 3.8525612344950444,
+          "old_setup_ns": 18530458,
+          "new_setup_ns": 19019792,
+          "setup_drift_percent": 2.6407010555270727,
+          "old_rss_bytes": 17350656,
+          "new_rss_bytes": 17367040,
+          "rss_drift_percent": 0.09442870632672129
+        },
+        "ett-scan": {
+          "old_runtime_ns": 2622209,
+          "new_runtime_ns": 2092667,
+          "runtime_drift_percent": -20.194500133284564,
+          "old_setup_ns": 206358083,
+          "new_setup_ns": 211482833,
+          "setup_drift_percent": 2.4834258612491666,
+          "old_rss_bytes": 59768832,
+          "new_rss_bytes": 50167808,
+          "rss_drift_percent": -16.063596491228072
+        },
+        "hdt": {
+          "old_runtime_ns": 3260583,
+          "new_runtime_ns": 3575834,
+          "runtime_drift_percent": 9.668547005244154,
+          "old_setup_ns": 127334542,
+          "new_setup_ns": 132775000,
+          "setup_drift_percent": 4.272570438899437,
+          "old_rss_bytes": 84787200,
+          "new_rss_bytes": 72810496,
+          "rss_drift_percent": -14.125603864734304
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 3707250,
+          "new_runtime_ns": 3688542,
+          "runtime_drift_percent": -0.504632814080519,
+          "old_setup_ns": 7099000,
+          "new_setup_ns": 7224458,
+          "setup_drift_percent": 1.7672629947879992,
+          "old_rss_bytes": 14450688,
+          "new_rss_bytes": 14483456,
+          "rss_drift_percent": 0.22675736961450532
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 4552667,
+          "new_runtime_ns": 4672959,
+          "runtime_drift_percent": 2.642231465644196,
+          "old_setup_ns": 17886208,
+          "new_setup_ns": 18060917,
+          "setup_drift_percent": 0.9767805450993317,
+          "old_rss_bytes": 17530880,
+          "new_rss_bytes": 17563648,
+          "rss_drift_percent": 0.18691588785046953
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 3983917,
+          "new_runtime_ns": 3891958,
+          "runtime_drift_percent": -2.3082559199902986,
+          "old_setup_ns": 17932416,
+          "new_setup_ns": 17776375,
+          "setup_drift_percent": -0.8701616112407828,
+          "old_rss_bytes": 17448960,
+          "new_rss_bytes": 17465344,
+          "rss_drift_percent": 0.09389671361501595
+        },
+        "ett-scan": {
+          "old_runtime_ns": 2232959,
+          "new_runtime_ns": 2365875,
+          "runtime_drift_percent": 5.9524603900026785,
+          "old_setup_ns": 198495125,
+          "new_setup_ns": 221713666,
+          "setup_drift_percent": 11.697285260784106,
+          "old_rss_bytes": 86196224,
+          "new_rss_bytes": 69468160,
+          "rss_drift_percent": -19.406956852309442
+        },
+        "hdt": {
+          "old_runtime_ns": 2590625,
+          "new_runtime_ns": 2464583,
+          "runtime_drift_percent": -4.865312424607959,
+          "old_setup_ns": 127332125,
+          "new_setup_ns": 127315583,
+          "setup_drift_percent": -0.012991222757019472,
+          "old_rss_bytes": 112738304,
+          "new_rss_bytes": 92160000,
+          "rss_drift_percent": -18.253160877779393
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 3672917,
+          "new_runtime_ns": 3707458,
+          "runtime_drift_percent": 0.9404241914532818,
+          "old_setup_ns": 6612667,
+          "new_setup_ns": 6612542,
+          "setup_drift_percent": -0.0018903114280544031,
+          "old_rss_bytes": 14499840,
+          "new_rss_bytes": 14548992,
+          "rss_drift_percent": 0.3389830508474523
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 23679250,
+          "new_runtime_ns": 23467333,
+          "runtime_drift_percent": -0.8949481085760769,
+          "old_setup_ns": 18540542,
+          "new_setup_ns": 18419583,
+          "setup_drift_percent": -0.6524027183239856,
+          "old_rss_bytes": 17465344,
+          "new_rss_bytes": 17481728,
+          "rss_drift_percent": 0.09380863039398779
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 22821541,
+          "new_runtime_ns": 22570750,
+          "runtime_drift_percent": -1.0989222857474834,
+          "old_setup_ns": 18491500,
+          "new_setup_ns": 18345500,
+          "setup_drift_percent": -0.7895519563042463,
+          "old_rss_bytes": 17367040,
+          "new_rss_bytes": 17383424,
+          "rss_drift_percent": 0.09433962264151496
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1949667,
+          "new_runtime_ns": 1407209,
+          "runtime_drift_percent": -27.82311030550345,
+          "old_setup_ns": 199842542,
+          "new_setup_ns": 205635750,
+          "setup_drift_percent": 2.898886264166922,
+          "old_rss_bytes": 59686912,
+          "new_rss_bytes": 50118656,
+          "rss_drift_percent": -16.03074389239638
+        },
+        "hdt": {
+          "old_runtime_ns": 2547542,
+          "new_runtime_ns": 1801708,
+          "runtime_drift_percent": -29.276612515122423,
+          "old_setup_ns": 128643875,
+          "new_setup_ns": 127496625,
+          "setup_drift_percent": -0.8918030493095808,
+          "old_rss_bytes": 84738048,
+          "new_rss_bytes": 72826880,
+          "rss_drift_percent": -14.056457849961335
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 19882833,
+          "new_runtime_ns": 21766917,
+          "runtime_drift_percent": 9.475933334047525,
+          "old_setup_ns": 7084791,
+          "new_setup_ns": 7369750,
+          "setup_drift_percent": 4.0221228826651245,
+          "old_rss_bytes": 14434304,
+          "new_rss_bytes": 14483456,
+          "rss_drift_percent": 0.34052213393871433
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 100000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "hdt",
+      "winner_changed": true,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 23984041,
+          "new_runtime_ns": 23415292,
+          "runtime_drift_percent": -2.3713643584915456,
+          "old_setup_ns": 17990292,
+          "new_setup_ns": 17816334,
+          "setup_drift_percent": -0.9669548443126952,
+          "old_rss_bytes": 17530880,
+          "new_rss_bytes": 17547264,
+          "rss_drift_percent": 0.09345794392523477
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 22571667,
+          "new_runtime_ns": 22462125,
+          "runtime_drift_percent": -0.4853075317830968,
+          "old_setup_ns": 17854458,
+          "new_setup_ns": 17886375,
+          "setup_drift_percent": 0.17876207723583892,
+          "old_rss_bytes": 17432576,
+          "new_rss_bytes": 17432576,
+          "rss_drift_percent": 0.0
+        },
+        "ett-scan": {
+          "old_runtime_ns": 1662500,
+          "new_runtime_ns": 1710083,
+          "runtime_drift_percent": 2.8621353383458725,
+          "old_setup_ns": 199470834,
+          "new_setup_ns": 204780917,
+          "setup_drift_percent": 2.6620849241548727,
+          "old_rss_bytes": 86147072,
+          "new_rss_bytes": 69402624,
+          "rss_drift_percent": -19.437048307341197
+        },
+        "hdt": {
+          "old_runtime_ns": 2193375,
+          "new_runtime_ns": 1502458,
+          "runtime_drift_percent": -31.500176668376355,
+          "old_setup_ns": 127320667,
+          "new_setup_ns": 126021334,
+          "setup_drift_percent": -1.0205201014223397,
+          "old_rss_bytes": 112705536,
+          "new_rss_bytes": 92192768,
+          "rss_drift_percent": -18.20031981392645
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 19589375,
+          "new_runtime_ns": 21109500,
+          "runtime_drift_percent": 7.75994639951505,
+          "old_setup_ns": 6673125,
+          "new_setup_ns": 7218834,
+          "setup_drift_percent": 8.17771284068558,
+          "old_rss_bytes": 14483456,
+          "new_rss_bytes": 14499840,
+          "rss_drift_percent": 0.11312217194570096
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 10,
+      "regime": "fresh",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 4941708,
+          "new_runtime_ns": 5588875,
+          "runtime_drift_percent": 13.096018623520456,
+          "old_setup_ns": 204291792,
+          "new_setup_ns": 202495084,
+          "setup_drift_percent": -0.8794812470977798,
+          "old_rss_bytes": 138657792,
+          "new_rss_bytes": 138690560,
+          "rss_drift_percent": 0.023632281696794877
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 4383167,
+          "new_runtime_ns": 5657292,
+          "runtime_drift_percent": 29.068593553474,
+          "old_setup_ns": 201711666,
+          "new_setup_ns": 203024833,
+          "setup_drift_percent": 0.651011925110967,
+          "old_rss_bytes": 142557184,
+          "new_rss_bytes": 142589952,
+          "rss_drift_percent": 0.02298586369382516
+        },
+        "ett-scan": {
+          "old_runtime_ns": 7086750,
+          "new_runtime_ns": 9982250,
+          "runtime_drift_percent": 40.85793911172257,
+          "old_setup_ns": 3076881375,
+          "new_setup_ns": 3173328417,
+          "setup_drift_percent": 3.134571348237314,
+          "old_rss_bytes": 493404160,
+          "new_rss_bytes": 399867904,
+          "rss_drift_percent": -18.95733023410261
+        },
+        "hdt": {
+          "old_runtime_ns": 7943875,
+          "new_runtime_ns": 27982041,
+          "runtime_drift_percent": 252.24674356029016,
+          "old_setup_ns": 1911510292,
+          "new_setup_ns": 1910402333,
+          "setup_drift_percent": -0.057962491995833254,
+          "old_rss_bytes": 718897152,
+          "new_rss_bytes": 517177344,
+          "rss_drift_percent": -28.05961985505264
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 4002292,
+          "new_runtime_ns": 3937125,
+          "runtime_drift_percent": -1.6282420173240775,
+          "old_setup_ns": 74671709,
+          "new_setup_ns": 75580250,
+          "setup_drift_percent": 1.2167138159379753,
+          "old_rss_bytes": 95092736,
+          "new_rss_bytes": 95125504,
+          "rss_drift_percent": 0.034458993797370496
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 10,
+      "regime": "warmed",
+      "old_winner": "petgraph-dfs",
+      "new_winner": "petgraph-dfs",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 4750041,
+          "new_runtime_ns": 4882459,
+          "runtime_drift_percent": 2.78772330596726,
+          "old_setup_ns": 201002708,
+          "new_setup_ns": 198070292,
+          "setup_drift_percent": -1.458893777689796,
+          "old_rss_bytes": 168984576,
+          "new_rss_bytes": 168984576,
+          "rss_drift_percent": 0.0
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 4638000,
+          "new_runtime_ns": 5003083,
+          "runtime_drift_percent": 7.871561017680029,
+          "old_setup_ns": 203314709,
+          "new_setup_ns": 199161292,
+          "setup_drift_percent": -2.0428512134849974,
+          "old_rss_bytes": 152043520,
+          "new_rss_bytes": 152043520,
+          "rss_drift_percent": 0.0
+        },
+        "ett-scan": {
+          "old_runtime_ns": 7919709,
+          "new_runtime_ns": 8068833,
+          "runtime_drift_percent": 1.8829479719520092,
+          "old_setup_ns": 3085121500,
+          "new_setup_ns": 3178839500,
+          "setup_drift_percent": 3.0377409771381814,
+          "old_rss_bytes": 828456960,
+          "new_rss_bytes": 517832704,
+          "rss_drift_percent": -37.49431424898645
+        },
+        "hdt": {
+          "old_runtime_ns": 6539292,
+          "new_runtime_ns": 5450917,
+          "runtime_drift_percent": -16.64362135839782,
+          "old_setup_ns": 1871986459,
+          "new_setup_ns": 1834135750,
+          "setup_drift_percent": -2.0219542090181286,
+          "old_rss_bytes": 718864384,
+          "new_rss_bytes": 616726528,
+          "rss_drift_percent": -14.20822317440058
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 3842125,
+          "new_runtime_ns": 3816375,
+          "runtime_drift_percent": -0.6702020366333716,
+          "old_setup_ns": 74013542,
+          "new_setup_ns": 73557833,
+          "setup_drift_percent": -0.6157102979884366,
+          "old_rss_bytes": 127172608,
+          "new_rss_bytes": 127156224,
+          "rss_drift_percent": -0.01288327750579299
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 50,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 42025125,
+          "new_runtime_ns": 43217708,
+          "runtime_drift_percent": 2.8377857293702347,
+          "old_setup_ns": 203487416,
+          "new_setup_ns": 202876750,
+          "setup_drift_percent": -0.30010013002474967,
+          "old_rss_bytes": 155811840,
+          "new_rss_bytes": 155828224,
+          "rss_drift_percent": 0.01051524710831142
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 41065417,
+          "new_runtime_ns": 40069458,
+          "runtime_drift_percent": -2.4252986399724175,
+          "old_setup_ns": 206465541,
+          "new_setup_ns": 206088500,
+          "setup_drift_percent": -0.18261691426755267,
+          "old_rss_bytes": 149946368,
+          "new_rss_bytes": 149962752,
+          "rss_drift_percent": 0.010926573426583985
+        },
+        "ett-scan": {
+          "old_runtime_ns": 7178250,
+          "new_runtime_ns": 8242917,
+          "runtime_drift_percent": 14.831846202068743,
+          "old_setup_ns": 3096784084,
+          "new_setup_ns": 3149528625,
+          "setup_drift_percent": 1.7032036967805642,
+          "old_rss_bytes": 493420544,
+          "new_rss_bytes": 399884288,
+          "rss_drift_percent": -18.956700757072653
+        },
+        "hdt": {
+          "old_runtime_ns": 7843375,
+          "new_runtime_ns": 43999583,
+          "runtime_drift_percent": 460.977678614117,
+          "old_setup_ns": 1920373750,
+          "new_setup_ns": 2052817792,
+          "setup_drift_percent": 6.896784649342358,
+          "old_rss_bytes": 717914112,
+          "new_rss_bytes": 482344960,
+          "rss_drift_percent": -32.81299922406317
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 35751417,
+          "new_runtime_ns": 36075750,
+          "runtime_drift_percent": 0.9071892171434781,
+          "old_setup_ns": 75060792,
+          "new_setup_ns": 73248250,
+          "setup_drift_percent": -2.414765354460957,
+          "old_rss_bytes": 95092736,
+          "new_rss_bytes": 95125504,
+          "rss_drift_percent": 0.034458993797370496
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 50,
+      "regime": "warmed",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 42097375,
+          "new_runtime_ns": 42505166,
+          "runtime_drift_percent": 0.9686851020995979,
+          "old_setup_ns": 201675125,
+          "new_setup_ns": 201655084,
+          "setup_drift_percent": -0.009937269159987494,
+          "old_rss_bytes": 179978240,
+          "new_rss_bytes": 179912704,
+          "rss_drift_percent": -0.03641329085115608
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 40632625,
+          "new_runtime_ns": 40139750,
+          "runtime_drift_percent": -1.2130030978800943,
+          "old_setup_ns": 200140250,
+          "new_setup_ns": 197473208,
+          "setup_drift_percent": -1.332586523700252,
+          "old_rss_bytes": 159416320,
+          "new_rss_bytes": 159399936,
+          "rss_drift_percent": -0.01027749229187691
+        },
+        "ett-scan": {
+          "old_runtime_ns": 6910084,
+          "new_runtime_ns": 6305542,
+          "runtime_drift_percent": -8.748692490568855,
+          "old_setup_ns": 3079370167,
+          "new_setup_ns": 3193039208,
+          "setup_drift_percent": 3.6913081193723274,
+          "old_rss_bytes": 824918016,
+          "new_rss_bytes": 572817408,
+          "rss_drift_percent": -30.56068640886611
+        },
+        "hdt": {
+          "old_runtime_ns": 7256041,
+          "new_runtime_ns": 6367000,
+          "runtime_drift_percent": -12.252425255039212,
+          "old_setup_ns": 1860564750,
+          "new_setup_ns": 1797834167,
+          "setup_drift_percent": -3.3715882771615413,
+          "old_rss_bytes": 717864960,
+          "new_rss_bytes": 615956480,
+          "rss_drift_percent": -14.19605158050896
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 35841250,
+          "new_runtime_ns": 37374083,
+          "runtime_drift_percent": 4.276728629721349,
+          "old_setup_ns": 73879708,
+          "new_setup_ns": 73326459,
+          "setup_drift_percent": -0.7488510918316038,
+          "old_rss_bytes": 127221760,
+          "new_rss_bytes": 127172608,
+          "rss_drift_percent": -0.03863490019317961
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 90,
+      "regime": "fresh",
+      "old_winner": "ett-scan",
+      "new_winner": "ett-scan",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 209858375,
+          "new_runtime_ns": 217458542,
+          "runtime_drift_percent": 3.6215695466049524,
+          "old_setup_ns": 203890959,
+          "new_setup_ns": 210688416,
+          "setup_drift_percent": 3.3338687665890987,
+          "old_rss_bytes": 190857216,
+          "new_rss_bytes": 191463424,
+          "rss_drift_percent": 0.31762383037170494
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 210641500,
+          "new_runtime_ns": 212573542,
+          "runtime_drift_percent": 0.9172181170377103,
+          "old_setup_ns": 202254958,
+          "new_setup_ns": 202470167,
+          "setup_drift_percent": 0.1064048081333091,
+          "old_rss_bytes": 149897216,
+          "new_rss_bytes": 149929984,
+          "rss_drift_percent": 0.02186031260247301
+        },
+        "ett-scan": {
+          "old_runtime_ns": 6370416,
+          "new_runtime_ns": 5912375,
+          "runtime_drift_percent": -7.190126986997392,
+          "old_setup_ns": 3140990166,
+          "new_setup_ns": 3189194458,
+          "setup_drift_percent": 1.5346845883757565,
+          "old_rss_bytes": 493355008,
+          "new_rss_bytes": 399835136,
+          "rss_drift_percent": -18.955897980871416
+        },
+        "hdt": {
+          "old_runtime_ns": 7487750,
+          "new_runtime_ns": 8806208,
+          "runtime_drift_percent": 17.608200060098156,
+          "old_setup_ns": 2057938042,
+          "new_setup_ns": 1928108709,
+          "setup_drift_percent": -6.3087095116734275,
+          "old_rss_bytes": 718192640,
+          "new_rss_bytes": 616267776,
+          "rss_drift_percent": -14.19185582297251
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 179283000,
+          "new_runtime_ns": 178041125,
+          "runtime_drift_percent": -0.692689769805277,
+          "old_setup_ns": 74924167,
+          "new_setup_ns": 74890084,
+          "setup_drift_percent": -0.04548999523744657,
+          "old_rss_bytes": 95059968,
+          "new_rss_bytes": 95109120,
+          "rss_drift_percent": 0.05170630816959676
+        }
+      }
+    },
+    {
+      "family": "sparse",
+      "workload": "sustained-churn-path-v1",
+      "nodes": 1000000,
+      "query_percent": 90,
+      "regime": "warmed",
+      "old_winner": "hdt",
+      "new_winner": "hdt",
+      "winner_changed": false,
+      "engines": {
+        "compact-bfs": {
+          "old_runtime_ns": 207839834,
+          "new_runtime_ns": 215434834,
+          "runtime_drift_percent": 3.65425619037012,
+          "old_setup_ns": 201358500,
+          "new_setup_ns": 203046833,
+          "setup_drift_percent": 0.8384711844794168,
+          "old_rss_bytes": 215859200,
+          "new_rss_bytes": 217530368,
+          "rss_drift_percent": 0.7741935483871032
+        },
+        "compact-workspace": {
+          "old_runtime_ns": 211704083,
+          "new_runtime_ns": 209829791,
+          "runtime_drift_percent": -0.8853357825885699,
+          "old_setup_ns": 199765750,
+          "new_setup_ns": 197420083,
+          "setup_drift_percent": -1.1742087920476818,
+          "old_rss_bytes": 159367168,
+          "new_rss_bytes": 159399936,
+          "rss_drift_percent": 0.02056132414927081
+        },
+        "ett-scan": {
+          "old_runtime_ns": 5659875,
+          "new_runtime_ns": 8125833,
+          "runtime_drift_percent": 43.569124759822444,
+          "old_setup_ns": 3036783583,
+          "new_setup_ns": 3184643959,
+          "setup_drift_percent": 4.868979693769626,
+          "old_rss_bytes": 828719104,
+          "new_rss_bytes": 486932480,
+          "rss_drift_percent": -41.24275913880706
+        },
+        "hdt": {
+          "old_runtime_ns": 4296000,
+          "new_runtime_ns": 6430250,
+          "runtime_drift_percent": 49.67993482309125,
+          "old_setup_ns": 1871581750,
+          "new_setup_ns": 1820105917,
+          "setup_drift_percent": -2.7503919078073924,
+          "old_rss_bytes": 718225408,
+          "new_rss_bytes": 603734016,
+          "rss_drift_percent": -15.94087186623172
+        },
+        "petgraph-dfs": {
+          "old_runtime_ns": 178505333,
+          "new_runtime_ns": 185592167,
+          "runtime_drift_percent": 3.97009651246667,
+          "old_setup_ns": 74026708,
+          "new_setup_ns": 74872541,
+          "setup_drift_percent": 1.1426051797413406,
+          "old_rss_bytes": 127139840,
+          "new_rss_bytes": 127172608,
+          "rss_drift_percent": 0.025773195876288568
+        }
+      }
+    }
+  ]
+}

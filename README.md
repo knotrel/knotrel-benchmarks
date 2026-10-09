@@ -2,6 +2,9 @@
 
 Reproducible workloads for measuring exact dynamic graph connectivity.
 
+New: [updated five-engine ranking after packed token integration](results/2026-10-09-engine-ranking/README.md).
+1,110 processes evaluate Compact, Workspace, ETT, HDT and external petgraph across the 74 main cells following 64-byte token packing in ETT and HDT. Workspace leads with 20 wins and beats petgraph in 45 cells; ETT wins 19 and HDT 15, with 15–19% memory reductions at scale.
+
 New: [paired resource diagnosis of packed HDT tokens](results/2026-10-09-hdt-packed-resources/README.md).
 
 New: [extended 64-byte HDT token comparison](results/2026-10-08-hdt-packed-tokens-matrix/README.md).

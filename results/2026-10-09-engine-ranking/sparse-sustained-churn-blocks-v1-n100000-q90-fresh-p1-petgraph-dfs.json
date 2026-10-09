@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "engine": "petgraph-0.8.3/dfs",
+  "workload": "sustained-churn-blocks-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791577361,
+  "config": {
+    "nodes": 100000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": "0c3a02338d43dcb699337b1bd60d72fcd3f3aa7e",
+      "dirty": false
+    },
+    "benchmarks": {
+      "revision": "046c42e19c5198c6b51ca40cba445b4a5fbbcae9",
+      "dirty": true
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 90,
+  "trace_fingerprint_fnv1a64": "912b25a39d1308b7",
+  "initial_edges": 106249,
+  "initial_density": 0.000021250012500125,
+  "initial_max_degree": 3,
+  "repetitions": [
+    {
+      "setup_ns": 7744333,
+      "query_true": {
+        "count": 121,
+        "total_ns": 8936706,
+        "min_ns": 750,
+        "p50_ns": 39542,
+        "p95_ns": 294208,
+        "p99_ns": 335166,
+        "max_ns": 352416
+      },
+      "query_false": {
+        "count": 779,
+        "total_ns": 30747218,
+        "min_ns": 1208,
+        "p50_ns": 27208,
+        "p95_ns": 98208,
+        "p99_ns": 174333,
+        "max_ns": 359500
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 100,
+          "total_ns": 23044,
+          "min_ns": 83,
+          "p50_ns": 167,
+          "p95_ns": 375,
+          "p99_ns": 1875,
+          "max_ns": 1958
+        },
+        "link": null,
+        "connected": {
+          "count": 900,
+          "total_ns": 39683924,
+          "min_ns": 750,
+          "p50_ns": 27834,
+          "p95_ns": 101792,
+          "p99_ns": 294208,
+          "max_ns": 359500
+        }
+      },
+      "workload_wall_ns": 39728541
+    }
+  ]
+}
