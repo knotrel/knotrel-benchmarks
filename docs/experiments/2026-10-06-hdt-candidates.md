@@ -31,3 +31,14 @@ Saved [patch](../../results/2026-10-09-ett-packed-tokens/candidate.patch) SHA-25
 The [full ETT matrix](../../results/2026-10-09-ett-packed-tokens-matrix/README.md)
 completes 38 cells with no runtime screening flags, while retaining sparse setup
 regressions. The measured ETT candidate was integrated on 2026-10-09, retaining the setup tradeoff and experimental status.
+
+The [ETT direct-join pilot](../../results/2026-10-10-ett-direct-joins/README.md)
+preserves a separate patch against the latest libraries. Three runtime regression
+flags prevent general integration, despite faster setup and Cogentco results.
+
+The [ETT scan-root reuse pilot](../../results/2026-10-10-ett-scan-root/README.md)
+saves a [two-file patch](../../results/2026-10-10-ett-scan-root/candidate.patch)
+against the shared-forest refactor at core `86fb85a`. Dense replay improves
+44.66%, but a warmed million-vertex path regression (+36.77%) prevents integration.
+The structural probe confirms approximately half the root traversal work during
+dense cuts; it does not explain the path timing regression.

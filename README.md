@@ -261,3 +261,29 @@ with preserved before/after measurements and missing-input completion provenance
 
 [Full ETT packed-token matrix](results/2026-10-09-ett-packed-tokens-matrix/README.md):
 38 before/after cells with runtime, memory and setup tradeoffs.
+
+[ETT direct-join pilot with petgraph](results/2026-10-10-ett-direct-joins/README.md):
+setup benefits but replay regressions; candidate not integrated.
+
+[ETT cut structural diagnosis](results/2026-10-10-ett-cut-structure/README.md):
+root-traversal work explains a concrete next optimization target; counters only.
+
+[ETT scan-root reuse pilot](results/2026-10-10-ett-scan-root/README.md):
+root traversal work roughly halved and dense replay 44.66% faster; warmed
+million-vertex path regression retained, candidate not integrated.
+
+[Scan-root regression diagnosis](results/2026-10-10-ett-scan-root-regression/README.md):
+identical path root traversal work and a stable dense improvement; macOS sleep
+contaminated the confirmation, so the earlier path regression remains unresolved.
+
+[Awake-host scan-root confirmation](results/2026-10-10-ett-scan-root-awake/decision.md):
+72 runs without observed sleep; dense benefit remains 44.64%, but path variance
+and adverse pairs persist. No core integration; replay-local diagnosis is next.
+
+[ETT replay CPU diagnosis](results/2026-10-10-ett-replay-cpu/README.md):
+off-CPU delay contributes to some path outliers but does not explain all variance;
+all 36 pairs retain their direction in CPU time. Dense CPU benefit remains ~45%.
+
+[Root locality and query code diagnosis](results/2026-10-10-ett-root-locality/README.md):
+identical root access sequences and inspected normal query instructions on path1M;
+hardware cache/core attribution remains unavailable without a suitable profiler.

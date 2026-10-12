@@ -1,0 +1,23 @@
+//! Isolated root-parent access tracing; never interpret instrumented timings.
+use std::cell::RefCell;
+thread_local! {
+    static TRACE: RefCell<Option<Vec<[usize; 2]>>> = const { RefCell::new(None) };
+}
+/// Starts a fresh replay trace, excluding graph construction.
+pub fn begin() {
+    TRACE.with(|t| *t.borrow_mut() = Some(Vec::with_capacity(40_000)));
+}
+/// Records a logical token and parent-field position relative to arena page zero.
+/// Addresses above the page-offset bits are not retained. Fixed 16 KiB pages
+/// are a measured property of this diagnostic host, not a production assumption.
+pub(crate) fn record(index: usize, parent_address: usize, arena: usize) {
+    TRACE.with(|t| {
+        if let Some(trace) = t.borrow_mut().as_mut() {
+            trace.push([index, parent_address - arena + arena % 16_384]);
+        }
+    });
+}
+/// Ends recording and returns the accesses in execution order.
+pub fn finish() -> Vec<[usize; 2]> {
+    TRACE.with(|t| t.borrow_mut().take().expect("trace started"))
+}

@@ -1,0 +1,10 @@
+Checked 2026-10-10 on the current host:
+xcode-select -p: /Library/Developer/CommandLineTools
+xcrun xctrace list templates: exit 72, unable to find utility "xctrace"
+/usr/bin/sample exists, but no replay-local stack sample was attempted: the
+existing replay is only a few milliseconds and setup dominates process lifetime.
+No Xcode installation, privileged hardware profiler, or system configuration change.
+
+sysctl (read with sandbox escalation):
+hw.pagesize: 16384
+hw.cachelinesize: 128

@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791650618,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 1,
+  "query_repeats": 0,
+  "query_percent": 50,
+  "trace_fingerprint_fnv1a64": "01a19f08e1152f91",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1600370375,
+      "forest_stats": {
+        "candidate_edges": 0,
+        "replacements": 0,
+        "scanned_vertices": 0,
+        "tree_cuts": 500
+      },
+      "query_true": {
+        "count": 15,
+        "total_ns": 181668,
+        "min_ns": 1041,
+        "p50_ns": 11750,
+        "p95_ns": 31750,
+        "p99_ns": 31750,
+        "max_ns": 31750
+      },
+      "query_false": {
+        "count": 485,
+        "total_ns": 4021156,
+        "min_ns": 917,
+        "p50_ns": 5834,
+        "p95_ns": 18833,
+        "p99_ns": 54333,
+        "max_ns": 224500
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 500,
+          "total_ns": 8513497,
+          "min_ns": 1167,
+          "p50_ns": 8291,
+          "p95_ns": 36333,
+          "p99_ns": 133417,
+          "max_ns": 1122083
+        },
+        "link": null,
+        "connected": {
+          "count": 500,
+          "total_ns": 4202824,
+          "min_ns": 917,
+          "p50_ns": 5916,
+          "p95_ns": 19583,
+          "p99_ns": 44375,
+          "max_ns": 224500
+        }
+      },
+      "workload_wall_ns": 12736500,
+      "replay_thread_cpu_ns": 10039833,
+      "replay_process_cpu_ns": 10048000
+    }
+  ]
+}

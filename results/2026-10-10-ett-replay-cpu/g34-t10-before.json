@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "engine": "knotrel-core/ett-pruned-v2",
+  "workload": "sustained-churn-path-v1",
+  "benchmark_version": "0.1.0",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "os": "macos",
+  "arch": "aarch64",
+  "debug_assertions": false,
+  "timestamp_unix_seconds": 1791650704,
+  "config": {
+    "nodes": 1000000,
+    "rounds": 10,
+    "seed": 42
+  },
+  "checkouts_at_run_time": {
+    "core": {
+      "revision": null,
+      "dirty": null
+    },
+    "benchmarks": {
+      "revision": null,
+      "dirty": null
+    }
+  },
+  "warmup": 0,
+  "query_repeats": 0,
+  "query_percent": 50,
+  "trace_fingerprint_fnv1a64": "01a19f08e1152f91",
+  "initial_edges": 999999,
+  "initial_density": 2e-6,
+  "initial_max_degree": 2,
+  "repetitions": [
+    {
+      "setup_ns": 1550567584,
+      "forest_stats": {
+        "candidate_edges": 0,
+        "replacements": 0,
+        "scanned_vertices": 0,
+        "tree_cuts": 500
+      },
+      "query_true": {
+        "count": 15,
+        "total_ns": 81082,
+        "min_ns": 1000,
+        "p50_ns": 5625,
+        "p95_ns": 12250,
+        "p99_ns": 12250,
+        "max_ns": 12250
+      },
+      "query_false": {
+        "count": 485,
+        "total_ns": 1917585,
+        "min_ns": 750,
+        "p50_ns": 3666,
+        "p95_ns": 8250,
+        "p99_ns": 11084,
+        "max_ns": 14000
+      },
+      "repeated_queries": null,
+      "measurements": {
+        "cut": {
+          "count": 500,
+          "total_ns": 3327720,
+          "min_ns": 1041,
+          "p50_ns": 4959,
+          "p95_ns": 14417,
+          "p99_ns": 21542,
+          "max_ns": 171667
+        },
+        "link": null,
+        "connected": {
+          "count": 500,
+          "total_ns": 1998667,
+          "min_ns": 750,
+          "p50_ns": 3667,
+          "p95_ns": 8375,
+          "p99_ns": 11084,
+          "max_ns": 14000
+        }
+      },
+      "workload_wall_ns": 5346833,
+      "replay_thread_cpu_ns": 5347250,
+      "replay_process_cpu_ns": 5351000
+    }
+  ]
+}
