@@ -1,0 +1,170 @@
+--- a/crates/knotrel-benchmarks/Cargo.toml
++++ b/crates/knotrel-benchmarks/Cargo.toml
+@@ -10,6 +10,7 @@
+ publish.workspace = true
+ 
+ [dependencies]
++apple-log = "=0.7.0"
+ knotrel-core.workspace = true
+ serde.workspace = true
+ serde_json.workspace = true
+--- a/crates/knotrel-benchmarks/src/main.rs
++++ b/crates/knotrel-benchmarks/src/main.rs
+@@ -3,6 +3,7 @@
+ mod imported;
+ mod metrics;
+ 
++use apple_log::{CATEGORY_POINTS_OF_INTEREST, OSSignposter};
+ use knotrel_benchmarks::engines::{Engine, EngineKind};
+ use knotrel_benchmarks::{Config, Operation, Workload, WorkloadKind, generate_with_query_percent};
+ use metrics::Latency;
+@@ -179,15 +180,31 @@
+         core: git_state(&core_root),
+         benchmarks: git_state(&benchmark_root),
+     };
++    let signposter =
++        OSSignposter::new("io.github.knotrel.benchmarks", CATEGORY_POINTS_OF_INTEREST)?;
+     let mut reports = Vec::new();
+     for &engine in &options.engines {
+         for _ in 0..options.warmup {
+-            replay(nodes, &workload, engine, options.query_repeats)?;
++            replay(
++                nodes,
++                &workload,
++                engine,
++                options.query_repeats,
++                &signposter,
++                c"warmup-replay",
++            )?;
+         }
+         let mut repetitions = Vec::new();
+         repetitions.try_reserve_exact(options.repetitions)?;
+         for _ in 0..options.repetitions {
+-            repetitions.push(replay(nodes, &workload, engine, options.query_repeats)?);
++            repetitions.push(replay(
++                nodes,
++                &workload,
++                engine,
++                options.query_repeats,
++                &signposter,
++                c"measurement-replay",
++            )?);
+         }
+         let report = Report {
+             schema_version: if imported.is_some() { 4 } else { 2 },
+@@ -235,6 +252,8 @@
+     workload: &Workload,
+     engine: EngineKind,
+     query_repeats: usize,
++    signposter: &OSSignposter,
++    phase: &'static std::ffi::CStr,
+ ) -> Result<Run, Box<dyn Error>> {
+     let setup_start = Instant::now();
+     let nodes: Vec<u64> = (0..node_count).collect();
+@@ -273,57 +292,63 @@
+     // Each interval includes the call, a compiler barrier and clock overhead.
+     // Checking and sample insertion follow the interval. Wall time additionally
+     // includes dispatch, checking and sampling; it is not operation throughput.
+-    let wall_start = Instant::now();
+-    for &operation in &workload.operations {
+-        match operation {
+-            Operation::Cut { source, target } => {
+-                let start = Instant::now();
+-                let changed = black_box(graph.cut(source, target));
+-                let elapsed = start.elapsed().as_nanos();
+-                if !changed? {
+-                    return Err("cut failed the workload oracle".into());
++    let interval = signposter.begin_interval(phase, signposter.make_signpost_id(), "");
++    let replay_result = (|| -> Result<u128, Box<dyn Error>> {
++        let wall_start = Instant::now();
++        for &operation in &workload.operations {
++            match operation {
++                Operation::Cut { source, target } => {
++                    let start = Instant::now();
++                    let changed = black_box(graph.cut(source, target));
++                    let elapsed = start.elapsed().as_nanos();
++                    if !changed? {
++                        return Err("cut failed the workload oracle".into());
++                    }
++                    cuts.push(elapsed);
+                 }
+-                cuts.push(elapsed);
+-            }
+-            Operation::Link { source, target } => {
+-                let start = Instant::now();
+-                let changed = black_box(graph.link(source, target));
+-                let elapsed = start.elapsed().as_nanos();
+-                if !changed? {
+-                    return Err("link failed the workload oracle".into());
++                Operation::Link { source, target } => {
++                    let start = Instant::now();
++                    let changed = black_box(graph.link(source, target));
++                    let elapsed = start.elapsed().as_nanos();
++                    if !changed? {
++                        return Err("link failed the workload oracle".into());
++                    }
++                    links.push(elapsed);
+                 }
+-                links.push(elapsed);
+-            }
+-            Operation::Connected {
+-                source,
+-                target,
+-                expected,
+-            } => {
+-                let start = Instant::now();
+-                let actual = black_box(graph.connected(source, target));
+-                let elapsed = start.elapsed().as_nanos();
+-                if actual? != expected {
+-                    return Err("connectivity failed the workload oracle".into());
+-                }
+-                queries.push(elapsed);
+-                if expected {
+-                    true_queries.push(elapsed);
+-                } else {
+-                    false_queries.push(elapsed);
+-                }
+-                for _ in 0..query_repeats {
++                Operation::Connected {
++                    source,
++                    target,
++                    expected,
++                } => {
+                     let start = Instant::now();
+-                    let repeated = black_box(graph.connected(source, target));
++                    let actual = black_box(graph.connected(source, target));
+                     let elapsed = start.elapsed().as_nanos();
+-                    if repeated? != expected {
+-                        return Err("repeated query failed the workload oracle".into());
++                    if actual? != expected {
++                        return Err("connectivity failed the workload oracle".into());
+                     }
+-                    repeats.push(elapsed);
++                    queries.push(elapsed);
++                    if expected {
++                        true_queries.push(elapsed);
++                    } else {
++                        false_queries.push(elapsed);
++                    }
++                    for _ in 0..query_repeats {
++                        let start = Instant::now();
++                        let repeated = black_box(graph.connected(source, target));
++                        let elapsed = start.elapsed().as_nanos();
++                        if repeated? != expected {
++                            return Err("repeated query failed the workload oracle".into());
++                        }
++                        repeats.push(elapsed);
++                    }
+                 }
+             }
+         }
+-    }
+-    let workload_wall_ns = wall_start.elapsed().as_nanos();
++        let workload_wall_ns = wall_start.elapsed().as_nanos();
++        Ok(workload_wall_ns)
++    })();
++    signposter.end_interval(interval, "");
++    let workload_wall_ns = replay_result?;
+     let forest_stats = graph.forest_stats().map(|stats| {
+         serde_json::json!({
+             "tree_cuts": stats.tree_cuts,

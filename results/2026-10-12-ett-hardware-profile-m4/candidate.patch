@@ -1,0 +1,94 @@
+--- a/crates/knotrel-core/src/forest.rs
++++ b/crates/knotrel-core/src/forest.rs
+@@ -34,6 +34,7 @@
+         }
+         Candidates {
+             forest: self,
++            root,
+             stack,
+         }
+     }
+@@ -52,7 +53,18 @@
+ /// Borrowing prevents forest rotations or candidate changes during a scan.
+ pub(crate) struct Candidates<'a> {
+     forest: &'a Forest,
++    root: usize,
+     stack: tinyvec::TinyVec<[usize; 32]>,
++}
++
++impl Candidates<'_> {
++    /// Tests membership in the fixed component selected for this scan.
++    /// The immutable forest borrow keeps its root stable, even after iteration
++    /// ends. Every yielded source is already in this component, so replacement
++    /// search only needs the target's root. O(log V) worst case, O(1) scratch.
++    pub(crate) fn contains_vertex(&self, vertex: usize) -> bool {
++        self.forest.root(self.forest.vertex_tokens[vertex]) == self.root
++    }
+ }
+ 
+ impl Iterator for Candidates<'_> {
+@@ -103,3 +115,47 @@
+         assert_eq!(candidates, vec![7]);
+     }
+ }
++
++#[cfg(test)]
++mod scan_root_tests {
++    use super::Forest;
++    #[test]
++    fn membership_includes_unmarked_vertices_and_refreshes_after_mutations() {
++        let mut f = Forest::default();
++        for _ in 0..8 {
++            f.add_vertex();
++        }
++        let ab = f.link(0, 1);
++        f.link(1, 2);
++        f.link(3, 4);
++        f.link(4, 5);
++        f.link(5, 6);
++        f.set_candidate(0, true);
++        {
++            let mut scan = f.smaller_candidates(0, 3);
++            assert!(scan.contains_vertex(2)); // Unmarked member still belongs.
++            assert!(!scan.contains_vertex(3));
++            assert!(!scan.contains_vertex(7));
++            assert_eq!(scan.next(), Some(0));
++            assert_eq!(scan.next(), None);
++            assert!(scan.contains_vertex(1)); // Exhaustion does not invalidate root.
++        }
++        f.cut(ab);
++        {
++            let scan = f.smaller_candidates(0, 1);
++            assert!(scan.contains_vertex(0));
++            assert!(!scan.contains_vertex(1));
++        }
++        f.link(0, 3); // Rotate/merge, then choose the other component.
++        {
++            let scan = f.smaller_candidates(0, 1);
++            assert!(scan.contains_vertex(2));
++            assert!(!scan.contains_vertex(0));
++        }
++        f.link(1, 7); // The smaller component grows but remains smaller.
++        let scan = f.smaller_candidates(1, 0);
++        assert!(scan.contains_vertex(7));
++        assert!(!scan.contains_vertex(3));
++        f.validate();
++    }
++}
+--- a/crates/knotrel-core/src/dynamic.rs
++++ b/crates/knotrel-core/src/dynamic.rs
+@@ -114,11 +114,12 @@
+             self.forest.cut(arcs);
+             self.stats.tree_cuts = self.stats.tree_cuts.saturating_add(1);
+             let mut replacement = None;
+-            'search: for v in self.forest.smaller_candidates(a, b) {
++            let mut candidates = self.forest.smaller_candidates(a, b);
++            'search: while let Some(v) = candidates.next() {
+                 self.stats.scanned_vertices = self.stats.scanned_vertices.saturating_add(1);
+                 for &w in &self.non_tree[v] {
+                     self.stats.candidate_edges = self.stats.candidate_edges.saturating_add(1);
+-                    if !self.forest.connected(v, w) {
++                    if !candidates.contains_vertex(w) {
+                         replacement = Some((v, w));
+                         break 'search;
+                     }

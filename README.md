@@ -5,6 +5,20 @@ Reproducible workloads for measuring exact dynamic graph connectivity.
 New: [updated five-engine ranking after packed token integration](results/2026-10-09-engine-ranking/README.md).
 1,110 processes evaluate Compact, Workspace, ETT, HDT and external petgraph across the 74 main cells following 64-byte token packing in ETT and HDT. Workspace leads with 20 wins and beats petgraph in 45 cells; ETT wins 19 and HDT 15, with 15–19% memory reductions at scale.
 
+New: [ETT scan-root hardware-profile feasibility on Apple M4](results/2026-10-12-ett-hardware-profile-m4/README.md).
+Six fixed CPU Counters traces confirm that Xcode 27 is available but no
+profiler-recognized replay markers were emitted. No replay-scoped hardware
+counter conclusion or integration decision follows.
+
+New: [marker-scoped ETT scan-root CPU Counters on Apple M4](results/2026-10-12-ett-hardware-profile-m4-signposted/README.md).
+72 fixed paired recordings confirm the dense benefit and path variability, but
+do not identify a replay-scoped hardware cause or justify candidate integration.
+
+New: [ETT scan-root named manual-counter analysis on Apple M4](results/2026-10-12-ett-hardware-profile-m4-manual-counters/report.md).
+72 further marker-scoped recordings validate named manual-counter mapping and
+reproduce a dense warmed benefit, but retain path variability, two missing
+dense counter samples, and no causal hardware conclusion.
+
 New: [paired resource diagnosis of packed HDT tokens](results/2026-10-09-hdt-packed-resources/README.md).
 
 New: [extended 64-byte HDT token comparison](results/2026-10-08-hdt-packed-tokens-matrix/README.md).

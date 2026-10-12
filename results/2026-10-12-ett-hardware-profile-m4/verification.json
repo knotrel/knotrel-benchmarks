@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "all_passed": true,
+  "variants": {
+    "before": [
+      "cargo fmt --all -- --check",
+      "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "cargo test --locked --workspace",
+      "RUSTDOCFLAGS=-D warnings cargo doc --locked --workspace --no-deps",
+      "cargo build --locked --release --bin knotrel-benchmarks"
+    ],
+    "after": [
+      "cargo fmt --all -- --check",
+      "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "cargo test --locked --workspace",
+      "RUSTDOCFLAGS=-D warnings cargo doc --locked --workspace --no-deps",
+      "cargo build --locked --release --bin knotrel-benchmarks"
+    ]
+  },
+  "logs": "Per-variant command logs are retained next to this file. Empty fmt logs indicate successful commands with no output."
+}
