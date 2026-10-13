@@ -1,36 +1,34 @@
-# Published benchmark results and local traces
+# Knotrel Benchmark Results
 
-Git retains the per-run measurement JSON, stderr logs (including process RSS),
-summary CSVs, reports, original manifests/audits, collector snapshots, patches
-and captured Rust sources. These are evidence, not disposable caches.
+This directory contains benchmark and performance evaluation records for the latest version of Knotrel. Historical experiment runs, pilots, and campaign traces are preserved in the Git commit history, keeping the active working tree lean and focused while maintaining full reproducibility and provenance.
 
-Large `*.trace.json` exports are ignored and removed from the index, but remain
-unchanged on the collecting machine. [Trace inventory](local-traces.json)
-records their paths, original byte sizes and SHA-256 hashes. No external archive
-has been published; a fresh clone does not contain these exports.
+## Canonical Benchmark Suites
 
-Original manifests and audit records are preserved without rewriting their
-historical hashes. An audit that checks **every** manifest artifact requires the
-local trace exports as well as the committed files. The recorded successful
-full audits describe the original collection, not a claim that a fresh clone
-contains every artifact. Timing summaries can be recalculated from committed
-per-run JSON without the traces. Retained stderr logs support RSS checks.
+### 1. Dynamic Connectivity Engine Ranking (`ranking/`)
+- **Detailed Report**: [ranking/README.md](ranking/README.md)
+- **Scope**: Comprehensive 74-cell 5-engine evaluation (`Compact BFS`, `Compact Workspace`, `ETT`, `HDT`, `petgraph`) following the migration to `FxHashMap` in `knotrel-core` and 64-byte token packing in ETT/HDT.
+- **Key Results**:
+  - **Compact Workspace** leads with 31/74 wins (41.9%) and beats `petgraph` in 62/74 cells (83.8%).
+  - **Experimental ETT** wins 22/74 cells (29.7%) and **HDT** wins 17/74 cells (23.0%), with 15–19% memory reductions at scale.
+  - **All Knotrel engines combined** win **72 of 74 evaluated cells (97.3%)** over `petgraph`.
 
-To reconstruct a trace, use the matching captured source version and the
-workload/configuration/seed recorded in that collection's manifest and per-run
-JSON. Use the runner's `--trace-out` option with a new output path; it refuses to
-overwrite an existing file. Adjust original absolute checkout/output paths for
-your machine. Compare the resulting bytes with the SHA-256 in local-traces.json
-(and the original manifest when present). Do not assume the current generator
-matches every historical version. Reconstruction replays the workload; it does
-not reproduce historical timing values or machine state. Older collection
-metadata may require manual reconstruction of the captured dirty checkout.
+### 2. Apple M4 Hardware Profile (`hardware-profile/`)
+- **Detailed Report**: [hardware-profile/README.md](hardware-profile/README.md)
+- **Scope**: Replay-scoped CPU counters and signposted execution profiles on Apple M4 silicon under Xcode Instruments.
+- **Key Results**:
+  - 72 fixed paired recordings validating marker sequences, CPU counters, dense workload acceleration (~45%), and path variance.
 
-Publication policy: keep compact measurements and provenance in Git; preserve
-bulky trace exports locally or distribute them as separately managed artifacts.
-Never add trace exports with `git add -f` as part of routine result publication.
-Python caches are ignored throughout both repositories.
+### 3. Bulk Graph Initialization & Construction (`initialization/`)
+- **Detailed Report**: [initialization/README.md](initialization/README.md)
+- **Scope**: Phase 0 instrumentation, timing bounds, calibration, and replication data for bulk graph construction (`try_from_edges`).
 
-`.gitattributes` disables line-ending conversion for result artifacts to preserve
-the recorded hashes. Patch context spaces and CSV CRLF terminators are retained
-intentionally; targeted whitespace rules keep Git checks meaningful elsewhere.
+### 4. Latest Performance Evaluation Summary (`perf_evaluation_latest.json`)
+- Continuous performance metrics and regression gate output.
+
+## Historical Evidence in Git
+
+Prior milestone results, exploratory pilots, and campaign traces are archived in the Git repository history. To inspect historical data from earlier versions:
+
+```sh
+git log --stat -- results/
+```

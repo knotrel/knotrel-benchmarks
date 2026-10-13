@@ -25,8 +25,8 @@ from run_scale import peak_rss
 
 METHOD = ROOT / "docs/experiments/2026-10-12-initialization-methodology-review.md"
 APPROVED_METHOD_SHA256 = "446490ed560dbfa04e8c92920734ec70572fddde0b1aea5521d5849f9220dff6"
-REFERENCE = ROOT / "results/2026-10-12-initialization-phase0/calibration"
-REPLICATION = ROOT / "results/2026-10-12-initialization-phase0-replication/calibration"
+REFERENCE = ROOT / "results/initialization/calibration"
+REPLICATION = ROOT / "results/initialization/replication"
 SEEDS = (120047, 120048, 120049)
 QUIET_SECONDS = 60
 SESSION_GAP_SECONDS = 300
