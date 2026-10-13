@@ -53,7 +53,7 @@ retains that failure and its non-manifest-changing recovery.
 The six `.trace` bundles and large counter/activity XML exports totalled about
 806 MiB and are intentionally outside the Git worktree at:
 
-`/Users/robertotrunfio/.copilot/session-state/38a24407-0788-43b6-9112-59903987563b/files/ett-hardware-profile-m4-traces`
+`$SESSION_STATE/files/ett-hardware-profile-m4-traces`
 
 Their deterministic tree/file hashes are in [analysis.json](analysis.json).
 The repository retains the trace table-of-contents files and empty signpost

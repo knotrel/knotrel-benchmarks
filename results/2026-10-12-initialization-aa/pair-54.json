@@ -1,0 +1,328 @@
+{
+  "plan": {
+    "session": 2,
+    "round": 2,
+    "engine": "ett-scan",
+    "pair": 54,
+    "labels": [
+      "Aprime",
+      "A"
+    ],
+    "children": [
+      [
+        "/usr/bin/time",
+        "-l",
+        "$WORKSPACE/knotrel-benchmarks/target/release/initialization-profile",
+        "--engine",
+        "ett-scan",
+        "--workload",
+        "dense-bridge-churn-v1",
+        "--nodes",
+        "512",
+        "--rounds",
+        "1",
+        "--seed",
+        "42",
+        "--surface",
+        "adapter",
+        "--timing",
+        "whole",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      [
+        "/usr/bin/time",
+        "-l",
+        "$WORKSPACE/knotrel-benchmarks/target/release/initialization-profile",
+        "--engine",
+        "ett-scan",
+        "--workload",
+        "dense-bridge-churn-v1",
+        "--nodes",
+        "512",
+        "--rounds",
+        "1",
+        "--seed",
+        "42",
+        "--surface",
+        "adapter",
+        "--timing",
+        "whole",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ]
+    ]
+  },
+  "host_before": {
+    "monotonic_ns": 32610959664166,
+    "unix_ns": 1791840347112836000,
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35586147)\t100%; charged; 0:00 remaining present: true",
+    "power_configuration": "Battery Power:\n Sleep On Power Button 1\n lowpowermode         0\n standby              1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n ttyskeepawake        1\n womp                 0\n displaysleep         2\n networkoversleep     0\n sleep                1\n lessbright           1\n tcpkeepalive         1\n disksleep            10\nAC Power:\n Sleep On Power Button 1\n lowpowermode         0\n standby              1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n ttyskeepawake        1\n womp                 1\n displaysleep         10\n networkoversleep     0\n sleep                1\n tcpkeepalive         1\n disksleep            10",
+    "sleep_wake": "kern.sleeptime: { sec = 1791838645, usec = 799793 } Mon Oct 12 22:57:25 2026\nkern.waketime: { sec = 1791838765, usec = 588188 } Mon Oct 12 22:59:25 2026",
+    "collector_nice": 0,
+    "load_average": [
+      4.9619140625,
+      3.5234375,
+      3.1416015625
+    ],
+    "top_processes": [
+      {
+        "pid": 1238,
+        "cpu_percent": 87.9,
+        "name": "spotlightknowledged.updater"
+      },
+      {
+        "pid": 932,
+        "cpu_percent": 46.3,
+        "name": "WindowServer"
+      },
+      {
+        "pid": 6044,
+        "cpu_percent": 42.7,
+        "name": "iCoreService"
+      },
+      {
+        "pid": 903,
+        "cpu_percent": 32.6,
+        "name": "com.trendmicro.icore.es"
+      },
+      {
+        "pid": 1334,
+        "cpu_percent": 28.7,
+        "name": "mediaanalysisd"
+      },
+      {
+        "pid": 557,
+        "cpu_percent": 22.9,
+        "name": "mds"
+      },
+      {
+        "pid": 841,
+        "cpu_percent": 21.9,
+        "name": "iCoreSecurity"
+      },
+      {
+        "pid": 1707,
+        "cpu_percent": 19.5,
+        "name": "Code Helper (Renderer)"
+      },
+      {
+        "pid": 82253,
+        "cpu_percent": 16.7,
+        "name": "CacheDeleteExtension"
+      },
+      {
+        "pid": 82229,
+        "cpu_percent": 16.6,
+        "name": "cloudd"
+      }
+    ],
+    "known_workloads": [],
+    "thermal": {
+      "exit_code": 0,
+      "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+      "stderr": ""
+    }
+  },
+  "host_after": {
+    "monotonic_ns": 32611064955458,
+    "unix_ns": 1791840347218126000,
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35586147)\t100%; charged; 0:00 remaining present: true",
+    "power_configuration": "Battery Power:\n Sleep On Power Button 1\n lowpowermode         0\n standby              1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n ttyskeepawake        1\n womp                 0\n displaysleep         2\n networkoversleep     0\n sleep                1\n lessbright           1\n tcpkeepalive         1\n disksleep            10\nAC Power:\n Sleep On Power Button 1\n lowpowermode         0\n standby              1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n ttyskeepawake        1\n womp                 1\n displaysleep         10\n networkoversleep     0\n sleep                1\n tcpkeepalive         1\n disksleep            10",
+    "sleep_wake": "kern.sleeptime: { sec = 1791838645, usec = 799793 } Mon Oct 12 22:57:25 2026\nkern.waketime: { sec = 1791838765, usec = 588188 } Mon Oct 12 22:59:25 2026",
+    "collector_nice": 0,
+    "load_average": [
+      4.9619140625,
+      3.5234375,
+      3.1416015625
+    ],
+    "top_processes": [
+      {
+        "pid": 1238,
+        "cpu_percent": 82.6,
+        "name": "spotlightknowledged.updater"
+      },
+      {
+        "pid": 932,
+        "cpu_percent": 45.8,
+        "name": "WindowServer"
+      },
+      {
+        "pid": 6044,
+        "cpu_percent": 36.9,
+        "name": "iCoreService"
+      },
+      {
+        "pid": 1334,
+        "cpu_percent": 35.9,
+        "name": "mediaanalysisd"
+      },
+      {
+        "pid": 903,
+        "cpu_percent": 32.8,
+        "name": "com.trendmicro.icore.es"
+      },
+      {
+        "pid": 557,
+        "cpu_percent": 22.3,
+        "name": "mds"
+      },
+      {
+        "pid": 82311,
+        "cpu_percent": 20.5,
+        "name": "mdworker_shared"
+      },
+      {
+        "pid": 82313,
+        "cpu_percent": 20.1,
+        "name": "mdworker_shared"
+      },
+      {
+        "pid": 82312,
+        "cpu_percent": 20.0,
+        "name": "mdworker_shared"
+      },
+      {
+        "pid": 841,
+        "cpu_percent": 19.6,
+        "name": "iCoreSecurity"
+      }
+    ],
+    "known_workloads": [],
+    "thermal": {
+      "exit_code": 0,
+      "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+      "stderr": ""
+    }
+  },
+  "observations": [
+    {
+      "wrapper_pid": 82319,
+      "launch_monotonic_ns": 32610986323833,
+      "completion_monotonic_ns": 32611002024666,
+      "exit_code": 0,
+      "timed_out": false,
+      "session": 2,
+      "round": 2,
+      "pair": 54,
+      "engine": "ett-scan",
+      "label": "Aprime",
+      "pair_position": 0,
+      "observation": 108,
+      "arguments": [
+        "/usr/bin/time",
+        "-l",
+        "$WORKSPACE/knotrel-benchmarks/target/release/initialization-profile",
+        "--engine",
+        "ett-scan",
+        "--workload",
+        "dense-bridge-churn-v1",
+        "--nodes",
+        "512",
+        "--rounds",
+        "1",
+        "--seed",
+        "42",
+        "--surface",
+        "adapter",
+        "--timing",
+        "whole",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "arguments_sha256": "7c2b1477bc0a7adfb7528f6ec6c69c78eea37e4d48049e528fe864abcb75f205",
+      "environment_sha256": "c826313cc7f654332af45c986386e0c50bd3d4f7026247f7ca5e7dcf7e30fd05",
+      "cwd": "$WORKSPACE/knotrel-benchmarks",
+      "run": {
+        "trace_fingerprint_fnv1a64": "b4768a77d485a99f",
+        "initial_edges": 65281,
+        "total_initialization_ns": 6144209,
+        "setup_ns": 5023500
+      },
+      "peak_process_rss_bytes": 17235968,
+      "process_metadata": {
+        "page_reclaims": 1230,
+        "page_faults": 0,
+        "swaps": 0,
+        "voluntary_context_switches": 0,
+        "involuntary_context_switches": 36,
+        "instructions_retired": 118848431,
+        "cycles_elapsed": 35897363,
+        "peak_memory_footprint": 16433584,
+        "printed_process_seconds": {
+          "real": 0.01,
+          "user": 0.0,
+          "sys": 0.0
+        }
+      }
+    },
+    {
+      "wrapper_pid": 82321,
+      "launch_monotonic_ns": 32611002447958,
+      "completion_monotonic_ns": 32611018110750,
+      "exit_code": 0,
+      "timed_out": false,
+      "session": 2,
+      "round": 2,
+      "pair": 54,
+      "engine": "ett-scan",
+      "label": "A",
+      "pair_position": 1,
+      "observation": 109,
+      "arguments": [
+        "/usr/bin/time",
+        "-l",
+        "$WORKSPACE/knotrel-benchmarks/target/release/initialization-profile",
+        "--engine",
+        "ett-scan",
+        "--workload",
+        "dense-bridge-churn-v1",
+        "--nodes",
+        "512",
+        "--rounds",
+        "1",
+        "--seed",
+        "42",
+        "--surface",
+        "adapter",
+        "--timing",
+        "whole",
+        "--warmup",
+        "0",
+        "--repetitions",
+        "1"
+      ],
+      "arguments_sha256": "7c2b1477bc0a7adfb7528f6ec6c69c78eea37e4d48049e528fe864abcb75f205",
+      "environment_sha256": "c826313cc7f654332af45c986386e0c50bd3d4f7026247f7ca5e7dcf7e30fd05",
+      "cwd": "$WORKSPACE/knotrel-benchmarks",
+      "run": {
+        "trace_fingerprint_fnv1a64": "b4768a77d485a99f",
+        "initial_edges": 65281,
+        "total_initialization_ns": 6217833,
+        "setup_ns": 4995458
+      },
+      "peak_process_rss_bytes": 17203200,
+      "process_metadata": {
+        "page_reclaims": 1230,
+        "page_faults": 0,
+        "swaps": 0,
+        "voluntary_context_switches": 0,
+        "involuntary_context_switches": 43,
+        "instructions_retired": 120361363,
+        "cycles_elapsed": 36973929,
+        "peak_memory_footprint": 16400816,
+        "printed_process_seconds": {
+          "real": 0.01,
+          "user": 0.0,
+          "sys": 0.0
+        }
+      }
+    }
+  ]
+}

@@ -6,7 +6,7 @@ after the separate mapping experiment demonstrated the `counters-profile`
 array mapping and exact duplicate group.
 
 The user-provided manual template is read-only at
-`/Users/robertotrunfio/Downloads/MyTemplate.tracetemplate`, SHA-256
+`$HOME/Downloads/MyTemplate.tracetemplate`, SHA-256
 `99b0cb00c8c35bdd66fb6456021ea11c21c0c3e36c89b0b4e5975ea5622ecd74`.
 For each sample, positions 0–7 are the configured events and positions 8–15
 must be their exact duplicate. The raw trace bundles and bulky counter exports

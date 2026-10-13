@@ -88,6 +88,203 @@ report storage is O(repetitions). Export temporarily adds an O(n+r) JSON buffer.
 There is no RSS measurement, memory budget estimator or engine-only allocation
 accounting. Very large inputs can exhaust memory despite checked trace allocation.
 
+## Initialization phase diagnostic
+
+`cargo run --release --locked --bin initialization-profile -- --engine ett-scan
+--workload chain-split-rejoin-v1 --nodes 100000` runs a separate, versioned
+initialization-only report. The normal runner, trace fingerprints and existing
+`setup_ns` output remain unchanged. The new runner reuses the same generated
+workloads and adapter constructor; it does not implement bulk loading.
+
+Each repetition generates and encodes its own input, then registers nodes and
+inserts edges in original order. `total_initialization_ns` is a contiguous wall
+interval from generation to ready graph. `setup_ns` retains the narrower
+node-vector-through-edge-loading boundary (not identical instructions: initial
+edge success is also checked). Dynamic replay is absent. `--validate` optionally
+checks the dynamic suffix **after** all timestamps; use it for correctness only,
+not build-only RSS. `--warmup` rebuilds both input and graph without reporting;
+it is not the old full-replay warmup. Defaults are zero warmups, one repetition.
+
+The phase fields partition the enclosing intervals exactly:
+
+- `input_generation_ns`: generator including its inseparable validation/oracle
+  work; not file parsing. Imported traces are not supported by this diagnostic.
+- `trace_encoding_fingerprint_ns`: compact JSON encoding, FNV fingerprint and
+  temporary byte-buffer disposal; no disk export.
+- `node_vector_ns`: vertex-ID vector creation plus small timing bookkeeping.
+- `adapter_validation_ns`: ordered ID-map construction and unique/nonempty
+  checks, absent for the facade.
+- `vertex_registration_ns`: empty backend construction, dispatch and node
+  registration, not isolated `add_node` CPU time.
+- `constructor_other_ns`: adapter wrapping/return and temporary validation-map
+  destruction. Scratch creation for non-core adapters is also outside the
+  registration loop; the diagnostic CLI restricts selection to BFS/ETT/HDT.
+- `initial_edges_ns`: complete insertion loop, checks and final compiler barrier.
+  ID lookup, allocation, connectivity classification, AVL links and incidence
+  maintenance are **not** independently measurable here.
+- `setup_other_ns`: checked residual for dispatch and timer/bookkeeping gaps;
+  not a measured algorithmic phase or an estimate of total timer overhead.
+
+Input-generation + encoding + setup equals total; all setup phases sum to
+setup. No clock overhead is subtracted. `--timing whole` disables internal
+phase clocks through the same construction path, retaining enclosing total and
+setup timers; balanced independent process pairs assess instrumentation impact.
+Do not assume exact arithmetic proves absence of measurement perturbation.
+
+`--surface adapter` retains the historical raw-engine + temporary ordered-map
+path. `facade` measures the existing `ConnectivityGraph` reference loop without
+limits; `facade-limited` sets max_nodes=V and max_edges=initial E+1, including
+presence/limit checks. These are separate baselines, not optimization arms.
+Neither changes graph algorithms or public core APIs.
+
+For peak memory use one engine, one repetition, warmup zero, no `--validate`,
+in a fresh process under the platform time tool. The graph is live through
+the timestamp; whole-process peak also includes generation/JSON, runtime and
+reporting, **not** just graph heap. Do not infer per-phase memory or subtract
+unrelated RSS peaks. No structural allocator/root-step instrumentation is
+provided: conclusions stop at these phase boundaries.
+
+The bounded Phase-0 collector uses only existing Python standard-library helpers:
+
+```sh
+python3 scripts/run_initialization.py results/NEW/calibration --stage calibration
+python3 scripts/run_initialization.py results/NEW/baseline --stage baseline --calibration results/NEW/calibration
+python3 scripts/run_initialization.py results/NEW/limits --stage limits --calibration results/NEW/calibration
+```
+
+Calibration is six balanced adjacent whole/phases pairs per backend on the
+512-vertex dense graph (36 processes). Continue only if each backend's median
+paired setup change is within +/-5%, its exploratory paired bootstrap 95%
+interval is within +/-10%, and the largest unassigned setup residual is below
+1%. This establishes suitability for coarse phase attribution, not equivalence
+for sub-percent optimization claims. Failure stops collection without reruns.
+Baseline is six independent trials per backend/topology: 100k path, 100k cycle,
+100k two-component paths, and 512-vertex clique bridge (72 processes).
+Limits is six balanced default/configured facade pairs per backend on the
+100k path (36 processes). All use seed 42, one round, deterministic case shuffle,
+one fresh process per observation, no warmup, and no dynamic replay. This is
+not a warmed baseline or a broad scaling campaign.
+
+The collector preserves raw JSON/stderr, commands, failures, source/binary
+hashes, revisions, tracked patches and new Rust source snapshots. It checks
+source/binary identity against calibration and rejects overwriting results.
+Reports retain medians, min/max, quartiles and each paired delta; six trials
+remain exploratory. No failed or unfavorable record is selectively rerun.
+
+### Approved identical-path A/A validation
+
+The separate `run_initialization_aa.py` implements **only Stage A** of the
+[methodological review](experiments/2026-10-12-initialization-methodology-review.md).
+It uses the existing reviewed executable without rebuilding it. Both members
+of each pair use identical whole-mode arguments, environment, working directory,
+and output handling; A/A-prime labels appear only in collector metadata.
+
+```sh
+python3 scripts/run_initialization_aa.py results/NEW_AA_DIRECTORY --prevent-idle-sleep
+```
+
+Use the sleep-prevention flag only with user approval. It holds a temporary
+idle-sleep assertion and removes it on exit; it changes neither power settings
+nor QoS. AC power remains mandatory. Source/binary/methodology identity, the
+fixed schedule, and known host preconditions are checked before observations.
+The collector stops on detected power/sleep/priority changes, known concurrent
+build/test workloads, integrity failures, or child errors.
+
+The sample count and all statistical thresholds are fixed in the approved
+review: 24 pairs per backend, three sessions, 144 children. The first session
+has 60 quiet seconds beforehand. Each later session follows a fixed 300-second
+quiet gap, whose final 60 seconds satisfy its pre-session quiet requirement.
+Records are buffered between the two children and written after the pair.
+The complete schedule is archived before collection. All first/slow observations
+are retained; criteria are evaluated once after the complete stage, separately
+for setup and total initialization. Raw process diagnostics, host checks,
+individual observations, distributions, and full-order SVG plots are retained.
+Unavailable core-residency/frequency/QoS-class indicators are not inferred.
+
+Tests use synthetic records and mocked child launches:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -p 'test_initialization*.py' -v
+```
+
+Stage B is neither implemented nor automatically authorized, even if A/A passes.
+
+### Optional bulk initialization mode
+
+`initialization-profile` accepts `--init-mode incremental|bulk`. `incremental`
+is the default and is exactly the historical behavior: reports from before this
+option existed are unchanged, and their JSON schema is unchanged. `bulk` builds
+the facade with the core's
+[`ConnectivityGraph::try_from_edges`](../../knotrel/crates/knotrel-core/src/configuration.rs)
+over the same ordered node vector and initial-edge list. It is a correctness
+integration point for future bulk-versus-incremental experiments, **not a
+demonstrated optimization**: the core call performs the same ordered
+`add_node`/`link` work, and no timing comparison between the modes has been made.
+
+```sh
+cargo run --release --locked --bin initialization-profile -- \
+  --engine hdt --surface facade --init-mode bulk --timing whole --validate
+```
+
+Supported and unsupported combinations are explicit; nothing is emulated:
+
+| Request | Result |
+| --- | --- |
+| `bulk` with `--surface facade` or `facade-limited`, engines `compact-bfs`, `ett-scan`, `hdt` | Supported for distinct, non-self-loop initial edges (see the contract below). Limits are derived exactly as for incremental construction. |
+| `bulk` with `--surface adapter` | Rejected. Adapter engines are raw/benchmark backends with no `try_from_edges`; bulk loading is not emulated. |
+| `bulk` with `--timing phases` (the default timing) | Rejected. Registration and edge insertion are one core call, so those phases cannot be isolated without inventing a measurement. Use `--timing whole`. |
+| `bulk` with other engines (reference, frozen baselines, third-party) | Rejected, as for incremental facade runs. |
+
+Reports from `bulk` add `"initialization": "bulk"`; the field is absent in
+incremental reports. The fingerprint, `initial_edges`, `config`, engine and
+surface identities are unchanged, and `--validate` replays the same dynamic
+suffix and oracle. The main `knotrel-benchmarks` dynamic runner has no
+initialization-mode option: it measures only adapter surfaces.
+
+Limitations and the exact compatibility contract:
+
+- **Precondition.** Bulk loading is guaranteed equivalent to incremental loading
+  only for initial edges that are pairwise distinct as undirected pairs and
+  contain no self-loop. Every generated workload family satisfies this (tested).
+  The core ordered loop steps over duplicate edges, while the incremental harness
+  stops at the first duplicate, so the two would otherwise report different errors
+  when a duplicate precedes a self-loop or a node/edge-limit failure.
+- **Conforming inputs.** Both modes either succeed with the same graph or fail
+  with the same core error (for example the node limit on `facade-limited` for
+  an endpoint outside the node vector). Success versus failure is identical for
+  *every* input, including violating ones; only the error identity can differ.
+- **Violating inputs.** Bulk rejects them with an explicit error naming the first
+  violation in input order, for example `bulk initialization requires distinct
+  initial edges without self-loops: initial edge 1 (1, 0) duplicates edge 0`.
+  This does not depend on the order of any later self-loop or limit error. Incremental
+  mode is unchanged and still reports whichever failure it meets first (the
+  duplicate-edge oracle error, a self-loop, or a limit error). Neither mode
+  produces a report for such input, and they can disagree on the message.
+- **Cost.** The precondition scan runs only after a failed bulk construction, never
+  on the successful path, which performs the core call and one edge-count
+  comparison. No per-edge validation was added to the construction being measured.
+  Generated workloads cannot trigger the rejection; it is exercised by unit tests.
+- Edge-limit failures cannot arise from the harness: `facade-limited` sets the
+  edge ceiling to the initial edge count plus one. Edge-limit precedence is
+  covered by the core and library-level differential tests.
+- Endpoints outside the node vector are not rejected by either mode, so that
+  existing behavior is unchanged; on `facade` both create them identically.
+- Allocation failure is not a recoverable error in either mode (see the core
+  documentation). Internal ETT/HDT diagnostic counters are not compared.
+- Phase breakdowns, peak-memory attribution and any timing comparison are not
+  provided for `bulk`. The closed Phase 0 measurement investigation is not
+  reopened: its recorded executable and evidence were built from the earlier
+  source, and this source change means the frozen A/A collector's source
+  preflight would (correctly) refuse to run again.
+
+Correctness tests (no timing) live in
+[`tests/bulk_initialization.rs`](../crates/knotrel-benchmarks/tests/bulk_initialization.rs)
+and in the binary's unit tests: differential construction for every workload
+family and engine, degenerate/duplicate/self-loop inputs, node and edge limit
+failures with error precedence, identical dynamic continuations, CLI report and
+schema compatibility, explicit rejection of unsupported combinations, and
+regressions for duplicates before and after self-loops and limit errors.
+
 ## Reproducing the recorded local baseline
 
 ```sh

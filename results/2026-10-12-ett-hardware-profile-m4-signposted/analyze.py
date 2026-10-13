@@ -14,8 +14,8 @@ from typing import Any
 
 RESULTS = Path(__file__).resolve().parent
 TRACE_ROOT = Path(
-    "/Users/robertotrunfio/.copilot/session-state/"
-    "38a24407-0788-43b6-9112-59903987563b/files/"
+    "$SESSION_STATE/"
+    "files/"
     "ett-hardware-profile-m4-signposted-raw"
 )
 

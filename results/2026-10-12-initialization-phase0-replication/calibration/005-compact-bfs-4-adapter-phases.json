@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "measurement": "initialization-only",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "debug_assertions": false,
+  "engine": "knotrel-core/compact-bfs-v1",
+  "surface": "adapter",
+  "timing": "phases",
+  "workload": "dense-bridge-churn-v1",
+  "config": {
+    "nodes": 512,
+    "rounds": 1,
+    "seed": 42
+  },
+  "warmup": 0,
+  "validated_dynamic_continuation": false,
+  "repetitions": [
+    {
+      "trace_fingerprint_fnv1a64": "b4768a77d485a99f",
+      "initial_edges": 65281,
+      "total_initialization_ns": 2589458,
+      "setup_ns": 1349875,
+      "phases": {
+        "input_generation_ns": 155333,
+        "trace_encoding_fingerprint_ns": 1084250,
+        "node_vector_ns": 167,
+        "adapter_validation_ns": 4167,
+        "vertex_registration_ns": 12750,
+        "constructor_other_ns": 1416,
+        "initial_edges_ns": 1329458,
+        "setup_other_ns": 1917
+      }
+    }
+  ]
+}

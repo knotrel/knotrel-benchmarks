@@ -16,7 +16,7 @@ use petgraph::{
     graph::{Graph as PetGraph, NodeIndex},
     visit::Visitable,
 };
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Instant};
 
 type TraversalGraph = PetGraph<(), (), Undirected, usize>;
 type SearchSpace = DfsSpace<NodeIndex<usize>, <TraversalGraph as Visitable>::Map>;
@@ -127,6 +127,26 @@ impl EngineKind {
 pub struct Engine {
     storage: Storage,
 }
+
+/// Non-overlapping construction intervals from the initialization diagnostic.
+///
+/// These include boundary-clock overhead; no overhead is subtracted.
+#[derive(Debug)]
+pub struct ConstructionTimings {
+    /// Ordered ID-map creation and empty/duplicate input validation.
+    pub validation_ns: u128,
+    /// Empty backend construction and registration of every vertex.
+    pub vertex_registration_ns: u128,
+    /// Return/wrapping and disposal of temporary adapter validation storage.
+    pub other_ns: u128,
+    /// Enclosing constructor wall time, equal to the three intervals' sum.
+    pub total_ns: u128,
+}
+
+enum ConstructionBoundary {
+    Validated,
+    Registered,
+}
 enum Storage {
     Reference(ReferenceGraph),
     Compact(Graph),
@@ -169,6 +189,45 @@ impl Engine {
     /// # Errors
     /// Rejects empty or duplicate node lists. Allocation exhaustion may panic.
     pub fn new(kind: EngineKind, nodes: &[u64]) -> Result<Self, &'static str> {
+        Self::construct(kind, nodes, |_| {})
+    }
+
+    /// Runs the same constructor with three phase-boundary clock readings.
+    ///
+    /// Registration includes empty backend/scratch creation and dispatch, not
+    /// just `add_node` calls. Temporary map destruction is in `other_ns`.
+    /// Use only outside dynamic replay timing; `new` has no phase clocks.
+    ///
+    /// # Errors
+    /// Returns the same validation errors as [`Self::new`].
+    pub fn new_with_timings(
+        kind: EngineKind,
+        nodes: &[u64],
+    ) -> Result<(Self, ConstructionTimings), &'static str> {
+        let start = Instant::now();
+        let mut validated = start;
+        let mut registered = start;
+        let graph = Self::construct(kind, nodes, |boundary| match boundary {
+            ConstructionBoundary::Validated => validated = Instant::now(),
+            ConstructionBoundary::Registered => registered = Instant::now(),
+        })?;
+        let end = Instant::now();
+        Ok((
+            graph,
+            ConstructionTimings {
+                validation_ns: (validated - start).as_nanos(),
+                vertex_registration_ns: (registered - validated).as_nanos(),
+                other_ns: (end - registered).as_nanos(),
+                total_ns: (end - start).as_nanos(),
+            },
+        ))
+    }
+
+    fn construct(
+        kind: EngineKind,
+        nodes: &[u64],
+        mut observe: impl FnMut(ConstructionBoundary),
+    ) -> Result<Self, &'static str> {
         let ids: BTreeMap<_, _> = nodes
             .iter()
             .copied()
@@ -178,12 +237,14 @@ impl Engine {
         if nodes.is_empty() || ids.len() != nodes.len() {
             return Err("need nonempty unique registered nodes");
         }
+        observe(ConstructionBoundary::Validated);
         let n = nodes.len();
         if kind == EngineKind::TraversalBitset {
             let mut graph = crate::traversal::Graph::new();
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: Storage::Bitset(graph, crate::traversal::BitSearchSpace::default()),
             });
@@ -193,6 +254,7 @@ impl Engine {
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: Storage::Traversal(
                     graph,
@@ -206,6 +268,7 @@ impl Engine {
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: Storage::Reference(graph),
             });
@@ -215,6 +278,7 @@ impl Engine {
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: if kind == EngineKind::Compact {
                     Storage::Compact(graph)
@@ -228,6 +292,7 @@ impl Engine {
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: Storage::EttScan(graph),
             });
@@ -237,6 +302,7 @@ impl Engine {
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: Storage::Hdt(graph),
             });
@@ -246,6 +312,7 @@ impl Engine {
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: Storage::HdtV2(graph),
             });
@@ -255,6 +322,7 @@ impl Engine {
             for &node in nodes {
                 graph.add_node(node);
             }
+            observe(ConstructionBoundary::Registered);
             return Ok(Self {
                 storage: Storage::EttBaseline(graph),
             });
@@ -288,6 +356,7 @@ impl Engine {
             | EngineKind::EttScan
             | EngineKind::EttBaseline => unreachable!(),
         };
+        observe(ConstructionBoundary::Registered);
         Ok(Self {
             storage: Storage::Indexed(Box::new(Indexed { ids, backend })),
         })

@@ -2,7 +2,7 @@
 
 This fixed two-process probe validates export shape before a second large
 marker-scoped campaign. It uses the user-saved manual CPU Counters template at
-`/Users/robertotrunfio/Downloads/MyTemplate.tracetemplate`, SHA-256
+`$HOME/Downloads/MyTemplate.tracetemplate`, SHA-256
 `99b0cb00c8c35bdd66fb6456021ea11c21c0c3e36c89b0b4e5975ea5622ecd74`.
 
 The template configures the M4 events `FIXED_CYCLES`, `CORE_ACTIVE_CYCLES`,

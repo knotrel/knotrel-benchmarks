@@ -85,7 +85,7 @@ The safe-wrapper build provenance and full verification are in
 The 72 raw `.trace` bundles and bulky exported counter/activity tables are
 outside Git at:
 
-`/Users/robertotrunfio/.copilot/session-state/38a24407-0788-43b6-9112-59903987563b/files/ett-hardware-profile-m4-signposted-raw`
+`$SESSION_STATE/files/ett-hardware-profile-m4-signposted-raw`
 
 Each batch records their hashes and exact location. Set the artifact root in
 the analysis environment only when independently reprocessing the raw exports.

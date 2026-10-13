@@ -13,10 +13,10 @@ from pathlib import Path
 
 RESULTS = Path(__file__).resolve().parent
 VALIDATION = RESULTS.parent / "2026-10-12-ett-signpost-validation-m4"
-TEMPLATE = Path("/Users/robertotrunfio/Downloads/MyTemplate.tracetemplate")
+TEMPLATE = Path("$HOME/Downloads/MyTemplate.tracetemplate")
 RAW = Path(
-    "/Users/robertotrunfio/.copilot/session-state/"
-    "38a24407-0788-43b6-9112-59903987563b/files/ett-manual-counter-probe-m4"
+    "$SESSION_STATE/"
+    "files/ett-manual-counter-probe-m4"
 )
 EXPECTED_TEMPLATE_SHA256 = "99b0cb00c8c35bdd66fb6456021ea11c21c0c3e36c89b0b4e5975ea5622ecd74"
 

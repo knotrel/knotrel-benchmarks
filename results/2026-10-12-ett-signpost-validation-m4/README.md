@@ -34,7 +34,7 @@ validation. No trace was repeated.
 
 The two raw trace bundles are external to Git at:
 
-`/Users/robertotrunfio/.copilot/session-state/38a24407-0788-43b6-9112-59903987563b/files/ett-signpost-validation-m4-traces`
+`$SESSION_STATE/files/ett-signpost-validation-m4-traces`
 
 Their tree hashes are retained in [analysis.json](analysis.json). The successful
 result authorizes the separate 72-trace

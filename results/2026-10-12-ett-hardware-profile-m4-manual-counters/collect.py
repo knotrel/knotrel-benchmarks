@@ -18,11 +18,11 @@ RESULTS = Path(__file__).resolve().parent
 VALIDATION = RESULTS.parent / "2026-10-12-ett-signpost-validation-m4"
 XCODE = Path("/Applications/Xcode.app/Contents/Developer")
 TRACE_ROOT = Path(
-    "/Users/robertotrunfio/.copilot/session-state/"
-    "38a24407-0788-43b6-9112-59903987563b/files/"
+    "$SESSION_STATE/"
+    "files/"
     "ett-hardware-profile-m4-manual-counters-raw"
 )
-TEMPLATE = Path("/Users/robertotrunfio/Downloads/MyTemplate.tracetemplate")
+TEMPLATE = Path("$HOME/Downloads/MyTemplate.tracetemplate")
 TEMPLATE_SHA256 = "99b0cb00c8c35bdd66fb6456021ea11c21c0c3e36c89b0b4e5975ea5622ecd74"
 
 
