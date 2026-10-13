@@ -2,146 +2,37 @@
 
 Reproducible workloads for measuring exact dynamic graph connectivity.
 
-New: [updated five-engine ranking after packed token integration](results/2026-10-09-engine-ranking/README.md).
-1,110 processes evaluate Compact, Workspace, ETT, HDT and external petgraph across the 74 main cells following 64-byte token packing in ETT and HDT. Workspace leads with 20 wins and beats petgraph in 45 cells; ETT wins 19 and HDT 15, with 15–19% memory reductions at scale.
+## Current Benchmark Results
 
-New: [ETT scan-root hardware-profile feasibility on Apple M4](results/2026-10-12-ett-hardware-profile-m4/README.md).
-Six fixed CPU Counters traces confirm that Xcode 27 is available but no
-profiler-recognized replay markers were emitted. No replay-scoped hardware
-counter conclusion or integration decision follows.
+The active repository tree maintains benchmark evidence for the latest version of Knotrel. Detailed historical runs are preserved in Git history (see [results/README.md](results/README.md)).
 
-New: [marker-scoped ETT scan-root CPU Counters on Apple M4](results/2026-10-12-ett-hardware-profile-m4-signposted/README.md).
-72 fixed paired recordings confirm the dense benefit and path variability, but
-do not identify a replay-scoped hardware cause or justify candidate integration.
+- **[Current five-engine ranking](results/ranking/README.md)**: 74-cell evaluation across `Compact BFS`, `Compact Workspace`, `ETT`, `HDT`, and external `petgraph` following migration to `FxHashMap` and 64-byte token packing. Knotrel engines combined win **72 / 74 cells (97.3%)** against petgraph; Compact Workspace leads with 31 / 74 wins (41.9%).
+- **[ETT scan-root hardware profile on Apple M4](results/hardware-profile/README.md)**: 72 fixed paired recordings validating signpost intervals, Apple M4 CPU performance counters, ~45% dense workload speedup, and path variance under hardware profiling.
+- **[Bulk graph initialization](results/initialization/README.md)**: Phase 0 calibration and replication records for bulk graph construction (`try_from_edges`) and stage-based timing accounting.
+- **[Continuous performance evaluation](results/perf_evaluation_latest.json)**: Latest automated regression evaluation metrics.
 
-New: [ETT scan-root named manual-counter analysis on Apple M4](results/2026-10-12-ett-hardware-profile-m4-manual-counters/report.md).
-72 further marker-scoped recordings validate named manual-counter mapping and
-reproduce a dense warmed benefit, but retain path variability, two missing
-dense counter samples, and no causal hardware conclusion.
+---
 
-New: [paired resource diagnosis of packed HDT tokens](results/2026-10-09-hdt-packed-resources/README.md).
+## Architecture & Engines
 
-New: [extended 64-byte HDT token comparison](results/2026-10-08-hdt-packed-tokens-matrix/README.md).
+The harness compares Knotrel's own connectivity backends with external libraries:
+- `compact-bfs`: **Knotrel's default backend** (`Graph`).
+- `compact-workspace`: Knotrel's opt-in caller-owned workspace backend (`BfsWorkspace`), avoiding allocation on repeated traversals.
+- `ett-scan`: **Knotrel's experimental backend** maintaining dynamic spanning forests via Euler Tour Trees with 64-byte packed tokens.
+- `hdt`: **Knotrel's experimental backend** implementing Holm-de Lichtenberg-Thorup multilevel dynamic graph connectivity.
+- `petgraph-dfs`: External baseline wrapped by benchmark adapter.
 
-New: [64-byte HDT tokens pilot](results/2026-10-08-hdt-packed-tokens/README.md).
+Measured calls are embedded kernel operations, not HTTP service requests.
 
-New: [controlled HDT token-page preparation](results/2026-10-08-hdt-token-preparation/README.md).
+Workloads include deterministic synthetic families and imported topology traces. The harness validates every result and supports trace export, warmup, and separate reports for repeated fresh-graph runs.
 
-New: [HDT scheduling and memory phase diagnosis](results/2026-10-08-hdt-phase-resources/README.md).
-
-New: [repeated-replay A/A measurement validation](results/2026-10-08-hdt-repeated-replay/README.md).
-
-New: [HDT A/A regression diagnosis and compiled-code inspection](results/2026-10-08-hdt-promotion-noise/README.md).
-
-New: [extended promotion-only HDT comparison](results/2026-10-07-hdt-promotion-joins-matrix/README.md).
-
-New: [promotion-only HDT joins pilot](results/2026-10-07-hdt-promotion-joins/README.md).
-
-New: [HDT join association and path regression investigation](results/2026-10-07-hdt-join-order/README.md).
-
-New: [dedicated HDT concat extraction pilot](results/2026-10-07-hdt-concat/README.md).
-64 timed processes and eight structural replays test a specialized final-token
-extraction. The predeclared expansion gate is not met; the patch is preserved
-as experimental and the core remains unchanged.
-
-New: [single-pass HDT root/rank experiment](results/2026-10-06-hdt-root-rank/README.md).
-304 timed processes use four balanced pairs per cell. Eight structural replays
-verify halved parent steps during tree promotions, with small/mixed runtime
-changes. Both candidate patches are preserved in the
-[HDT candidate inventory](docs/experiments/2026-10-06-hdt-candidates.md); production
-remains unchanged.
-
-New: [HDT rank-zero reroot experiment](results/2026-10-06-hdt-reroot/README.md).
-292 paired timing processes and 16 isolated structural replays test an early
-return for already-positioned tours. A narrow benefit is confirmed, but the
-matrix is mixed; the candidate remains isolated and production is unchanged.
-
-New: [HDT cyclic-blocks diagnosis](results/2026-10-06-hdt-blocks-profile/README.md).
-24 diagnostics and eight isolated structural replays locate millions of tree
-promotions and higher-level forest maintenance on the preserved block traces.
-No production change or optimization speedup is claimed.
-
-New: [current five-engine ranking](results/2026-10-06-engine-ranking/README.md).
-1,182 processes compare Compact, Workspace, ETT, optimized HDT and external
-petgraph: 74 main cells, separate repeats and exploratory 10M results,
-plus a matched historical comparison. No universal winner; the next target
-is HDT replacement/promotion work on sparse cyclic blocks.
-
-New: [BFS epoch marks versus packed bitset](results/2026-10-05-traversal-bitset/README.md).
-904 timed processes and 76 diagnostic replays retain identical BFS work, with
-mixed/slower bitset timings despite smaller logical mark storage. The
-`traversal-bitset` control is benchmark-only; production keeps generation marks.
-
-New: [controlled BFS versus DFS](results/2026-10-05-traversal-order/README.md),
-904 timed processes and 76 separate structural probes. `traversal-bfs` and
-`traversal-dfs` are benchmark-only controls; production defaults are unchanged.
-DFS is not a universal improvement; the report retains sparse regressions and
-Cogentco gains, with a real Workspace anchor and petgraph context.
-
-New: [Compact / Workspace / petgraph across graph sizes](results/2026-10-05-traversal-scale/README.md).
-678 processes cover 1k–1M sparse graphs, exploratory 10M graphs, dense controls
-and Cogentco, with per-size rankings, tails, setup, RSS and adapter analysis.
-
-[Algorithm and competitor ranking](results/2026-10-04-connectivity-campaign/ranking.md):
-historical shared four-engine campaign, direct petgraph comparisons, and explicit
-limitations for newer workspace/HDT optimizations not yet ranked together.
-
-Diagnosis: [deterministic HDT structural counters](results/2026-10-05-hdt-structural-probe/README.md)
-find identical aggregate cut/query work before and after on the 100k path trace.
-The probe is isolated from production and makes no instrumented timing claims.
-
-Follow-up: [48-process path regression investigation](results/2026-10-05-hdt-path-investigation/README.md).
-The earlier +11.62% warmed observation is not stable in 12 new paired trials;
-the report preserves all earlier results and separates variability from causation.
-
-New: [HDT direct joins before/after](results/2026-10-05-hdt-joins/README.md),
-272 full-matrix processes plus 48 regression-confirmation processes. Includes
-the confirmed warmed-path regression alongside cyclic-block and Cogentco gains.
-
-New: [HDT endpoint reuse before/after](results/2026-10-04-hdt-localids/README.md),
-272 paired processes against the preserved reference matrix, with improvements,
-regressions, unchanged HDT work counters and build-provenance limitations.
-
-New: [BFS workspace before/after](results/2026-10-04-workspace-v2-comparison/README.md),
-with preserved v1 regressions, generation-mark v2, and dense confirmation.
-The `compact-workspace` selector uses the optional caller-owned workspace API.
-
-Latest: [544-run connectivity campaign](results/2026-10-04-connectivity-campaign/README.md),
-including 100,000-vertex sparse workloads, dense controls, repeated queries and
-a real Cogentco topology. The report labels Knotrel and external implementations
-and includes unfavorable results and memory tradeoffs.
-
-The harness compares Knotrel's own connectivity backends with external libraries.
-`compact-bfs` is **Knotrel's default backend**; `ett-scan` and `hdt` are
-**Knotrel's experimental backends**. `petgraph-dfs` and `outils-hdt` are external
-implementations wrapped by benchmark adapters. Historical frozen engines and
-benchmark-only BFS variants are internal controls, not additional competitors.
-The measured calls are embedded kernel operations, not HTTP service requests.
-
-Workloads include deterministic synthetic families and imported topology traces.
-It validates every result and supports trace export, warmup and separate reports
-for repeated fresh-graph runs. GraphScope and HTTP are **not measured**. A small imported real-topology
-[integration run](results/2026-10-03-topology-import-smoke/README.md) is available;
-it does not establish domain-scale performance. The prepared GraphScope probe remains unverified.
-See [competitor selection and adoption](docs/research/2026-09-26-competitive-landscape.md)
-and the [measured embedded comparison](results/2026-09-26-competitors/README.md).
-Petgraph is the primary external baseline; outils is an algorithmic control.
-
-See the [domain source selection](docs/research/2026-10-03-domain-scenarios.md)
-and [telecom, contacts and AML contracts](docs/scenarios/README.md) for
-literature-based workloads, licensing, projection semantics and cache controls.
-The [Topology Zoo adapter and imported replay](docs/scenarios/topology-zoo.md) are
-implemented; contacts and AML remain planned.
+See [domain source selection](docs/research/2026-10-03-domain-scenarios.md), [scenarios and contracts](docs/scenarios/README.md), and [Topology Zoo adapter](docs/scenarios/topology-zoo.md) for domain-specific workloads.
 
 ## Local layout
 
-Keep both repositories in the same parent directory, named `knotrel` and
-`knotrel-benchmarks`. The workspace uses `../knotrel/crates/knotrel-core` as a path
-dependency, so edits in your local core are measured immediately.
+Keep both repositories in the same parent directory, named `knotrel` and `knotrel-benchmarks`. The workspace uses `../knotrel/crates/knotrel-core` as a path dependency, so edits in your local core are measured immediately.
 
-Both workspaces pin Rust **1.98.1**, edition **2024** and resolver **3**. Third-party
-dependencies are locked in Cargo.lock. The path dependency is intentionally not
-revision-pinned: record the exact core revision and diff with every result.
+Both workspaces pin Rust **1.98.1**, edition **2024** and resolver **3**. Third-party dependencies are locked in Cargo.lock. The path dependency is intentionally not revision-pinned: record the exact core revision and diff with every result.
 
 ## Run
 
@@ -155,15 +46,11 @@ Select a workload and save a reusable trace:
 cargo run --release --locked -- --workload cycle-alternatives-v1 --nodes 4096 --rounds 200 --seed 42 --warmup 1 --repetitions 3 --trace-out cycle.trace.json
 ```
 
-`--help` lists all families and flags. Defaults preserve the original chain
-sequence, with one warmup and one measured replay. Each repetition starts with
-a fresh graph. Trace output refuses to overwrite files. JSON report schema 2
-stores latency summaries under `repetitions[i].measurements`, with separate
-cut/link/connected summaries; it also records topology and trace fingerprint.
+`--help` lists all families and flags. Defaults preserve the original chain sequence, with one warmup and one measured replay. Each repetition starts with a fresh graph. Trace output refuses to overwrite files. JSON report schema 2 stores latency summaries under `repetitions[i].measurements`, with separate cut/link/connected summaries; it also records topology and trace fingerprint.
 
-See [methodology](docs/methodology.md) for topology, ratios, timing boundaries,
-trace interchange and limitations. The [local release baseline](results/2026-09-26-macos/README.md)
-contains raw results and reproducibility metadata. Reproduce the complete matrix:
+See [methodology](docs/methodology.md) for topology, ratios, timing boundaries, trace interchange and limitations.
+
+Reproduce a complete matrix:
 
 ```sh
 python3 scripts/run_baseline.py results/NEW_RUN_DIRECTORY
@@ -178,11 +65,7 @@ cargo test --workspace --locked
 RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps --locked
 ```
 
-All public items require English Rustdoc. Complex private code documents
-invariants and costs. See [methodology](docs/methodology.md) before comparing
-engines. CI checks out the sibling [core repository](https://github.com/knotrel/knotrel); its Rust foundation must
-exist in the selected core revision first. Manual CI runs accept `core_ref`;
-automatic CI checks compatibility with core `main` and logs the resolved revision.
+All public items require English Rustdoc. Complex private code documents invariants and costs. See [methodology](docs/methodology.md) before comparing engines. CI checks out the sibling core repository; its Rust foundation must exist in the selected core revision first.
 
 ## Comparing backends
 
@@ -190,9 +73,8 @@ automatic CI checks compatibility with core `main` and logs the resolved revisio
 cargo run --release --locked -- --engine all --nodes 4096 --rounds 100 --query-repeats 1 --repetitions 3
 ```
 
-Multiple engines produce schema 3 containing one schema-2 report per backend.
-Setup, original true/false queries and immediate repeated queries are reported
-separately. Repeats augment the workload; no hardware-cache flushing is implied.
+Multiple engines produce schema 3 containing one schema-2 report per backend. Setup, original true/false queries and immediate repeated queries are reported separately. Repeats augment the workload; no hardware-cache flushing is implied.
+
 For the full recorded protocol with independent process trials and rotated order:
 
 ```sh
@@ -200,40 +82,22 @@ python3 scripts/run_baseline.py results/NEW_COMPARISON --nodes 128 1024 4096 --r
 python3 scripts/summarize_comparison.py results/NEW_COMPARISON
 ```
 
-`--engine compact-bfs` measures the default production `Graph`; `reference-bfs`
-continues to measure the preserved ordered `ReferenceGraph`. The `all` selector
-now includes the compact backend; see below for the current full set.
-See the [compact-core results](results/2026-09-27-compact-core/README.md).
+`--engine compact-bfs` measures the default production `Graph`. The `all` selector includes all active backends. See [current engine ranking](results/ranking/README.md) for latest numbers.
 
 ## Dynamic forest and scale workloads
 
-`--engine ett-scan` selects the experimental maintained forest. `all` now contains
-eight backends (use eight process trials to balance their positions). For sustained
-churn and process memory measurements:
+`--engine ett-scan` selects the experimental maintained forest. For sustained churn and process memory measurements:
 
 ```sh
 python3 scripts/run_scale.py results/NEW_SCALE_RUN --nodes 10000 100000 --query-percent 10 50 90 99 --rounds 20 --trials 2
 python3 scripts/summarize_scale.py results/NEW_SCALE_RUN
 ```
 
-One round is 100 operations for the new sustained families. RSS covers the whole
-process, including the harness. See [scale results](results/2026-09-27-forest-scale/README.md).
-
-The experimental forest now uses candidate-subtree pruning. Compare it with the
-frozen prototype via `--engines ett-scan-v1 ett-scan` in the scale collector.
-See [pruning measurements](results/2026-09-27-forest-pruned/README.md); `all` now
-contains nine backends, including experimental Knotrel HDT and its frozen v2 control. Counter definitions differ by version as documented.
-
+One round is 100 operations for sustained families. RSS covers the whole process, including the harness.
 
 ## Experimental Knotrel HDT
 
-`--engine hdt` selects `knotrel-core/hdt-sparse-levels-v3`, with separate `hdt_stats`
-promotion/search counters. HDT maintains multiple forests and uses more memory;
-its update bound is amortized. Neither the default core nor the existing ETT
-backend changed. Dense stress families `dense-bridge-churn-v1` and
-`redundant-bridge-churn-v1` keep two cliques fixed and toggle one or two bridges.
-They use 100 operations per round and support `--query-percent`; setup has
-quadratic edge count, so choose bounded node sizes.
+`--engine hdt` selects `knotrel-core/hdt-sparse-levels-v3`, with separate `hdt_stats` promotion/search counters. HDT maintains multiple forests and uses more memory; its update bound is amortized. Dense stress families `dense-bridge-churn-v1` and `redundant-bridge-churn-v1` keep two cliques fixed and toggle one or two bridges.
 
 ```sh
 python3 scripts/run_scale.py results/NEW_HDT_RUN --nodes 128 512 \
@@ -243,61 +107,10 @@ python3 scripts/run_scale.py results/NEW_HDT_RUN --nodes 128 512 \
 python3 scripts/summarize_scale.py results/NEW_HDT_RUN
 ```
 
-A repeated-query control can use `--query-repeats 1` in a separate collection.
-Use the sparse sustained families too; these dense cases deliberately target
-repeated scans and cannot establish a general performance or adoption claim.
-
-See the [HDT comparison report](results/2026-09-28-hdt-v2-dense/README.md) for
-measured dense wins, sparse regressions, setup, update tails and memory costs.
-
 ### HDT storage diagnostics
 
-`cargo run --release --locked --bin hdt-profile -- --engine hdt-v2 --nodes 512 --rounds 10 --workload dense-bridge-churn-v1 --query-percent 50` replays the same deterministic trace and independent query oracle as the normal runner. Use `--engine hdt` for the current sparse v3 implementation. The default binary remains `knotrel-benchmarks`.
-
-The JSON contains structural storage snapshots after registration, initial edges and replay, registration/loading stage durations, cumulative work counters and operation latency groups (links, queries, tree cuts with or without promotions, and non-tree cuts). Snapshots, counter reads, classification and correctness checks are outside operation timers. Counter reads and intervening snapshot allocations perturb caches: these diagnostic timings must not be compared with normal benchmark timings. Vector capacity bytes and live ordered-container payload bytes exclude allocator and B-tree overhead; they are not RSS or total heap usage.
-
-See the [v3 memory/time comparison](results/2026-09-28-hdt-v3-sparse/README.md):
-sparse upper levels reduce storage substantially but add measured cyclic repair
-cost. Frozen `hdt-v2` remains a same-build comparison control. To reproduce the
-diagnostic collection against a normal run's saved sources:
-
 ```sh
-python3 scripts/run_hdt_profile.py results/NEW_PROFILE \
-  --source-manifest results/NEW_NORMAL_RUN/manifest.json
+cargo run --release --locked --bin hdt-profile -- --engine hdt --nodes 512 --rounds 10 --workload dense-bridge-churn-v1 --query-percent 50
 ```
 
-Result publication keeps compact measurements and provenance in Git; bulky trace
-exports remain local. See the [artifact policy](results/README.md) and trace hash
-inventory before attempting a full historical artifact audit from a fresh clone.
-
-ETT representation experiment: [packed-index pilot](results/2026-10-09-ett-packed-tokens/README.md),
-with preserved before/after measurements and missing-input completion provenance.
-
-[Full ETT packed-token matrix](results/2026-10-09-ett-packed-tokens-matrix/README.md):
-38 before/after cells with runtime, memory and setup tradeoffs.
-
-[ETT direct-join pilot with petgraph](results/2026-10-10-ett-direct-joins/README.md):
-setup benefits but replay regressions; candidate not integrated.
-
-[ETT cut structural diagnosis](results/2026-10-10-ett-cut-structure/README.md):
-root-traversal work explains a concrete next optimization target; counters only.
-
-[ETT scan-root reuse pilot](results/2026-10-10-ett-scan-root/README.md):
-root traversal work roughly halved and dense replay 44.66% faster; warmed
-million-vertex path regression retained, candidate not integrated.
-
-[Scan-root regression diagnosis](results/2026-10-10-ett-scan-root-regression/README.md):
-identical path root traversal work and a stable dense improvement; macOS sleep
-contaminated the confirmation, so the earlier path regression remains unresolved.
-
-[Awake-host scan-root confirmation](results/2026-10-10-ett-scan-root-awake/decision.md):
-72 runs without observed sleep; dense benefit remains 44.64%, but path variance
-and adverse pairs persist. No core integration; replay-local diagnosis is next.
-
-[ETT replay CPU diagnosis](results/2026-10-10-ett-replay-cpu/README.md):
-off-CPU delay contributes to some path outliers but does not explain all variance;
-all 36 pairs retain their direction in CPU time. Dense CPU benefit remains ~45%.
-
-[Root locality and query code diagnosis](results/2026-10-10-ett-root-locality/README.md):
-identical root access sequences and inspected normal query instructions on path1M;
-hardware cache/core attribution remains unavailable without a suitable profiler.
+The JSON contains structural storage snapshots after registration, initial edges and replay, registration/loading stage durations, cumulative work counters and operation latency groups.
