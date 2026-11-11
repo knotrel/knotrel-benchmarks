@@ -1,5 +1,78 @@
 //! End-to-end checks of benchmark output and input validation.
 
+#[test]
+fn fresh_packed_arms_share_reports_and_exact_work() {
+    use knotrel_benchmarks::engines::EngineKind;
+    for (workload, percent) in [
+        ("chain-split-rejoin-v1", None),
+        ("sustained-churn-blocks-v1", Some("90")),
+    ] {
+        let mut reports = Vec::new();
+        for kind in [
+            EngineKind::TraversalBitsetFreshVec,
+            EngineKind::TraversalBitsetFreshDeque,
+        ] {
+            let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_knotrel-benchmarks"));
+            command.args([
+                "--engine",
+                kind.key(),
+                "--nodes",
+                "64",
+                "--rounds",
+                "4",
+                "--seed",
+                "42",
+                "--warmup",
+                "1",
+                "--repetitions",
+                "3",
+                "--query-repeats",
+                "0",
+                "--workload",
+                workload,
+            ]);
+            if let Some(percent) = percent {
+                command.args(["--query-percent", percent]);
+            }
+            let output = command.output().unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(report["engine"], kind.name());
+            assert_eq!(report["warmup"], 1);
+            assert_eq!(report["query_repeats"], 0);
+            assert_eq!(report["repetitions"].as_array().unwrap().len(), 3);
+            reports.push(report);
+        }
+        assert_eq!(
+            reports[0]["trace_fingerprint_fnv1a64"],
+            reports[1]["trace_fingerprint_fnv1a64"]
+        );
+        assert_eq!(reports[0]["config"], reports[1]["config"]);
+        for (baseline, candidate) in reports[0]["repetitions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(reports[1]["repetitions"].as_array().unwrap())
+        {
+            for operation in ["cut", "link", "connected"] {
+                assert_eq!(
+                    baseline["measurements"][operation]["count"],
+                    candidate["measurements"][operation]["count"]
+                );
+            }
+            for field in ["query_true", "query_false"] {
+                assert_eq!(baseline[field]["count"], candidate[field]["count"]);
+            }
+            assert!(baseline.get("forest_stats").is_none());
+            assert!(candidate.get("hdt_stats").is_none());
+        }
+    }
+}
+
 use serde_json::Value;
 use std::process::Command;
 

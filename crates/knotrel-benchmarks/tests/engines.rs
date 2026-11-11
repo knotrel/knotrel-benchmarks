@@ -5,7 +5,10 @@ use knotrel_core::GraphError;
 #[test]
 fn every_engine_preserves_registered_graph_semantics_and_cache_invalidation() {
     let ids = [0, 1, u64::MAX, 17, u64::MAX - 1, 29, 30, 31];
-    for kind in EngineKind::ALL {
+    for kind in EngineKind::ALL.into_iter().chain([
+        EngineKind::TraversalBitsetFreshVec,
+        EngineKind::TraversalBitsetFreshDeque,
+    ]) {
         let mut engine = Engine::new(kind, &ids).unwrap();
         let mut edges = vec![vec![false; ids.len()]; ids.len()];
         let mut seed = 42_u64;
@@ -60,7 +63,10 @@ fn every_engine_preserves_registered_graph_semantics_and_cache_invalidation() {
 
 #[test]
 fn repeated_bridge_and_cycle_queries_do_not_return_stale_answers() {
-    for kind in EngineKind::ALL {
+    for kind in EngineKind::ALL.into_iter().chain([
+        EngineKind::TraversalBitsetFreshVec,
+        EngineKind::TraversalBitsetFreshDeque,
+    ]) {
         let mut engine = Engine::new(kind, &[0, 1, 2, 3]).unwrap();
         for _ in 0..20 {
             assert_eq!(engine.link(0, 1), Ok(true));
@@ -92,4 +98,18 @@ fn traversal_controls_observe_cuts_and_early_exit_without_stale_marks() {
         assert_eq!(graph.connected(42, 42), Ok(true));
         assert_eq!(graph.connected(1, u64::MAX), Ok(false));
     }
+}
+
+#[test]
+fn fresh_packed_selectors_do_not_change_legacy_all() {
+    assert_eq!(EngineKind::ALL.len(), 13);
+    for kind in [
+        EngineKind::TraversalBitsetFreshVec,
+        EngineKind::TraversalBitsetFreshDeque,
+    ] {
+        assert_eq!(EngineKind::parse(kind.key()), Ok(kind));
+        assert!(!EngineKind::ALL.contains(&kind));
+    }
+    assert!(Engine::new(EngineKind::TraversalBitsetFreshVec, &[]).is_err());
+    assert!(Engine::new(EngineKind::TraversalBitsetFreshDeque, &[1, 1]).is_err());
 }

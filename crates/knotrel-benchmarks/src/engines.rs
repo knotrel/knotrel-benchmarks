@@ -36,6 +36,10 @@ pub enum EngineKind {
     TraversalDfs,
     /// Controlled BFS with packed u64 visit marks, benchmark-only.
     TraversalBitset,
+    /// Explicit-only packed-bit Vec BFS with fresh scratch for each query.
+    TraversalBitsetFreshVec,
+    /// Explicit-only packed-bit VecDeque BFS with fresh scratch for each query.
+    TraversalBitsetFreshDeque,
     /// AVL Euler-tour forest with exhaustive smaller-side replacement search.
     EttScan,
     /// Experimental Knotrel HDT with growing vertices and exact-level promotions.
@@ -78,6 +82,8 @@ impl EngineKind {
             Self::TraversalBfs => "traversal-bfs",
             Self::TraversalDfs => "traversal-dfs",
             Self::TraversalBitset => "traversal-bitset",
+            Self::TraversalBitsetFreshVec => "traversal-bitset-fresh-vec",
+            Self::TraversalBitsetFreshDeque => "traversal-bitset-fresh-deque",
             Self::EttScan => "ett-scan",
             Self::Hdt => "hdt",
             Self::HdtV2 => "hdt-v2",
@@ -97,6 +103,8 @@ impl EngineKind {
             Self::TraversalBfs => "knotrel-benchmarks/traversal-bfs-v1",
             Self::TraversalDfs => "knotrel-benchmarks/traversal-dfs-v1",
             Self::TraversalBitset => "knotrel-benchmarks/traversal-bitset-v1",
+            Self::TraversalBitsetFreshVec => "knotrel-benchmarks/traversal-bitset-fresh-vec-v1",
+            Self::TraversalBitsetFreshDeque => "knotrel-benchmarks/traversal-bitset-fresh-deque-v1",
             Self::EttScan => "knotrel-core/ett-pruned-v2",
             Self::Hdt => "knotrel-core/hdt-sparse-levels-v3",
             Self::HdtV2 => "knotrel-core/hdt-levels-v2",
@@ -113,6 +121,10 @@ impl EngineKind {
     pub fn parse(name: &str) -> Result<Self, &'static str> {
         Self::ALL
             .into_iter()
+            .chain([
+                Self::TraversalBitsetFreshVec,
+                Self::TraversalBitsetFreshDeque,
+            ])
             .find(|kind| kind.key() == name)
             .ok_or("unknown engine")
     }
@@ -153,6 +165,7 @@ enum Storage {
     CompactWorkspace(Graph, BfsWorkspace),
     Traversal(crate::traversal::Graph, crate::traversal::SearchSpace, bool),
     Bitset(crate::traversal::Graph, crate::traversal::BitSearchSpace),
+    FreshPacked(crate::traversal::Graph, bool),
     EttScan(ForestGraph),
     Hdt(HdtGraph),
     HdtV2(BaselineHdt),
@@ -239,6 +252,19 @@ impl Engine {
         }
         observe(ConstructionBoundary::Validated);
         let n = nodes.len();
+        if matches!(
+            kind,
+            EngineKind::TraversalBitsetFreshVec | EngineKind::TraversalBitsetFreshDeque
+        ) {
+            let mut graph = crate::traversal::Graph::new();
+            for &node in nodes {
+                graph.add_node(node);
+            }
+            observe(ConstructionBoundary::Registered);
+            return Ok(Self {
+                storage: Storage::FreshPacked(graph, kind == EngineKind::TraversalBitsetFreshDeque),
+            });
+        }
         if kind == EngineKind::TraversalBitset {
             let mut graph = crate::traversal::Graph::new();
             for &node in nodes {
@@ -351,6 +377,8 @@ impl Engine {
             | EngineKind::TraversalBfs
             | EngineKind::TraversalDfs
             | EngineKind::TraversalBitset
+            | EngineKind::TraversalBitsetFreshVec
+            | EngineKind::TraversalBitsetFreshDeque
             | EngineKind::Hdt
             | EngineKind::HdtV2
             | EngineKind::EttScan
@@ -442,6 +470,13 @@ impl Engine {
     /// Returns UnknownNode, checking source before target, for absent IDs.
     pub fn connected(&mut self, source: u64, target: u64) -> Result<bool, GraphError> {
         let indexed = match &mut self.storage {
+            Storage::FreshPacked(graph, deque) => {
+                return if *deque {
+                    graph.connected_fresh_packed_deque(source, target)
+                } else {
+                    graph.connected_fresh_packed_vec(source, target)
+                };
+            }
             Storage::Bitset(graph, space) => {
                 return graph.search_bits::<false>(source, target, space);
             }
@@ -514,7 +549,7 @@ impl Engine {
             return Err(GraphError::SelfLoop { node: source });
         }
         let indexed = match &mut self.storage {
-            Storage::Bitset(graph, _) => {
+            Storage::Bitset(graph, _) | Storage::FreshPacked(graph, _) => {
                 return if insert {
                     graph.link(source, target)
                 } else {
