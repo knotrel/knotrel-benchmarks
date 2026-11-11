@@ -1,0 +1,2709 @@
+#!/usr/bin/env python3
+"""Bounded P0 A/A Pilot Collector for Knotrel v0.3.0.
+
+Executes and validates the reviewable 31-cell, 186-pair, 372-measured-launch
+A/A pilot schedule established in evidence/p0-aa-pilot-plan-20261024-2130.
+
+Strict constraints:
+- Input validation rejects any schema, count, identity, binary or git drift.
+- Dry-run (--dry-run) validates configuration and read-only provenance without
+  spawning benchmarks, creating output directories or waiting through quiet periods.
+- Real execution requires an explicit flag (--execute).
+- Sequential, faithful execution with dedicated process groups (start_new_session=True),
+  bounded timeouts, and clean descendant process teardown.
+- Strict output parsing: core JSON report validation and strict HTTP Markdown parsing.
+- Descriptive exploratory analysis only (paired deltas, order effects, CV, IQR);
+  no automatic percentage gates, confidence claims, or pooled p99 from averaged percentiles.
+"""
+
+from __future__ import annotations
+
+import argparse
+import base64
+from dataclasses import dataclass
+from enum import Enum
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import platform
+import re
+import selectors
+import signal
+import statistics
+import subprocess
+import sys
+import time
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+
+# Sibling script imports
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from run_baseline import CORE, ROOT, command, hashes, source_patch
+from run_scale import peak_rss
+
+# Protocol constants
+APPROVED_PLAN_DIR = ROOT.parent / "evidence/p0-aa-pilot-plan-20261024-2130"
+DEFAULT_MANIFEST_PATH = APPROVED_PLAN_DIR / "manifest.json"
+DEFAULT_SCHEDULE_PATH = APPROVED_PLAN_DIR / "schedule.json"
+
+TOTAL_CELLS = 31
+CORE_CELLS = 30
+HTTP_CELLS = 1
+TOTAL_PAIRS = 186
+TOTAL_MEASURED_RUNS = 372
+ADDITIONAL_HTTP_SERVERS = 24
+TOTAL_PROCESS_LAUNCHES = 396
+
+SESSIONS_COUNT = 3
+PAIRS_PER_SESSION = 62
+SESSION_SEEDS = (120047, 120048, 120049)
+
+PER_PROCESS_TIMEOUT_SECONDS = 15.0
+PER_SESSION_PRE_QUIET_SECONDS = 60.0
+INTER_SESSION_COOLDOWN_SECONDS = 300.0
+PROPOSED_OVERALL_DEADLINE_SECONDS = 2700.0  # 45 minutes
+
+PROPOSED_PEAK_RSS_CEILING_BYTES = 536_870_912  # 512 MiB
+PROPOSED_DISK_CEILING_BYTES = 104_857_600  # 100 MiB
+DEFAULT_STREAM_LIMIT_BYTES = 1024 * 1024
+FAILURE_RECORD_RESERVE_BYTES = 65536
+
+BUILD_PROCESSES = {
+    "cargo",
+    "rustc",
+    "clang",
+    "clang++",
+    "cc1",
+    "make",
+    "ninja",
+    "xcodebuild",
+    "swiftc",
+    "pytest",
+}
+
+CORE_ENGINE_NAME_MAP = {
+    "compact-bfs": "knotrel-core/compact-bfs-v1",
+    "compact-workspace": "knotrel-core/compact-workspace-v2",
+    "ett-scan": "knotrel-core/ett-pruned-v2",
+    "hdt": "knotrel-core/hdt-sparse-levels-v3",
+    "petgraph-dfs": "petgraph-0.8.3/dfs",
+}
+
+
+class FailureClass(str, Enum):
+    """Failure classes defined in protocol §6."""
+
+    CLASS_1_FATAL_QUALIFICATION_BLOCKER = "class1_fatal_qualification_blocker"
+    CLASS_2_ENVIRONMENTAL_INVALIDATION = "class2_environmental_invalidation"
+    CLASS_3_PROCESS_EXECUTION_FAILURE = "class3_process_execution_failure"
+
+
+class CollectorError(Exception):
+    """Base exception for pilot collector errors."""
+
+
+class HostPreconditionError(CollectorError):
+    """Host precondition check failed prior to execution (AC power, thermal, competing processes)."""
+
+
+class ConfigurationValidationError(CollectorError):
+    """Input configuration, schedule, or provenance validation failed."""
+
+
+class QualificationBlockerError(CollectorError):
+    """Class 1 Fatal qualification blocker (oracle disagreement, corrupt output, identity drift)."""
+
+
+class EnvironmentalInvalidationError(CollectorError):
+    """Class 2 Environmental invalidation (power change, sleep event, thermal throttle, competing build)."""
+
+
+class ProcessExecutionError(CollectorError):
+    """Class 3 Process execution failure (non-zero exit code, child timeout)."""
+
+
+class ProcessInterruptedError(ProcessExecutionError):
+    """Raised when process execution is cancelled/interrupted, retaining recovered child observation."""
+
+    def __init__(
+        self,
+        message: str,
+        observation: Dict[str, Any],
+        original_exception: Optional[BaseException] = None,
+    ):
+        super().__init__(message)
+        self.observation = observation
+        self.original_exception = original_exception
+
+
+def digest(path: Path) -> str:
+    """Calculate SHA-256 digest of a file."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def json_digest(value: Any) -> str:
+    """Calculate SHA-256 digest of canonical sorted JSON."""
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def read_json(path: Path) -> Any:
+    """Read and parse a JSON file."""
+    return strict_json_loads(path.read_text(encoding="utf-8"))
+
+
+def strict_json_loads(text: str) -> Any:
+    """Reject duplicate fields and non-JSON numeric constants at every depth."""
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"Duplicate JSON field: {key}")
+            result[key] = value
+        return result
+
+    def invalid(value):
+        raise ValueError(f"Invalid JSON numeric constant: {value}")
+
+    return json.loads(text, object_pairs_hook=unique, parse_constant=invalid)
+
+
+def save_json(path: Path, value: Any) -> None:
+    """Write value as indented formatted JSON."""
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def directory_size_bytes(directory: Path) -> int:
+    """Compute cumulative byte size of all files in directory."""
+    if not directory.exists():
+        return 0
+    total = 0
+    for root, _, files in os.walk(directory):
+        for f in files:
+            p = Path(root) / f
+            try:
+                total += p.stat().st_size
+            except OSError:
+                pass
+    return total
+
+
+def campaign_capture_limit(directory: Path, ceiling: int = PROPOSED_DISK_CEILING_BYTES,
+                           reserve: int = FAILURE_RECORD_RESERVE_BYTES) -> int:
+    """Reserve failure-record space before launch; size checks are not a disk quota."""
+    available = ceiling - reserve - directory_size_bytes(directory)
+    if available < 8192:
+        raise QualificationBlockerError("Campaign evidence budget exhausted before invocation")
+    return min(DEFAULT_STREAM_LIMIT_BYTES, (available - 4096) // 32)
+
+
+# ---------------------------------------------------------------------------
+# Host State and Environmental Telemetry
+# ---------------------------------------------------------------------------
+
+
+def get_active_processes() -> List[Dict[str, Any]]:
+    """Scan active system processes for name and CPU utilization."""
+    procs = []
+    try:
+        raw = subprocess.check_output(
+            ["ps", "-Ao", "pid=,pcpu=,comm="],
+            cwd=str(ROOT),
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+        for line in raw.splitlines():
+            parts = line.strip().split(None, 2)
+            if len(parts) == 3:
+                pid_str, pcpu_str, comm_str = parts
+                try:
+                    procs.append(
+                        {
+                            "pid": int(pid_str),
+                            "cpu_percent": float(pcpu_str),
+                            "name": Path(comm_str).name,
+                        }
+                    )
+                except ValueError:
+                    continue
+    except Exception:
+        pass
+    return procs
+
+
+def host_state() -> Dict[str, Any]:
+    """Capture host telemetry for environmental checks without modifying system state."""
+    procs = get_active_processes()
+    competing = [p for p in procs if p["name"] in BUILD_PROCESSES]
+
+    power_out = None
+    custom_out = None
+    sleep_out = None
+    therm_out = None
+    pmset_therm = None
+    pmset_sysload = None
+
+    if sys.platform == "darwin":
+        try:
+            power_out = subprocess.check_output(
+                ["pmset", "-g", "batt"], text=True, stderr=subprocess.DEVNULL
+            ).strip()
+        except Exception as e:
+            power_out = f"error: {e}"
+
+        try:
+            custom_out = subprocess.check_output(
+                ["pmset", "-g", "custom"], text=True, stderr=subprocess.DEVNULL
+            ).strip()
+        except Exception as e:
+            custom_out = f"error: {e}"
+
+        try:
+            sleep_out = subprocess.check_output(
+                ["sysctl", "kern.sleeptime", "kern.waketime"],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+        except Exception as e:
+            sleep_out = f"error: {e}"
+
+        try:
+            therm_res = subprocess.run(
+                ["pmset", "-g", "therm"],
+                text=True,
+                capture_output=True,
+            )
+            pmset_therm = {
+                "command": ["pmset", "-g", "therm"],
+                "exit_code": therm_res.returncode,
+                "stdout": therm_res.stdout,
+                "stderr": therm_res.stderr,
+            }
+            therm_out = therm_res.stdout.strip()
+        except Exception as e:
+            pmset_therm = {
+                "command": ["pmset", "-g", "therm"],
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": str(e),
+            }
+            therm_out = f"error: {e}"
+
+        try:
+            sysload_res = subprocess.run(
+                ["pmset", "-g", "sysload"],
+                text=True,
+                capture_output=True,
+            )
+            pmset_sysload = {
+                "command": ["pmset", "-g", "sysload"],
+                "exit_code": sysload_res.returncode,
+                "stdout": sysload_res.stdout,
+                "stderr": sysload_res.stderr,
+            }
+        except Exception as e:
+            pmset_sysload = {
+                "command": ["pmset", "-g", "sysload"],
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": str(e),
+            }
+
+    return {
+        "monotonic_ns": time.monotonic_ns(),
+        "unix_ns": time.time_ns(),
+        "platform": platform.platform(),
+        "platform_system": sys.platform,
+        "platform_machine": platform.machine(),
+        "power": power_out,
+        "power_configuration": custom_out,
+        "sleep_wake": sleep_out,
+        "thermal": therm_out,
+        "pmset_therm": pmset_therm,
+        "pmset_sysload": pmset_sysload,
+        "thermal_validation_mode": None,
+        "thermal_telemetry_limitations": None,
+        "collector_nice": os.getpriority(os.PRIO_PROCESS, 0),
+        "load_average": list(os.getloadavg()),
+        "top_processes": sorted(procs, key=lambda p: p["cpu_percent"], reverse=True)[:10],
+        "competing_workloads": competing,
+    }
+
+
+def validate_host_state(
+    current: Dict[str, Any],
+    baseline: Optional[Dict[str, Any]] = None,
+    enforce_ac: bool = True,
+) -> Tuple[bool, Optional[str]]:
+    """Validate host state according to protocol §5.1.
+
+    Returns (is_valid, error_message).
+    Never infers healthy state from missing telemetry fields.
+    """
+    if enforce_ac:
+        power = current.get("power")
+        if not power:
+            return False, "Power telemetry unavailable; AC power cannot be verified"
+        if "Now drawing from 'AC Power'" not in power:
+            return False, f"Host power failure: AC Power required (current status: {power})"
+
+    if current.get("competing_workloads"):
+        names = [p["name"] for p in current["competing_workloads"]]
+        return False, f"Competing build/profiling workload detected on host: {names}"
+
+    os_plat = current.get("platform_system", sys.platform)
+    mach = current.get("platform_machine", platform.machine()).lower()
+
+    if os_plat == "darwin":
+        pmset_therm = current.get("pmset_therm")
+        if isinstance(pmset_therm, dict):
+            therm_exit = pmset_therm.get("exit_code", 0)
+            thermal_stdout = pmset_therm.get("stdout", "")
+            therm_stderr = pmset_therm.get("stderr", "")
+        else:
+            raw_therm = current.get("thermal") or ""
+            if raw_therm.startswith("error:"):
+                therm_exit = -1
+                thermal_stdout = ""
+                therm_stderr = raw_therm
+            else:
+                therm_exit = 0
+                thermal_stdout = raw_therm
+                therm_stderr = ""
+
+        # First priority: check for explicit CPU speed limit telemetry or reduction.
+        m_speed = re.search(r"CPU_Speed_Limit\s*=\s*(\d+)", thermal_stdout)
+        if m_speed:
+            speed = int(m_speed.group(1))
+            if speed != 100:
+                return False, f"CPU thermal throttling detected: CPU_Speed_Limit = {speed}% (!= 100)"
+            # Validate command success before accepting numeric telemetry.
+            # A failed command must never qualify the host, regardless of stdout.
+            if therm_exit != 0:
+                return False, f"pmset -g therm failed with exit code {therm_exit}: {therm_stderr}"
+            current["thermal_validation_mode"] = "darwin_cpu_speed_limit"
+            current["thermal_telemetry_limitations"] = (
+                "Validated CPU_Speed_Limit = 100. "
+                "No disqualifying condition was observed at the sampled boundaries. "
+                "Throttling or frequency changes between observations remain possible."
+            )
+        else:
+            # Validate command success before attempting categorical fallback.
+            # A failed command must never qualify the host.
+            if therm_exit != 0:
+                return False, f"pmset -g therm failed with exit code {therm_exit}: {therm_stderr}"
+
+            # CPU_Speed_Limit is unavailable on the inspected host.
+            # Implement the thermal fallback ONLY for explicitly identified Darwin arm64 hosts.
+            is_darwin_arm64 = (os_plat == "darwin" and mach in ("arm64", "aarch64"))
+            if not is_darwin_arm64:
+                return (
+                    False,
+                    f"CPU speed limit telemetry is unavailable in pmset output on unsupported platform ({os_plat} {mach}); "
+                    "protocol strictly requires CPU_Speed_Limit = 100 and categorical fallback is permitted only on "
+                    "explicitly identified Darwin arm64 hosts",
+                )
+
+            pmset_sysload = current.get("pmset_sysload")
+            if not isinstance(pmset_sysload, dict):
+                return False, "pmset -g sysload telemetry dictionary missing on Darwin arm64 host"
+            sysload_exit = pmset_sysload.get("exit_code", 0)
+            sysload_stdout = pmset_sysload.get("stdout", "")
+            sysload_stderr = pmset_sysload.get("stderr", "")
+            if sysload_exit != 0:
+                return False, f"pmset -g sysload failed with exit code {sysload_exit}: {sysload_stderr}"
+
+            req_notes = [
+                "Note: No thermal warning level has been recorded",
+                "Note: No performance warning level has been recorded",
+                "Note: No CPU power status has been recorded",
+            ]
+            for note in req_notes:
+                if note not in thermal_stdout:
+                    return False, f"Missing recognized thermal advisory note in pmset -g therm: '{note}'"
+
+            # Check for warnings, contradictory messages, or unrecognized states in pmset -g therm
+            for line in thermal_stdout.splitlines():
+                line_s = line.strip()
+                if not line_s or line_s in req_notes:
+                    continue
+                if re.search(r"(warning|critical|urgent|throttl|limit|power reduction)", line_s, re.IGNORECASE):
+                    return False, f"Explicit thermal warning or performance degradation in pmset -g therm: '{line_s}'"
+                return False, f"Unrecognized or contradictory output in pmset -g therm: '{line_s}'"
+
+            # Validate sysload thermal level
+            thermal_lines = []
+            for raw_line in sysload_stdout.splitlines():
+                line_s = raw_line.strip()
+                if not line_s:
+                    continue
+                if re.search(r"\bthermal\b", line_s, re.IGNORECASE):
+                    thermal_lines.append(line_s)
+
+            if not thermal_lines:
+                return False, f"Missing thermal level in pmset -g sysload output: '{sysload_stdout}'"
+            if len(thermal_lines) > 1:
+                return (
+                    False,
+                    f"Duplicate or conflicting thermal fields detected in pmset -g sysload output: {thermal_lines}",
+                )
+
+            t_line = thermal_lines[0]
+            m_t = re.fullmatch(r"(?:-\s*)?thermal level\s*=\s*([A-Za-z0-9_]+)", t_line, re.IGNORECASE)
+            if not m_t:
+                return False, f"Malformed thermal level line in pmset -g sysload output: '{t_line}'"
+
+            sys_level = m_t.group(1)
+            if sys_level not in ("Great", "OK"):
+                if sys_level in ("Warning", "Urgent", "Critical"):
+                    return False, f"Disqualifying sysload thermal level detected: '{sys_level}' (!= Great or OK)"
+                return False, f"Unknown or unrecognized sysload thermal level detected: '{sys_level}'"
+
+            # Check if any other fields report degraded advisory (e.g. combined level = Warning)
+            if re.search(r"\b(Warning|Urgent|Critical)\b", sysload_stdout, re.IGNORECASE):
+                return False, f"Degraded system load advisory detected in pmset -g sysload: '{sysload_stdout}'"
+
+            current["thermal_validation_mode"] = "darwin_arm64_categorical_advisory"
+            current["thermal_telemetry_limitations"] = (
+                "CPU_Speed_Limit is unavailable on the inspected host (Darwin arm64). "
+                "Categorical advisory validated: all three recognized 'No ... recorded' messages present and sysload thermal level is Great/OK. "
+                "No disqualifying condition was observed at the sampled boundaries. "
+                "Throttling or frequency changes between observations remain possible."
+            )
+    else:
+        return (
+            False,
+            f"Unsupported platform for thermal validation: {os_plat} {mach}; "
+            "protocol strictly requires valid Darwin telemetry",
+        )
+
+    if baseline is not None:
+        if baseline.get("sleep_wake") and current.get("sleep_wake"):
+            if baseline["sleep_wake"] != current["sleep_wake"]:
+                return (
+                    False,
+                    f"Sleep/wake event detected: baseline was {baseline['sleep_wake']}, current is {current['sleep_wake']}",
+                )
+        if enforce_ac and baseline.get("power") and current.get("power"):
+            if "Now drawing from 'AC Power'" in baseline["power"] and (
+                "Now drawing from 'AC Power'" not in current["power"]
+            ):
+                return False, "Host switched away from AC Power during collection"
+        if baseline.get("power_configuration") and current.get("power_configuration"):
+            if baseline["power_configuration"] != current["power_configuration"]:
+                return (
+                    False,
+                    f"Power configuration changed during collection: baseline was {baseline['power_configuration']}, current is {current['power_configuration']}",
+                )
+        if baseline.get("thermal_validation_mode") and current.get("thermal_validation_mode"):
+            if baseline["thermal_validation_mode"] != current["thermal_validation_mode"]:
+                return (
+                    False,
+                    f"Thermal validation mode changed during collection: baseline was {baseline['thermal_validation_mode']}, "
+                    f"current is {current['thermal_validation_mode']}",
+                )
+
+    return True, None
+
+
+# ---------------------------------------------------------------------------
+# Input and Provenance Validation
+# ---------------------------------------------------------------------------
+
+
+def validate_inputs(
+    manifest: Dict[str, Any],
+    schedule: Dict[str, Any],
+    check_provenance: bool = True,
+) -> Dict[str, Any]:
+    """Strictly validate manifest, schedule, and filesystem provenance.
+
+    Raises ConfigurationValidationError if any inconsistency, schema error,
+    or unexpected git/binary state is detected.
+    """
+    if not manifest.get("schema", "").startswith("knotrel-p0-pilot-manifest"):
+        raise ConfigurationValidationError(f"Invalid manifest schema: {manifest.get('schema')}")
+    if not schedule.get("schema", "").startswith("knotrel-p0-pilot-schedule"):
+        raise ConfigurationValidationError(f"Invalid schedule schema: {schedule.get('schema')}")
+
+    pilot_design = manifest.get("pilot_design", {})
+    manifest_cells = pilot_design.get("cells", [])
+    total_cells = pilot_design.get("total_cells")
+    total_pairs = pilot_design.get("total_pairs")
+    total_measured_runs = pilot_design.get("total_measured_launches")
+
+    if total_cells is None or total_cells != len(manifest_cells):
+        raise ConfigurationValidationError(
+            f"Manifest total_cells {total_cells} does not match cells array length {len(manifest_cells)}"
+        )
+
+    # For the approved baseline pilot plan, enforce the historical 31/186/372 constants
+    if manifest.get("checkpoint") == "P0-AA-Pilot-Plan":
+        if total_cells != TOTAL_CELLS:
+            raise ConfigurationValidationError(
+                f"Expected {TOTAL_CELLS} cells in manifest, found {total_cells}"
+            )
+        if total_pairs != TOTAL_PAIRS:
+            raise ConfigurationValidationError(
+                f"Expected {TOTAL_PAIRS} pairs in manifest, found {total_pairs}"
+            )
+        if total_measured_runs != TOTAL_MEASURED_RUNS:
+            raise ConfigurationValidationError(
+                f"Expected {TOTAL_MEASURED_RUNS} measured runs in manifest, found {total_measured_runs}"
+            )
+
+    if schedule.get("total_cells") != total_cells:
+        raise ConfigurationValidationError(
+            f"Expected {total_cells} cells in schedule, found {schedule.get('total_cells')}"
+        )
+    if schedule.get("total_pairs") != total_pairs:
+        raise ConfigurationValidationError(
+            f"Expected {total_pairs} pairs in schedule, found {schedule.get('total_pairs')}"
+        )
+    if schedule.get("total_measured_runs") != total_measured_runs:
+        raise ConfigurationValidationError(
+            f"Expected {total_measured_runs} runs in schedule, found {schedule.get('total_measured_runs')}"
+        )
+
+    cell_map = {c["cell_id"]: c for c in manifest_cells}
+    if len(cell_map) != total_cells:
+        raise ConfigurationValidationError("Duplicate cell_id detected in manifest cells array")
+
+    pairs = schedule.get("pairs", [])
+    if len(pairs) != total_pairs:
+        raise ConfigurationValidationError(f"Schedule pairs array length is {len(pairs)}, expected {total_pairs}")
+    pair_ids = [p["pair_id"] for p in pairs]
+    if pair_ids != list(range(total_pairs)):
+        raise ConfigurationValidationError(
+            f"Schedule pair_id sequence must be contiguous 0..{total_pairs - 1} without duplicates"
+        )
+
+    # Validate sessions
+    sessions = schedule.get("sessions", [])
+    expected_sessions_count = pilot_design.get("sessions_count", SESSIONS_COUNT)
+    if len(sessions) != expected_sessions_count:
+        raise ConfigurationValidationError(f"Expected {expected_sessions_count} sessions, found {len(sessions)}")
+
+    session_seeds = pilot_design.get("session_seeds", list(SESSION_SEEDS))
+    expected_pairs_per_session = total_pairs // expected_sessions_count
+    for s_idx, s in enumerate(sessions):
+        if s.get("session_id") != s_idx:
+            raise ConfigurationValidationError(f"Session {s_idx} has mismatched id: {s.get('session_id')}")
+        if s_idx < len(session_seeds) and s.get("seed") != session_seeds[s_idx]:
+            raise ConfigurationValidationError(
+                f"Session {s_idx} seed mismatch: {s.get('seed')} != {session_seeds[s_idx]}"
+            )
+        pair_cnt = s.get("pair_count", s.get("pairs_count"))
+        if pair_cnt != expected_pairs_per_session:
+            raise ConfigurationValidationError(
+                f"Session {s_idx} pair_count mismatch: {pair_cnt} != {expected_pairs_per_session}"
+            )
+
+    # Validate label balance and exact correspondence of argv/cwd/env per cell
+    for cell_id, cell in cell_map.items():
+        cell_pairs = [p for p in pairs if p["cell_id"] == cell_id]
+        if len(cell_pairs) != 6:
+            raise ConfigurationValidationError(
+                f"Cell {cell_id} must have exactly 6 scheduled pairs, found {len(cell_pairs)}"
+            )
+        a_first = sum(1 for p in cell_pairs if p["labels"] == ["A", "Aprime"])
+        aprime_first = sum(1 for p in cell_pairs if p["labels"] == ["Aprime", "A"])
+        if a_first != 3 or aprime_first != 3:
+            raise ConfigurationValidationError(
+                f"Cell {cell_id} label imbalance: {a_first} A-then-Aprime, {aprime_first} Aprime-then-A (expected 3/3)"
+            )
+        for p in cell_pairs:
+            if p["cwd"] != cell["cwd"]:
+                raise ConfigurationValidationError(
+                    f"Cell {cell_id} pair {p['pair_id']} cwd mismatch: {p['cwd']} != {cell['cwd']}"
+                )
+            if p["argv"] != cell["argv"]:
+                raise ConfigurationValidationError(
+                    f"Cell {cell_id} pair {p['pair_id']} argv mismatch: {p['argv']} != {cell['argv']}"
+                )
+            if p["env"] != cell["env"]:
+                raise ConfigurationValidationError(
+                    f"Cell {cell_id} pair {p['pair_id']} env mismatch: {p['env']} != {cell['env']}"
+                )
+
+    if check_provenance:
+        prov = manifest.get("provenance")
+        if not isinstance(prov, dict):
+            raise ConfigurationValidationError("Manifest missing required 'provenance' object")
+
+        # Validate baseline binaries existence, permissions, and SHA-256 digests
+        binaries = prov.get("binaries")
+        if not isinstance(binaries, dict):
+            raise ConfigurationValidationError("Manifest provenance missing required 'binaries' object")
+
+        for name, binfo in binaries.items():
+            if not isinstance(binfo, dict):
+                raise ConfigurationValidationError(f"Binary {name} entry in provenance must be an object")
+            expected_hash = binfo.get("sha256")
+            if not expected_hash or str(expected_hash).startswith("UNRESOLVED"):
+                raise ConfigurationValidationError(
+                    f"Binary {name} SHA-256 is unresolved ({expected_hash!r}); build binary before execution"
+                )
+            bpath_str = binfo.get("path")
+            if not bpath_str:
+                raise ConfigurationValidationError(f"Binary {name} missing 'path' in provenance")
+            bpath = Path(bpath_str)
+            if not bpath.is_file():
+                raise ConfigurationValidationError(f"Baseline binary {name} does not exist: {bpath}")
+            if not os.access(bpath, os.X_OK):
+                raise ConfigurationValidationError(f"Baseline binary {name} is not executable: {bpath}")
+            actual_hash = digest(bpath)
+            if actual_hash != expected_hash:
+                raise ConfigurationValidationError(
+                    f"Baseline binary {name} SHA-256 mismatch: {actual_hash} != {expected_hash}"
+                )
+
+        # Validate git revisions and working tree states
+        for req_field in (
+            "knotrel_baseline_checkout",
+            "knotrel_benchmarks_checkout",
+            "knotrel_baseline_commit",
+            "knotrel_benchmarks_commit",
+        ):
+            if req_field not in prov or not prov[req_field]:
+                raise ConfigurationValidationError(
+                    f"Manifest provenance missing required field: {req_field!r}"
+                )
+
+        k_base = Path(prov["knotrel_baseline_checkout"])
+        b_base = Path(prov["knotrel_benchmarks_checkout"])
+
+        if not k_base.is_dir():
+            raise ConfigurationValidationError(f"Knotrel baseline checkout directory not found: {k_base}")
+        if not b_base.is_dir():
+            raise ConfigurationValidationError(f"Benchmarks baseline checkout directory not found: {b_base}")
+
+        k_head = command(["git", "rev-parse", "HEAD"], cwd=k_base)
+        expected_k_head = prov["knotrel_baseline_commit"]
+        if k_head != expected_k_head:
+            raise ConfigurationValidationError(
+                f"Knotrel baseline commit mismatch: {k_head} != {expected_k_head}"
+            )
+        k_status = command(["git", "status", "--porcelain"], cwd=k_base)
+        if k_status:
+            raise ConfigurationValidationError(
+                f"Knotrel baseline checkout must be clean; found git status: {k_status!r}"
+            )
+
+        b_head = command(["git", "rev-parse", "HEAD"], cwd=b_base)
+        expected_b_head = prov["knotrel_benchmarks_commit"]
+        if b_head != expected_b_head:
+            raise ConfigurationValidationError(
+                f"Benchmarks baseline commit mismatch: {b_head} != {expected_b_head}"
+            )
+
+        # Verify explicitly permitted staged Cargo.lock in baseline benchmarks
+        b_unstaged = command(["git", "diff", "--name-only"], cwd=b_base)
+        if b_unstaged:
+            raise ConfigurationValidationError(
+                f"Unexpected unstaged changes in baseline benchmarks: {b_unstaged!r}"
+            )
+        b_staged = command(["git", "diff", "--cached", "--name-only"], cwd=b_base)
+        if b_staged != "Cargo.lock":
+            raise ConfigurationValidationError(
+                f"Expected only staged Cargo.lock in baseline benchmarks; found: {b_staged!r}"
+            )
+
+        # Validate lockfile provenance structure explicitly
+        lockfiles = prov.get("lockfiles")
+        if not isinstance(lockfiles, dict):
+            raise ConfigurationValidationError("Manifest provenance missing required 'lockfiles' object")
+
+        for lf_key in ("knotrel_lock_sha256", "benchmarks_lock_derived_sha256"):
+            if lf_key not in lockfiles or not lockfiles[lf_key]:
+                raise ConfigurationValidationError(
+                    f"Manifest provenance lockfiles missing required field: {lf_key!r}"
+                )
+
+        # Verify lockfile hashes
+        k_lock = k_base / "Cargo.lock"
+        expected_k_lock_sha = lockfiles["knotrel_lock_sha256"]
+        if not k_lock.is_file():
+            raise ConfigurationValidationError(f"Knotrel baseline lockfile not found: {k_lock}")
+        if digest(k_lock) != expected_k_lock_sha:
+            raise ConfigurationValidationError(
+                f"Knotrel lockfile hash mismatch: {digest(k_lock)} != {expected_k_lock_sha}"
+            )
+
+        b_lock = b_base / "Cargo.lock"
+        expected_b_lock_sha = lockfiles["benchmarks_lock_derived_sha256"]
+        if not b_lock.is_file():
+            raise ConfigurationValidationError(f"Benchmarks baseline lockfile not found: {b_lock}")
+        if digest(b_lock) != expected_b_lock_sha:
+            raise ConfigurationValidationError(
+                f"Benchmarks derived lockfile hash mismatch: {digest(b_lock)} != {expected_b_lock_sha}"
+            )
+
+    add_child_info = (
+        manifest.get("pilot_design", {})
+        .get("additional_child_launches", {})
+    )
+    if isinstance(add_child_info, dict):
+        add_child = add_child_info.get("total_child_servers")
+        if add_child is None:
+            add_child = (
+                add_child_info.get("http_lifecycle_servers", 0)
+                + add_child_info.get("http_standalone_batch_servers", 0)
+                + add_child_info.get("http_servers", 0)
+            )
+    else:
+        add_child = 0
+
+    expected_total_processes = manifest.get("pilot_design", {}).get("total_process_launches")
+    if expected_total_processes is not None and expected_total_processes != total_measured_runs + add_child:
+        raise ConfigurationValidationError(
+            f"Manifest total_process_launches mismatch: {expected_total_processes} != {total_measured_runs + add_child}"
+        )
+
+    return {
+        "status": "valid",
+        "total_cells": total_cells,
+        "total_pairs": total_pairs,
+        "total_measured_runs": total_measured_runs,
+        "total_process_launches": total_measured_runs + add_child,
+        "sessions_count": len(sessions),
+        "cells": cell_map,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Output Parsing and Verification
+# ---------------------------------------------------------------------------
+
+
+def parse_time_wrapper_diagnostics(stderr: str) -> Dict[str, Any]:
+    """Extract /usr/bin/time -l (Darwin) diagnostics without destroying raw stderr."""
+    diagnostics: Dict[str, Any] = {}
+    for label in (
+        "maximum resident set size",
+        "page reclaims",
+        "page faults",
+        "swaps",
+        "voluntary context switches",
+        "involuntary context switches",
+        "instructions retired",
+        "cycles elapsed",
+        "peak memory footprint",
+    ):
+        m = re.search(r"^\s*(\d+)\s+" + re.escape(label) + r"\s*$", stderr, re.M)
+        diagnostics[label.replace(" ", "_")] = int(m.group(1)) if m else None
+
+    m_time = re.search(r"([\d.]+)\s+real\s+([\d.]+)\s+user\s+([\d.]+)\s+sys", stderr)
+    if m_time:
+        diagnostics["printed_process_seconds"] = {
+            "real": float(m_time.group(1)),
+            "user": float(m_time.group(2)),
+            "sys": float(m_time.group(3)),
+        }
+    else:
+        diagnostics["printed_process_seconds"] = None
+    return diagnostics
+
+
+def expected_operation_counts(cell: Dict[str, Any]) -> Dict[str, int]:
+    """Derive exact expected operation counts from frozen trace generation semantics.
+
+    Never infers counts from the report being validated.
+    Semantics adhere strictly to baseline traces.rs:
+    - chain-split-rejoin-v1: 1 cut, 1 link, 2 connected queries per round.
+    - dense-bridge-churn-v1: toggles single cross-component bridge with 50% queries.
+    - sustained-churn-path-v1: deterministic simulation of block-boundary toggling with 50% queries.
+    """
+    workload = cell.get("workload")
+    rounds = cell.get("rounds", 0)
+    nodes = cell.get("nodes", 0)
+    seed = cell.get("seed", 42)
+    query_percent = cell.get("query_percent", 50)
+
+    if workload == "chain-split-rejoin-v1":
+        return {
+            "cut": rounds,
+            "link": rounds,
+            "connected": rounds * 2,
+        }
+    elif workload == "dense-bridge-churn-v1":
+        total_ops = rounds * 100
+        queries = (total_ops * query_percent) // 100
+        mutations = total_ops - queries
+        cuts = (mutations + 1) // 2
+        links = mutations // 2
+        return {
+            "cut": cuts,
+            "link": links,
+            "connected": queries,
+        }
+    elif workload == "sustained-churn-path-v1":
+        count = rounds * 100
+        block_size = 1 if (workload == "sustained-churn-path-v1" or nodes < 3) else 16
+        blocks = (nodes + block_size - 1) // block_size
+        absent = set()
+        cuts = 0
+        links = 0
+        queries = 0
+        cur_seed = seed
+        for index in range(count):
+            slot = index % 100
+            if (slot + 1) * query_percent // 100 > slot * query_percent // 100:
+                cur_seed = (cur_seed * 6364136223846793005 + 1442695040888963407) & 0xFFFFFFFFFFFFFFFF
+                cur_seed = (cur_seed * 6364136223846793005 + 1442695040888963407) & 0xFFFFFFFFFFFFFFFF
+                queries += 1
+            else:
+                cur_seed = (cur_seed * 6364136223846793005 + 1442695040888963407) & 0xFFFFFFFFFFFFFFFF
+                r = ((cur_seed << 29) & 0xFFFFFFFFFFFFFFFF) | (cur_seed >> 35)
+                boundary = r % (blocks - 1)
+                if boundary in absent:
+                    absent.remove(boundary)
+                    links += 1
+                else:
+                    absent.add(boundary)
+                    cuts += 1
+        return {
+            "cut": cuts,
+            "link": links,
+            "connected": queries,
+        }
+    else:
+        raise QualificationBlockerError(f"Unsupported or unknown workload: {workload}")
+
+
+def _nonnegative(value: Any, label: str, integer: bool = False) -> None:
+    allowed = type(value) is int if integer else type(value) in (int, float)
+    if not allowed or value < 0 or (type(value) is float and not math.isfinite(value)):
+        raise QualificationBlockerError(f"Invalid non-finite or negative value for {label}: {value!r} (invalid or negative)")
+
+
+def _entries(value: Any, count: Any, label: str) -> list:
+    if type(count) is not int or count < 1 or not isinstance(value, list) or len(value) != count:
+        raise QualificationBlockerError(f"{label} array length mismatch: expected {count}")
+    if not all(isinstance(entry, dict) for entry in value):
+        raise QualificationBlockerError(f"Invalid {label} entry")
+    return value
+
+
+def _core_latency(value: Any, label: str, count: Optional[int] = None) -> None:
+    if not isinstance(value, dict):
+        raise QualificationBlockerError(f"Missing latency {label}")
+    for field in ("count", "total_ns", "min_ns", "p50_ns", "p95_ns", "p99_ns", "max_ns"):
+        _nonnegative(value.get(field), f"{label}.{field}", integer=True)
+    if count is not None and value["count"] != count:
+        raise QualificationBlockerError(f"Expected {count} {label}, got {value['count']}")
+    quantiles = [value[field] for field in ("min_ns", "p50_ns", "p95_ns", "p99_ns", "max_ns")]
+    if quantiles != sorted(quantiles):
+        raise QualificationBlockerError(f"Inconsistent percentile ordering in measurement {label}")
+
+
+def _requested_query_control(cell: Dict[str, Any], name: str, default: int) -> int:
+    value = cell.get(name)
+    if value is not None:
+        _nonnegative(value, f"requested {name}", integer=True)
+    option = "--" + name.replace("_", "-")
+    argv = cell.get("argv", [])
+    if option in argv:
+        try:
+            argument = int(argv[argv.index(option) + 1])
+        except (IndexError, ValueError, TypeError) as exc:
+            raise QualificationBlockerError(f"Invalid requested {option}") from exc
+        if value is not None and value != argument:
+            raise QualificationBlockerError(f"Conflicting requested {name}")
+        value = argument
+    if value is None:
+        value = default
+    _nonnegative(value, f"requested {name}", integer=True)
+    return value
+
+
+def parse_core_output(stdout: str, stderr: str, cell: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse and strictly validate JSON output from knotrel-benchmarks.
+
+    Validates schema version, trace fingerprint, engine identity, workload
+    parameters, finite non-negative numbers, monotonic percentiles, and exact
+    expected operation counts.
+    """
+    try:
+        data = strict_json_loads(stdout)
+    except Exception as e:
+        raise QualificationBlockerError(f"Core stdout is not valid JSON: {e}") from e
+
+    # Knotrel benchmarks outputs either a single Report object or a {"comparisons": [Report]} dict
+    if isinstance(data, dict) and "comparisons" in data:
+        comparisons = data["comparisons"]
+        if not comparisons or not isinstance(comparisons, list):
+            raise QualificationBlockerError("Core JSON report has empty comparisons array")
+        report = comparisons[0]
+    elif isinstance(data, dict) and "repetitions" in data:
+        report = data
+    else:
+        raise QualificationBlockerError("Core stdout JSON has unrecognized schema structure")
+
+    # Schema version
+    if not isinstance(report, dict):
+        raise QualificationBlockerError("Core report is not an object")
+    schema_ver = report.get("schema_version")
+    if type(schema_ver) is not int or schema_ver not in (2, 3, 4):
+        raise QualificationBlockerError(f"Unsupported schema_version: {schema_ver}")
+
+    # Trace fingerprint
+    fp = report.get("trace_fingerprint_fnv1a64")
+    if not fp or not isinstance(fp, str) or not re.match(r"^[0-9a-fA-F]{16}$", fp):
+        raise QualificationBlockerError(f"Missing or invalid trace_fingerprint_fnv1a64: {fp!r}")
+
+    # Validate workload
+    if report.get("workload") != cell["workload"]:
+        raise QualificationBlockerError(
+            f"Workload mismatch: reported {report.get('workload')!r}, expected {cell['workload']!r}"
+        )
+
+    # Validate engine
+    expected_engine_name = CORE_ENGINE_NAME_MAP.get(cell["engine"])
+    if expected_engine_name and report.get("engine") != expected_engine_name:
+        raise QualificationBlockerError(
+            f"Engine identity mismatch: reported {report.get('engine')!r}, expected {expected_engine_name!r}"
+        )
+
+    # Validate configuration parameters
+    cfg = report.get("config", {})
+    if not isinstance(cfg, dict):
+        raise QualificationBlockerError("Invalid core configuration")
+    for param in ("nodes", "rounds", "seed"):
+        _nonnegative(cfg.get(param), f"config.{param}", integer=True)
+        if cfg.get(param) != cell[param]:
+            raise QualificationBlockerError(f"Config {param} mismatch: {cfg.get(param)} != {cell[param]}")
+
+    if report.get("warmup") != cell["warmup"]:
+        raise QualificationBlockerError(f"Warmup mismatch: {report.get('warmup')} != {cell['warmup']}")
+
+    _nonnegative(report.get("warmup"), "warmup", integer=True)
+    requested_repeats = _requested_query_control(cell, "query_repeats", 0)
+    reported_repeats = report.get("query_repeats", 0)
+    _nonnegative(reported_repeats, "query_repeats", integer=True)
+    if reported_repeats != requested_repeats:
+        raise QualificationBlockerError(f"Query repeats mismatch: {reported_repeats} != {requested_repeats}")
+    requested_percent = _requested_query_control(cell, "query_percent", 50)
+    if not 1 <= requested_percent <= 99:
+        raise QualificationBlockerError("Requested query_percent must be in 1..99")
+    native_chain = cell["workload"] == "chain-split-rejoin-v1"
+    if native_chain and requested_percent != 50:
+        raise QualificationBlockerError("Native chain workload does not support a nondefault query_percent")
+    reported_percent = report.get("query_percent", 50)
+    _nonnegative(reported_percent, "query_percent", integer=True)
+    if reported_percent != requested_percent:
+        raise QualificationBlockerError(f"Query percent mismatch: {reported_percent} != {requested_percent}")
+    repetitions = _entries(report.get("repetitions"), cell["repetitions"], "Repetitions")
+    expected_ops = expected_operation_counts(cell)
+    for index, repetition in enumerate(repetitions):
+        for field in ("setup_ns", "workload_wall_ns"):
+            _nonnegative(repetition.get(field), f"repetition {index}.{field}", integer=True)
+        measurements = repetition.get("measurements")
+        if not isinstance(measurements, dict):
+            raise QualificationBlockerError("Missing measurements")
+        for operation, count in expected_ops.items():
+            label = {"cut": "cuts", "link": "links", "connected": "queries"}[operation]
+            _core_latency(measurements.get(operation), label, count)
+        for field in ("query_true", "query_false", "repeated_queries"):
+            if field not in repetition:
+                raise QualificationBlockerError(f"Missing {field} in repetition {index}")
+            if repetition[field] is not None:
+                _core_latency(repetition[field], field)
+        partitions = [repetition[field] for field in ("query_true", "query_false") if repetition[field] is not None]
+        if sum(partition["count"] for partition in partitions) != expected_ops["connected"]:
+            raise QualificationBlockerError("Query partition count mismatch")
+        if sum(partition["total_ns"] for partition in partitions) != measurements["connected"]["total_ns"]:
+            raise QualificationBlockerError("Query partition total mismatch")
+
+    rep0 = repetitions[0]
+    setup_ns = rep0.get("setup_ns")
+    workload_wall_ns = rep0.get("workload_wall_ns")
+    measurements = rep0.get("measurements", {})
+
+    return {
+        "workload": report["workload"],
+        "engine": report["engine"],
+        "warmup": report["warmup"],
+        "trace_fingerprint_fnv1a64": fp,
+        "setup_ns": setup_ns,
+        "workload_wall_ns": workload_wall_ns,
+        "measurements": measurements,
+        "query_true": rep0.get("query_true"),
+        "query_false": rep0.get("query_false"),
+    }
+
+
+
+def _validate_latency_distribution(lat_map: Dict[str, Any], label: str) -> None:
+    if not isinstance(lat_map, dict):
+        raise QualificationBlockerError(f"Invalid {label}")
+    for f in ("min", "mean", "p50", "p95", "p99", "max"):
+        if f not in lat_map:
+            raise QualificationBlockerError(f"Missing {f} in {label}")
+        v = lat_map[f]
+        if type(v) not in (int, float) or not math.isfinite(v) or v < 0:
+            raise QualificationBlockerError(f"Invalid non-finite or negative value for {label}.{f}: {v}")
+    if not (lat_map["min"] <= lat_map["p50"] <= lat_map["p95"] <= lat_map["p99"] <= lat_map["max"]):
+        raise QualificationBlockerError(f"Inconsistent percentile ordering in {label}: {lat_map}")
+    if not (lat_map["min"] <= lat_map["mean"] <= lat_map["max"]):
+        raise QualificationBlockerError(f"Mean outside [min, max] in {label}: {lat_map}")
+
+
+def _validate_sampled_memory(mem: Dict[str, Any], label: str) -> None:
+    for f in (
+        "sampled_final_rss_kib",
+        "sampled_final_rss_bytes",
+        "sampled_max_rss_kib",
+        "sampled_max_rss_bytes",
+        "sampling_interval_ms",
+    ):
+        if f not in mem:
+            raise QualificationBlockerError(f"Missing {f} in {label}")
+        v = mem[f]
+        if not isinstance(v, int) or v <= 0:
+            raise QualificationBlockerError(
+                f"Invalid or measured zero RSS in {label}.{f}: {v} (measured zero is rejected; RSS must be positive integer)"
+            )
+    if mem["sampled_max_rss_bytes"] < mem["sampled_final_rss_bytes"]:
+        raise QualificationBlockerError(
+            f"Sampled max RSS ({mem['sampled_max_rss_bytes']}) < sampled final RSS ({mem['sampled_final_rss_bytes']}) in {label}"
+        )
+
+
+def _validate_server_provenance(
+    prov: Any,
+    cell: Dict[str, Any],
+    manifest: Optional[Dict[str, Any]] = None,
+    expected_server_sha: Optional[str] = None,
+) -> None:
+    """Strictly validate server_provenance against cell and/or manifest expectations.
+
+    Enforces that:
+    - server_provenance is a JSON object.
+    - instance_id is a non-empty string.
+    - binary_path matches the expected path (from cell or manifest knotrel_server) if specified.
+    - binary_sha256 matches expected SHA-256 (from parameter, cell, or manifest knotrel_server).
+      Missing, null, empty, malformed (non-64 hex), or mismatched hashes raise QualificationBlockerError.
+    """
+    if not isinstance(prov, dict):
+        raise QualificationBlockerError("server_provenance must be a JSON object")
+
+    inst_id = prov.get("instance_id")
+    if not inst_id or not isinstance(inst_id, str):
+        raise QualificationBlockerError(f"Invalid or missing instance_id in server_provenance: {inst_id!r}")
+
+    # Resolve expected server binary path
+    expected_path = cell.get("server_binary")
+    if not expected_path and manifest:
+        expected_path = (
+            manifest.get("provenance", {})
+            .get("binaries", {})
+            .get("knotrel_server", {})
+            .get("path")
+        )
+    if expected_path:
+        reported_path = prov.get("binary_path")
+        if reported_path != expected_path:
+            raise QualificationBlockerError(
+                f"Server binary mismatch: reported {reported_path!r}, manifest expected {expected_path!r}"
+            )
+
+    # Resolve expected server SHA-256
+    exp_sha = expected_server_sha or cell.get("server_binary_sha256")
+    if not exp_sha and manifest:
+        exp_sha = (
+            manifest.get("provenance", {})
+            .get("binaries", {})
+            .get("knotrel_server", {})
+            .get("sha256")
+        )
+
+    if exp_sha:
+        if str(exp_sha).startswith("UNRESOLVED"):
+            raise QualificationBlockerError(f"Expected server binary SHA-256 is unresolved: {exp_sha!r}")
+        reported_sha = prov.get("binary_sha256")
+        if (
+            reported_sha is None
+            or not isinstance(reported_sha, str)
+            or not reported_sha
+            or not re.fullmatch(r"[0-9a-fA-F]{64}", reported_sha)
+        ):
+            raise QualificationBlockerError(
+                f"Server binary SHA-256 in report is missing, null, empty, or malformed: {reported_sha!r}"
+            )
+        if reported_sha.lower() != exp_sha.lower():
+            raise QualificationBlockerError(
+                f"Server binary SHA-256 mismatch: reported {reported_sha!r}, expected {exp_sha!r}"
+            )
+    else:
+        reported_sha = prov.get("binary_sha256")
+        if reported_sha is not None and (
+            not isinstance(reported_sha, str)
+            or not re.fullmatch(r"[0-9a-fA-F]{64}", reported_sha)
+        ):
+            raise QualificationBlockerError(
+                f"Server binary SHA-256 in report is malformed: {reported_sha!r}"
+            )
+
+
+def _validate_run_numbers(value: Any, label: str = "run") -> None:
+    if not isinstance(value, dict):
+        raise QualificationBlockerError(f"Invalid {label}")
+    for key, item in value.items():
+        field = f"{label}.{key}"
+        if isinstance(item, dict):
+            _validate_run_numbers(item, field)
+        elif key.endswith(("_ns", "_ms", "_per_sec", "_count", "_queries", "_items", "_bytes", "_kib")) or key in ("seed", "run_index", "qps", "effective_mutations", "oracle_agreement_pct"):
+            _nonnegative(item, field, integer=key.endswith(("_count", "_queries", "_items")) or key in ("seed", "run_index", "effective_mutations"))
+
+
+def _parse_http_entries(data, cell, manifest, expected_server_sha, parser):
+    if not isinstance(data, dict) or not isinstance(data.get("configuration"), dict):
+        raise QualificationBlockerError("Invalid HTTP report/configuration")
+    expected = cell.get("repetitions", cell.get("runs", 1))
+    runs = _entries(data.get("runs"), expected, "Runs")
+    if type(data["configuration"].get("runs")) is not int or data["configuration"]["runs"] != expected:
+        raise QualificationBlockerError("Configuration runs mismatch")
+    first = None
+    for index, run in enumerate(runs):
+        _validate_run_numbers(run)
+        base_index = runs[0].get("run_index")
+        if type(base_index) is not int or base_index not in (0, 1) or run.get("run_index") != base_index + index:
+            raise QualificationBlockerError(f"Run {index} identity mismatch")
+        if "seed" not in run or run["seed"] != data["configuration"].get("seed"):
+            raise QualificationBlockerError(f"Seed mismatch in run {index}")
+        sections = (("setup", "warmup", "measurement_window", "request_latency", "verification", "memory")
+                    if parser is _parse_http_batch_entry else
+                    ("snapshot_import", "catch_up", "barrier", "registration_through_barrier", "query", "memory"))
+        for section in sections:
+            if not isinstance(run.get(section), dict):
+                raise QualificationBlockerError(f"Missing or invalid run {index}.{section}")
+        timed_sections = sections[:3] if parser is _parse_http_batch_entry else sections[:4]
+        for section in timed_sections:
+            for unit in ("duration_ns", "duration_ms"):
+                _nonnegative(run[section].get(unit), f"run {index}.{section}.{unit}", integer=unit == "duration_ns")
+        entry_data = dict(data, configuration=dict(data["configuration"], runs=1), runs=[run])
+        entry_cell = dict(cell, repetitions=1, runs=1)
+        try:
+            selected = parser(entry_data, entry_cell, manifest, expected_server_sha)
+        except (AttributeError, KeyError, TypeError) as exc:
+            raise QualificationBlockerError(f"Malformed run {index}: {exc}") from exc
+        if first is None:
+            first = selected
+    return first
+
+
+def parse_http_lifecycle_json(data, cell, manifest=None, expected_server_sha=None):
+    """Validate every run, then preserve historical first-run metric selection."""
+    return _parse_http_entries(data, cell, manifest, expected_server_sha, _parse_http_lifecycle_entry)
+
+
+def parse_http_batch_json(data, cell, manifest=None, expected_server_sha=None):
+    """Validate every run, then preserve historical first-run metric selection."""
+    return _parse_http_entries(data, cell, manifest, expected_server_sha, _parse_http_batch_entry)
+
+
+def _parse_http_lifecycle_entry(
+    data: Dict[str, Any],
+    cell: Dict[str, Any],
+    manifest: Optional[Dict[str, Any]] = None,
+    expected_server_sha: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Parse and strictly validate a measure_e2e.v1 lifecycle JSON report."""
+    if not isinstance(data, dict):
+        raise QualificationBlockerError("Lifecycle report is not a JSON object")
+
+    schema_ver = data.get("schema_version")
+    if schema_ver != "measure_e2e.v1":
+        raise QualificationBlockerError(f"Expected schema_version 'measure_e2e.v1', got {schema_ver!r}")
+
+    driver = data.get("driver", {})
+    if driver.get("name") != "measure_e2e":
+        raise QualificationBlockerError(f"Driver name mismatch: expected 'measure_e2e', got {driver.get('name')!r}")
+
+    _validate_server_provenance(
+        data.get("server_provenance"),
+        cell,
+        manifest=manifest,
+        expected_server_sha=expected_server_sha,
+    )
+
+    cfg = data.get("configuration", {})
+    expected_engine = cell["engine"]
+    if cfg.get("effective_engine") != expected_engine:
+        raise QualificationBlockerError(
+            f"Effective engine mismatch: reported {cfg.get('effective_engine')!r}, manifest expected {expected_engine!r}"
+        )
+    if cfg.get("requested_engine") != expected_engine:
+        raise QualificationBlockerError(
+            f"Requested engine mismatch: reported {cfg.get('requested_engine')!r}, manifest expected {expected_engine!r}"
+        )
+
+    for field, cell_field in (
+        ("dataset_tier", "tier"),
+        ("node_count", "nodes"),
+        ("edge_count", "edges"),
+        ("event_count", "events"),
+        ("query_count", "queries"),
+        ("seed", "seed"),
+    ):
+        if cell_field in cell and cfg.get(field) != cell[cell_field]:
+            raise QualificationBlockerError(
+                f"Configuration {field} mismatch: reported {cfg.get(field)!r}, manifest expected {cell[cell_field]!r}"
+            )
+
+    expected_runs = cell.get("repetitions", cell.get("runs", 1))
+    if cfg.get("runs") != expected_runs:
+        raise QualificationBlockerError(
+            f"Configuration runs mismatch: reported {cfg.get('runs')}, manifest expected {expected_runs}"
+        )
+
+    runs = data.get("runs", [])
+    if len(runs) != expected_runs:
+        raise QualificationBlockerError(
+            f"Runs array length mismatch: reported {len(runs)}, manifest expected {expected_runs}"
+        )
+
+    r0 = runs[0]
+    snap = r0.get("snapshot_import", {})
+    expected_elements = cfg.get("node_count", 1000) + cfg.get("edge_count", 2000)
+    if snap.get("element_count") != expected_elements:
+        raise QualificationBlockerError(
+            f"Snapshot import element_count mismatch: {snap.get('element_count')} != {expected_elements}"
+        )
+
+    catchup = r0.get("catch_up", {})
+    if catchup.get("event_count") != cfg.get("event_count", 500):
+        raise QualificationBlockerError(
+            f"Catch-up event_count mismatch: {catchup.get('event_count')} != {cfg.get('event_count')}"
+        )
+
+    q = r0.get("query", {})
+    expected_queries = cfg.get("query_count", 1000)
+    if q.get("total_queries") != expected_queries:
+        raise QualificationBlockerError(
+            f"Total queries mismatch: {q.get('total_queries')} != {expected_queries}"
+        )
+    if q.get("verified_queries") != expected_queries:
+        raise QualificationBlockerError(
+            f"Verified queries mismatch: {q.get('verified_queries')} != {expected_queries}"
+        )
+    if q.get("oracle_agreement_pct") != 100.0:
+        raise QualificationBlockerError(
+            f"Oracle agreement failure: {q.get('oracle_agreement_pct')}% != 100.00%"
+        )
+
+    _validate_latency_distribution(q.get("latency_ns", {}), "query.latency_ns")
+    _validate_latency_distribution(q.get("latency_us", {}), "query.latency_us")
+    _validate_sampled_memory(r0.get("memory", {}), "memory")
+
+    reg_through_barrier = r0.get("registration_through_barrier", {})
+    time_to_ready_ms = reg_through_barrier.get("duration_ms")
+    if not isinstance(time_to_ready_ms, (int, float)) or not math.isfinite(time_to_ready_ms) or time_to_ready_ms < 0:
+        raise QualificationBlockerError(f"Invalid time_to_ready_ms: {time_to_ready_ms}")
+
+    restart_rec = r0.get("restart_recovery")
+    rec_ms = restart_rec.get("duration_ms") if restart_rec else None
+
+    exported = {
+        "import_duration_ms": snap.get("duration_ms"),
+        "catchup_duration_ms": catchup.get("duration_ms"),
+        "time_to_ready_ms": time_to_ready_ms,
+        "query_qps": q.get("qps"),
+        "query_latency_min_us": q["latency_us"]["min"],
+        "query_latency_mean_us": q["latency_us"]["mean"],
+        "query_latency_p50_us": q["latency_us"]["p50"],
+        "query_latency_p95_us": q["latency_us"]["p95"],
+        "query_latency_p99_us": q["latency_us"]["p99"],
+        "query_latency_max_us": q["latency_us"]["max"],
+        "oracle_agreement_raw": f"{expected_queries}/{expected_queries} (100.00%)",
+        "oracle_agreement_pct": 100.0,
+        "final_sampled_rss_mib": round(r0["memory"]["sampled_final_rss_kib"] / 1024.0, 2),
+        "sampled_max_rss_mib": round(r0["memory"]["sampled_max_rss_kib"] / 1024.0, 2),
+        "restart_recovery_ms": rec_ms,
+        "import_duration_ns": snap.get("duration_ns"),
+        "catchup_duration_ns": catchup.get("duration_ns"),
+        "time_to_ready_ns": reg_through_barrier.get("duration_ns"),
+        "query_total_duration_ns": q.get("total_duration_ns"),
+        "query_latency_p50_ns": q["latency_ns"]["p50"],
+        "query_latency_p95_ns": q["latency_ns"]["p95"],
+        "query_latency_p99_ns": q["latency_ns"]["p99"],
+        "sampled_final_rss_bytes": r0["memory"]["sampled_final_rss_bytes"],
+        "sampled_max_rss_bytes": r0["memory"]["sampled_max_rss_bytes"],
+    }
+
+    for k, v in exported.items():
+        if k in ("restart_recovery_ms", "oracle_agreement_raw"):
+            continue
+        _nonnegative(v, f"Exported metric {k}")
+
+    return {
+        "schema_version": schema_ver,
+        "exported_metrics": exported,
+        "unavailable_metrics": {
+            "exact_peak_rss": {
+                "value": None,
+                "reason": "Sampled RSS is polled at 25ms intervals; exact process peak RSS is unavailable from driver",
+            },
+            "candidate_construction_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+            "candidate_publication_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+            "coarse_mutex_contention_wait_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+            "internal_queue_wait_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+        },
+    }
+
+
+def _parse_http_batch_entry(
+    data: Dict[str, Any],
+    cell: Dict[str, Any],
+    manifest: Optional[Dict[str, Any]] = None,
+    expected_server_sha: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Parse and strictly validate a measure_e2e.batch.v1 standalone batch JSON report."""
+    if not isinstance(data, dict):
+        raise QualificationBlockerError("Batch report is not a JSON object")
+
+    schema_ver = data.get("schema_version")
+    if schema_ver != "measure_e2e.batch.v1":
+        raise QualificationBlockerError(f"Expected schema_version 'measure_e2e.batch.v1', got {schema_ver!r}")
+
+    driver = data.get("driver", {})
+    if driver.get("name") != "measure_e2e":
+        raise QualificationBlockerError(f"Driver name mismatch: expected 'measure_e2e', got {driver.get('name')!r}")
+
+    _validate_server_provenance(
+        data.get("server_provenance"),
+        cell,
+        manifest=manifest,
+        expected_server_sha=expected_server_sha,
+    )
+
+    cfg = data.get("configuration", {})
+    if cfg.get("scenario") != "standalone-batch":
+        raise QualificationBlockerError(
+            f"Scenario mismatch: reported {cfg.get('scenario')!r}, expected 'standalone-batch'"
+        )
+
+    # Historical v1 reports omit chunking metadata and used one 50-query request.
+    expected_warmup_chunk = cell.get("warmup_chunk_size", 50)
+    actual_warmup_chunk = cfg.get("warmup_chunk_size", 50)
+    if (type(expected_warmup_chunk) is not int or not 1 <= expected_warmup_chunk <= 50
+            or type(actual_warmup_chunk) is not int
+            or actual_warmup_chunk != expected_warmup_chunk):
+        raise QualificationBlockerError("Warmup chunk size does not match the cell contract")
+    expected_warmup_requests = (50 + expected_warmup_chunk - 1) // expected_warmup_chunk
+
+    expected_trace_id = "deterministic_500_round_link_cut_reversal"
+    if cfg.get("trace_identity") != expected_trace_id:
+        raise QualificationBlockerError(
+            f"Trace identity mismatch: reported {cfg.get('trace_identity')!r}, expected {expected_trace_id!r}"
+        )
+
+    expected_seed = cell.get("seed", 42)
+    if cfg.get("seed") != expected_seed:
+        raise QualificationBlockerError(
+            f"Seed mismatch: reported {cfg.get('seed')}, manifest expected {expected_seed}"
+        )
+
+    expected_nodes = cell.get("nodes", 1000)
+    if cfg.get("node_count") != expected_nodes:
+        raise QualificationBlockerError(
+            f"Node count mismatch: reported {cfg.get('node_count')}, manifest expected {expected_nodes}"
+        )
+
+    expected_engine = cell["engine"]
+    if cfg.get("effective_engine") != expected_engine:
+        raise QualificationBlockerError(
+            f"Effective engine mismatch: reported {cfg.get('effective_engine')!r}, manifest expected {expected_engine!r}"
+        )
+    if cfg.get("requested_engine") != expected_engine:
+        raise QualificationBlockerError(
+            f"Requested engine mismatch: reported {cfg.get('requested_engine')!r}, manifest expected {expected_engine!r}"
+        )
+
+    expected_b = cell["batch_size"]
+    if cfg.get("batch_size") != expected_b:
+        raise QualificationBlockerError(
+            f"Batch size mismatch: reported {cfg.get('batch_size')}, manifest expected {expected_b}"
+        )
+
+    total_ops = cfg.get("total_logical_operations", 2000)
+    if total_ops != 2000:
+        raise QualificationBlockerError(f"Total logical operations must be 2000, got {total_ops}")
+    if cfg.get("link_operations") != 500 or cfg.get("cut_operations") != 500 or cfg.get("query_operations") != 1000:
+        raise QualificationBlockerError(
+            f"Invalid operation mix: links={cfg.get('link_operations')}, cuts={cfg.get('cut_operations')}, queries={cfg.get('query_operations')}"
+        )
+
+    expected_full = total_ops // expected_b
+    rem = total_ops % expected_b
+    expected_partial = rem if rem > 0 else None
+    expected_reqs = expected_full + (1 if rem > 0 else 0)
+
+    if cfg.get("actual_request_count") != expected_reqs:
+        raise QualificationBlockerError(
+            f"Batch request count mismatch: reported {cfg.get('actual_request_count')}, expected {expected_reqs}"
+        )
+    if cfg.get("full_batches") != expected_full:
+        raise QualificationBlockerError(
+            f"Full batches count mismatch: reported {cfg.get('full_batches')}, expected {expected_full}"
+        )
+    if cfg.get("partial_batch_size") != expected_partial:
+        raise QualificationBlockerError(
+            f"Partial batch size mismatch: reported {cfg.get('partial_batch_size')}, expected {expected_partial}"
+        )
+
+    expected_runs = cell.get("repetitions", cell.get("runs", 1))
+    if cfg.get("runs") != expected_runs:
+        raise QualificationBlockerError(
+            f"Configuration runs mismatch: reported {cfg.get('runs')}, manifest expected {expected_runs}"
+        )
+
+    runs = data.get("runs", [])
+    if len(runs) != expected_runs:
+        raise QualificationBlockerError(
+            f"Runs array length mismatch: reported {len(runs)}, manifest expected {expected_runs}"
+        )
+
+    r0 = runs[0]
+    setup = r0.get("setup", {})
+    if setup.get("created_nodes") != cfg.get("node_count", 1000):
+        raise QualificationBlockerError(
+            f"Setup created_nodes mismatch: {setup.get('created_nodes')} != {cfg.get('node_count')}"
+        )
+    if setup.get("initial_state_version") != "1000":
+        raise QualificationBlockerError(
+            f"Setup initial_state_version mismatch: {setup.get('initial_state_version')!r} != '1000'"
+        )
+
+    warmup = r0.get("warmup", {})
+    if warmup.get("query_count") != 50:
+        raise QualificationBlockerError("Warmup must contain exactly 50 queries")
+    request_count = warmup.get("request_count", 1 if "warmup_chunk_size" not in cfg else None)
+    if type(request_count) is not int or request_count != expected_warmup_requests:
+        raise QualificationBlockerError("Warmup request count does not match chunk size")
+    if warmup.get("post_warmup_state_version") != "1000":
+        raise QualificationBlockerError(
+            f"Warmup state version mutated: {warmup.get('post_warmup_state_version')!r} != '1000'"
+        )
+
+    win = r0.get("measurement_window", {})
+    if win.get("total_logical_operations") != 2000:
+        raise QualificationBlockerError(
+            f"Window total_logical_operations mismatch: {win.get('total_logical_operations')} != 2000"
+        )
+    if win.get("effective_mutations") != 1000:
+        raise QualificationBlockerError(
+            f"Window effective_mutations mismatch: {win.get('effective_mutations')} != 1000"
+        )
+
+    req_lat = r0.get("request_latency", {})
+    if req_lat.get("total_requests") != expected_reqs:
+        raise QualificationBlockerError(
+            f"Request latency total_requests mismatch: {req_lat.get('total_requests')} != {expected_reqs}"
+        )
+    _validate_latency_distribution(req_lat.get("latency_ns", {}), "request_latency.latency_ns")
+    _validate_latency_distribution(req_lat.get("latency_us", {}), "request_latency.latency_us")
+
+    ver = r0.get("verification", {})
+    if ver.get("all_items_matched") is not True:
+        raise QualificationBlockerError("Batch verification failed: all_items_matched is false")
+    if ver.get("total_verified_items") != 2000:
+        raise QualificationBlockerError(
+            f"Batch verification items count mismatch: {ver.get('total_verified_items')} != 2000"
+        )
+    if ver.get("expected_final_state_version") != "2000":
+        raise QualificationBlockerError(
+            f"Batch verification expected_final_state_version mismatch: {ver.get('expected_final_state_version')!r} != '2000'"
+        )
+    if ver.get("actual_final_state_version") != "2000":
+        raise QualificationBlockerError(
+            f"Batch verification actual_final_state_version mismatch: {ver.get('actual_final_state_version')!r} != '2000'"
+        )
+    if ver.get("final_node_count") != 1000:
+        raise QualificationBlockerError(
+            f"Final node count mismatch: {ver.get('final_node_count')} != 1000"
+        )
+    if ver.get("final_edge_count") != 0:
+        raise QualificationBlockerError(
+            f"Final edge count mismatch (reversible topology not restored): {ver.get('final_edge_count')} != 0"
+        )
+
+    _validate_sampled_memory(r0.get("memory", {}), "memory")
+
+    exported = {
+        "setup_duration_ms": setup.get("duration_ms"),
+        "warmup_duration_ms": warmup.get("duration_ms"),
+        "window_duration_ms": win.get("duration_ms"),
+        "elapsed_window_ns_per_logical_op": win.get("elapsed_window_ns_per_logical_op"),
+        "logical_ops_per_sec": win.get("logical_ops_per_sec"),
+        "requests_per_sec": win.get("requests_per_sec"),
+        "request_latency_min_us": req_lat["latency_us"]["min"],
+        "request_latency_mean_us": req_lat["latency_us"]["mean"],
+        "request_latency_p50_us": req_lat["latency_us"]["p50"],
+        "request_latency_p95_us": req_lat["latency_us"]["p95"],
+        "request_latency_p99_us": req_lat["latency_us"]["p99"],
+        "request_latency_max_us": req_lat["latency_us"]["max"],
+        "final_sampled_rss_mib": round(r0["memory"]["sampled_final_rss_kib"] / 1024.0, 2),
+        "sampled_max_rss_mib": round(r0["memory"]["sampled_max_rss_kib"] / 1024.0, 2),
+        "total_requests": expected_reqs,
+        "batch_size": expected_b,
+        "total_logical_operations": 2000,
+        "effective_mutations": 1000,
+        "verified_items": 2000,
+        "all_items_matched": True,
+        "setup_duration_ns": setup.get("duration_ns"),
+        "warmup_duration_ns": warmup.get("duration_ns"),
+        "window_duration_ns": win.get("duration_ns"),
+        "request_latency_p50_ns": req_lat["latency_ns"]["p50"],
+        "request_latency_p95_ns": req_lat["latency_ns"]["p95"],
+        "request_latency_p99_ns": req_lat["latency_ns"]["p99"],
+        "sampled_final_rss_bytes": r0["memory"]["sampled_final_rss_bytes"],
+        "sampled_max_rss_bytes": r0["memory"]["sampled_max_rss_bytes"],
+    }
+
+    for k, v in exported.items():
+        if k == "all_items_matched":
+            continue
+        _nonnegative(v, f"Exported metric {k}")
+
+    return {
+        "schema_version": schema_ver,
+        "exported_metrics": exported,
+        "unavailable_metrics": {
+            "exact_peak_rss": {
+                "value": None,
+                "reason": "Sampled RSS is polled at 25ms intervals; exact process peak RSS is unavailable from driver",
+            },
+            "server_execution_duration": {
+                "value": None,
+                "reason": (
+                    "Aggregate window includes HTTP request serialization, response validation, and bookkeeping; "
+                    "isolated server-side graph execution time is unavailable without internal instrumentation"
+                ),
+            },
+            "candidate_construction_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+            "candidate_publication_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+            "coarse_mutex_contention_wait_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+            "internal_queue_wait_duration": {
+                "value": None,
+                "reason": "Not measured or exported by driver",
+            },
+        },
+    }
+
+
+def parse_http_json_report(
+    report_path: Path,
+    cell: Dict[str, Any],
+    manifest: Optional[Dict[str, Any]] = None,
+    expected_server_sha: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Read, parse, and validate an HTTP JSON report adhering to measure_e2e.v1 or measure_e2e.batch.v1."""
+    if not report_path.is_file():
+        raise QualificationBlockerError(f"Expected HTTP JSON report file does not exist: {report_path}")
+    if report_path.stat().st_size > DEFAULT_STREAM_LIMIT_BYTES:
+        raise QualificationBlockerError("HTTP JSON report file exceeds parser byte limit")
+    try:
+        data = strict_json_loads(report_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise QualificationBlockerError(f"HTTP JSON report is malformed JSON ({report_path}): {e}") from e
+
+    if not isinstance(data, dict):
+        raise QualificationBlockerError("HTTP JSON report must be an object")
+    schema = data.get("schema_version")
+    expected_schema = cell.get("report_schema")
+    if expected_schema and schema != expected_schema:
+        raise QualificationBlockerError(
+            f"Report schema mismatch: reported {schema!r}, expected {expected_schema!r}"
+        )
+
+    if schema == "measure_e2e.v1":
+        return parse_http_lifecycle_json(
+            data, cell, manifest=manifest, expected_server_sha=expected_server_sha
+        )
+    elif schema == "measure_e2e.batch.v1":
+        return parse_http_batch_json(
+            data, cell, manifest=manifest, expected_server_sha=expected_server_sha
+        )
+    else:
+        raise QualificationBlockerError(f"Unrecognized HTTP JSON report schema_version: {schema!r}")
+
+
+def parse_http_output(
+    stdout: str,
+    stderr: str,
+    cell: Dict[str, Any],
+    json_path: Optional[Path] = None,
+    manifest: Optional[Dict[str, Any]] = None,
+    expected_server_sha: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Parse and strictly validate HTTP measurement output.
+
+    If cell specifies a report_schema or json_path is provided, ingests and strictly validates
+    the JSON report.
+    Otherwise, parses and strictly validates the Markdown report table emitted to stdout
+    (preserving historical A/A pilot behavior).
+    """
+    if cell.get("report_schema") or json_path is not None:
+        if json_path is None:
+            raise QualificationBlockerError(
+                f"Cell {cell.get('cell_id')} requires report_schema {cell.get('report_schema')!r} but no json_path was provided"
+            )
+        return parse_http_json_report(
+            json_path,
+            cell,
+            manifest=manifest,
+            expected_server_sha=expected_server_sha,
+        )
+
+    lines = [line.strip() for line in stdout.splitlines() if line.strip().startswith("|")]
+    if len(lines) < 3:
+        raise QualificationBlockerError("HTTP output missing Markdown report table (fewer than 3 table lines)")
+
+    header_cols = [c.strip() for c in lines[0].split("|")[1:-1]]
+    REQUIRED_COLUMNS = [
+        "Run #",
+        "Import (ms)",
+        "Catch-up (ms)",
+        "Time-to-Ready (ms)",
+        "Query QPS",
+        "Latency p50 (µs)",
+        "Latency p95 (µs)",
+        "Oracle Agreement",
+        "Final Sampled RSS (MiB)",
+        "Restart Recovery (ms)",
+    ]
+    for col in REQUIRED_COLUMNS:
+        if col not in header_cols:
+            raise QualificationBlockerError(
+                f"HTTP Markdown table header missing required column {col!r}; headers: {header_cols}"
+            )
+
+    sampled_max_rss_key = next((k for k in header_cols if k.startswith("Sampled Max RSS")), None)
+    if not sampled_max_rss_key:
+        raise QualificationBlockerError("HTTP Markdown table header missing 'Sampled Max RSS' column")
+
+    data_lines = lines[2:]  # skip header and delimiter rows
+    expected_runs = cell.get("runs", cell.get("repetitions", 1))
+    if len(data_lines) != expected_runs:
+        raise QualificationBlockerError(
+            f"Expected exactly {expected_runs} run row(s) in HTTP Markdown table, found {len(data_lines)}"
+        )
+
+    row_cols = [c.strip().strip("`*") for c in data_lines[0].split("|")[1:-1]]
+    if len(row_cols) < len(header_cols):
+        raise QualificationBlockerError("HTTP table data row has fewer columns than header")
+
+    row_dict = dict(zip(header_cols, row_cols))
+
+    oracle_raw = row_dict.get("Oracle Agreement", "")
+    m_oracle = re.match(r"^(\d+)/(\d+)\s*\(([\d.]+)%\)$", oracle_raw)
+    if not m_oracle:
+        raise QualificationBlockerError(f"Unparseable Oracle Agreement field in HTTP report: {oracle_raw!r}")
+
+    agreed = int(m_oracle.group(1))
+    total = int(m_oracle.group(2))
+    pct = float(m_oracle.group(3))
+
+    expected_queries = cell.get("queries", 1000)
+    if total <= 0 or total != expected_queries:
+        raise QualificationBlockerError(
+            f"Invalid oracle total queries: {total} (expected {expected_queries}; 0/0 is strictly rejected)"
+        )
+
+    if agreed != total or pct != 100.0:
+        raise QualificationBlockerError(
+            f"Oracle agreement failure: {oracle_raw} (agreed {agreed}/{total}, {pct}%; must be 100.00%)"
+        )
+
+    numeric_fields = {
+        "import_duration_ms": "Import (ms)",
+        "catchup_duration_ms": "Catch-up (ms)",
+        "time_to_ready_ms": "Time-to-Ready (ms)",
+        "query_qps": "Query QPS",
+        "query_latency_p50_us": "Latency p50 (µs)",
+        "query_latency_p95_us": "Latency p95 (µs)",
+        "final_sampled_rss_mib": "Final Sampled RSS (MiB)",
+        "sampled_max_rss_mib": sampled_max_rss_key,
+        "restart_recovery_ms": "Restart Recovery (ms)",
+    }
+    exported: Dict[str, Any] = {
+        "oracle_agreement_raw": oracle_raw,
+        "oracle_agreement_pct": pct,
+    }
+
+    for metric_name, col_name in numeric_fields.items():
+        val_str = row_dict.get(col_name)
+        if val_str is None or val_str == "" or val_str.lower() in ("null", "none", "nan"):
+            raise QualificationBlockerError(f"Missing required metric value for {metric_name} ({col_name})")
+        try:
+            val_float = float(val_str)
+        except ValueError as e:
+            raise QualificationBlockerError(f"Invalid non-numeric value for {metric_name}: {val_str!r}") from e
+        if not math.isfinite(val_float) or val_float < 0:
+            raise QualificationBlockerError(f"Metric {metric_name} is non-finite or negative: {val_float}")
+        exported[metric_name] = val_float
+
+    if exported["query_latency_p50_us"] > exported["query_latency_p95_us"]:
+        raise QualificationBlockerError(
+            f"Inconsistent latencies: p50 ({exported['query_latency_p50_us']}) > p95 ({exported['query_latency_p95_us']})"
+        )
+
+    unavailable_reason = (
+        "The frozen measure_e2e binary exports HTTP p50 and p95 in its Markdown table. "
+        "HTTP p99, mean, min, and max are marked unavailable: internal calculation does "
+        "not make them observable in exported artifacts. The driver must not be modified or rebuilt."
+    )
+
+    return {
+        "exported_metrics": exported,
+        "unavailable_metrics": {
+            "query_latency_p99_us": {"value": None, "reason": unavailable_reason},
+            "query_latency_mean_us": {"value": None, "reason": unavailable_reason},
+            "query_latency_min_us": {"value": None, "reason": unavailable_reason},
+            "query_latency_max_us": {"value": None, "reason": unavailable_reason},
+            "coarse_mutex_contention_wait_duration": {
+                "value": None,
+                "reason": "Not measured or exported by frozen driver",
+            },
+            "internal_queue_wait_duration": {
+                "value": None,
+                "reason": "Not measured or exported by frozen driver",
+            },
+            "candidate_publication_duration": {
+                "value": None,
+                "reason": "Not measured or exported by frozen driver",
+            },
+            "candidate_construction_duration": {
+                "value": None,
+                "reason": "Not measured or exported by frozen driver",
+            },
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Child Process Execution Engine
+# ---------------------------------------------------------------------------
+
+
+def capture_failure_reason(observation: Dict[str, Any]) -> Optional[str]:
+    """Return an unsuccessful capture's reason independently of child exit code."""
+    if observation.get("failure_reason"):
+        return str(observation["failure_reason"])
+    if observation.get("status") in ("failed", "launch_failed") or observation.get("cancelled"):
+        return "Capture failed without a detailed reason"
+    if observation.get("output_limit_exceeded"):
+        return "Capture output limit exceeded"
+    return None
+
+
+def observe_child(
+    argv: List[str],
+    cwd: str,
+    env: Dict[str, str],
+    timeout_seconds: float,
+    is_core: bool = True,
+    output_limit_bytes: int = DEFAULT_STREAM_LIMIT_BYTES,
+) -> Dict[str, Any]:
+    """Execute a single child measurement with dedicated process group.
+
+    Guarantees:
+    - Dedicated process group created via start_new_session=True.
+    - On timeout, abnormal cancellation, or failure, entire process group is killed via SIGKILL.
+    - Bounded stream draining with timeout to prevent hanging.
+    - Never kills unrelated processes by global name.
+    - Retains stdout, raw stderr, wall clock timestamps, PID and exit code.
+    - Disentangles time wrapper diagnostics from child stderr.
+    """
+    cmd = argv[:]
+    if is_core:
+        if sys.platform == "darwin":
+            cmd = ["/usr/bin/time", "-l"] + cmd
+        elif sys.platform.startswith("linux"):
+            cmd = ["/usr/bin/time", "-v"] + cmd
+
+    launch_mono_ns = time.monotonic_ns()
+    launch_unix_ns = time.time_ns()
+
+    if type(output_limit_bytes) is not int or output_limit_bytes < 1:
+        raise ValueError("output_limit_bytes must be a positive integer")
+    proc = None
+    timed_out = False
+    overflow = False
+    failure = None
+    interrupted = None
+    streams = {"stdout": bytearray(), "stderr": bytearray()}
+    selector = selectors.DefaultSelector()
+    deadline = time.monotonic() + timeout_seconds
+    try:
+        proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                start_new_session=True)
+        for name, stream in (("stdout", proc.stdout), ("stderr", proc.stderr)):
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ, name)
+        while selector.get_map():
+            parent_code = proc.poll()
+            if parent_code is not None and parent_code != 0:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                timed_out = True
+                failure = "Process timeout"
+                break
+            for key, _ in selector.select(min(0.05, remaining)):
+                available = output_limit_bytes - sum(map(len, streams.values()))
+                chunk = os.read(key.fileobj.fileno(), min(65536, available + 1))
+                if not chunk:
+                    selector.unregister(key.fileobj)
+                    continue
+                streams[key.data].extend(chunk[:available])
+                if len(chunk) > available:
+                    overflow = True
+                    failure = f"Combined stream output limit exceeded ({output_limit_bytes} bytes)"
+                    break
+            if overflow:
+                break
+        if not failure:
+            try:
+                proc.wait(timeout=max(0.001, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                failure = "Process timeout"
+    except (KeyboardInterrupt, SystemExit) as exc:
+        interrupted = exc
+        failure = f"Process execution cancelled: {exc}"
+    except Exception as exc:
+        failure = f"{'Launch' if proc is None else 'Capture'} failure: {exc}"
+    finally:
+        if proc is not None:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            except PermissionError:
+                proc.wait(timeout=2.0)
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            proc.wait()
+            proc.stdout.close()
+            proc.stderr.close()
+        selector.close()
+        completion_mono_ns = time.monotonic_ns()
+        completion_unix_ns = time.time_ns()
+    stdout = streams["stdout"].decode("utf-8", errors="replace") if proc else None
+    stderr = streams["stderr"].decode("utf-8", errors="replace") if proc else None
+    returncode = (124 if timed_out else proc.returncode) if proc else None
+    if failure is None and returncode != 0:
+        failure = f"Child exited with code {returncode}"
+    observation = {
+        "wrapper_pid": proc.pid if proc else None,
+        "full_cmd": cmd,
+        "argv": argv,
+        "cwd": cwd,
+        "env": env,
+        "launch_monotonic_ns": launch_mono_ns,
+        "completion_monotonic_ns": completion_mono_ns,
+        "launch_unix_ns": launch_unix_ns,
+        "completion_unix_ns": completion_unix_ns,
+        "wall_duration_ns": completion_mono_ns - launch_mono_ns,
+        "exit_code": returncode,
+        "timed_out": timed_out,
+        "stdout": stdout,
+        "raw_stderr": stderr,
+        "peak_rss_bytes": peak_rss(stderr, sys.platform) if is_core and stderr else None,
+        "wrapper_diagnostics": parse_time_wrapper_diagnostics(stderr) if is_core and stderr else None,
+        "status": "launch_failed" if proc is None else "failed" if failure else "captured",
+        "failure_reason": failure,
+        "output_limit_exceeded": overflow,
+        "output_limit_bytes": output_limit_bytes,
+        "stdout_bytes_captured": len(streams["stdout"]),
+        "stderr_bytes_captured": len(streams["stderr"]),
+        "direct_child_reaped": proc is not None and proc.returncode is not None,
+        "cancelled": interrupted is not None,
+    }
+    for name in ("stdout", "stderr"):
+        raw = bytes(streams[name])
+        if raw.decode("utf-8", errors="replace").encode("utf-8") != raw:
+            observation[f"{name}_bytes_base64"] = base64.b64encode(raw).decode("ascii")
+    if interrupted is not None:
+        raise ProcessInterruptedError(failure, observation, interrupted) from interrupted
+    return observation
+
+
+# ---------------------------------------------------------------------------
+# Descriptive Analysis
+# ---------------------------------------------------------------------------
+
+
+def analyze_pilot(observations: List[Dict[str, Any]], cell_map: Dict[str, Any]) -> Dict[str, Any]:
+    """Compute descriptive exploratory statistics for completed A/A pilot pairs.
+
+    Strict rules:
+    - Descriptive paired differences: delta = Aprime - A, relative = (Aprime - A)/A, log-ratio.
+    - Order effects: compare delta distribution for A-then-Aprime vs Aprime-then-A.
+    - Between-process variability: CV (sigma/mu) and IQR.
+    - No automatic percentage gates, no confidence claims, no pooled p99 from averaged percentiles.
+    """
+    by_cell: Dict[str, List[Dict[str, Any]]] = {}
+    for obs in observations:
+        by_cell.setdefault(obs["cell_id"], []).append(obs)
+
+    cell_analyses = []
+    for cell_id, cell_obs in by_cell.items():
+        cell_info = cell_map.get(cell_id, {})
+        is_core = cell_info.get("type", "core") == "core"
+
+        # Pair observations by pair_id
+        pairs_dict: Dict[int, Dict[str, Any]] = {}
+        for obs in cell_obs:
+            p_id = obs["pair_id"]
+            pairs_dict.setdefault(p_id, {})[obs["label"]] = obs
+
+        paired_deltas = []
+        if cell_info.get("primary_metric"):
+            metric_key = cell_info["primary_metric"]
+        elif is_core:
+            metric_key = "workload_wall_ns"
+        elif cell_info.get("scenario") == "standalone-batch" or cell_info.get("workload") == "standalone-batch":
+            metric_key = "window_duration_ms"
+        else:
+            metric_key = "time_to_ready_ms"
+
+        def _extract_metric(obs_record: Dict[str, Any], key: str, is_c: bool) -> Optional[float]:
+            parsed = obs_record.get("parsed_metrics") or {}
+            if is_c:
+                return parsed.get(key)
+            exported = parsed.get("exported_metrics", {})
+            return exported.get(key)
+
+        for p_id, members in pairs_dict.items():
+            if "A" in members and "Aprime" in members:
+                obs_a = members["A"]
+                obs_ap = members["Aprime"]
+
+                val_a = _extract_metric(obs_a, metric_key, is_core)
+                val_ap = _extract_metric(obs_ap, metric_key, is_core)
+
+                if val_a is not None and val_ap is not None and val_a > 0:
+                    raw_diff = val_ap - val_a
+                    rel_diff = raw_diff / val_a
+                    log_ratio = math.log(val_ap / val_a)
+                    first_label = obs_a["label"] if obs_a["pair_position"] == 0 else obs_ap["label"]
+                    paired_deltas.append(
+                        {
+                            "pair_id": p_id,
+                            "val_A": val_a,
+                            "val_Aprime": val_ap,
+                            "diff": raw_diff,
+                            "relative_diff": rel_diff,
+                            "log_ratio": log_ratio,
+                            "order": f"{first_label}_first",
+                        }
+                    )
+
+        # Compute summary stats across all observations
+        all_vals = []
+        for obs in cell_obs:
+            v = _extract_metric(obs, metric_key, is_core)
+            if v is not None:
+                all_vals.append(v)
+
+        cv = None
+        iqr = None
+        mean_val = None
+        median_val = None
+        if len(all_vals) >= 2:
+            mean_val = statistics.mean(all_vals)
+            stdev_val = statistics.stdev(all_vals)
+            cv = (stdev_val / mean_val) if mean_val > 0 else None
+            sorted_vals = sorted(all_vals)
+            q1 = statistics.median(sorted_vals[: len(sorted_vals) // 2])
+            q3 = statistics.median(sorted_vals[(len(sorted_vals) + 1) // 2 :])
+            iqr = q3 - q1
+            median_val = statistics.median(all_vals)
+
+        cell_analyses.append(
+            {
+                "cell_id": cell_id,
+                "type": cell_info.get("type", "core"),
+                "primary_metric": metric_key,
+                "total_observations": len(cell_obs),
+                "pairs_completed": len(paired_deltas),
+                "summary": {
+                    "mean": mean_val,
+                    "median": median_val,
+                    "cv": cv,
+                    "iqr": iqr,
+                },
+                "paired_deltas": paired_deltas,
+            }
+        )
+
+    return {
+        "analysis_type": "exploratory_descriptive",
+        "methodological_disclaimer": (
+            "Descriptive exploratory noise characterization only. No statistical confidence, "
+            "hypothesis test power, or equivalence claims are asserted. Automatic percentage "
+            "gates (such as CV > 5%) are rejected. Pooled p99 is not computed from averaged percentiles."
+        ),
+        "cells": cell_analyses,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Dry Run Execution
+# ---------------------------------------------------------------------------
+
+
+def run_dry_run(
+    manifest_path: Path,
+    schedule_path: Path,
+    destination: Optional[Path] = None,
+    check_provenance: bool = True,
+) -> int:
+    """Validate configuration and read-only provenance without launching benchmarks.
+
+    Prints comprehensive execution plan, counts, limitations, and host telemetry status.
+    """
+    manifest = read_json(manifest_path)
+    schedule = read_json(schedule_path)
+
+    val_summary = validate_inputs(manifest, schedule, check_provenance=check_provenance)
+    h_state = host_state()
+    h_valid, h_err = validate_host_state(h_state, enforce_ac=True)
+
+    print("================================================================================")
+    print("KNOTREL v0.3.0 CHECKPOINT P0: A/A PILOT COLLECTOR (DRY-RUN VALIDATION)")
+    print("================================================================================")
+    print(f"Manifest Path:      {manifest_path}")
+    print(f"Schedule Path:      {schedule_path}")
+    if destination:
+        print(f"Target Destination: {destination.resolve()} (NOT created in dry-run)")
+    print()
+    print("--- 1. Validation and Provenance Checks ---")
+    core_count = sum(1 for c in val_summary["cells"].values() if c.get("type") == "core")
+    http_count = len(val_summary["cells"]) - core_count
+    pairs_per_sess = val_summary["total_pairs"] // val_summary["sessions_count"]
+    print(f"✓ Schema & Counts:    {val_summary['total_cells']} total cells ({core_count} Core, {http_count} HTTP)")
+    print(f"✓ Schedule Balance:   {val_summary['total_pairs']} total pairs across {val_summary['sessions_count']} sessions ({pairs_per_sess} pairs/session)")
+    print(f"✓ Label Symmetry:     Exactly 3/3 A-then-A' and A'-then-A per cell")
+    print(f"✓ Measured Launches:  {val_summary['total_measured_runs']} direct child executions")
+    print(f"✓ Total Processes:    {val_summary['total_process_launches']} process launches")
+    if check_provenance:
+        print("✓ Binaries Verified:  knotrel-benchmarks, measure_e2e, knotrel-server (SHA-256 matched)")
+        print(
+            f"✓ Checkouts Verified: baseline knotrel clean @ 7e9becd, baseline benchmarks @ df635a1 (staged Cargo.lock only)"
+        )
+    else:
+        print("! PROVENANCE NOT VERIFIED: Structural validation only (--skip-provenance-checks active)")
+        print("! Binaries and repository checkouts were NOT verified against expected SHA/commits.")
+    print()
+    print("--- 2. Resource Ceilings and Limitations ---")
+    print(f"- Per-Process Timeout:    {PER_PROCESS_TIMEOUT_SECONDS}s")
+    print(f"- Overall Deadline:       {PROPOSED_OVERALL_DEADLINE_SECONDS}s (45 minutes, monotonic)")
+    print(f"- Pre-Session Quiet:      {PER_SESSION_PRE_QUIET_SECONDS}s per session")
+    print(f"- Inter-Session Cooldown: {INTER_SESSION_COOLDOWN_SECONDS}s between sessions")
+    print(f"- Peak RSS Ceiling:       {PROPOSED_PEAK_RSS_CEILING_BYTES // (1024*1024)} MiB (retrospective post-termination check)")
+    print(f"- Disk Ceiling:           {PROPOSED_DISK_CEILING_BYTES // (1024*1024)} MiB (session boundary check)")
+    http_cells = [c for c in val_summary["cells"].values() if c.get("type") == "http"]
+    schemas = {c.get("report_schema") for c in http_cells}
+    if not http_cells:
+        print("- HTTP Driver Metrics:    None (no HTTP cells in schedule)")
+    elif schemas == {None}:
+        print("- HTTP Driver Metrics:    p50 and p95 exported; p99, mean, min, max marked unavailable (Markdown table)")
+    else:
+        descs = []
+        if None in schemas:
+            descs.append("markdown table (p50, p95 exported; p99, mean, min, max unavailable)")
+        if "measure_e2e.v1" in schemas:
+            descs.append("measure_e2e.v1 (time_to_ready, query latency min/mean/p50/p95/p99/max, sampled RSS exported; exact peak RSS unavailable)")
+        if "measure_e2e.batch.v1" in schemas:
+            descs.append("measure_e2e.batch.v1 (window_duration, batch latency min/mean/p50/p95/p99/max, sampled RSS exported; exact peak RSS unavailable)")
+        for d in descs:
+            print(f"- HTTP Driver Metrics:    {d}")
+    print()
+    print("--- 3. Host Precondition Checks ---")
+    print(f"Platform:      {h_state['platform']}")
+    print(f"Power Source:  {h_state.get('power') or 'N/A'}")
+    print(f"Thermal State: {h_state.get('thermal') or 'N/A'}")
+    if h_state.get("thermal_validation_mode"):
+        print(f"Thermal Mode:  {h_state['thermal_validation_mode']}")
+    print(f"Active Builds: {len(h_state['competing_workloads'])} competing processes")
+    if h_valid:
+        print("✓ All Host Preconditions: MET (AC Power, clean thermal boundaries, no competing builds)")
+    else:
+        print(f"✗ Host Preconditions: FAILED ({h_err})")
+        print("! NOTICE: Real execution (--execute) is BLOCKED until host preconditions are met or explicitly waived.")
+    print()
+    print("================================================================================")
+    if check_provenance:
+        print("DRY-RUN COMPLETE: Configuration and provenance are 100% valid.")
+        print("No benchmarks were run, no output files written, and no quiet waits incurred.")
+        print("To execute the pilot, provide an explicit destination and pass --execute.")
+    else:
+        print("DRY-RUN COMPLETE: Structural validation passed; provenance was NOT verified.")
+        print("No benchmarks were run, no output files written, and no quiet waits incurred.")
+        print("Real execution remains blocked until provenance is fully resolved and verified.")
+    print("================================================================================")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Pilot Execution Loop
+# ---------------------------------------------------------------------------
+
+
+def _wait_budgeted_duration(
+    duration_seconds: float,
+    deadline_mono: float,
+    phase_name: str,
+    sleep_fn: Callable[[float], None],
+    monotonic_fn: Callable[[], float],
+    step_size: float = 5.0,
+) -> None:
+    """Wait for duration_seconds in bounded intervals, enforcing campaign deadline."""
+    if duration_seconds <= 0:
+        return
+    start = monotonic_fn()
+    while True:
+        now = monotonic_fn()
+        if now >= deadline_mono:
+            raise ProcessExecutionError(f"Overall campaign deadline expired during {phase_name}")
+        remaining = duration_seconds - (now - start)
+        if remaining <= 1e-9:
+            break
+        remaining_deadline = deadline_mono - now
+        step = min(step_size, remaining, remaining_deadline)
+        if step <= 0:
+            raise ProcessExecutionError(f"Overall campaign deadline expired during {phase_name}")
+        sleep_fn(step)
+
+
+def execute_pilot(
+    manifest_path: Path,
+    schedule_path: Path,
+    destination: Path,
+    enforce_host: bool = True,
+    dry_run_only: bool = False,
+    session_pre_quiet_seconds: float = PER_SESSION_PRE_QUIET_SECONDS,
+    inter_session_cooldown_seconds: float = INTER_SESSION_COOLDOWN_SECONDS,
+    overall_deadline_seconds: float = PROPOSED_OVERALL_DEADLINE_SECONDS,
+    check_provenance: bool = True,
+    sleep_fn: Optional[Callable[[float], None]] = None,
+    monotonic_fn: Optional[Callable[[], float]] = None,
+) -> int:
+    """Execute the full 186-pair A/A pilot campaign sequentially."""
+    if dry_run_only:
+        return run_dry_run(manifest_path, schedule_path, destination)
+
+    if sleep_fn is None:
+        sleep_fn = time.sleep
+    if monotonic_fn is None:
+        monotonic_fn = time.monotonic
+
+    destination = destination.resolve()
+
+    if destination.exists():
+        raise FileExistsError(
+            f"Destination directory already exists: {destination}. Overwriting evidence is prohibited."
+        )
+
+    manifest = read_json(manifest_path)
+    schedule = read_json(schedule_path)
+
+    val_summary = validate_inputs(manifest, schedule, check_provenance=check_provenance)
+    cell_map = val_summary["cells"]
+
+    # Initial host check
+    initial_host = host_state()
+    h_ok, h_err = validate_host_state(initial_host, enforce_ac=enforce_host)
+    if enforce_host and not h_ok:
+        raise HostPreconditionError(f"Initial host validation failed before execution: {h_err}")
+
+    # Create destination and write immutable snapshots
+    destination.mkdir(parents=True, exist_ok=False)
+    save_json(destination / "manifest.json", manifest)
+    save_json(destination / "schedule.json", schedule)
+
+    collector_source_hash = digest(Path(__file__).resolve())
+    metadata: Dict[str, Any] = {
+        "collector_script": str(Path(__file__).resolve()),
+        "collector_sha256": collector_source_hash,
+        "manifest_sha256": digest(destination / "manifest.json"),
+        "schedule_sha256": digest(destination / "schedule.json"),
+        "status": "in_progress",
+        "thermal_validation_mode": initial_host.get("thermal_validation_mode"),
+        "thermal_telemetry_limitations": initial_host.get("thermal_telemetry_limitations"),
+        "start_monotonic_ns": time.monotonic_ns(),
+        "start_unix_ns": time.time_ns(),
+        "initial_host_state": initial_host,
+        "session_host_states": [],
+        "completed_pairs": 0,
+        "completed_observations": 0,
+        "failure_record": None,
+    }
+    save_json(destination / "run_metadata.json", metadata)
+
+    campaign_start_mono = monotonic_fn()
+    campaign_deadline_mono = campaign_start_mono + overall_deadline_seconds
+
+    observations: List[Dict[str, Any]] = []
+    pairs_list = schedule["pairs"]
+    workload_fingerprints: Dict[Any, str] = {}
+
+    sessions_count = val_summary.get("sessions_count", SESSIONS_COUNT)
+    try:
+        for session_idx in range(sessions_count):
+            # Session-boundary disk check
+            cur_disk = directory_size_bytes(destination)
+            if cur_disk > PROPOSED_DISK_CEILING_BYTES:
+                raise QualificationBlockerError(
+                    f"Session {session_idx} boundary disk ceiling exceeded: {cur_disk} > {PROPOSED_DISK_CEILING_BYTES} bytes"
+                )
+
+            # 1. Inter-session cooldown between sessions (for session_idx > 0)
+            if session_idx > 0 and inter_session_cooldown_seconds > 0:
+                _wait_budgeted_duration(
+                    duration_seconds=inter_session_cooldown_seconds,
+                    deadline_mono=campaign_deadline_mono,
+                    phase_name="inter-session cooldown",
+                    sleep_fn=sleep_fn,
+                    monotonic_fn=monotonic_fn,
+                )
+
+            # 2. Pre-session quiet period (before EVERY session, including session 0)
+            if session_pre_quiet_seconds > 0:
+                _wait_budgeted_duration(
+                    duration_seconds=session_pre_quiet_seconds,
+                    deadline_mono=campaign_deadline_mono,
+                    phase_name="session quiet period",
+                    sleep_fn=sleep_fn,
+                    monotonic_fn=monotonic_fn,
+                )
+
+            # Host check prior to session execution
+            pre_host = host_state()
+            if enforce_host:
+                h_ok, h_err = validate_host_state(pre_host, baseline=initial_host, enforce_ac=True)
+                if not h_ok:
+                    raise EnvironmentalInvalidationError(
+                        f"Environmental invalidation at session {session_idx} start: {h_err}"
+                    )
+            session_host_entry: Dict[str, Any] = {
+                "session_idx": session_idx,
+                "pre_session_host": pre_host,
+                "post_session_host": None,
+            }
+
+            session_pairs = [p for p in pairs_list if p["session"] == session_idx]
+            for pair in session_pairs:
+                cell = cell_map[pair["cell_id"]]
+                is_core = cell["type"] == "core"
+
+                pair_record: Dict[str, Any] = {
+                    "pair_id": pair["pair_id"],
+                    "cell_id": pair["cell_id"],
+                    "session": pair["session"],
+                    "labels": pair["labels"],
+                    "observations": [],
+                }
+
+                # Sequential execution of Member 0 and Member 1
+                for position, label in enumerate(pair["labels"]):
+                    capture_limit = campaign_capture_limit(destination, PROPOSED_DISK_CEILING_BYTES)
+                    # Check overall deadline budget before launching each pair member
+                    remaining_budget = campaign_deadline_mono - monotonic_fn()
+                    if remaining_budget <= 0:
+                        raise ProcessExecutionError(
+                            f"Overall campaign deadline expired before pair {pair['pair_id']} position {position} ({label})"
+                        )
+                    effective_timeout = min(PER_PROCESS_TIMEOUT_SECONDS, remaining_budget)
+
+                    launch_argv = list(pair["argv"])
+                    allocated_json_path: Optional[Path] = None
+                    if not is_core:
+                        if cell.get("report_schema") or "--json-out" in launch_argv:
+                            allocated_json_path = (
+                                destination
+                                / f"report_pair_{pair['pair_id']:03d}_pos{position}_{label}_{cell['cell_id']}.json"
+                            ).resolve()
+                            if "--json-out" in launch_argv:
+                                idx = launch_argv.index("--json-out")
+                                if idx + 1 < len(launch_argv):
+                                    launch_argv[idx + 1] = str(allocated_json_path)
+                                else:
+                                    launch_argv.append(str(allocated_json_path))
+                            else:
+                                launch_argv.extend(["--json-out", str(allocated_json_path)])
+
+                    try:
+                        obs_res = observe_child(
+                            argv=launch_argv,
+                            cwd=pair["cwd"],
+                            env=pair["env"],
+                            timeout_seconds=effective_timeout,
+                            is_core=is_core,
+                            output_limit_bytes=capture_limit,
+                        )
+                    except ProcessInterruptedError as pie:
+                        obs_res = pie.observation
+                        obs_item = {
+                            "cell_id": pair["cell_id"],
+                            "pair_id": pair["pair_id"],
+                            "pair_position": position,
+                            "label": label,
+                            "argv": launch_argv,
+                            "full_cmd": obs_res["full_cmd"],
+                            "cwd": pair["cwd"],
+                            "env": pair["env"],
+                            "wrapper_pid": obs_res["wrapper_pid"],
+                            "launch_monotonic_ns": obs_res["launch_monotonic_ns"],
+                            "completion_monotonic_ns": obs_res["completion_monotonic_ns"],
+                            "launch_unix_ns": obs_res["launch_unix_ns"],
+                            "completion_unix_ns": obs_res["completion_unix_ns"],
+                            "wall_duration_ns": obs_res["wall_duration_ns"],
+                            "exit_code": obs_res["exit_code"],
+                            "timed_out": obs_res["timed_out"],
+                            "stdout": obs_res["stdout"],
+                            "raw_stderr": obs_res["raw_stderr"],
+                            "peak_rss_bytes": None,
+                            "wrapper_diagnostics": None,
+                            "json_report_path": str(allocated_json_path) if allocated_json_path else None,
+                            "parsed_metrics": None,
+                            "status": "cancelled",
+                            "error": str(pie),
+                        }
+                        pair_record["observations"].append(obs_item)
+                        save_json(
+                            destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                            pair_record,
+                        )
+                        metadata["completed_observations"] = len(observations) + 1
+                        metadata["status"] = "aborted_cancellation"
+                        metadata["failure_record"] = {
+                            "failure_class": "cancellation",
+                            "error": str(pie),
+                            "pair_id": pair["pair_id"],
+                            "position": position,
+                            "label": label,
+                        }
+                        save_json(destination / "run_metadata.json", metadata)
+                        if pie.original_exception is not None:
+                            raise pie.original_exception
+                        raise
+
+                    obs_item = {
+                        "cell_id": pair["cell_id"],
+                        "pair_id": pair["pair_id"],
+                        "pair_position": position,
+                        "label": label,
+                        "argv": launch_argv,
+                        "full_cmd": obs_res["full_cmd"],
+                        "cwd": pair["cwd"],
+                        "env": pair["env"],
+                        "wrapper_pid": obs_res["wrapper_pid"],
+                        "launch_monotonic_ns": obs_res["launch_monotonic_ns"],
+                        "completion_monotonic_ns": obs_res["completion_monotonic_ns"],
+                        "launch_unix_ns": obs_res["launch_unix_ns"],
+                        "completion_unix_ns": obs_res["completion_unix_ns"],
+                        "wall_duration_ns": obs_res["wall_duration_ns"],
+                        "exit_code": obs_res["exit_code"],
+                        "timed_out": obs_res["timed_out"],
+                        "stdout": obs_res["stdout"],
+                        "raw_stderr": obs_res["raw_stderr"],
+                        "peak_rss_bytes": obs_res["peak_rss_bytes"],
+                        "wrapper_diagnostics": obs_res["wrapper_diagnostics"],
+                        "json_report_path": str(allocated_json_path) if allocated_json_path else None,
+                        "parsed_metrics": None,
+                        "status": "raw_captured",
+                        "error": None,
+                    }
+
+                    # PERSIST IMMEDIATELY BEFORE PARSING OR RAISING
+                    obs_item["capture"] = {key: value for key, value in obs_res.items() if key in (
+                        "status", "failure_reason", "output_limit_exceeded", "output_limit_bytes",
+                        "stdout_bytes_captured", "stderr_bytes_captured", "direct_child_reaped",
+                        "stdout_bytes_base64", "stderr_bytes_base64")}
+                    pair_record["observations"].append(obs_item)
+                    save_json(
+                        destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                        pair_record,
+                    )
+                    metadata["completed_observations"] = len(observations) + 1
+                    save_json(destination / "run_metadata.json", metadata)
+
+                    # Check for child process failure or timeout
+                    if obs_res["timed_out"]:
+                        err_msg = (
+                            f"Pair {pair['pair_id']} position {position} ({label}) "
+                            f"exceeded effective timeout of {effective_timeout:.2f}s"
+                        )
+                        obs_item["status"] = "timed_out"
+                        obs_item["error"] = err_msg
+                        save_json(
+                            destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                            pair_record,
+                        )
+                        raise ProcessExecutionError(err_msg)
+
+                    if obs_res["exit_code"] != 0:
+                        err_msg = (
+                            f"Pair {pair['pair_id']} position {position} ({label}) "
+                            f"exited with non-zero code {obs_res['exit_code']}"
+                        )
+                        obs_item["status"] = "exit_code_failure"
+                        obs_item["error"] = err_msg
+                        save_json(
+                            destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                            pair_record,
+                        )
+                        raise ProcessExecutionError(err_msg)
+
+                    # Parse output strictly
+                    capture_error = capture_failure_reason(obs_res)
+                    if capture_error:
+                        obs_item.update(status="process_error", error=capture_error)
+                        save_json(destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json", pair_record)
+                        raise ProcessExecutionError(capture_error)
+                    try:
+                        if is_core:
+                            parsed = parse_core_output(obs_res["stdout"], obs_res["raw_stderr"], cell)
+                        else:
+                            parsed = parse_http_output(
+                                obs_res["stdout"],
+                                obs_res["raw_stderr"],
+                                cell,
+                                json_path=allocated_json_path,
+                                manifest=manifest,
+                            )
+                        obs_item["parsed_metrics"] = parsed
+                        obs_item["status"] = "parsed_valid"
+                    except QualificationBlockerError as e:
+                        obs_item["status"] = "qualification_blocker"
+                        obs_item["error"] = str(e)
+                        save_json(
+                            destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                            pair_record,
+                        )
+                        raise
+
+                    # Validate trace identity consistency across A/A' and equivalent workloads across engines and regimes
+                    if is_core:
+                        fp = parsed.get("trace_fingerprint_fnv1a64")
+                        w_key = cell.get("workload_id") or (cell["workload"], cell["nodes"], cell["rounds"], cell["seed"])
+                        if w_key in workload_fingerprints:
+                            expected_fp = workload_fingerprints[w_key]
+                            if fp != expected_fp:
+                                err_msg = (
+                                    f"Trace identity consistency violation for workload {w_key!r} "
+                                    f"(cell {cell['cell_id']}, pair {pair['pair_id']}, position {position}, label {label}): "
+                                    f"observed fingerprint {fp!r} != expected {expected_fp!r} (diverged from previous equivalent execution)"
+                                )
+                                obs_item["status"] = "qualification_blocker"
+                                obs_item["error"] = err_msg
+                                save_json(
+                                    destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                                    pair_record,
+                                )
+                                raise QualificationBlockerError(err_msg)
+                        else:
+                            workload_fingerprints[w_key] = fp
+
+                    # Check retrospective peak RSS ceiling
+                    if obs_res["peak_rss_bytes"] and obs_res["peak_rss_bytes"] > PROPOSED_PEAK_RSS_CEILING_BYTES:
+                        err_msg = (
+                            f"Peak RSS ceiling exceeded: {obs_res['peak_rss_bytes']} > "
+                            f"{PROPOSED_PEAK_RSS_CEILING_BYTES} bytes"
+                        )
+                        obs_item["status"] = "rss_ceiling_violation"
+                        obs_item["error"] = err_msg
+                        save_json(
+                            destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                            pair_record,
+                        )
+                        raise QualificationBlockerError(err_msg)
+
+                    observations.append(obs_item)
+                    save_json(
+                        destination / f"pair_{pair['pair_id']:03d}_{pair['cell_id']}.json",
+                        pair_record,
+                    )
+                    metadata["completed_pairs"] = len(observations) // 2
+                    save_json(destination / "run_metadata.json", metadata)
+
+            # Post-session host check (after all pairs in this session conclude, including final session)
+            post_host = host_state()
+            session_host_entry["post_session_host"] = post_host
+            metadata["session_host_states"].append(session_host_entry)
+            save_json(destination / "run_metadata.json", metadata)
+
+            if enforce_host:
+                h_ok, h_err = validate_host_state(post_host, baseline=initial_host, enforce_ac=True)
+                if not h_ok:
+                    raise EnvironmentalInvalidationError(
+                        f"Environmental invalidation at session {session_idx} conclusion: {h_err}"
+                    )
+
+        # Final verification of binary identity, git status, and disk usage
+        final_disk = directory_size_bytes(destination)
+        if final_disk > PROPOSED_DISK_CEILING_BYTES:
+            raise QualificationBlockerError(
+                f"Final disk ceiling exceeded: {final_disk} > {PROPOSED_DISK_CEILING_BYTES} bytes"
+            )
+        validate_inputs(manifest, schedule, check_provenance=check_provenance)
+
+        # All pairs completed and verified
+        analysis = analyze_pilot(observations, cell_map)
+        save_json(destination / "analysis.json", analysis)
+
+        metadata["status"] = "completed"
+        metadata["completion_monotonic_ns"] = time.monotonic_ns()
+        metadata["completion_unix_ns"] = time.time_ns()
+        save_json(destination / "run_metadata.json", metadata)
+        print(f"Pilot execution completed successfully. All {len(pairs_list)} pairs verified.")
+        return 0
+
+    except QualificationBlockerError as e:
+        metadata["status"] = "aborted_class1_qualification_blocker"
+        metadata["failure_record"] = {"failure_class": FailureClass.CLASS_1_FATAL_QUALIFICATION_BLOCKER, "error": str(e)}
+        save_json(destination / "run_metadata.json", metadata)
+        raise
+    except EnvironmentalInvalidationError as e:
+        metadata["status"] = "aborted_class2_environmental_invalidation"
+        metadata["failure_record"] = {"failure_class": FailureClass.CLASS_2_ENVIRONMENTAL_INVALIDATION, "error": str(e)}
+        save_json(destination / "run_metadata.json", metadata)
+        raise
+    except ProcessExecutionError as e:
+        metadata["status"] = "aborted_class3_process_execution_failure"
+        metadata["failure_record"] = {"failure_class": FailureClass.CLASS_3_PROCESS_EXECUTION_FAILURE, "error": str(e)}
+        save_json(destination / "run_metadata.json", metadata)
+        raise
+    except (KeyboardInterrupt, SystemExit) as e:
+        if metadata.get("status") != "aborted_cancellation":
+            metadata["status"] = "aborted_cancellation"
+            metadata["failure_record"] = {"failure_class": "cancellation", "error": str(e)}
+            save_json(destination / "run_metadata.json", metadata)
+        raise
+    except Exception as e:
+        metadata["status"] = "aborted_unexpected_exception"
+        metadata["failure_record"] = {"failure_class": "unexpected_exception", "error": str(e)}
+        save_json(destination / "run_metadata.json", metadata)
+        raise
+
+
+# ---------------------------------------------------------------------------
+# CLI Entrypoint
+# ---------------------------------------------------------------------------
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "destination",
+        type=Path,
+        nargs="?",
+        default=None,
+        help="New evidence destination directory (must not exist for execution).",
+    )
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=DEFAULT_MANIFEST_PATH,
+        help="Path to manifest.json (default: approved P0 planning bundle manifest).",
+    )
+    parser.add_argument(
+        "--schedule",
+        type=Path,
+        default=DEFAULT_SCHEDULE_PATH,
+        help="Path to schedule.json (default: approved P0 planning bundle schedule).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate configuration and read-only provenance without launching benchmarks or waiting.",
+    )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Explicit confirmation required to execute the real benchmark schedule.",
+    )
+    parser.add_argument(
+        "--skip-host-checks",
+        action="store_true",
+        help="Skip strict AC power and host environment validation (for testing/mock purposes only).",
+    )
+    parser.add_argument(
+        "--skip-provenance-checks",
+        action="store_true",
+        help="Skip filesystem binary and git provenance checks (for dry-run validation of planning manifests with unbuilt binaries).",
+    )
+
+    args = parser.parse_args()
+
+    if not args.dry_run and not args.execute:
+        parser.error("Either --dry-run or --execute must be specified. Real execution will not start without --execute.")
+
+    if args.execute and args.skip_provenance_checks:
+        parser.error(
+            "--skip-provenance-checks cannot be combined with --execute; "
+            "real benchmark execution strictly requires complete provenance verification."
+        )
+
+    if args.dry_run:
+        return run_dry_run(
+            args.manifest,
+            args.schedule,
+            args.destination,
+            check_provenance=not args.skip_provenance_checks,
+        )
+
+    if not args.destination:
+        parser.error("Destination directory is required when --execute is passed.")
+
+    return execute_pilot(
+        manifest_path=args.manifest,
+        schedule_path=args.schedule,
+        destination=args.destination,
+        enforce_host=not args.skip_host_checks,
+        dry_run_only=False,
+        check_provenance=not args.skip_provenance_checks,
+    )
+
+
+if __name__ == "__main__":
+    sys.exit(main())

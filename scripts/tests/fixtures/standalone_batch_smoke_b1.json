@@ -1,0 +1,115 @@
+{
+  "schema_version": "measure_e2e.batch.v1",
+  "driver": {
+    "name": "measure_e2e",
+    "version": "0.3.0",
+    "build_profile": "release (optimized performance build)"
+  },
+  "server_provenance": {
+    "binary_path": "/synthetic/knotrel-server",
+    "binary_sha256": "b156d39718434fb395cc19d2937513376f99819c8ac5e48963a3f776ab44ed4a",
+    "instance_id": "synthetic-server-instance"
+  },
+  "configuration": {
+    "scenario": "standalone-batch",
+    "trace_identity": "deterministic_500_round_link_cut_reversal",
+    "workload_description": "Deterministic 500-round batch-overhead workload restoring empty-edge topology",
+    "topology": "1,000 explicitly created isolated nodes",
+    "node_count": 1000,
+    "seed": 42,
+    "batch_size": 1,
+    "total_logical_operations": 2000,
+    "link_operations": 500,
+    "cut_operations": 500,
+    "query_operations": 1000,
+    "actual_request_count": 2000,
+    "full_batches": 2000,
+    "warmup": "50 query-only batch operations prior to measurement window",
+    "connection_model": "HTTP/1.1 sequential loopback TCP (Connection: close; full round-trip per batch)",
+    "runs": 1,
+    "requested_engine": "compact-bfs",
+    "effective_engine": "compact-bfs",
+    "engine_experimental": false,
+    "spawn_server": true,
+    "server_address": "dynamic_loopback"
+  },
+  "timing_boundaries": {
+    "units": {
+      "duration_ns": "Raw integer nanoseconds as measured by std::time::Instant",
+      "duration_ms": "Floating-point milliseconds (duration_ns / 1,000,000.0)",
+      "request_latency_ns": "Raw integer nanoseconds per HTTP batch request round-trip (connect + send + recv + close)",
+      "request_latency_us": "Floating-point microseconds per HTTP batch request (latency_ns / 1,000.0)",
+      "elapsed_window_ns_per_logical_op": "Amortized elapsed window nanoseconds per logical operation (window_duration_ns / total_logical_operations). Note: Aggregate elapsed-window metrics explicitly include client request serialization, network transit, response deserialization, item-level correctness validation, revision arithmetic checks, and bookkeeping; they are distinct from individual request latency and pure server-side execution time.",
+      "logical_ops_per_sec": "Logical operations per second over the aggregate measurement window (total_logical_operations / window_duration_s). Measures end-to-end client dispatch throughput including serialization, response validation, and bookkeeping; distinct from server-side execution time.",
+      "requests_per_sec": "HTTP batch requests per second over timed measurement window (actual_requests / window_duration_s)",
+      "memory_kib": "Kibibytes (1024 bytes)",
+      "memory_bytes": "Bytes (kib * 1024)"
+    },
+    "notes": {
+      "latency_concept": "Request latency measures pure loopback HTTP round-trip (connect + send request + receive response body + close connection) per batch request. It reflects network and server batch handling time. Never divide request latency by batch size to fabricate individual-operation latency.",
+      "window_concept": "Elapsed window duration measures aggregate end-to-end benchmark time across the entire 2,000-operation trace, explicitly including client request serialization, network transit, response parsing, per-item correctness validation, revision arithmetic checks, and bookkeeping. These aggregate elapsed-window metrics must be distinguished from individual request latency and pure server-side execution time."
+    }
+  },
+  "runs": [
+    {
+      "run_index": 1,
+      "seed": 42,
+      "setup": {
+        "duration_ns": 7695916,
+        "duration_ms": 7.6959159999999995,
+        "created_nodes": 1000,
+        "initial_state_version": "1000"
+      },
+      "warmup": {
+        "duration_ns": 394834,
+        "duration_ms": 0.394834,
+        "query_count": 50,
+        "post_warmup_state_version": "1000"
+      },
+      "measurement_window": {
+        "duration_ns": 187349125,
+        "duration_ms": 187.34912500000002,
+        "total_logical_operations": 2000,
+        "effective_mutations": 1000,
+        "elapsed_window_ns_per_logical_op": 93674.5625,
+        "logical_ops_per_sec": 10675.256689883126,
+        "requests_per_sec": 10675.256689883126
+      },
+      "request_latency": {
+        "total_requests": 2000,
+        "latency_ns": {
+          "min": 61084,
+          "mean": 92075.839,
+          "p50": 73125,
+          "p95": 175083,
+          "p99": 258708,
+          "max": 3544875
+        },
+        "latency_us": {
+          "min": 61.084,
+          "mean": 92.075839,
+          "p50": 73.125,
+          "p95": 175.083,
+          "p99": 258.708,
+          "max": 3544.875
+        }
+      },
+      "verification": {
+        "all_items_matched": true,
+        "total_verified_items": 2000,
+        "expected_final_state_version": "2000",
+        "actual_final_state_version": "2000",
+        "final_node_count": 1000,
+        "final_edge_count": 0
+      },
+      "memory": {
+        "sampled_final_rss_kib": 7264,
+        "sampled_final_rss_bytes": 7438336,
+        "sampled_max_rss_kib": 7264,
+        "sampled_max_rss_bytes": 7438336,
+        "sampling_interval_ms": 25,
+        "note": "Sampled at 25ms intervals via ps; not guaranteed absolute peak RSS"
+      }
+    }
+  ]
+}
