@@ -32,7 +32,7 @@ See [domain source selection](docs/research/2026-10-03-domain-scenarios.md), [sc
 
 Keep both repositories in the same parent directory, named `knotrel` and `knotrel-benchmarks`. The workspace uses `../knotrel/crates/knotrel-core` as a path dependency, so edits in your local core are measured immediately.
 
-Both workspaces pin Rust **1.98.1**, edition **2024** and resolver **3**. Third-party dependencies are locked in Cargo.lock. The path dependency is intentionally not revision-pinned: record the exact core revision and diff with every result.
+Both workspaces pin Rust **1.100.0**, edition **2024** and resolver **3**. The sibling `knotrel-core` retains Rust **1.98.1** as its MSRV. Third-party dependencies are locked in Cargo.lock. The path dependency is intentionally not revision-pinned: record the exact core revision and diff with every result.
 
 ## Run
 

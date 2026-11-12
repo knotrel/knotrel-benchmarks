@@ -34,7 +34,7 @@ jobs:
       - name: Record core revision
         run: git -C ../knotrel rev-parse HEAD
       - name: Install pinned Rust
-        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+        run: rustup toolchain install 1.100.0 --profile minimal --component rustfmt --component clippy
       - name: Formatting
         run: cargo fmt --all -- --check
       - name: Clippy

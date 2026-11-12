@@ -3,7 +3,7 @@
 When modifying or generating code for `knotrel-benchmarks`, strictly adhere to the following principles and project requirements:
 
 ## 1. Environment & Architecture
-- Rust edition 2024 with pinned toolchain `1.98.1` (`rust-toolchain.toml`).
+- Rust edition 2024 with pinned toolchain `1.100.0` (`rust-toolchain.toml`); the sibling core retains its `1.98.1` MSRV.
 - Keep the sibling `knotrel` checkout for the local core path dependency (`../knotrel/crates/knotrel-core`). Record both revisions and dirty state with results.
 - Respect workspace lints: `missing_docs = "deny"`, `unsafe_code = "forbid"`, `clippy::all = "warn"`, and `rustdoc::broken_intra_doc_links = "deny"`.
 

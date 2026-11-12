@@ -1,6 +1,7 @@
 # Development requirements
 
-- Use Rust 1.98.1, edition 2024, and this Cargo workspace.
+- Use Rust 1.100.0, edition 2024, and this Cargo workspace. The sibling
+  `knotrel-core` maintains its separate Rust 1.98.1 MSRV.
 - Write code, comments, docs and reports in English.
 - Document every public item; explain nontrivial algorithms, invariants and time/space bounds.
 - Inherit workspace lints; missing Rustdoc is an error. Do not introduce unsafe code.

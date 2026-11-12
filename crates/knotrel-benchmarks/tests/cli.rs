@@ -103,7 +103,7 @@ fn smoke_run_emits_machine_readable_measurements_and_configuration() {
         report["compiler"]
             .as_str()
             .unwrap()
-            .contains("rustc 1.98.1")
+            .contains("rustc 1.100.0")
     );
     for op in ["cut", "link", "connected"] {
         let samples = &report["repetitions"][0]["measurements"][op];
