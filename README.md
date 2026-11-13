@@ -1,32 +1,129 @@
 # Knotrel benchmarks
 
-Reproducible workloads for measuring exact dynamic graph connectivity.
+Reproducible workloads, measurement tools and recorded evidence for
+[Knotrel](https://github.com/knotrel/knotrel), an in-memory engine for exact
+connectivity in undirected graphs whose edges are inserted and deleted.
 
-## Current Benchmark Results
+This repository answers three different questions, and its reports are kept
+separate accordingly:
 
-The active repository tree maintains benchmark evidence for the latest version of Knotrel. Detailed historical runs are preserved in Git history (see [results/README.md](results/README.md)).
+1. **Release regression qualification:** did a release candidate regress
+   against the previous release on a fixed, pre-approved set of cells?
+2. **Engine and competitor comparison:** how do Knotrel's engines compare with
+   each other and with an external library on identical traces?
+3. **Algorithm experiments and diagnostics:** did a specific code change or
+   instrumentation behave as intended?
 
-- **[Current five-engine ranking](results/ranking/README.md)**: 74-cell evaluation across `Compact BFS`, `Compact Workspace`, `ETT`, `HDT`, and external `petgraph` following migration to `FxHashMap` and 64-byte token packing. Knotrel engines combined win **72 / 74 cells (97.3%)** against petgraph; Compact Workspace leads with 31 / 74 wins (41.9%).
-- **[ETT scan-root hardware profile on Apple M4](results/hardware-profile/README.md)**: 72 fixed paired recordings validating signpost intervals, Apple M4 CPU performance counters, ~45% dense workload speedup, and path variance under hardware profiling.
-- **[Bulk graph initialization](results/initialization/README.md)**: Phase 0 calibration and replication records for bulk graph construction (`try_from_edges`) and stage-based timing accounting.
-- **[Continuous performance evaluation](results/perf_evaluation_latest.json)**: Latest automated regression evaluation metrics.
+A result from one category does not answer another. Competitor rankings are
+not release qualifications, and an algorithm experiment does not establish a
+release-wide speedup.
 
----
+## What is measured
 
-## Architecture & Engines
+- **Engines:** Knotrel `compact-bfs` (the default `Graph`), `compact-workspace`
+  (opt-in caller-owned `BfsWorkspace`), experimental `ett-scan` (Euler-tour
+  forest) and experimental `hdt` (Holm–de Lichtenberg–Thorup), compared with
+  the external `petgraph-dfs` adapter. [Methodology](docs/methodology.md#embedded-comparisons-and-cache-protocol)
+  lists further historical adapters.
+- **Workloads:** deterministic synthetic families (chain, cycle, component and hub
+  families; sustained churn on paths and blocks; dense and redundant bridge
+  churn) and
+  an imported Topology Zoo trace (Cogentco outages). See
+  [scenarios](docs/scenarios/README.md), the
+  [Topology Zoo adapter](docs/scenarios/topology-zoo.md) and
+  [domain source selection](docs/research/2026-10-03-domain-scenarios.md).
+- **Release qualification** additionally drives the `knotrel-server` HTTP
+  service for batch and source-managed lifecycle cells.
 
-The harness compares Knotrel's own connectivity backends with external libraries:
-- `compact-bfs`: **Knotrel's default backend** (`Graph`).
-- `compact-workspace`: Knotrel's opt-in caller-owned workspace backend (`BfsWorkspace`), avoiding allocation on repeated traversals.
-- `ett-scan`: **Knotrel's experimental backend** maintaining dynamic spanning forests via Euler Tour Trees with 64-byte packed tokens.
-- `hdt`: **Knotrel's experimental backend** implementing Holm-de Lichtenberg-Thorup multilevel dynamic graph connectivity.
-- `petgraph-dfs`: External baseline wrapped by benchmark adapter.
+### Important limitations
 
-Measured calls are embedded kernel operations, not HTTP service requests.
+- Engine comparisons time **embedded library calls**, not HTTP requests or
+  end-to-end service throughput.
+- Each report covers its own host, scales and operation mixes. Results do not
+  transfer automatically to other hardware, topologies or sizes.
+- Warmups warm process and allocator caches; no hardware or OS cache flushing
+  is performed. RSS covers the whole process, including the harness.
+- Per-run percentiles are never pooled, and the fastest run is never selected.
+  Very short operations can be timer-dominated.
+- Every recorded report below was measured on macOS; each entry states the
+  host details its report actually records.
 
-Workloads include deterministic synthetic families and imported topology traces. The harness validates every result and supports trace export, warmup, and separate reports for repeated fresh-graph runs.
+See the [methodology](docs/methodology.md) for timing boundaries, correctness
+checks, trace interchange and further limitations.
 
-See [domain source selection](docs/research/2026-10-03-domain-scenarios.md), [scenarios and contracts](docs/scenarios/README.md), and [Topology Zoo adapter](docs/scenarios/topology-zoo.md) for domain-specific workloads.
+## Evidence by release and purpose
+
+### Latest published release: v0.2.0
+
+No v0.2.0-specific performance report is published in this repository. The
+v0.2.0 sources (`7e9becd`) serve only as the **baseline** of the v0.3.0
+qualification below.
+
+### Current candidate: v0.3.0 regression qualification
+
+The v0.3.0 candidate is **not yet published**. Its release qualification
+compared Knotrel `6a1267f` (candidate) with v0.2.0 sources `7e9becd` rebuilt
+with Rust 1.100.0 (baseline), using one shared harness (`df635a1e`), HTTP
+driver and collector (`580c7e44`: baseline/candidate mode of
+[`run_p0_aa.py`](scripts/run_p0_aa.py), prepared by
+[`prepare_bc_qualification.py`](scripts/prepare_bc_qualification.py); see
+[collector validation](docs/collector-validation.md) for reader rules). It ran on a macOS 26.5.2
+arm64 host, in nine cells covering `compact-bfs` and `compact-workspace`
+core workloads, standalone HTTP batches and source-managed HTTP readiness.
+
+Outcome: **7 PASS and 2 INCONCLUSIVE**, accepted with disclosure under the
+release policy. HTTP batch B8 (median paired change −1.42%, interval −15.63%
+to +12.09%) and HTTP lifecycle readiness (+8.02%, −11.46% to +21.97%) did not
+pass and do not exclude regressions. PASS is a decision under a pre-approved
+tolerance, not a significance test. No speedup is claimed.
+
+The per-cell table belongs to the v0.3.0 release documentation
+(`docs/releases/v0.3.0-release-notes.md` and `docs/performance-v0.3.0.md` in
+Knotrel). It becomes public when that candidate documentation is published.
+Until then, Knotrel's public `main` still shows the earlier planning status. The
+raw qualification reports are **not published** in either repository; this
+summary is the only current public record. `ett` and `hdt` were not
+re-qualified.
+
+### Historical engine and competitor comparison
+
+- **[Five-engine ranking, 2026-10-09](results/ranking/README.md):** 74 cells,
+  three process trials per engine, Knotrel engines versus `petgraph-dfs`.
+  Recorded checkouts: core `d1cfb15` (before the v0.1.0 preview) and benchmarks
+  `bf7ddb0`, plus the captured [lockfile patch](results/ranking/benchmarks.patch).
+  The report records macOS but not the CPU model or Rust toolchain. Wins are
+  split across all five engines (Compact Workspace 31, ETT 22, HDT 17, Compact
+  BFS 2, petgraph 2), so **no engine wins universally** in this matrix. It does
+  not measure v0.1.0, v0.2.0 or the v0.3.0 candidate.
+
+### Historical algorithm experiments and diagnostics
+
+- **[ETT scan-root hardware profile, 2026-10-12](results/hardware-profile/README.md):**
+  72 paired before/after recordings of one ETT candidate on Apple M4 under
+  Instruments CPU Counters, following its [protocol](results/hardware-profile/protocol.md).
+  A dense positive control improved; path workloads reproduced variability, not
+  a stable speedup or regression. The committed report does not record its own
+  source revision or Rust toolchain: it reuses isolated builds whose provenance
+  was kept outside Git. Its whole-process predecessor, kept in history at
+  [`1567a4e2`](https://github.com/knotrel/knotrel-benchmarks/blob/1567a4e2adee8f3e35eae9923107505868b3f01d/results/2026-10-12-ett-hardware-profile-m4/builds.json),
+  recorded core `86fb85a8` plus the candidate patch, benchmarks `a3504d6d`, and
+  Rust 1.98.1 on `aarch64-apple-darwin`. The report keeps the ETT candidate isolated.
+- **[Bulk initialization Phase 0](results/initialization/README.md):**
+  instrumentation and calibration for `try_from_edges`; core `61a3556`, Rust
+  1.98.1, Apple M4 with macOS 27.0.1. It **stopped after calibration**, so no
+  initialization baseline is established.
+- **[Automated evaluation snapshot](results/perf_evaluation_latest.json):**
+  per-engine results for 13 workloads, committed 2026-10-13. The file records
+  no source revision, host or toolchain; treat it as historical and do not use
+  it as a release measurement.
+- Experiment designs and policies: [before/after policy](docs/experiments/2026-10-04-before-after-policy.md),
+  [connectivity campaign](docs/experiments/2026-10-04-connectivity-campaign.md),
+  [HDT candidates](docs/experiments/2026-10-06-hdt-candidates.md),
+  [bulk loading design](docs/experiments/2026-10-12-bulk-graph-loading-design.md)
+  and [initialization methodology review](docs/experiments/2026-10-12-initialization-methodology-review.md).
+
+Older runs, pilots and campaign traces remain in Git history; see
+[results/README.md](results/README.md).
 
 ## Local layout
 
@@ -82,7 +179,7 @@ python3 scripts/run_baseline.py results/NEW_COMPARISON --nodes 128 1024 4096 --r
 python3 scripts/summarize_comparison.py results/NEW_COMPARISON
 ```
 
-`--engine compact-bfs` measures the default production `Graph`. The `all` selector includes all active backends. See [current engine ranking](results/ranking/README.md) for latest numbers.
+`--engine compact-bfs` measures the default production `Graph`. The `all` selector includes all active backends. See the [historical engine ranking](results/ranking/README.md) for recorded numbers.
 
 ## Dynamic forest and scale workloads
 

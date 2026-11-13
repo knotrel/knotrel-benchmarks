@@ -1,6 +1,6 @@
 # Knotrel Benchmark Results
 
-This directory contains benchmark and performance evaluation records for the latest version of Knotrel. Historical experiment runs, pilots, and campaign traces are preserved in the Git commit history, keeping the active working tree lean and focused while maintaining full reproducibility and provenance.
+This directory contains recorded benchmark and performance evaluation reports. Each report measures the Knotrel revision recorded in it, not necessarily the latest release; see the [repository README](../README.md#evidence-by-release-and-purpose) for versions and hosts. Historical experiment runs, pilots, and campaign traces are preserved in the Git commit history, keeping the active working tree lean and focused while maintaining full reproducibility and provenance.
 
 ## Canonical Benchmark Suites
 
