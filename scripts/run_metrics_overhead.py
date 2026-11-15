@@ -25,12 +25,29 @@ Stopping rule: PRIMARY_ROUNDS counterbalanced rounds; if any scenario is not
 PASS, exactly one extension of EXTENSION_ROUNDS rounds runs, and the final
 verdicts use all rounds. No further rounds are ever added.
 
-Identity: knotrel HEAD must be BASELINE_COMMIT; the measured tree is
-identified by the sha256 of the code diff (`git diff HEAD` excluding `docs/`
-and `*.md`) together with every untracked code file, checked before the build,
-after the build and after the last observation.
+Identity: knotrel HEAD must be the measured commit chosen with
+`--measured-commit`, one of MEASURED_COMMITS:
 
-Usage: python3 scripts/run_metrics_overhead.py <campaign-directory>
+- BASELINE_COMMIT (the default, the original M6.5 campaign): the measured tree
+  is HEAD plus the working-tree changes;
+- RC_COMMIT (the v0.4.0 release candidate, decision G7-V): the measured tree is
+  HEAD itself, so the code diff must be empty and there must be no untracked
+  code file. `router-probe` is built from `tools/hot-path-probes-rc`, which
+  compiles the same probe source with the shipped server's `axum` features
+  (decision G7p-1); the historical `tools/hot-path-probes` is used only for
+  BASELINE_COMMIT (PROBE_DIRS). The measurement tooling in knotrel-benchmarks
+  (BENCH_TOOLING_PATHS) must also be committed, `--knotrel` must be the sibling
+  checkout the probe builds against, and knotrel HEAD and the tooling are
+  re-checked with the identity (a clean tree's identity alone does not
+  distinguish commits). These checks run before run/ is created.
+
+Either way the measured tree is identified by the sha256 of the code diff
+(`git diff HEAD` excluding `docs/` and `*.md`) together with every untracked
+code file, checked before the build, after the build and after the last
+observation. The protocol, arms, rounds, schedule and budget do not depend on
+the measured commit.
+
+Usage: python3 scripts/run_metrics_overhead.py <campaign-directory> [--measured-commit SHA]
 Writes <campaign-directory>/run/ and refuses to overwrite it.
 """
 
@@ -65,6 +82,11 @@ from run_p0_aa import host_state, observe_child, validate_host_state  # noqa: E4
 SCHEMA = "knotrel-metrics-overhead-v1"
 TOOLCHAIN = "1.100.0"
 BASELINE_COMMIT = "e1e11818a762baf07575719456a2158959b2e2c8"
+RC_COMMIT = "62c2cea9314085f6f7669ebbb7def2be1fa1cb5c"
+MEASURED_COMMITS = (BASELINE_COMMIT, RC_COMMIT)
+PROBE_DIRS = {BASELINE_COMMIT: "tools/hot-path-probes", RC_COMMIT: "tools/hot-path-probes-rc"}
+PROBE_TARGET_DIRS = {BASELINE_COMMIT: "target", RC_COMMIT: "target-rc"}
+BENCH_TOOLING_PATHS = ("scripts", "tools/hot-path-probes", "tools/hot-path-probes-rc")
 ARMS = ("off", "on", "aa")
 PRIMARY_ROUNDS = 24
 EXTENSION_ROUNDS = 12
@@ -182,6 +204,41 @@ def code_identity(repo: Path) -> Dict[str, Any]:
             "identity_sha256": digest.hexdigest()}
 
 
+def tooling_changes(bench: Path) -> str:
+    """`git status --porcelain` of the knotrel-benchmarks measurement tooling (empty = committed)."""
+    return subprocess.run(["git", "-C", str(bench), "status", "--porcelain", "--", *BENCH_TOOLING_PATHS],
+                          capture_output=True, check=True, text=True).stdout
+
+
+def probe_knotrel_checkout(bench: Path) -> Path:
+    """The knotrel checkout the probe manifests build against (`../../../knotrel` from the probe)."""
+    return (bench.parent / "knotrel").resolve()
+
+
+def measured_tree_error(head: str, measured_commit: str, identity: Dict[str, Any],
+                        tooling_status: str = "", checks_probe_checkout: bool = True) -> Optional[str]:
+    """Why the checkouts are not an acceptable measured tree, or None if they are.
+
+    ``tooling_status`` is ``tooling_changes(bench)``; it must be empty for RC_COMMIT.
+    ``checks_probe_checkout`` says whether the checked knotrel checkout is the one the probe
+    builds against; it must be true for RC_COMMIT.
+    """
+    if measured_commit not in MEASURED_COMMITS:
+        return f"measured commit {measured_commit} is not one of {list(MEASURED_COMMITS)}"
+    if head != measured_commit:
+        return f"knotrel HEAD {head} is not {measured_commit}"
+    if measured_commit != BASELINE_COMMIT and (identity["code_diff_sha256"] != sha256_bytes(b"")
+                                               or identity["untracked_code_files"]):
+        return (f"the measured tree must be a clean {measured_commit} checkout: "
+                f"code diff sha256 {identity['code_diff_sha256']}, "
+                f"untracked code files {sorted(identity['untracked_code_files'])}")
+    if measured_commit != BASELINE_COMMIT and not checks_probe_checkout:
+        return "--knotrel is not the checkout the probe builds against (the sibling knotrel)"
+    if measured_commit != BASELINE_COMMIT and tooling_status:
+        return f"knotrel-benchmarks measurement tooling has uncommitted changes:\n{tooling_status}"
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Collector
 # ---------------------------------------------------------------------------
@@ -201,6 +258,7 @@ class Campaign:
         self.enforce_host = not args.no_host_checks
         self.primary_rounds = args.primary_rounds
         self.extension_rounds = args.extension_rounds
+        self.measured_commit = args.measured_commit
         self.identity: Dict[str, Any] = {}
         self.binary: Dict[str, Path] = {}
         self.sequence = 0
@@ -228,17 +286,29 @@ class Campaign:
             if not valid:
                 raise CampaignError(f"host check failed at {label}: {error}")
 
+    def tree_error(self) -> Optional[str]:
+        tooling = tooling_changes(self.bench) if self.measured_commit != BASELINE_COMMIT else ""
+        return measured_tree_error(repository_state(self.knotrel)["head"], self.measured_commit,
+                                   code_identity(self.knotrel), tooling,
+                                   self.knotrel == probe_knotrel_checkout(self.bench))
+
     def check_identity(self, label: str) -> None:
         current = code_identity(self.knotrel)
         if current["identity_sha256"] != self.identity["identity_sha256"]:
             raise CampaignError(f"knotrel code changed during the campaign ({label})")
+        head = repository_state(self.knotrel)["head"]
+        if head != self.measured_commit:
+            raise CampaignError(f"knotrel HEAD changed during the campaign ({label}): {head}")
+        if self.measured_commit != BASELINE_COMMIT and tooling_changes(self.bench):
+            raise CampaignError(f"knotrel-benchmarks tooling changed during the campaign ({label})")
         self.log(f"identity unchanged at {label}: {current['identity_sha256']}")
 
     def provenance(self) -> None:
         knotrel = repository_state(self.knotrel)
-        if knotrel["head"] != BASELINE_COMMIT:
-            raise CampaignError(f"knotrel HEAD {knotrel['head']} is not {BASELINE_COMMIT}")
         self.identity = code_identity(self.knotrel)
+        error = self.tree_error()
+        if error:
+            raise CampaignError(error)
         patch = subprocess.run(["git", "-C", str(self.knotrel), "diff", "HEAD", "--binary", *CODE_PATHSPEC],
                                capture_output=True, check=True).stdout
         (self.out / "tree").mkdir()
@@ -251,19 +321,22 @@ class Campaign:
             "schema": f"{SCHEMA}-provenance",
             "knotrel": knotrel,
             "knotrel_benchmarks": repository_state(self.bench),
-            "measured_tree": {"base_commit": BASELINE_COMMIT, **self.identity,
+            "measured_tree": {"base_commit": self.measured_commit, **self.identity,
                               "reconstruction": "git archive BASE + git apply tree/code.patch + copy tree/untracked/"},
+            "probe": {"directory": PROBE_DIRS[self.measured_commit],
+                      "files_sha256": {name: sha256_file(self.bench / PROBE_DIRS[self.measured_commit] / name)
+                                       for name in ("Cargo.toml", "Cargo.lock")}},
             "budget": {"median_pct_max": BUDGET_MEDIAN_PCT, "ci95_upper_pct_max": BUDGET_UPPER_PCT,
                        "approved": "2026-11-15, before measurement"},
         })
         self.log(f"provenance ok: identity {self.identity['identity_sha256']}")
 
     def build(self) -> None:
-        target = self.work / "target"
+        target = self.work / PROBE_TARGET_DIRS[self.measured_commit]
         log = self.out / "build.log"
         argv = ["cargo", f"+{TOOLCHAIN}", "build", "--release", "--locked", "--bin", "router-probe"]
         with log.open("wb") as handle:
-            result = subprocess.run(argv, cwd=self.bench / "tools" / "hot-path-probes",
+            result = subprocess.run(argv, cwd=self.bench / PROBE_DIRS[self.measured_commit],
                                     env={**child_env(), "CARGO_TARGET_DIR": str(target)},
                                     stdout=handle, stderr=subprocess.STDOUT, timeout=1800)
         if result.returncode != 0:
@@ -347,6 +420,9 @@ class Campaign:
     def execute(self) -> None:
         if self.out.exists():
             raise CampaignError(f"{self.out} already exists; the collector never overwrites results")
+        error = self.tree_error()
+        if error:
+            raise CampaignError(f"{error} (checked before creating {self.out})")
         self.out.mkdir(parents=True)
         started = time.time()
         self.log(f"collector start: {SCHEMA}")
@@ -386,6 +462,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("campaign", help="campaign directory; run/ is created inside it")
     parser.add_argument("--knotrel", default=str(SCRIPTS_DIR.parent.parent / "knotrel"))
+    parser.add_argument("--measured-commit", choices=MEASURED_COMMITS, default=BASELINE_COMMIT,
+                        help="knotrel commit to measure (default: the original M6.5 base)")
     parser.add_argument("--primary-rounds", type=int, default=PRIMARY_ROUNDS)
     parser.add_argument("--extension-rounds", type=int, default=EXTENSION_ROUNDS)
     parser.add_argument("--quiet-seconds", type=float, default=QUIET_SECONDS)

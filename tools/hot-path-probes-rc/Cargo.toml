@@ -1,0 +1,60 @@
+# RC variant of tools/hot-path-probes for the v0.4.0 M6.5 re-run (decision G7-V,
+# with G7p-1 approved on 2026-11-15). It compiles the same, unmodified
+# ../hot-path-probes/src/bin/router-probe.rs; tools/hot-path-probes itself,
+# its Cargo.lock and the historical campaigns are unchanged.
+#
+# The only manifest difference: `axum` is declared without default features and
+# with exactly the feature list of knotrel 62c2cea's workspace Cargo.toml, so
+# Cargo's feature unification does not re-enable `tower-log` (and with it
+# `tracing`'s `log` feature) that the shipped server does not have. Cargo.lock
+# differs from ../hot-path-probes/Cargo.lock only by the two dependency edges
+# that this removes. Kept outside the root workspace for the same license
+# reasons as tools/hot-path-probes (see its README.md).
+[package]
+name = "hot-path-probes"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100.0"
+license = "Apache-2.0"
+publish = false
+description = "Router timing probe built with the shipped knotrel-server axum features."
+autobins = false
+
+# Own workspace root: not a member of the knotrel-benchmarks workspace.
+[workspace]
+
+[features]
+default = []
+# Replace mimalloc with a counting wrapper around the system allocator.
+count-alloc = ["dep:stats_alloc"]
+
+[[bin]]
+name = "router-probe"
+path = "../hot-path-probes/src/bin/router-probe.rs"
+
+[dependencies]
+# The sibling `knotrel` checkout, which must be the clean RC commit; the
+# collector (`run_metrics_overhead.py --measured-commit`) checks that it is.
+knotrel-server = { path = "../../../knotrel/crates/knotrel-server" }
+axum = { version = "0.8.9", default-features = false, features = ["form", "http1", "json", "matched-path", "original-uri", "query", "tokio", "tracing"] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
+tower = { version = "0.5", features = ["util"] }
+serde_json = "1"
+mimalloc = { version = "0.1", default-features = false }
+prometheus-client = { version = "0.26", default-features = false }
+bytes = "1"
+stats_alloc = { version = "0.1.10", optional = true }
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
