@@ -522,6 +522,20 @@ class InvalidDataTest(unittest.TestCase):
         with self.assertRaisesRegex(bc.AnalysisError, "unreadable"):
             bc.load_pairs(bad_dir, "main")
 
+    def test_record_escaping_the_raw_directory_is_refused(self):
+        write_cell(self.dir, BATCH, {primary(BATCH): spread(0, 2)})
+        victim = next(self.dir.glob("pair_003_*"))
+        outside = Path(tempfile.mkdtemp(dir=self.tmp.name)) / victim.name
+        outside.write_bytes(victim.read_bytes())
+        victim.unlink()
+        victim.symlink_to(outside)
+        with self.assertRaisesRegex(bc.AnalysisError, "outside the raw directory"):
+            bc.load_pairs(self.dir, "main")
+
+    def test_missing_raw_directory_is_refused(self):
+        with self.assertRaisesRegex(bc.AnalysisError, "not accessible"):
+            bc.load_pairs(Path(self.tmp.name) / "does-not-exist", "main")
+
     def test_duplicate_pair_ids(self):
         write_cell(self.dir, BATCH, {primary(BATCH): spread(0, 2)})
         record = json.loads(next(self.dir.glob("pair_003_*")).read_text())

@@ -216,9 +216,34 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _raw_directory(directory: Path, phase: str) -> Path:
+    """Resolve a raw campaign directory given on the command line; it must exist."""
+    try:
+        root = Path(directory).resolve(strict=True)
+    except (OSError, RuntimeError) as error:
+        raise AnalysisError(f"{phase}: raw directory {directory} is not accessible: {error}") from error
+    if not root.is_dir():
+        raise AnalysisError(f"{phase}: {directory} is not a directory")
+    return root
+
+
+def _contained_file(root: Path, path: Path, phase: str) -> Path:
+    """Resolve ``path`` and require it to lie directly inside ``root``.
+
+    Raw records are read only from the resolved raw directory itself; a name or
+    symbolic link that escapes it is refused rather than followed. A missing or
+    unreadable file is reported by the caller when it reads it.
+    """
+    resolved = Path(path).resolve()
+    if resolved.parent != root:
+        raise AnalysisError(f"{phase}: {path} resolves outside the raw directory {root}")
+    return resolved
+
+
 def _check_manifest(directory: Path, phase: str) -> str:
     """The raw directory's manifest must declare ``phase``; returns its sha256."""
-    path = Path(directory) / "manifest.json"
+    root = _raw_directory(directory, phase)
+    path = _contained_file(root, root / "manifest.json", phase)
     try:
         data = path.read_bytes()
         manifest = json.loads(data)
@@ -241,7 +266,8 @@ def load_pairs(directory: Path, phase: str) -> List[Dict[str, Any]]:
     mapping of metric name to ``{"B": value, "C": value}``.
     """
     manifest_sha256 = _check_manifest(directory, phase)
-    files = sorted(Path(directory).glob("pair_*.json"))
+    root = _raw_directory(directory, phase)
+    files = sorted(_contained_file(root, path, phase) for path in root.glob("pair_*.json"))
     if not files:
         raise AnalysisError(f"No pair_*.json records in {directory}")
     pairs = []
