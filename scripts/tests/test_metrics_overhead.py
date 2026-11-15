@@ -52,7 +52,9 @@ class VerdictTest(unittest.TestCase):
 
     def test_bootstrap_is_deterministic(self):
         values = [0.5, 1.0, 2.0, -1.0, 3.0, 0.0]
-        self.assertEqual(mo.bootstrap_median_ci(values), mo.bootstrap_median_ci(values))
+        first = mo.bootstrap_median_ci(values)
+        second = mo.bootstrap_median_ci(list(values))
+        self.assertEqual(first, second)
 
 
 class ParseTest(unittest.TestCase):
