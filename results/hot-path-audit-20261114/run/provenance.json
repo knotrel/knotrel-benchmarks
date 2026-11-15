@@ -1,0 +1,50 @@
+{
+  "baseline": {
+    "commit": "e1e11818a762baf07575719456a2158959b2e2c8",
+    "materialization": "git archive e1e11818a762baf07575719456a2158959b2e2c8",
+    "repository": "knotrel"
+  },
+  "candidate": {
+    "base_commit": "e1e11818a762baf07575719456a2158959b2e2c8",
+    "code_patch_sha256": "8b579f7d8a8db52d499263870b486d0bbaec1775135c4bb50f8e9005a55cc9d7",
+    "expected_code_diff_sha256": "8b579f7d8a8db52d499263870b486d0bbaec1775135c4bb50f8e9005a55cc9d7",
+    "full_patch_sha256": "be583f5dcf05b9c6b6a1eb28442984f3c6c8fc8853cbda4572b57b6e1daf16d7",
+    "materialization": "git archive BASELINE + git apply candidate/candidate-code.patch",
+    "note": "Documentation is excluded from the built candidate; its edits do not affect binaries.",
+    "repository": "knotrel"
+  },
+  "harness_files_sha256": {
+    "results/hot-path-audit-20261114/analyze.py": "e86491c354d97ef099ff24ceb211d5821f78a4f80eef525a8bd03da6610d68de",
+    "scripts/run_hot_path_audit.py": "76b1902dbbe840e1581ccf10256d30b8becc91098c625f828e8ab582d39eaa01",
+    "scripts/run_p0_aa.py": "d5abebd60a318aed49057cf9d377c94296c1c7661caca06733b4f988aea90b69",
+    "tools/hot-path-probes/Cargo.lock": "c9c0fd54dd0173efd006d02840b9d64c5e9763092fb2990332bf29d429621ce3",
+    "tools/hot-path-probes/Cargo.toml": "786585d4eb7753ca88a8f1bd669cbc384cebe6c406e5c3e150cfa88c33b039f2",
+    "tools/hot-path-probes/README.md": "aa29ca52e095e5a1bad0cfe58cc82a8c17080802951017edda64b1d1785d551c",
+    "tools/hot-path-probes/src/bin/job-tracking.rs": "29c2ac46f32aa76efe0ec36188d24cddf72497d5ebfa99a13e85b550d8b8842f",
+    "tools/hot-path-probes/src/bin/router-probe.rs": "bc2c56ea92e28b0c80f7e247489f7cf8e69d9cdfce31506ac74576b2fc2ab26a"
+  },
+  "knotrel": {
+    "branch": "refactor/typed-constants",
+    "diff_head_code_only_sha256": "8b579f7d8a8db52d499263870b486d0bbaec1775135c4bb50f8e9005a55cc9d7",
+    "diff_head_sha256": "be583f5dcf05b9c6b6a1eb28442984f3c6c8fc8853cbda4572b57b6e1daf16d7",
+    "diff_staged_sha256": "be583f5dcf05b9c6b6a1eb28442984f3c6c8fc8853cbda4572b57b6e1daf16d7",
+    "diff_unstaged_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "head": "e1e11818a762baf07575719456a2158959b2e2c8",
+    "path": "/Users/rt/workspace/knotrel/knotrel",
+    "staged_equals_worktree": true,
+    "status_porcelain": "M  crates/knotrel-core/src/configuration.rs\nM  crates/knotrel-core/src/dynamic.rs\nM  crates/knotrel-core/src/hdt.rs\nM  crates/knotrel-core/src/lib.rs\nM  crates/knotrel-core/tests/limits.rs\nM  crates/knotrel-server/src/api.rs\nM  crates/knotrel-server/src/lifecycle.rs\nM  crates/knotrel-server/src/metrics.rs\nM  crates/knotrel-server/src/serve.rs\nM  crates/knotrel-server/src/service.rs\nA  docs/hot-path-audit-v0.3.0.md\nM  docs/observability-contract.md\n"
+  },
+  "knotrel_benchmarks": {
+    "branch": "main",
+    "diff_head_code_only_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diff_head_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diff_staged_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diff_unstaged_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "head": "5ac5b76bcce4323a83f20173de63212805b1fbb8",
+    "path": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "staged_equals_worktree": true,
+    "status_porcelain": "?? results/hot-path-audit-20261114/analyze.py\n?? results/hot-path-audit-20261114/provenance/reconstruct_verified_tree.sh\n?? results/hot-path-audit-20261114/provenance/verification-time-docs/hot-path-audit-v0.3.0.md\n?? results/hot-path-audit-20261114/provenance/verification-time-index.txt\n?? results/hot-path-audit-20261114/run/collector.log\n?? results/hot-path-audit-20261114/run/environment.json\n?? results/hot-path-audit-20261114/run/host-checks.jsonl\n?? results/hot-path-audit-20261114/tests/test_analyze.py\n?? scripts/run_hot_path_audit.py\n?? scripts/tests/test_hot_path_audit.py\n?? tools/hot-path-probes/Cargo.lock\n?? tools/hot-path-probes/Cargo.toml\n?? tools/hot-path-probes/README.md\n?? tools/hot-path-probes/src/bin/job-tracking.rs\n?? tools/hot-path-probes/src/bin/router-probe.rs\n"
+  },
+  "schema": "knotrel-hot-path-audit-v1-provenance",
+  "toolchain": "1.100.0"
+}
