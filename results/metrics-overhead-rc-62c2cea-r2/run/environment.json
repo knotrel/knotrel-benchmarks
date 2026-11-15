@@ -1,0 +1,139 @@
+{
+  "allocator": "mimalloc (router-probe default build, like knotrel-server)",
+  "collector": {
+    "argv": [
+      "scripts/run_metrics_overhead.py",
+      "results/metrics-overhead-rc-62c2cea-r2",
+      "--measured-commit",
+      "62c2cea9314085f6f7669ebbb7def2be1fa1cb5c"
+    ],
+    "python": "3.12.10 (v3.12.10:0cc81280367, Apr  8 2025, 08:46:59) [Clang 13.0.0 (clang-1300.0.29.30)]",
+    "script_sha256": "a460436b3953b3a3413279fc78d7808942cc8ce8b47825214bbe74954bf1eae4"
+  },
+  "host": {
+    "commands": [
+      {
+        "argv": [
+          "uname",
+          "-a"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "Darwin 192.168.68.106 25.5.0 Darwin Kernel Version 25.5.0: Tue Jun  9 22:19:21 PDT 2026; root:xnu-12377.121.10~1/RELEASE_ARM64_T8122 arm64\n"
+      },
+      {
+        "argv": [
+          "rustup",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr": "info: This is the version for the rustup toolchain manager, not the rustc compiler.\ninfo: the currently active `rustc` version is `rustc 1.100.0 (0ef1bc386 2026-11-09)`\n",
+        "stdout": "rustup 1.29.3 (edbc831ce 2026-11-02)\n"
+      },
+      {
+        "argv": [
+          "rustup",
+          "toolchain",
+          "list"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "stable-aarch64-apple-darwin (default)\n1.98.1-aarch64-apple-darwin\n1.100.0-aarch64-apple-darwin (active)\n"
+      },
+      {
+        "argv": [
+          "rustc",
+          "+1.100.0",
+          "-Vv"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "rustc 1.100.0 (0ef1bc386 2026-11-09)\nbinary: rustc\ncommit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a\ncommit-date: 2026-11-09\nhost: aarch64-apple-darwin\nrelease: 1.100.0\nLLVM version: 23.1.5\n"
+      },
+      {
+        "argv": [
+          "cargo",
+          "+1.100.0",
+          "-Vv"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "cargo 1.100.0 (3acc79c0c 2026-11-05)\nrelease: 1.100.0\ncommit-hash: 3acc79c0c841844675bc53a605922dbfc441e750\ncommit-date: 2026-11-05\nhost: aarch64-apple-darwin\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.6.3 9 Jun 2026\nos: Mac OS 26.5.2 [64-bit]\n"
+      },
+      {
+        "argv": [
+          "python3",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "Python 3.12.10\n"
+      },
+      {
+        "argv": [
+          "git",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "git version 2.50.1 (Apple Git-155)\n"
+      },
+      {
+        "argv": [
+          "sw_vers"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.2\nBuildVersion:\t\t25F84\n"
+      },
+      {
+        "argv": [
+          "sysctl",
+          "hw.model",
+          "machdep.cpu.brand_string",
+          "hw.ncpu",
+          "hw.physicalcpu",
+          "hw.perflevel0.physicalcpu",
+          "hw.perflevel1.physicalcpu",
+          "hw.memsize"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "hw.model: Mac15,12\nmachdep.cpu.brand_string: Apple M3\nhw.ncpu: 8\nhw.physicalcpu: 8\nhw.perflevel0.physicalcpu: 4\nhw.perflevel1.physicalcpu: 4\nhw.memsize: 17179869184\n"
+      },
+      {
+        "argv": [
+          "pmset",
+          "-g"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "System-wide power settings:\nCurrently in use:\n standby              1\n Sleep On Power Button 1\n hibernatefile        /var/vm/sleepimage\n powernap             1\n networkoversleep     0\n disksleep            10\n sleep                0 (sleep prevented by powerd, Claude)\n hibernatemode        3\n ttyskeepawake        1\n displaysleep         10\n tcpkeepalive         1\n lowpowermode         0\n womp                 1\n"
+      },
+      {
+        "argv": [
+          "pmset",
+          "-g",
+          "batt"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=27852899)\t80%; AC attached; not charging present: true\n"
+      },
+      {
+        "argv": [
+          "pmset",
+          "-g",
+          "therm"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n"
+      }
+    ],
+    "machine": "arm64",
+    "python_platform": "macOS-26.5.2-arm64-arm-64bit"
+  },
+  "logging": "no tracing subscriber installed in the probe: log statements are disabled in every arm",
+  "schema": "knotrel-metrics-overhead-v1-environment"
+}
