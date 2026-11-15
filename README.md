@@ -85,6 +85,30 @@ raw qualification reports are **not published** in either repository; this
 summary is the only current public record. `ett` and `hdt` were not
 re-qualified.
 
+### Hot-path audit after the v0.3.0 candidate
+
+- **[Hot-path audit, 2026-11-15](results/hot-path-audit-20261114/README.md):**
+  Knotrel `e1e1181` versus the audit's allocation and contention changes
+  (unreleased; candidate code diff sha256 `8b579f7d…cc9d7`), Rust 1.100.0,
+  Apple M3, 12 counterbalanced rounds with a same-binary A/A arm. Results are
+  identical across arms; allocations per request fall 16.7–75.0%. 13 timing
+  changes are confirmed faster, 1 is a marginal regression on an unchanged
+  code path, 28 are inconclusive. It measures only this change set, not a
+  release.
+- **[Hot-path regression re-check, 2026-11-15](results/hot-path-recheck-20261115/README.md):**
+  the one marginal regression above, re-measured with the same binaries over
+  24 rounds, is inconclusive (+0.83% against a ±2.14% A/A bound) and does not
+  reproduce.
+
+### v0.4.0 candidate: observability overhead
+
+- **[Metrics overhead (M6.5), 2026-11-15](results/metrics-overhead-20261115/README.md):**
+  opt-in Prometheus metrics on versus off on the v0.4.0 candidate tree
+  (unreleased), in-process router probe, Apple M3, 24 rounds with an A/A arm.
+  All six scenarios pass the pre-approved budget (median ≤ 3%, 95% CI upper
+  bound ≤ 6%); the largest cost is +1.28%. Logs are not measured by this
+  campaign.
+
 ### Historical engine and competitor comparison
 
 - **[Five-engine ranking, 2026-10-09](results/ranking/README.md):** 74 cells,

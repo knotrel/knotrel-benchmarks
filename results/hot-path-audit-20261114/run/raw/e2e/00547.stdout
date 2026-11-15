@@ -1,0 +1,34 @@
+================================================================================
+KNOTREL END-TO-END MEASUREMENT SUITE (Feature 0.2.6 & Qualification)
+Build Profile:    release (optimized performance build)
+Dataset Tier:     large (nodes=50000, edges=100000, events=5000, queries=5000)
+Repeated Runs:    1
+Engine Selector:  compact-bfs
+Server Binary:    /Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/aa/knotrel-server
+Server SHA-256:   cf5fb8c351ae01178200412f938686377043225123d9d42150c95c6d7221e274
+Connection Model: HTTP/1.1 sequential loopback TCP (Connection: close; full round-trip)
+Warmup:           50 warmup queries prior to timing window
+Timing Model:     Pure HTTP query loop; Oracle BFS verification executed out-of-band
+================================================================================
+
+🚀 [Run 1] Spawning knotrel-server (compact-bfs) on 127.0.0.1:54161...
+✓ [Run 1] Generated fixture in 10.05ms (nodes=50000, edges=100000, events=5000)
+✓ [Run 1] Oracle initialized in 34.83ms (nodes=50521, edges=101513)
+✓ [Run 1] Discovered server instance: srv-10d3c-18e8276df0362b18-0001 (effective engine: compact-bfs)
+
+### Knotrel End-to-End Measurement Report (Feature 0.2.6)
+
+- **Build Profile**: `release (optimized performance build)`
+- **Engine Selector**: `compact-bfs`
+- **Dataset Tier**: `large` (`50000` nodes, `100000` edges, `5000` events, `5000` queries)
+- **Benchmark Iterations**: `1`
+- **Server Binary**: `/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/aa/knotrel-server`
+- **Connection Mode**: Sequential loopback TCP (`Connection: close`, measures full connect + request + response per query)
+- **Timing Boundary**: Timed HTTP query loop separated from ground-truth BFS oracle verification
+
+| Run # | Import (ms) | Catch-up (ms) | Time-to-Ready (ms) | Query QPS | Latency p50 (µs) | Latency p95 (µs) | Oracle Agreement | Final Sampled RSS (MiB) | Sampled Max RSS (MiB)* | Restart Recovery (ms) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **#1** | `72.65` | `38.59` | `112.54` | `970.7` | `941.8` | `1779.2` | `5000/5000 (100.00%)` | `49.56` | `49.56` | `153.23` |
+
+\* *Note: Sampled Max RSS is the maximum of process RSS values sampled at 25ms intervals. It is a sampled maximum rather than a guaranteed absolute process peak; brief transient allocations between sampling intervals may not be captured.*
+

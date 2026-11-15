@@ -1,0 +1,190 @@
+[
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "bench-fmt",
+    "log": "verification/bench-fmt.log"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "clippy",
+      "--workspace",
+      "--all-targets",
+      "--all-features",
+      "--locked",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "bench-clippy",
+    "log": "verification/bench-clippy.log"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "test",
+      "--workspace",
+      "--all-features",
+      "--locked"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "bench-test",
+    "log": "verification/bench-test.log"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "doc",
+      "--workspace",
+      "--no-deps",
+      "--locked"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "bench-doc",
+    "log": "verification/bench-doc.log"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "fmt",
+      "--",
+      "--check"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/hot-path-probes",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify-probes",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "probes-fmt",
+    "log": "verification/probes-fmt.log"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "clippy",
+      "--all-targets",
+      "--all-features",
+      "--locked",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/hot-path-probes",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify-probes",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "probes-clippy",
+    "log": "verification/probes-clippy.log"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "test",
+      "--all-features",
+      "--locked"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/hot-path-probes",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify-probes",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "probes-test",
+    "log": "verification/probes-test.log"
+  },
+  {
+    "argv": [
+      "cargo",
+      "+1.100.0",
+      "doc",
+      "--no-deps",
+      "--locked"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/hot-path-probes",
+    "env": {
+      "CARGO_TARGET_DIR": "/Users/rt/workspace/knotrel/knotrel-benchmarks/target-hot-path-audit/target-verify-probes",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "probes-doc",
+    "log": "verification/probes-doc.log"
+  },
+  {
+    "argv": [
+      "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "scripts/tests",
+      "-p",
+      "test_hot_path_audit.py"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "env": {
+      "CARGO_TARGET_DIR": null,
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "collector-tests",
+    "log": "verification/collector-tests.log"
+  },
+  {
+    "argv": [
+      "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/Users/rt/workspace/knotrel/knotrel-benchmarks/results/hot-path-audit-20261114/tests",
+      "-p",
+      "test_*.py"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "env": {
+      "CARGO_TARGET_DIR": null,
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "exit_code": 0,
+    "label": "analysis-tests",
+    "log": "verification/analysis-tests.log"
+  }
+]

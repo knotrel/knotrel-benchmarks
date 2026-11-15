@@ -1,0 +1,4746 @@
+{
+  "arms": [
+    "base",
+    "cand",
+    "aa"
+  ],
+  "cells": [
+    {
+      "engine": "compact-bfs",
+      "id": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "kind": "init",
+      "nodes": 200000,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "engine": "compact-bfs",
+      "id": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "kind": "init",
+      "nodes": 100000,
+      "workload": "sustained-churn-blocks-v1"
+    },
+    {
+      "engine": "ett-scan",
+      "id": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "kind": "init",
+      "nodes": 200000,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "engine": "ett-scan",
+      "id": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "kind": "init",
+      "nodes": 100000,
+      "workload": "sustained-churn-blocks-v1"
+    },
+    {
+      "engine": "hdt",
+      "id": "init/hdt/chain-split-rejoin-v1/200000",
+      "kind": "init",
+      "nodes": 200000,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "engine": "hdt",
+      "id": "init/hdt/sustained-churn-blocks-v1/100000",
+      "kind": "init",
+      "nodes": 100000,
+      "workload": "sustained-churn-blocks-v1"
+    },
+    {
+      "engine": "compact-bfs",
+      "id": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "kind": "dynamic",
+      "nodes": 10000,
+      "rounds": 200,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "engine": "compact-bfs",
+      "id": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "kind": "dynamic",
+      "nodes": 10000,
+      "rounds": 200,
+      "workload": "sustained-churn-blocks-v1"
+    },
+    {
+      "engine": "ett-scan",
+      "id": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "kind": "dynamic",
+      "nodes": 10000,
+      "rounds": 200,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "engine": "ett-scan",
+      "id": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "kind": "dynamic",
+      "nodes": 10000,
+      "rounds": 200,
+      "workload": "sustained-churn-blocks-v1"
+    },
+    {
+      "engine": "hdt",
+      "id": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "kind": "dynamic",
+      "nodes": 10000,
+      "rounds": 200,
+      "workload": "chain-split-rejoin-v1"
+    },
+    {
+      "engine": "hdt",
+      "id": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "kind": "dynamic",
+      "nodes": 10000,
+      "rounds": 200,
+      "workload": "sustained-churn-blocks-v1"
+    },
+    {
+      "id": "probe/timing/metrics-off",
+      "kind": "probe",
+      "metrics": false
+    },
+    {
+      "id": "probe/timing/metrics-on",
+      "kind": "probe",
+      "metrics": true
+    }
+  ],
+  "e2e": [
+    {
+      "arm": "base",
+      "position": 0,
+      "round": 0
+    },
+    {
+      "arm": "cand",
+      "position": 1,
+      "round": 0
+    },
+    {
+      "arm": "aa",
+      "position": 2,
+      "round": 0
+    },
+    {
+      "arm": "base",
+      "position": 0,
+      "round": 1
+    },
+    {
+      "arm": "aa",
+      "position": 1,
+      "round": 1
+    },
+    {
+      "arm": "cand",
+      "position": 2,
+      "round": 1
+    },
+    {
+      "arm": "cand",
+      "position": 0,
+      "round": 2
+    },
+    {
+      "arm": "base",
+      "position": 1,
+      "round": 2
+    },
+    {
+      "arm": "aa",
+      "position": 2,
+      "round": 2
+    },
+    {
+      "arm": "cand",
+      "position": 0,
+      "round": 3
+    },
+    {
+      "arm": "aa",
+      "position": 1,
+      "round": 3
+    },
+    {
+      "arm": "base",
+      "position": 2,
+      "round": 3
+    },
+    {
+      "arm": "aa",
+      "position": 0,
+      "round": 4
+    },
+    {
+      "arm": "base",
+      "position": 1,
+      "round": 4
+    },
+    {
+      "arm": "cand",
+      "position": 2,
+      "round": 4
+    },
+    {
+      "arm": "aa",
+      "position": 0,
+      "round": 5
+    },
+    {
+      "arm": "cand",
+      "position": 1,
+      "round": 5
+    },
+    {
+      "arm": "base",
+      "position": 2,
+      "round": 5
+    }
+  ],
+  "entries": [
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 0,
+      "sequence": 0,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 0,
+      "sequence": 1,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 0,
+      "sequence": 2,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 0,
+      "sequence": 3,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 0,
+      "sequence": 4,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 0,
+      "sequence": 5,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 0,
+      "round": 0,
+      "sequence": 6,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 1,
+      "round": 0,
+      "sequence": 7,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 2,
+      "round": 0,
+      "sequence": 8,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 0,
+      "sequence": 9,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 0,
+      "sequence": 10,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 0,
+      "sequence": 11,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 0,
+      "round": 0,
+      "sequence": 12,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 1,
+      "round": 0,
+      "sequence": 13,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 2,
+      "round": 0,
+      "sequence": 14,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 0,
+      "sequence": 15,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 0,
+      "sequence": 16,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 0,
+      "sequence": 17,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "cab",
+      "position": 0,
+      "round": 0,
+      "sequence": 18,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "cab",
+      "position": 1,
+      "round": 0,
+      "sequence": 19,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "cab",
+      "position": 2,
+      "round": 0,
+      "sequence": 20,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 0,
+      "round": 0,
+      "sequence": 21,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 1,
+      "round": 0,
+      "sequence": 22,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 2,
+      "round": 0,
+      "sequence": 23,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 0,
+      "sequence": 24,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 0,
+      "sequence": 25,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 0,
+      "sequence": 26,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "acb",
+      "position": 0,
+      "round": 0,
+      "sequence": 27,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "acb",
+      "position": 1,
+      "round": 0,
+      "sequence": 28,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "acb",
+      "position": 2,
+      "round": 0,
+      "sequence": 29,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 0,
+      "round": 0,
+      "sequence": 30,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 1,
+      "round": 0,
+      "sequence": 31,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 2,
+      "round": 0,
+      "sequence": 32,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 0,
+      "round": 0,
+      "sequence": 33,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 1,
+      "round": 0,
+      "sequence": 34,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 2,
+      "round": 0,
+      "sequence": 35,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 0,
+      "sequence": 36,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 0,
+      "sequence": 37,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 0,
+      "sequence": 38,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 0,
+      "round": 0,
+      "sequence": 39,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 1,
+      "round": 0,
+      "sequence": 40,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 2,
+      "round": 0,
+      "sequence": 41,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 1,
+      "sequence": 42,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 1,
+      "sequence": 43,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 1,
+      "sequence": 44,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 0,
+      "round": 1,
+      "sequence": 45,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 1,
+      "round": 1,
+      "sequence": 46,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 2,
+      "round": 1,
+      "sequence": 47,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 1,
+      "sequence": 48,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 1,
+      "sequence": 49,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 1,
+      "sequence": 50,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 0,
+      "round": 1,
+      "sequence": 51,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 1,
+      "round": 1,
+      "sequence": 52,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 2,
+      "round": 1,
+      "sequence": 53,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 1,
+      "sequence": 54,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 1,
+      "sequence": 55,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 1,
+      "sequence": 56,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 0,
+      "round": 1,
+      "sequence": 57,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 1,
+      "round": 1,
+      "sequence": 58,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 2,
+      "round": 1,
+      "sequence": 59,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 0,
+      "round": 1,
+      "sequence": 60,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 1,
+      "round": 1,
+      "sequence": 61,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 2,
+      "round": 1,
+      "sequence": 62,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 1,
+      "sequence": 63,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 1,
+      "sequence": 64,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 1,
+      "sequence": 65,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 1,
+      "sequence": 66,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 1,
+      "sequence": 67,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 1,
+      "sequence": 68,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 1,
+      "sequence": 69,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 1,
+      "sequence": 70,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 1,
+      "sequence": 71,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "bca",
+      "position": 0,
+      "round": 1,
+      "sequence": 72,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "bca",
+      "position": 1,
+      "round": 1,
+      "sequence": 73,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "bca",
+      "position": 2,
+      "round": 1,
+      "sequence": 74,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 0,
+      "round": 1,
+      "sequence": 75,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 1,
+      "round": 1,
+      "sequence": 76,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 2,
+      "round": 1,
+      "sequence": 77,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "abc",
+      "position": 0,
+      "round": 1,
+      "sequence": 78,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "abc",
+      "position": 1,
+      "round": 1,
+      "sequence": 79,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "abc",
+      "position": 2,
+      "round": 1,
+      "sequence": 80,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 0,
+      "round": 1,
+      "sequence": 81,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 1,
+      "round": 1,
+      "sequence": 82,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 2,
+      "round": 1,
+      "sequence": 83,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 0,
+      "round": 2,
+      "sequence": 84,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 1,
+      "round": 2,
+      "sequence": 85,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 2,
+      "round": 2,
+      "sequence": 86,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "acb",
+      "position": 0,
+      "round": 2,
+      "sequence": 87,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "acb",
+      "position": 1,
+      "round": 2,
+      "sequence": 88,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "acb",
+      "position": 2,
+      "round": 2,
+      "sequence": 89,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 0,
+      "round": 2,
+      "sequence": 90,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 1,
+      "round": 2,
+      "sequence": 91,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 2,
+      "round": 2,
+      "sequence": 92,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "bac",
+      "position": 0,
+      "round": 2,
+      "sequence": 93,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "bac",
+      "position": 1,
+      "round": 2,
+      "sequence": 94,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "bac",
+      "position": 2,
+      "round": 2,
+      "sequence": 95,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 0,
+      "round": 2,
+      "sequence": 96,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 1,
+      "round": 2,
+      "sequence": 97,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 2,
+      "round": 2,
+      "sequence": 98,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 2,
+      "sequence": 99,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 2,
+      "sequence": 100,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 2,
+      "sequence": 101,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 0,
+      "round": 2,
+      "sequence": 102,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 1,
+      "round": 2,
+      "sequence": 103,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 2,
+      "round": 2,
+      "sequence": 104,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 2,
+      "sequence": 105,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 2,
+      "sequence": 106,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 2,
+      "sequence": 107,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 2,
+      "sequence": 108,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 2,
+      "sequence": 109,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 2,
+      "sequence": 110,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 2,
+      "sequence": 111,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 2,
+      "sequence": 112,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 2,
+      "sequence": 113,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 2,
+      "sequence": 114,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 2,
+      "sequence": 115,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 2,
+      "sequence": 116,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 0,
+      "round": 2,
+      "sequence": 117,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 1,
+      "round": 2,
+      "sequence": 118,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 2,
+      "round": 2,
+      "sequence": 119,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 0,
+      "round": 2,
+      "sequence": 120,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 1,
+      "round": 2,
+      "sequence": 121,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 2,
+      "round": 2,
+      "sequence": 122,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 2,
+      "sequence": 123,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 2,
+      "sequence": 124,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 2,
+      "sequence": 125,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 0,
+      "round": 3,
+      "sequence": 126,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 1,
+      "round": 3,
+      "sequence": 127,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 2,
+      "round": 3,
+      "sequence": 128,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 3,
+      "sequence": 129,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 3,
+      "sequence": 130,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 3,
+      "sequence": 131,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 0,
+      "round": 3,
+      "sequence": 132,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 1,
+      "round": 3,
+      "sequence": 133,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 2,
+      "round": 3,
+      "sequence": 134,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 0,
+      "round": 3,
+      "sequence": 135,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 1,
+      "round": 3,
+      "sequence": 136,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 2,
+      "round": 3,
+      "sequence": 137,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 3,
+      "sequence": 138,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 3,
+      "sequence": 139,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 3,
+      "sequence": 140,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 0,
+      "round": 3,
+      "sequence": 141,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 1,
+      "round": 3,
+      "sequence": 142,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 2,
+      "round": 3,
+      "sequence": 143,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 3,
+      "sequence": 144,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 3,
+      "sequence": 145,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 3,
+      "sequence": 146,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "bca",
+      "position": 0,
+      "round": 3,
+      "sequence": 147,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "bca",
+      "position": 1,
+      "round": 3,
+      "sequence": 148,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "bca",
+      "position": 2,
+      "round": 3,
+      "sequence": 149,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 0,
+      "round": 3,
+      "sequence": 150,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 1,
+      "round": 3,
+      "sequence": 151,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 2,
+      "round": 3,
+      "sequence": 152,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 3,
+      "sequence": 153,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 3,
+      "sequence": 154,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 3,
+      "sequence": 155,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "cba",
+      "position": 0,
+      "round": 3,
+      "sequence": 156,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "cba",
+      "position": 1,
+      "round": 3,
+      "sequence": 157,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "cba",
+      "position": 2,
+      "round": 3,
+      "sequence": 158,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 3,
+      "sequence": 159,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 3,
+      "sequence": 160,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 3,
+      "sequence": 161,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 0,
+      "round": 3,
+      "sequence": 162,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 1,
+      "round": 3,
+      "sequence": 163,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 2,
+      "round": 3,
+      "sequence": 164,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 3,
+      "sequence": 165,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 3,
+      "sequence": 166,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 3,
+      "sequence": 167,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 0,
+      "round": 4,
+      "sequence": 168,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 1,
+      "round": 4,
+      "sequence": 169,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 2,
+      "round": 4,
+      "sequence": 170,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 4,
+      "sequence": 171,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 4,
+      "sequence": 172,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 4,
+      "sequence": 173,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 4,
+      "sequence": 174,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 4,
+      "sequence": 175,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 4,
+      "sequence": 176,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 4,
+      "sequence": 177,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 4,
+      "sequence": 178,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 4,
+      "sequence": 179,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 4,
+      "sequence": 180,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 4,
+      "sequence": 181,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 4,
+      "sequence": 182,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 0,
+      "round": 4,
+      "sequence": 183,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 1,
+      "round": 4,
+      "sequence": 184,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 2,
+      "round": 4,
+      "sequence": 185,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 0,
+      "round": 4,
+      "sequence": 186,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 1,
+      "round": 4,
+      "sequence": 187,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 2,
+      "round": 4,
+      "sequence": 188,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 0,
+      "round": 4,
+      "sequence": 189,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 1,
+      "round": 4,
+      "sequence": 190,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 2,
+      "round": 4,
+      "sequence": 191,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "cab",
+      "position": 0,
+      "round": 4,
+      "sequence": 192,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "cab",
+      "position": 1,
+      "round": 4,
+      "sequence": 193,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "cab",
+      "position": 2,
+      "round": 4,
+      "sequence": 194,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 0,
+      "round": 4,
+      "sequence": 195,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 1,
+      "round": 4,
+      "sequence": 196,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 2,
+      "round": 4,
+      "sequence": 197,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 4,
+      "sequence": 198,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 4,
+      "sequence": 199,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 4,
+      "sequence": 200,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 0,
+      "round": 4,
+      "sequence": 201,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 1,
+      "round": 4,
+      "sequence": 202,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 2,
+      "round": 4,
+      "sequence": 203,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 4,
+      "sequence": 204,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 4,
+      "sequence": 205,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 4,
+      "sequence": 206,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "bac",
+      "position": 0,
+      "round": 4,
+      "sequence": 207,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "bac",
+      "position": 1,
+      "round": 4,
+      "sequence": 208,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "bac",
+      "position": 2,
+      "round": 4,
+      "sequence": 209,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 5,
+      "sequence": 210,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 5,
+      "sequence": 211,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 5,
+      "sequence": 212,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 5,
+      "sequence": 213,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 5,
+      "sequence": 214,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 5,
+      "sequence": 215,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 0,
+      "round": 5,
+      "sequence": 216,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 1,
+      "round": 5,
+      "sequence": 217,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 2,
+      "round": 5,
+      "sequence": 218,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 0,
+      "round": 5,
+      "sequence": 219,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 1,
+      "round": 5,
+      "sequence": 220,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 2,
+      "round": 5,
+      "sequence": 221,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 0,
+      "round": 5,
+      "sequence": 222,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 1,
+      "round": 5,
+      "sequence": 223,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 2,
+      "round": 5,
+      "sequence": 224,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 5,
+      "sequence": 225,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 5,
+      "sequence": 226,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 5,
+      "sequence": 227,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 0,
+      "round": 5,
+      "sequence": 228,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 1,
+      "round": 5,
+      "sequence": 229,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 2,
+      "round": 5,
+      "sequence": 230,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "abc",
+      "position": 0,
+      "round": 5,
+      "sequence": 231,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "abc",
+      "position": 1,
+      "round": 5,
+      "sequence": 232,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "abc",
+      "position": 2,
+      "round": 5,
+      "sequence": 233,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "cba",
+      "position": 0,
+      "round": 5,
+      "sequence": 234,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "cba",
+      "position": 1,
+      "round": 5,
+      "sequence": 235,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "cba",
+      "position": 2,
+      "round": 5,
+      "sequence": 236,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 5,
+      "sequence": 237,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 5,
+      "sequence": 238,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 5,
+      "sequence": 239,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 5,
+      "sequence": 240,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 5,
+      "sequence": 241,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 5,
+      "sequence": 242,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 5,
+      "sequence": 243,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 5,
+      "sequence": 244,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 5,
+      "sequence": 245,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 0,
+      "round": 5,
+      "sequence": 246,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 1,
+      "round": 5,
+      "sequence": 247,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 2,
+      "round": 5,
+      "sequence": 248,
+      "session": 0
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 0,
+      "round": 5,
+      "sequence": 249,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 1,
+      "round": 5,
+      "sequence": 250,
+      "session": 0
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 2,
+      "round": 5,
+      "sequence": 251,
+      "session": 0
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 6,
+      "sequence": 252,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 6,
+      "sequence": 253,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 6,
+      "sequence": 254,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 0,
+      "round": 6,
+      "sequence": 255,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 1,
+      "round": 6,
+      "sequence": 256,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 2,
+      "round": 6,
+      "sequence": 257,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 0,
+      "round": 6,
+      "sequence": 258,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 1,
+      "round": 6,
+      "sequence": 259,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 2,
+      "round": 6,
+      "sequence": 260,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 0,
+      "round": 6,
+      "sequence": 261,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 1,
+      "round": 6,
+      "sequence": 262,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 2,
+      "round": 6,
+      "sequence": 263,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 0,
+      "round": 6,
+      "sequence": 264,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 1,
+      "round": 6,
+      "sequence": 265,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 2,
+      "round": 6,
+      "sequence": 266,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 0,
+      "round": 6,
+      "sequence": 267,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 1,
+      "round": 6,
+      "sequence": 268,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 2,
+      "round": 6,
+      "sequence": 269,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "acb",
+      "position": 0,
+      "round": 6,
+      "sequence": 270,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "acb",
+      "position": 1,
+      "round": 6,
+      "sequence": 271,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "acb",
+      "position": 2,
+      "round": 6,
+      "sequence": 272,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 6,
+      "sequence": 273,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 6,
+      "sequence": 274,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 6,
+      "sequence": 275,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 6,
+      "sequence": 276,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 6,
+      "sequence": 277,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 6,
+      "sequence": 278,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "cab",
+      "position": 0,
+      "round": 6,
+      "sequence": 279,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "cab",
+      "position": 1,
+      "round": 6,
+      "sequence": 280,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "cab",
+      "position": 2,
+      "round": 6,
+      "sequence": 281,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 6,
+      "sequence": 282,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 6,
+      "sequence": 283,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 6,
+      "sequence": 284,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 0,
+      "round": 6,
+      "sequence": 285,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 1,
+      "round": 6,
+      "sequence": 286,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 2,
+      "round": 6,
+      "sequence": 287,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 6,
+      "sequence": 288,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 6,
+      "sequence": 289,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 6,
+      "sequence": 290,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 6,
+      "sequence": 291,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 6,
+      "sequence": 292,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 6,
+      "sequence": 293,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 7,
+      "sequence": 294,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 7,
+      "sequence": 295,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 7,
+      "sequence": 296,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 0,
+      "round": 7,
+      "sequence": 297,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 1,
+      "round": 7,
+      "sequence": 298,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 2,
+      "round": 7,
+      "sequence": 299,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 7,
+      "sequence": 300,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 7,
+      "sequence": 301,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 7,
+      "sequence": 302,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "abc",
+      "position": 0,
+      "round": 7,
+      "sequence": 303,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "abc",
+      "position": 1,
+      "round": 7,
+      "sequence": 304,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "abc",
+      "position": 2,
+      "round": 7,
+      "sequence": 305,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 0,
+      "round": 7,
+      "sequence": 306,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 1,
+      "round": 7,
+      "sequence": 307,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 2,
+      "round": 7,
+      "sequence": 308,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 0,
+      "round": 7,
+      "sequence": 309,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 1,
+      "round": 7,
+      "sequence": 310,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 2,
+      "round": 7,
+      "sequence": 311,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 7,
+      "sequence": 312,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 7,
+      "sequence": 313,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 7,
+      "sequence": 314,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 7,
+      "sequence": 315,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 7,
+      "sequence": 316,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 7,
+      "sequence": 317,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 0,
+      "round": 7,
+      "sequence": 318,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 1,
+      "round": 7,
+      "sequence": 319,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 2,
+      "round": 7,
+      "sequence": 320,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 7,
+      "sequence": 321,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 7,
+      "sequence": 322,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 7,
+      "sequence": 323,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 0,
+      "round": 7,
+      "sequence": 324,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 1,
+      "round": 7,
+      "sequence": 325,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 2,
+      "round": 7,
+      "sequence": 326,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 7,
+      "sequence": 327,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 7,
+      "sequence": 328,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 7,
+      "sequence": 329,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "bca",
+      "position": 0,
+      "round": 7,
+      "sequence": 330,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "bca",
+      "position": 1,
+      "round": 7,
+      "sequence": 331,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "bca",
+      "position": 2,
+      "round": 7,
+      "sequence": 332,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 0,
+      "round": 7,
+      "sequence": 333,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 1,
+      "round": 7,
+      "sequence": 334,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bca",
+      "position": 2,
+      "round": 7,
+      "sequence": 335,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 8,
+      "sequence": 336,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 8,
+      "sequence": 337,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 8,
+      "sequence": 338,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 8,
+      "sequence": 339,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 8,
+      "sequence": 340,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 8,
+      "sequence": 341,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 0,
+      "round": 8,
+      "sequence": 342,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 1,
+      "round": 8,
+      "sequence": 343,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 2,
+      "round": 8,
+      "sequence": 344,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 0,
+      "round": 8,
+      "sequence": 345,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 1,
+      "round": 8,
+      "sequence": 346,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 2,
+      "round": 8,
+      "sequence": 347,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 8,
+      "sequence": 348,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 8,
+      "sequence": 349,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 8,
+      "sequence": 350,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "acb",
+      "position": 0,
+      "round": 8,
+      "sequence": 351,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "acb",
+      "position": 1,
+      "round": 8,
+      "sequence": 352,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "acb",
+      "position": 2,
+      "round": 8,
+      "sequence": 353,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 0,
+      "round": 8,
+      "sequence": 354,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 1,
+      "round": 8,
+      "sequence": 355,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 2,
+      "round": 8,
+      "sequence": 356,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 0,
+      "round": 8,
+      "sequence": 357,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 1,
+      "round": 8,
+      "sequence": 358,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 2,
+      "round": 8,
+      "sequence": 359,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 8,
+      "sequence": 360,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 8,
+      "sequence": 361,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 8,
+      "sequence": 362,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 8,
+      "sequence": 363,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 8,
+      "sequence": 364,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 8,
+      "sequence": 365,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 0,
+      "round": 8,
+      "sequence": 366,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 1,
+      "round": 8,
+      "sequence": 367,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "bac",
+      "position": 2,
+      "round": 8,
+      "sequence": 368,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "bac",
+      "position": 0,
+      "round": 8,
+      "sequence": 369,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "bac",
+      "position": 1,
+      "round": 8,
+      "sequence": 370,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "bac",
+      "position": 2,
+      "round": 8,
+      "sequence": 371,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 0,
+      "round": 8,
+      "sequence": 372,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 1,
+      "round": 8,
+      "sequence": 373,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 2,
+      "round": 8,
+      "sequence": 374,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 8,
+      "sequence": 375,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 8,
+      "sequence": 376,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 8,
+      "sequence": 377,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 0,
+      "round": 9,
+      "sequence": 378,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 1,
+      "round": 9,
+      "sequence": 379,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 2,
+      "round": 9,
+      "sequence": 380,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "bca",
+      "position": 0,
+      "round": 9,
+      "sequence": 381,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "bca",
+      "position": 1,
+      "round": 9,
+      "sequence": 382,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "bca",
+      "position": 2,
+      "round": 9,
+      "sequence": 383,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 9,
+      "sequence": 384,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 9,
+      "sequence": 385,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 9,
+      "sequence": 386,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 0,
+      "round": 9,
+      "sequence": 387,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 1,
+      "round": 9,
+      "sequence": 388,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 2,
+      "round": 9,
+      "sequence": 389,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 9,
+      "sequence": 390,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 9,
+      "sequence": 391,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 9,
+      "sequence": 392,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 9,
+      "sequence": 393,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 9,
+      "sequence": 394,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 9,
+      "sequence": 395,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "cba",
+      "position": 0,
+      "round": 9,
+      "sequence": 396,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "cba",
+      "position": 1,
+      "round": 9,
+      "sequence": 397,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "cba",
+      "position": 2,
+      "round": 9,
+      "sequence": 398,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 0,
+      "round": 9,
+      "sequence": 399,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 1,
+      "round": 9,
+      "sequence": 400,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cba",
+      "position": 2,
+      "round": 9,
+      "sequence": 401,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 0,
+      "round": 9,
+      "sequence": 402,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 1,
+      "round": 9,
+      "sequence": 403,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "acb",
+      "position": 2,
+      "round": 9,
+      "sequence": 404,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 9,
+      "sequence": 405,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 9,
+      "sequence": 406,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 9,
+      "sequence": 407,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 9,
+      "sequence": 408,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 9,
+      "sequence": 409,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 9,
+      "sequence": 410,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 9,
+      "sequence": 411,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 9,
+      "sequence": 412,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 9,
+      "sequence": 413,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 0,
+      "round": 9,
+      "sequence": 414,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 1,
+      "round": 9,
+      "sequence": 415,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 2,
+      "round": 9,
+      "sequence": 416,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 0,
+      "round": 9,
+      "sequence": 417,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 1,
+      "round": 9,
+      "sequence": 418,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 2,
+      "round": 9,
+      "sequence": 419,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 0,
+      "round": 10,
+      "sequence": 420,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 1,
+      "round": 10,
+      "sequence": 421,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cba",
+      "position": 2,
+      "round": 10,
+      "sequence": 422,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 0,
+      "round": 10,
+      "sequence": 423,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 1,
+      "round": 10,
+      "sequence": 424,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 2,
+      "round": 10,
+      "sequence": 425,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "bac",
+      "position": 0,
+      "round": 10,
+      "sequence": 426,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "bac",
+      "position": 1,
+      "round": 10,
+      "sequence": 427,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "bac",
+      "position": 2,
+      "round": 10,
+      "sequence": 428,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 0,
+      "round": 10,
+      "sequence": 429,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 1,
+      "round": 10,
+      "sequence": 430,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 2,
+      "round": 10,
+      "sequence": 431,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 0,
+      "round": 10,
+      "sequence": 432,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 1,
+      "round": 10,
+      "sequence": 433,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "cab",
+      "position": 2,
+      "round": 10,
+      "sequence": 434,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 10,
+      "sequence": 435,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 10,
+      "sequence": 436,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 10,
+      "sequence": 437,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 0,
+      "round": 10,
+      "sequence": 438,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 1,
+      "round": 10,
+      "sequence": 439,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bca",
+      "position": 2,
+      "round": 10,
+      "sequence": 440,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 10,
+      "sequence": 441,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 10,
+      "sequence": 442,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 10,
+      "sequence": 443,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 0,
+      "round": 10,
+      "sequence": 444,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 1,
+      "round": 10,
+      "sequence": 445,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 2,
+      "round": 10,
+      "sequence": 446,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 0,
+      "round": 10,
+      "sequence": 447,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 1,
+      "round": 10,
+      "sequence": 448,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "acb",
+      "position": 2,
+      "round": 10,
+      "sequence": 449,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "cab",
+      "position": 0,
+      "round": 10,
+      "sequence": 450,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "cab",
+      "position": 1,
+      "round": 10,
+      "sequence": 451,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "cab",
+      "position": 2,
+      "round": 10,
+      "sequence": 452,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 10,
+      "sequence": 453,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 10,
+      "sequence": 454,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 10,
+      "sequence": 455,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 0,
+      "round": 10,
+      "sequence": 456,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 1,
+      "round": 10,
+      "sequence": 457,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "cab",
+      "position": 2,
+      "round": 10,
+      "sequence": 458,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 10,
+      "sequence": 459,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 10,
+      "sequence": 460,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 10,
+      "sequence": 461,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 0,
+      "round": 11,
+      "sequence": 462,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 1,
+      "round": 11,
+      "sequence": 463,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/chain-split-rejoin-v1/200000",
+      "order": "cba",
+      "position": 2,
+      "round": 11,
+      "sequence": 464,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 0,
+      "round": 11,
+      "sequence": 465,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 1,
+      "round": 11,
+      "sequence": 466,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/ett-scan/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 2,
+      "round": 11,
+      "sequence": 467,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 0,
+      "round": 11,
+      "sequence": 468,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 1,
+      "round": 11,
+      "sequence": 469,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/chain-split-rejoin-v1/10000x200",
+      "order": "bac",
+      "position": 2,
+      "round": 11,
+      "sequence": 470,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 0,
+      "round": 11,
+      "sequence": 471,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 1,
+      "round": 11,
+      "sequence": 472,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/chain-split-rejoin-v1/10000x200",
+      "order": "cab",
+      "position": 2,
+      "round": 11,
+      "sequence": 473,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-on",
+      "order": "abc",
+      "position": 0,
+      "round": 11,
+      "sequence": 474,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-on",
+      "order": "abc",
+      "position": 1,
+      "round": 11,
+      "sequence": 475,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-on",
+      "order": "abc",
+      "position": 2,
+      "round": 11,
+      "sequence": 476,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 11,
+      "sequence": 477,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 11,
+      "sequence": 478,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/ett-scan/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 11,
+      "sequence": 479,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 11,
+      "sequence": 480,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 11,
+      "sequence": 481,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/chain-split-rejoin-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 11,
+      "sequence": 482,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 0,
+      "round": 11,
+      "sequence": 483,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 1,
+      "round": 11,
+      "sequence": 484,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/chain-split-rejoin-v1/200000",
+      "order": "abc",
+      "position": 2,
+      "round": 11,
+      "sequence": 485,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 0,
+      "round": 11,
+      "sequence": 486,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 1,
+      "round": 11,
+      "sequence": 487,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/hdt/sustained-churn-blocks-v1/10000x200",
+      "order": "abc",
+      "position": 2,
+      "round": 11,
+      "sequence": 488,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 0,
+      "round": 11,
+      "sequence": 489,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 1,
+      "round": 11,
+      "sequence": 490,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/sustained-churn-blocks-v1/100000",
+      "order": "acb",
+      "position": 2,
+      "round": 11,
+      "sequence": 491,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 0,
+      "round": 11,
+      "sequence": 492,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 1,
+      "round": 11,
+      "sequence": 493,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/hdt/sustained-churn-blocks-v1/100000",
+      "order": "abc",
+      "position": 2,
+      "round": 11,
+      "sequence": 494,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 0,
+      "round": 11,
+      "sequence": 495,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 1,
+      "round": 11,
+      "sequence": 496,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "dynamic/compact-bfs/sustained-churn-blocks-v1/10000x200",
+      "order": "bca",
+      "position": 2,
+      "round": 11,
+      "sequence": 497,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 0,
+      "round": 11,
+      "sequence": 498,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 1,
+      "round": 11,
+      "sequence": 499,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "init/compact-bfs/chain-split-rejoin-v1/200000",
+      "order": "bac",
+      "position": 2,
+      "round": 11,
+      "sequence": 500,
+      "session": 1
+    },
+    {
+      "arm": "cand",
+      "cell": "probe/timing/metrics-off",
+      "order": "cba",
+      "position": 0,
+      "round": 11,
+      "sequence": 501,
+      "session": 1
+    },
+    {
+      "arm": "base",
+      "cell": "probe/timing/metrics-off",
+      "order": "cba",
+      "position": 1,
+      "round": 11,
+      "sequence": 502,
+      "session": 1
+    },
+    {
+      "arm": "aa",
+      "cell": "probe/timing/metrics-off",
+      "order": "cba",
+      "position": 2,
+      "round": 11,
+      "sequence": 503,
+      "session": 1
+    }
+  ],
+  "quiet_seconds": 60.0,
+  "round_cooldown_seconds": 5.0,
+  "rounds": 12,
+  "schema": "knotrel-hot-path-audit-v1-schedule",
+  "seed": 20261115,
+  "session_cooldown_seconds": 120.0,
+  "sessions": 2
+}
