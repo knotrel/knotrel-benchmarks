@@ -1,6 +1,10 @@
 """Unit tests for scripts/run_metrics_overhead.py (pure functions only)."""
 
 import collections
+import difflib
+import subprocess
+import tempfile
+from unittest import mock
 import sys
 import unittest
 from pathlib import Path
@@ -55,6 +59,101 @@ class VerdictTest(unittest.TestCase):
         first = mo.bootstrap_median_ci(values)
         second = mo.bootstrap_median_ci(list(values))
         self.assertEqual(first, second)
+
+
+class MeasuredTreeTest(unittest.TestCase):
+    CLEAN = {"code_diff_sha256": mo.sha256_bytes(b""), "untracked_code_files": {}}
+    PATCHED = {"code_diff_sha256": mo.sha256_bytes(b"diff"), "untracked_code_files": {"crates/x.rs": "ab"}}
+
+    def test_protocol_constants_are_unchanged(self):
+        self.assertEqual(mo.BASELINE_COMMIT, "e1e11818a762baf07575719456a2158959b2e2c8")
+        self.assertEqual(mo.RC_COMMIT, "62c2cea9314085f6f7669ebbb7def2be1fa1cb5c")
+        self.assertEqual((mo.ARMS, mo.PRIMARY_ROUNDS, mo.EXTENSION_ROUNDS, mo.SESSIONS),
+                         (("off", "on", "aa"), 24, 12, 2))
+        self.assertEqual((mo.BUDGET_MEDIAN_PCT, mo.BUDGET_UPPER_PCT), (3.0, 6.0))
+        self.assertEqual((mo.PROBE_ITERATIONS, mo.BOOTSTRAP_SEED, mo.BOOTSTRAP_RESAMPLES), (2000, 20261115, 10_000))
+        self.assertEqual((mo.QUIET_SECONDS, mo.SESSION_COOLDOWN_SECONDS, mo.ROUND_COOLDOWN_SECONDS),
+                         (60.0, 120.0, 5.0))
+
+    def test_default_is_the_original_baseline(self):
+        args = mo.parse_args(["campaign"])
+        self.assertEqual(args.measured_commit, mo.BASELINE_COMMIT)
+        self.assertEqual(mo.parse_args(["c", "--measured-commit", mo.RC_COMMIT]).measured_commit, mo.RC_COMMIT)
+        with self.assertRaises(SystemExit):
+            mo.parse_args(["c", "--measured-commit", "0" * 40])
+
+    def test_baseline_accepts_a_patched_tree(self):
+        self.assertIsNone(mo.measured_tree_error(mo.BASELINE_COMMIT, mo.BASELINE_COMMIT, self.PATCHED))
+
+    def test_rc_requires_a_clean_checkout(self):
+        self.assertIsNone(mo.measured_tree_error(mo.RC_COMMIT, mo.RC_COMMIT, self.CLEAN))
+        self.assertIn("clean", mo.measured_tree_error(mo.RC_COMMIT, mo.RC_COMMIT, self.PATCHED))
+        only_untracked = {**self.CLEAN, "untracked_code_files": {"crates/x.rs": "ab"}}
+        self.assertIn("clean", mo.measured_tree_error(mo.RC_COMMIT, mo.RC_COMMIT, only_untracked))
+
+    def test_rc_requires_committed_tooling(self):
+        dirty = " M tools/hot-path-probes/Cargo.toml\n"
+        self.assertIn("tooling", mo.measured_tree_error(mo.RC_COMMIT, mo.RC_COMMIT, self.CLEAN, dirty))
+        self.assertIsNone(mo.measured_tree_error(mo.BASELINE_COMMIT, mo.BASELINE_COMMIT, self.PATCHED, dirty))
+        self.assertEqual(mo.BENCH_TOOLING_PATHS, ("scripts", "tools/hot-path-probes", "tools/hot-path-probes-rc"))
+
+    def test_probe_selection_keeps_the_historical_probe(self):
+        self.assertEqual(mo.PROBE_DIRS[mo.BASELINE_COMMIT], "tools/hot-path-probes")
+        self.assertEqual(mo.PROBE_DIRS[mo.RC_COMMIT], "tools/hot-path-probes-rc")
+        self.assertEqual(mo.PROBE_TARGET_DIRS[mo.BASELINE_COMMIT], "target")
+        self.assertNotEqual(mo.PROBE_TARGET_DIRS[mo.RC_COMMIT], "target")
+        self.assertEqual(set(mo.PROBE_DIRS), set(mo.MEASURED_COMMITS))
+
+    def test_rc_probe_differs_only_in_axum_features(self):
+        bench = Path(__file__).resolve().parents[2]
+        old = (bench / "tools/hot-path-probes/Cargo.lock").read_text().splitlines()
+        new = (bench / "tools/hot-path-probes-rc/Cargo.lock").read_text().splitlines()
+        removed = [line for line in difflib.unified_diff(old, new, lineterm="", n=0)
+                   if line.startswith(("-", "+")) and not line.startswith(("---", "+++"))]
+        self.assertEqual(removed, ['- "tracing",', '- "log",'])
+        manifest = (bench / "tools/hot-path-probes-rc/Cargo.toml").read_text()
+        self.assertIn('path = "../hot-path-probes/src/bin/router-probe.rs"', manifest)
+        self.assertIn('axum = { version = "0.8.9", default-features = false, features = ["form", "http1", "json", '
+                      '"matched-path", "original-uri", "query", "tokio", "tracing"] }', manifest)
+
+    def test_build_gives_on_and_off_the_same_binary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            campaign = mo.Campaign(mo.parse_args([tmp, "--measured-commit", mo.RC_COMMIT]))
+            campaign.work = Path(tmp) / "work"
+            campaign.out = Path(tmp) / "run"
+            campaign.out.mkdir()
+            calls = []
+
+            def fake_cargo(argv, cwd, env, stdout, stderr, timeout):
+                calls.append((argv, cwd, env["CARGO_TARGET_DIR"]))
+                built = Path(env["CARGO_TARGET_DIR"]) / "release" / "router-probe"
+                built.parent.mkdir(parents=True)
+                built.write_bytes(b"probe")
+                return subprocess.CompletedProcess(argv, 0)
+
+            with mock.patch.object(mo.subprocess, "run", fake_cargo), \
+                    mock.patch.object(campaign, "check_identity"):
+                campaign.build()
+            self.assertEqual(campaign.binary["on"], campaign.binary["off"])
+            self.assertNotEqual(campaign.binary["aa"], campaign.binary["off"])
+            self.assertEqual(campaign.argv("on")[:-1], campaign.argv("off"))
+            self.assertEqual(campaign.argv("on")[-1], "--metrics")
+            (argv, cwd, target), = calls
+            self.assertEqual(cwd, campaign.bench / "tools/hot-path-probes-rc")
+            self.assertEqual(Path(target).name, "target-rc")
+            self.assertIn("--locked", argv)
+
+    def test_rc_requires_the_probe_checkout(self):
+        self.assertIn("--knotrel", mo.measured_tree_error(mo.RC_COMMIT, mo.RC_COMMIT, self.CLEAN, "", False))
+        self.assertIsNone(mo.measured_tree_error(mo.BASELINE_COMMIT, mo.BASELINE_COMMIT, self.PATCHED, "", False))
+        bench = Path(__file__).resolve().parents[2]
+        self.assertEqual(mo.probe_knotrel_checkout(bench), (bench.parent / "knotrel").resolve())
+        self.assertEqual(Path(mo.parse_args(["c"]).knotrel).resolve(), mo.probe_knotrel_checkout(bench))
+
+    def test_head_must_match_the_measured_commit(self):
+        self.assertIn("is not", mo.measured_tree_error(mo.BASELINE_COMMIT, mo.RC_COMMIT, self.CLEAN))
+        self.assertIn("is not", mo.measured_tree_error(mo.RC_COMMIT, mo.BASELINE_COMMIT, self.CLEAN))
+        self.assertIn("not one of", mo.measured_tree_error("f" * 40, "f" * 40, self.CLEAN))
 
 
 class ParseTest(unittest.TestCase):
