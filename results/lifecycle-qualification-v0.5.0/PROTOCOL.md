@@ -407,3 +407,12 @@ rebuilt `tools/lifecycle-probes/target/release/core-lifecycle` and
 sha256 values remain the identity record; run-3 data are unaffected). The
 count-alloc binary `target-count/release/core-lifecycle` (`53497c21...`) is
 intact.
+
+### Amendment 3 — rerun record (2026-11-16)
+
+Pre-collection checks passed (AC power, no build, all hashes equal to the frozen
+manifests). The single permitted rerun ran main 09:23:07Z-09:36:33Z and
+extension 09:36:33Z-09:49:51Z, both exit 0, in new output directories
+(`raw-main/`, `extension/`). Result for `a1d9577`: 5 PASS, 1
+INCONCLUSIVE_DISCLOSED, 3 UNRESOLVED, no REGRESSION (`RESULT.md` in the
+campaign directory). No further A rerun is permitted for this candidate.
