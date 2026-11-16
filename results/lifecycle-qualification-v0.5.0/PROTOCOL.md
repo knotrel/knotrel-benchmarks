@@ -503,3 +503,27 @@ is unchanged.
 **Budget.** Before run 4: 151.6 min logged plus at most 15 min unlogged, plus
 pilot 6 1.4 min. Run 4 is projected at about 27 min (A) + 7 min (B/C) + 1 min
 (D5), within the six-hour cap.
+
+### Amendment 4 — corrections from the independent pre-measurement verification
+
+Verdict of the independent verification: PASS WITH CORRECTIONS (hashes,
+provenance, scope, unchanged rules and A recipe confirmed). Applied before any
+measurement:
+- The chain stops before B/C and D5 if A's main phase, extension or an
+  analysis fails (records `run4-chain-stopped.txt`), refuses to relaunch when
+  any of its outputs exists, and runs as a whole under `caffeinate -dimsu sh
+  run4-chain-dcd8ccc.sh`. New sha256:
+  `3b1df3b6e3ede722bda3f974a85478496067696ce0d0272558f6bf8936c8dde3`.
+- `run_d5.py` docstring corrected (5-minute cap, `D5-PLAN.md`), new sha256
+  `00fe9711d4c22e5b2e668e647cb569a74dd33ccdfc7e6af52dc637cbec7871b4`;
+  `D5-PLAN.md` sha256
+  `7c5b26942b9d939da78171549d958037f787ddb31cecd2091fa7bdc5caeab269`. Run list
+  and metrics unchanged.
+- Analysis command path: `/Users/rt/workspace/knotrel/evidence/v0.5.0-qualification/BC-final-dcd8ccc`.
+
+Disclosures: the 127-cell order (seed 50500) differs from the 365-cell runs, so
+`compact-bfs` cells run in a different order and neighborhood than in runs 1-3;
+B/C provenance will name benchmarks HEAD at launch (a documentation commit)
+while probe build records name `f1d099cc`, which the analyzer checks; the
+analyzer compares plan cell IDs (not args) with the scoped matrix; provenance
+binary hashes are checked against the table above after the run.
