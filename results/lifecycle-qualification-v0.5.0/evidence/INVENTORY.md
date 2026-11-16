@@ -48,16 +48,38 @@ remediation reports and the knotrel release notes resolve to existing files or
 directories (21 distinct paths; the only unmatched string is the `D1-<label>`
 naming template in `D1-PLAN.md`).
 
-## Durable destination — OPEN (decision needed before merge)
+## Sensitive-data check (before any transfer)
 
-No authorized durable destination exists yet. Options:
+An automated scan of all 8,663 evidence files and the 30 executables found no
+credentials: no GitHub, AWS, crates.io or Slack tokens, private keys, bearer
+headers, password assignments or e-mail addresses (the only e-mail-shaped
+match, `h@i.Bm`, is byte noise inside a binary). Files contain absolute paths
+of the qualification host, including the local user name `rt`
+(`/Users/rt/workspace/knotrel/...`, 1,783 files); this is not a credential and
+the originals were not modified. Keep the archives private.
 
-1. **Project-owned storage bucket or archive service** (recommended): upload
-   both archives; record their URLs and SHA-256 here. Keeps the repositories
-   small and does not publish anything with the release.
-2. **Dedicated private evidence repository** (or Git LFS in knotrel-benchmarks):
-   commit the two archives with this inventory.
-3. **GitHub release asset on knotrel-benchmarks:** simple, but it is a
-   publication step and needs explicit authorization.
+## Durable destination — OPEN (authorization needed before merge)
 
-Until one is chosen, the evidence exists only on the qualification host.
+No project-owned storage is configured: the `knotrel` GitHub organization
+(free plan) has only the two public repositories, and no storage bucket,
+archive service or release-asset convention is documented in either
+repository.
+
+**Proposal (not created):** a dedicated **private** repository
+`knotrel/knotrel-qualification-evidence`, owned by the `knotrel` organization
+(the session's account is an organization admin; members may create private
+repositories), holding:
+
+- `v0.5.0/knotrel-v0.5.0-evidence.tar.gz` and
+  `v0.5.0/knotrel-v0.5.0-measured-executables.tar.gz` (each below GitHub's
+  100 MB file limit, so no Git LFS is needed);
+- `v0.5.0/MANIFEST.sha256`, `v0.5.0/inventory.json`, `v0.5.0/INVENTORY.md`
+  and `v0.5.0/VERIFY.md`.
+
+Access would be limited to organization members with explicit repository
+access; the archives would not be public. After an authorized upload, both
+archives are to be downloaded again and their SHA-256 compared with the table
+above, and this section updated with the repository URL, commit and access
+instructions. Until then the evidence exists only on the qualification host
+(`/Users/rt/workspace/knotrel/evidence/`, with the archives in
+`v0.5.0-MANIFEST/`).
