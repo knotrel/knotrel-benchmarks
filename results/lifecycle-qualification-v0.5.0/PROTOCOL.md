@@ -258,3 +258,75 @@ probe binaries, rebuilt from unchanged probe sources at benchmarks
   `analyze_lifecycle_qualification.py RUN --expect-knotrel-rev 649425373a510a3a18c25519d21c5cf8b43e13fe --expect-multipliers-sha256 4509c4a06573eba776e382568026c57078ca1a7205670fb8fcd4b4bf473ad410 --expect-probes-rev 450ba04a142c9b4e9c4765c77d1ca41e4ec57ec4`.
 - Measured runtime so far: pilots 1-4 about 10 minutes, run 1 about 42
   minutes; run 2 is projected at about 45 minutes, within the six-hour cap.
+
+## Amendment 2: re-qualification of candidate a1d9577 (B and C)
+
+Recorded 2026-11-16T07:52:31Z, before any final measurement of candidate
+`a1d95778f8c876c49efd09dcddcdf6fbdd8259fe`. Found and written **after** the
+run-2 results; it applies only to this and later candidates.
+
+**Why.** Run 2 (candidate `6494253`) completed under amendment 1 and is
+preserved unchanged (`evidence/v0.5.0-qualification/BC-final-6494253/`,
+`A-20261116T011844Z-6494253/`, `REPORT.md`); its verdicts remain the record
+for `6494253` and are not re-scored. Frozen diagnostics, not used for any
+verdict (`evidence/v0.5.0-remediation/`), found two storage-retention defects
+in the `ett`/`hdt` engines (emptied incidence sets kept their B-tree leaf;
+HDT upper levels kept isolated vertex records), fixed in knotrel `1ec2de3` and
+`9467e0a`, and avoidable bulk-import catalog work, removed in `7f19b11`
+(test and documentation follow-up `a1d9577`). Each change has regression
+tests and an independent review with no blocker or major finding.
+
+**Tooling correction (B4 `import` reference).** The reference derived its
+effective edge list outside the timed window although an application holding
+the flags must do that work for every plain import. From this amendment on,
+`FlagStore::build` derives it inside the window (probes `7ffadc9e`), and a
+derived list that differs from the payload actually sent aborts the probe
+(`444806d3`). The derivation costs about 0.03 ms per import (10k nodes); an
+independent methodology review estimates that applied to run 2 it could have
+moved the borderline `compact-bfs` hub cell (+104.6%, lower bound +102.9%)
+to about the budget. This is why it is prospective only.
+
+**Disclosed asymmetries added (not corrected):** the import reference's lean
+store has no per-node incidence index (later reactivation/removal scans O(E)),
+validates no entries, uses dense IDs and has no atomic publication, while the
+`ops`/`events` reference uses an indexed planner; request-body serialization
+is untimed in both arms, which favors the candidate end to end. With 60%
+inactive and 30% disabled, parsing the non-effective entries the full-topology
+contract requires is by itself about three times the reference import on
+`compact-bfs` (D3a), so the 100% budget cannot be met there by any
+implementation of the contract; these cells are reported as measured and this
+mis-specification is reported for an owner decision, without changing the
+budget.
+
+**What is unchanged:** the matrix, every rule, tolerance and budget, the
+analysis code, the B/C order seed (50500).
+
+**What changes:** the candidate; the probe sources (`444806d3`); the window
+multipliers, re-derived by the same mechanical rule from pilot 5 on the new
+candidate (`evidence/v0.5.0-qualification/pilot5-a1d9577`, order seed 11,
+150.2 s; 47 of 167 cells scaled, none at the cap):
+`window-multipliers-a1d9577.json`, sha256
+`c134ba472ae4365bdd81bad2b6ed9e2e0ca47177045f053d6141e64b11a8747c`; and the
+probe binaries (build records name knotrel `a1d9577` and probes `444806d3`, both clean):
+
+| Binary | sha256 |
+|---|---|
+| `tools/lifecycle-probes/target/release/core-lifecycle` | `b18b551edf0e3871e3e14e9eca76006925d71e46f22ed58564b493f0ac3535c7` |
+| `tools/lifecycle-probes/target-count/release/core-lifecycle` | `53497c21efe4d0ea225e703a78623a2896ea8c7222342619ca3ff1d6410f4565` |
+| `tools/lifecycle-probes/target/release/http-lifecycle` | `b0c55f5bbb5fc95e62ad5b530600c5d3a0e7fcf8d5f32b36904cce23ad2505e5` |
+
+**Experiment A is not repeated.** `git diff 6494253 a1d9577 -- crates` touches
+only `knotrel-core` `dynamic.rs`, `hdt.rs`, `hdt_profile.rs`, `index.rs`
+(used only by `ett`/`hdt`) and `topology.rs` (lifecycle facade). Every A cell
+runs `compact-bfs` or `compact-workspace` with lifecycle mode off, whose code
+is unchanged; `knotrel-server` is unchanged. Run 2's A results are carried
+forward for `a1d9577` as measured, including its 3 UNRESOLVED and 2
+INCONCLUSIVE_DISCLOSED cells; repeating A on unchanged code would only re-sample
+those cells, which the extension policy does not allow.
+
+- Local validation of `a1d9577`: 14/14 steps
+  (`evidence/v0.5.0-dev/validation-a1d9577/summary.txt`).
+- Analysis command for run 3:
+  `analyze_lifecycle_qualification.py RUN --expect-knotrel-rev a1d95778f8c876c49efd09dcddcdf6fbdd8259fe --expect-multipliers-sha256 c134ba472ae4365bdd81bad2b6ed9e2e0ca47177045f053d6141e64b11a8747c --expect-probes-rev 444806d3071c903b7cec211e094c62952a46eddb`.
+- Measured runtime before run 3: about 2 h 20 min of the six-hour cap
+  (pilots 1-5, runs 1-2, diagnostics D1-D3).
