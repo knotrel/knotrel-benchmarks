@@ -388,3 +388,22 @@ no other command; the only monitoring is the harness completion notification.
 
 - Budget before launch: about 1 h 54 min logged plus at most 15 min unlogged
   diagnostics; this campaign is projected at about 27 minutes.
+
+### Amendment 3 — record of attempt 1 (2026-11-16)
+
+Attempt 1 (launch 08:35:30Z) was stopped by the collector at 08:42:40Z:
+`EnvironmentalInvalidationError ... Host power failure: AC Power required`
+(the host changed from AC to battery during the run; no power setting was
+changed by the agent). Its 78 pair files are preserved as
+`raw-main-attempt1-invalid/` with `INVALIDATED-attempt1.txt` and are not
+analyzed. Measured time consumed: 7.2 min. Under §5 this is an infrastructure
+failure unrelated to the measured code: one rerun of experiment A on
+`a1d9577` is allowed, with the unchanged plan, identities and seeds above,
+once the host is on AC power. No further rerun is allowed.
+
+Tooling note: at 2026-11-16 10:00 local time a test build of the probes
+rebuilt `tools/lifecycle-probes/target/release/core-lifecycle` and
+`http-lifecycle`, overwriting the run-3 binaries listed in amendment 2 (their
+sha256 values remain the identity record; run-3 data are unaffected). The
+count-alloc binary `target-count/release/core-lifecycle` (`53497c21...`) is
+intact.
