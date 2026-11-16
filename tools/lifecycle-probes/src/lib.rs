@@ -14,6 +14,8 @@
 //! - [`Subject`]: the common interface both arms execute; results fold into
 //!   a digest that must match between arms.
 
+pub mod churn;
+
 use knotrel_core::{ConnectivityGraph, EngineConfig, LifecycleError, LifecycleGraph};
 use rustc_hash::{FxHashMap, FxHashSet};
 

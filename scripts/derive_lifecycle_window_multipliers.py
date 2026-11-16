@@ -15,6 +15,8 @@ import statistics
 import sys
 from pathlib import Path
 
+from cli_paths import confined, confined_directory
+
 TARGET_NS = 2_000_000
 CAP = 64
 
@@ -26,7 +28,8 @@ def factor(fastest_ns: float) -> int:
 
 
 def main() -> int:
-    pilot, out = Path(sys.argv[1]), Path(sys.argv[2])
+    pilot = confined_directory(sys.argv[1], "pilot directory")
+    out = confined(sys.argv[2], "output file")
     cells = json.loads((pilot / "plan" / "matrix.json").read_text())
     result = {}
     for cell in cells:

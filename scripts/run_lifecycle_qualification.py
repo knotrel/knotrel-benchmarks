@@ -35,6 +35,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
+from cli_paths import confined, confined_directory, confined_executable
+
 ENGINES = ("compact-bfs", "ett", "hdt")
 SEED = 5_000_001
 
@@ -176,10 +178,11 @@ def _full_matrix(profile: str) -> List[Dict[str, Any]]:
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(confined(path, "hashed file").read_bytes()).hexdigest()
 
 
 def git(directory: Path, *args: str) -> str:
+    directory = confined_directory(directory, "git directory")
     return subprocess.run(["git", "-C", str(directory), *args], check=True,
                           capture_output=True, text=True).stdout.strip()
 
@@ -210,6 +213,14 @@ def main() -> int:
                         help="pilot-derived JSON {cell id: factor}; archived in plan/")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    args.out = confined(args.out, "--out")
+    args.core = confined_executable(args.core, "--core")
+    args.core_count = confined_executable(args.core_count, "--core-count")
+    args.http = confined_executable(args.http, "--http")
+    args.knotrel = confined_directory(args.knotrel, "--knotrel")
+    if args.window_multipliers:
+        args.window_multipliers = confined(args.window_multipliers, "--window-multipliers")
+    benchmarks = confined_directory(Path.cwd(), "working directory")
     if args.out.exists():
         print(f"refusing to reuse existing output directory {args.out}", file=sys.stderr)
         return 2
@@ -230,8 +241,8 @@ def main() -> int:
         "only": args.only, "cells": len(cells), "lifecycle_engines": args.lifecycle_engines,
         "knotrel": {"path": str(args.knotrel.resolve()), "head": git(args.knotrel, "rev-parse", "HEAD"),
                     "dirty": git(args.knotrel, "status", "--porcelain")},
-        "benchmarks": {"head": git(Path.cwd(), "rev-parse", "HEAD"),
-                       "dirty": git(Path.cwd(), "status", "--porcelain")},
+        "benchmarks": {"head": git(benchmarks, "rev-parse", "HEAD"),
+                       "dirty": git(benchmarks, "status", "--porcelain")},
         "binaries": {name: {"path": str(path.resolve()), "sha256": sha256(path)} for name, path in binaries.items()},
         "rustc": subprocess.run(["rustc", "+1.100.0", "-Vv"], capture_output=True, text=True).stdout,
         "platform": platform.platform(), "machine": platform.machine(),
@@ -249,7 +260,7 @@ def main() -> int:
     log = (args.out / "run-log.jsonl").open("a")
     for position, index in enumerate(order):
         cell = cells[index]
-        argv = [str(binaries[cell["binary"]])] + cell["args"]
+        argv = [str(confined_executable(binaries[cell["binary"]], cell["binary"]))] + cell["args"]
         before = host_state()
         start = time.monotonic()
         child = subprocess.run(argv, capture_output=True, text=True, env={"PATH": os.environ["PATH"]})

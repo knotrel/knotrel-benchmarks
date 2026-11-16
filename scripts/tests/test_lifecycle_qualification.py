@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 import tempfile
 import types
@@ -13,7 +14,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import analyze_lifecycle_qualification as an  # noqa: E402
+import cli_paths  # noqa: E402
 import run_lifecycle_qualification as run  # noqa: E402
+
+# The analyses below read and write temporary directories; grant that root
+# explicitly, as an operator would for a run outside the default roots.
+os.environ["LIFECYCLE_QUALIFICATION_ROOTS"] = tempfile.gettempdir()
 
 REV = "a" * 40
 SHA = "b" * 64
@@ -83,6 +89,24 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(args[args.index("--window") + 1], "32000")
         args = by_id["B4-http-import-compact-bfs-sparse-10000"]["args"]
         self.assertEqual(args[args.index("--requests") + 1], "4")
+
+
+class CliPathTests(unittest.TestCase):
+    def test_paths_must_stay_inside_the_allowed_roots(self):
+        repo_file = Path(run.__file__)
+        self.assertEqual(cli_paths.confined(repo_file, "x"), repo_file.resolve())
+        for bad in ("-rf", "/etc/passwd", str(repo_file.parent / ".." / ".." / ".." / ".." / "etc")):
+            with self.assertRaises(SystemExit):
+                cli_paths.confined(bad, "x")
+        with tempfile.TemporaryDirectory() as tmp:
+            script = Path(tmp) / "tool"
+            script.write_text("#!/bin/sh\n")
+            with self.assertRaises(SystemExit):
+                cli_paths.confined_executable(script, "x")  # not executable
+            script.chmod(0o755)
+            self.assertEqual(cli_paths.confined_executable(script, "x"), script.resolve())
+            with self.assertRaises(SystemExit):
+                cli_paths.confined_directory(script, "x")
 
 
 class ScopeTests(unittest.TestCase):
