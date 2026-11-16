@@ -55,3 +55,14 @@ when the cap is reached and the remaining runs are reported as not run.
 Separate: (1) bounds that follow from code invariants; (2) observed maxima;
 (3) retained capacities; (4) unbounded or unguaranteed quantities (RSS,
 allocator retention). Output: `evidence/v0.5.0-remediation/D4/`.
+
+## Addendum before execution (2026-11-16)
+
+To protect the frozen artifacts from further builds, D4 runs read-only copies
+in `evidence/v0.5.0-remediation/D4-bin/` (`memory-peak` sha256
+`451702f2…`, `core-lifecycle-count` sha256 `53497c21…`, identical to the
+binaries named above; `run_d4.py` verifies both hashes before starting). The
+source binaries and the A campaign binaries were made read-only. Pre-collection
+checks passed: AC power, no cargo/rustc process, every A binary, lockfile, plan
+and schedule hash equal to `identities.json` and amendment 3, both build
+records naming knotrel `a1d9577` clean with clean probes.
