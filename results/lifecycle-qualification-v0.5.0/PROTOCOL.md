@@ -219,3 +219,42 @@ Frozen 2026-11-16T00:24:59Z before any final measurement of A, B or C.
   `analyze_lifecycle_qualification.py RUN --expect-knotrel-rev ea127069b202c6c69a3a2dd71fefafcd18cfeda4 --expect-multipliers-sha256 9a597ab60002bd9eb94ecd4d2deffa6e9291d009222bb67c7bbbea92eb214486 --expect-probes-rev 5c35360f38fba10ed783ec641c78d4b44bf460bf`.
 - Pre-collection reviews: independent tooling review (4 blockers, all
   resolved) and re-review (2 new majors, resolved in `5c35360f`).
+
+## Amendment 1: re-qualification of candidate 6494253
+
+Recorded 2026-11-16T01:20:05Z, before any measurement of candidate
+`649425373a510a3a18c25519d21c5cf8b43e13fe`.
+
+**Why.** Run 1 (candidate `ea12706`) completed under this protocol and is
+preserved unchanged in `evidence/v0.5.0-qualification/RUN-1-ea12706.md`,
+`BC-final-ea12706/` and `A-20261116T001606Z-ea12706/`. It found 31 B
+REGRESSIONs. Diagnostic comparisons, not used for any verdict, traced most of
+them to two facade defects (identity-hashed catalog; ascending cut order),
+fixed in knotrel `6494253` (`perf(core)` commit). Run 1's results remain the
+record for `ea12706` and are reported.
+
+**What is unchanged:** the matrix, every rule, tolerance and budget, the
+analysis code, A's seeds (130500-130502, extension 130510-130512) and the B/C
+order seed (50500).
+
+**What changes:** the candidate; the window multipliers, re-derived by the
+same mechanical rule from pilot 4 on the new candidate
+(`evidence/v0.5.0-qualification/pilot4-6494253`, 149.6 s; 46 of 167 cells
+scaled, none at the cap): `window-multipliers-6494253.json`, sha256
+`4509c4a06573eba776e382568026c57078ca1a7205670fb8fcd4b4bf473ad410`; and the
+probe binaries, rebuilt from unchanged probe sources at benchmarks
+`450ba04a` (their build records name that revision):
+
+| Binary | sha256 |
+|---|---|
+| `tools/lifecycle-probes/target/release/core-lifecycle` | `86ef64dd2789497fd2d82bd6412ca70c3dfcfdb8692205a0a7ae58f9c85a8c32` |
+| `tools/lifecycle-probes/target-count/release/core-lifecycle` | `0654d03a6ee6a7d5aca4ba2b1099659f502806c1e44a877ab502c748e21f9a8e` |
+| `tools/lifecycle-probes/target/release/http-lifecycle` | `43ca88b5cbbfdb207cd945d7551632750c52c859308166ee298d5942ea7ac557` |
+
+- A campaign directory: `/Users/rt/workspace/knotrel/evidence/v0.5.0-qualification/A-20261116T011844Z-6494253` (plan and dry-run preflight passed).
+- Local validation of `6494253`: 14/14 steps
+  (`evidence/v0.5.0-dev/validation/summary.txt`).
+- Analysis command for run 2:
+  `analyze_lifecycle_qualification.py RUN --expect-knotrel-rev 649425373a510a3a18c25519d21c5cf8b43e13fe --expect-multipliers-sha256 4509c4a06573eba776e382568026c57078ca1a7205670fb8fcd4b4bf473ad410 --expect-probes-rev 450ba04a142c9b4e9c4765c77d1ca41e4ec57ec4`.
+- Measured runtime so far: pilots 1-4 about 10 minutes, run 1 about 42
+  minutes; run 2 is projected at about 45 minutes, within the six-hour cap.
