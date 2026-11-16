@@ -330,3 +330,16 @@ those cells, which the extension policy does not allow.
   `analyze_lifecycle_qualification.py RUN --expect-knotrel-rev a1d95778f8c876c49efd09dcddcdf6fbdd8259fe --expect-multipliers-sha256 c134ba472ae4365bdd81bad2b6ed9e2e0ca47177045f053d6141e64b11a8747c --expect-probes-rev 444806d3071c903b7cec211e094c62952a46eddb`.
 - Measured runtime before run 3: about 2 h 20 min of the six-hour cap
   (pilots 1-5, runs 1-2, diagnostics D1-D3).
+
+## Erratum to amendment 2 (recorded 2026-11-16, after run 3)
+
+Amendment 2's paragraph "Experiment A is not repeated" is withdrawn. Unchanged
+executed source paths do not establish that A's `6494253` result applies to
+`a1d9577`: A's binaries link the changed `knotrel-core`, and binary-layout
+sensitivity is documented (v0.4.0 release notes, D1). A campaign for a new
+candidate is consistent with amendment 1, and the extension policy limits
+extensions for the same candidate, not a first A campaign on a new one. Until a
+binary identity check or a new A campaign on `a1d9577` is complete, A has no
+result for `a1d9577`. The line "Measured runtime before run 3: about 2 h 20 min"
+was an estimate; log-based figures are in `RUN-3-a1d9577.md` (errata E5).
+Run 3's concurrent agent activity is recorded in `RUN3-CONCURRENT-ACTIVITY.md`.
