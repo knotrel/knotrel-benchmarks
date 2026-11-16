@@ -42,17 +42,20 @@ SEED = 5_000_001
 def apply_multipliers(cells: List[Dict[str, Any]], multipliers: Dict[str, int]) -> None:
     """Scales B1-B3 ``--window`` and B4 ``--requests`` by the pilot-derived factor.
 
-    Factors come from the pilot's reference-arm medians only (target window >= 2 ms,
-    powers of two, at most 16); they are archived with the plan. Single-request import
-    scenarios cannot be scaled and keep their factor implicit at 1.
+    Factors come from the pilot's medians of *both* arms (target: the faster arm's window
+    >= 2 ms; powers of two, at most 64). Every B1-B4 cell must have a factor and no unknown
+    key is accepted, so the frozen windows are exactly the ones that run.
     """
+    timed = {c["id"] for c in cells if c["experiment"] in ("B1", "B2", "B3", "B4")}
+    unknown = set(multipliers) - timed
+    missing = timed - set(multipliers)
+    if unknown or missing:
+        raise SystemExit(f"window multipliers: unknown {sorted(unknown)[:5]}, missing {sorted(missing)[:5]}")
     for cell in cells:
-        factor = multipliers.get(cell["id"], 1)
-        if factor == 1:
+        if cell["id"] not in timed:
             continue
+        factor = int(multipliers[cell["id"]])
         flag = "--requests" if cell["experiment"] == "B4" else "--window"
-        if cell["experiment"] == "B4" and "-import" in cell["id"]:
-            continue
         index = cell["args"].index(flag) + 1
         cell["args"][index] = str(int(cell["args"][index]) * factor)
         cell["scale"] = factor
@@ -70,41 +73,53 @@ def matrix(profile: str) -> List[Dict[str, Any]]:
             out += [f"--{key.replace('_', '-')}", str(value)]
         return out + ["--pairs", str(pairs), "--warmup", str(warmup), "--seed", str(SEED)]
 
+    def core(cell_id: str, experiment: str, tolerance: float, **kv: Any) -> None:
+        cells.append({"id": cell_id, "experiment": experiment, "tolerance": tolerance,
+                      "binary": "core", "args": ["pairs"] + pair_args(**kv)})
+
     for engine in ENGINES:
         for topology in ("sparse", "ring", "hub"):
             for nodes in (1_000, 10_000, 100_000):
                 for mix in ("query", "mutation"):
-                    cells.append({
-                        "id": f"B1-ops-{engine}-{topology}-{nodes}-{mix}", "experiment": "B1",
-                        "tolerance": 0.25, "binary": "core",
-                        "args": ["pairs"] + pair_args(exp="ops", engine=engine, topology=topology,
-                                                      nodes=nodes, mix=mix, window=4000)})
-        for topology in ("sparse", "hub"):
-            for nodes in (10_000, 100_000):
-                cells.append({
-                    "id": f"B2-optin-{engine}-{topology}-{nodes}", "experiment": "B2",
-                    "tolerance": 0.50, "binary": "core",
-                    "args": ["pairs"] + pair_args(exp="optin", engine=engine, topology=topology,
-                                                  nodes=nodes, mix="legacy", window=4000)})
+                    core(f"B1-ops-{engine}-{topology}-{nodes}-{mix}", "B1", 0.25, exp="ops",
+                         engine=engine, topology=topology, nodes=nodes, mix=mix, window=4000)
+                core(f"B2-optin-{engine}-{topology}-{nodes}", "B2", 0.50, exp="optin", engine=engine,
+                     topology=topology, nodes=nodes, mix="legacy", window=4000)
+        # Fresh-ID churn: enough removals for at least one compaction per window.
+        for nodes, window in ((1_000, 8_000), (10_000, 48_000)):
+            core(f"B1-ops-{engine}-sparse-{nodes}-fresh-churn", "B1", 0.25, exp="ops", engine=engine,
+                 topology="sparse", nodes=nodes, mix="fresh-churn", window=window)
         for degree, window in ((16, 3000), (256, 600), (4096, 300), (16384, 60)):
-            cells.append({
-                "id": f"B3-degree-{engine}-{degree}", "experiment": "B3", "tolerance": 0.25,
-                "binary": "core",
-                "args": ["pairs"] + pair_args(exp="degree", engine=engine, degree=degree,
-                                              window=window, topology="sparse", nodes=0,
-                                              mix="mutation")})
-        for scenario, tolerance, requests in (("optin-mutation", 0.50, 40), ("optin-query", 0.25, 4),
-                                              ("ops", 0.25, 40), ("events", 0.25, 40),
-                                              ("import", 1.00, 1), ("import-optin", 1.00, 1)):
-            cells.append({
-                "id": f"B4-http-{scenario}-{engine}-10000", "experiment": "B4",
-                "tolerance": tolerance, "binary": "http",
-                "args": pair_args(scenario=scenario, engine=engine, nodes=10_000, requests=requests)})
-    for scenario in ("import", "import-optin"):
-        cells.append({
-            "id": f"B4-http-{scenario}-compact-bfs-100000", "experiment": "B4", "tolerance": 1.00,
-            "binary": "http",
-            "args": pair_args(scenario=scenario, engine="compact-bfs", nodes=100_000, requests=1)})
+            core(f"B3-degree-{engine}-{degree}", "B3", 0.25, exp="degree", engine=engine,
+                 degree=degree, window=window, topology="sparse", nodes=0, mix="mutation")
+        for degree, cycles_ in ((16, 200), (256, 20), (4096, 2), (16384, 1)):
+            core(f"B3-degree-remove-{engine}-{degree}", "B3", 0.25, exp="degree-remove",
+                 engine=engine, degree=degree, window=cycles_, topology="sparse", nodes=0,
+                 mix="mutation")
+
+    def http(cell_id: str, tolerance: float, **kv: Any) -> None:
+        cells.append({"id": cell_id, "experiment": "B4", "tolerance": tolerance, "binary": "http",
+                      "args": pair_args(**kv)})
+
+    scenarios = (("optin-mutation", 0.50, 40), ("optin-query", 0.25, 4), ("ops", 0.25, 40),
+                 ("ops-query", 0.25, 8), ("events", 0.25, 40), ("import", 1.00, 1),
+                 ("import-optin", 1.00, 1))
+    for engine in ENGINES:
+        for topology in ("sparse", "hub"):
+            for scenario, tolerance, requests in scenarios:
+                http(f"B4-http-{scenario}-{engine}-{topology}-10000", tolerance, scenario=scenario,
+                     engine=engine, topology=topology, nodes=10_000, requests=requests)
+        http(f"B4-http-import-high-{engine}-sparse-10000", 1.00, scenario="import", engine=engine,
+             topology="sparse", nodes=10_000, requests=1, inactive_percent=60, disabled_percent=30)
+        for scenario, requests in (("metrics-ops", 40), ("metrics-legacy", 40)):
+            http(f"B4-http-{scenario}-{engine}-sparse-10000", 0.06, scenario=scenario,
+                 engine=engine, topology="sparse", nodes=10_000, requests=requests)
+    for scenario, tolerance, requests in scenarios:
+        if scenario.startswith("optin"):
+            continue
+        http(f"B4-http-{scenario}-compact-bfs-sparse-100000", tolerance, scenario=scenario,
+             engine="compact-bfs", topology="sparse", nodes=100_000, requests=requests)
+
     for engine in ENGINES:
         for topology in ("sparse", "hub"):
             for arm in ("plain", "lifecycle", "reference"):
@@ -114,17 +129,19 @@ def matrix(profile: str) -> List[Dict[str, Any]]:
                     "args": ["resources", "--arm", arm, "--engine", engine, "--topology", topology,
                              "--nodes", "100000", "--cycles", "0", "--churn-percent", "0",
                              "--reuse", "none", "--seed", str(SEED)]})
-        for topology in ("sparse", "ring", "hub"):
-            for reuse in ("fresh", "same", "toggle"):
-                for variant, binary in (("heap", "core-count"), ("rss", "core")):
-                    for arm in (("lifecycle", "reference") if reuse == "fresh" else ("lifecycle",)):
-                        cells.append({
-                            "id": f"C-{variant}-{arm}-{engine}-{topology}-{reuse}-100000",
-                            "experiment": "C", "binary": binary,
-                            "args": ["resources", "--arm", arm, "--engine", engine,
-                                     "--topology", topology, "--nodes", "100000",
-                                     "--cycles", str(cycles), "--churn-percent", "5",
-                                     "--reuse", reuse, "--seed", str(SEED)]})
+        sizes = {"sparse": (1_000, 10_000, 100_000), "ring": (100_000,), "hub": (100_000,)}
+        for topology, node_counts in sizes.items():
+            for nodes in node_counts:
+                for reuse in ("fresh", "same", "toggle"):
+                    for variant, binary in (("heap", "core-count"), ("rss", "core")):
+                        for arm in ("lifecycle", "reference"):
+                            cells.append({
+                                "id": f"C-{variant}-{arm}-{engine}-{topology}-{reuse}-{nodes}",
+                                "experiment": "C", "binary": binary,
+                                "args": ["resources", "--arm", arm, "--engine", engine,
+                                         "--topology", topology, "--nodes", str(nodes),
+                                         "--cycles", str(cycles), "--churn-percent", "5",
+                                         "--reuse", reuse, "--seed", str(SEED)]})
     return cells
 
 
@@ -166,6 +183,9 @@ def main() -> int:
         return 2
     binaries = {"core": args.core, "core-count": args.core_count, "http": args.http}
     cells = matrix(args.profile)
+    if args.profile == "final" and not args.window_multipliers:
+        print("--window-multipliers is required for the final profile", file=sys.stderr)
+        return 2
     if args.window_multipliers:
         apply_multipliers(cells, json.loads(args.window_multipliers.read_text()))
     if args.only:
@@ -175,6 +195,7 @@ def main() -> int:
     random.Random(args.order_seed).shuffle(order)
     provenance = {
         "profile": args.profile, "order_seed": args.order_seed, "seed": SEED,
+        "only": args.only, "cells": len(cells),
         "knotrel": {"path": str(args.knotrel.resolve()), "head": git(args.knotrel, "rev-parse", "HEAD"),
                     "dirty": git(args.knotrel, "status", "--porcelain")},
         "benchmarks": {"head": git(Path.cwd(), "rev-parse", "HEAD"),
