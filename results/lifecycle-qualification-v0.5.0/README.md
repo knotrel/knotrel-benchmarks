@@ -9,8 +9,13 @@
 - `window-multipliers*.json`: frozen window sizing for each run.
 
 Raw evidence (raw JSON lines, run logs, provenance, A campaign directories and
-pilots) is kept locally under `evidence/v0.5.0-qualification/` beside the
-repositories and is not yet published here.
+pilots) is stored in a private repository with a SHA-256 manifest; see
+[evidence/INVENTORY.md](evidence/INVENTORY.md) for the location, checksums and
+how to request access. It is not copied into this public repository.
+
+**Release comparison:** [COMPARISON-v0.4.0-v0.5.0.md](COMPARISON-v0.4.0-v0.5.0.md)
+compares v0.5.0 with v0.4.0 (absolute values, intervals, verdicts, identities,
+missing coverage and dispositions).
 
 ## Run 4 and maintainer decision (candidate dcd8ccc)
 
