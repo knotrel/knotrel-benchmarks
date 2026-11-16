@@ -367,8 +367,8 @@ struct FlagStore {
     inactive: Vec<bool>,
     disabled: Vec<bool>,
     effective: Vec<(u64, u64)>,
-    /// Effective edges in the imported payload, computed untimed.
-    imported_effective: usize,
+    /// Effective edges actually sent in the plain payload (untimed copy).
+    imported_effective: Vec<(u64, u64)>,
 }
 
 impl FlagStore {
@@ -387,7 +387,7 @@ impl FlagStore {
             inactive: self.inactive.clone(),
             disabled: self.disabled.clone(),
             effective,
-            imported_effective: self.imported_effective,
+            imported_effective: Vec::new(),
         }
     }
 
@@ -396,9 +396,10 @@ impl FlagStore {
     }
 
     /// Registered edges and their flags line up and the derived effective
-    /// list matches the imported one (checked after the window).
-    fn consistent(&self) -> bool {
-        self.edges.len() == self.disabled.len() && self.effective.len() == self.imported_effective
+    /// list equals the one sent in the plain payload (checked after the
+    /// window; a mismatch aborts the probe).
+    fn consistent(&self, sent: &[(u64, u64)]) -> bool {
+        self.edges.len() == self.disabled.len() && self.effective == sent
     }
 }
 
@@ -430,9 +431,17 @@ async fn run_window(arm: &mut Arm) -> u128 {
 
 async fn answers(arm: &Arm, pairs: &[(u64, u64)]) -> Vec<Value> {
     let mut out = Vec::new();
+    if let (Some(template), Some(store)) = (&arm.flag_store, &arm.built_store) {
+        // A store whose derived effective list differs from the payload
+        // actually imported invalidates the run instead of skewing answers.
+        assert!(
+            store.consistent(&template.imported_effective),
+            "flag store inconsistent with the imported effective graph"
+        );
+    }
     for &(a, b) in pairs {
         if let Some(store) = &arm.built_store
-            && (!store.consistent() || !store.active(a) || !store.active(b))
+            && (!store.active(a) || !store.active(b))
         {
             out.push(json!(false));
             continue;
@@ -622,6 +631,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 .collect();
             let mut all = Vec::new();
             let mut check = None;
+            let mut sent_effective = Vec::new();
             for _ in 0..requests.max(1) {
                 let app =
                     router_with_config(config(engine, candidate, ServerMode::SourceManaged, false));
@@ -657,7 +667,9 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                         })
                         .map(|(&e, _)| e)
                         .collect();
-                    (legacy_nodes(n), legacy_edges(&effective))
+                    let payload = (legacy_nodes(n), legacy_edges(&effective));
+                    sent_effective = effective;
+                    payload
                 };
                 let body = Bytes::from(import_body(&instance, nodes, wire_edges));
                 all.extend(calls(
@@ -668,11 +680,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 ));
                 check = Some(app);
             }
-            let imported_effective = edges
-                .iter()
-                .zip(&disabled)
-                .filter(|&(&(a, b), &off)| !off && !inactive[a as usize] && !inactive[b as usize])
-                .count();
+            let imported_effective = sent_effective;
             let flag_store = (!candidate && flagged).then(|| FlagStore {
                 edges: edges.clone(),
                 inactive,
