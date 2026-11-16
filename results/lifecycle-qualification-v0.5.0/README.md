@@ -11,3 +11,9 @@
 Raw evidence (raw JSON lines, run logs, provenance, A campaign directories and
 pilots) is kept locally under `evidence/v0.5.0-qualification/` beside the
 repositories and is not yet published here.
+
+## Run 4 and maintainer decision (candidate dcd8ccc)
+
+- `RUN-4-dcd8ccc.md`, `A-dcd8ccc-RESULT.md`, `run4-bc-analysis.md`: run 4 under amendment 4 (lifecycle scope `compact-bfs`).
+- `MAINTAINER-DISPOSITION-dcd8ccc.md`: decision table and provenance check.
+- `MAINTAINER-DECISION-v0.5.0.md`: the maintainer's post-result waivers, for v0.5.0 only; verdicts unchanged.
