@@ -1,35 +1,45 @@
 //! Core lifecycle probe: paired timing and sustained resources.
 //!
 //! ```text
-//! core-lifecycle pairs --exp ops|optin|degree --engine E --topology T
-//!     --nodes N --mix query|mutation|legacy --window W --pairs P
-//!     --warmup K --seed S [--degree D]
+//! core-lifecycle pairs --exp ops|optin|degree|degree-remove --engine E
+//!     --topology T --nodes N --mix query|mutation|legacy|fresh-churn
+//!     --window W --pairs P --warmup K --seed S [--degree D]
 //! core-lifecycle resources --arm lifecycle|reference|plain --engine E
 //!     --topology T --nodes N --cycles C --churn-percent P
-//!     --reuse fresh|same|toggle --seed S
+//!     --reuse none|fresh|same|toggle --seed S
 //! ```
+//!
+//! The first output line is a `build` record: the linked knotrel revision,
+//! its dirty state and the build variant.
 //!
 //! `pairs` builds both arms fresh for every pair (untimed), then times one
 //! replay of the same trace on each, alternating which arm runs first
-//! (pair index even: candidate first). One untimed verification replay per
-//! arm must give identical result digests before any timing. Experiments:
-//! `ops` compares `LifecycleGraph` with the application-side `Reference` on
-//! lifecycle mixes; `optin` compares `LifecycleGraph` with the plain engine
-//! on a legacy-only trace; `degree` alternately deactivates and reactivates
-//! the center of a star of degree D (with a ring among the leaves).
+//! (even pair index: candidate first). Before any timing, one untimed replay
+//! per arm must give identical result digests and identical end states
+//! (counts and `connected` on 200 sampled pairs). Experiments:
+//! - `ops`: `LifecycleGraph` vs the application-side `Reference`;
+//! - `optin`: `LifecycleGraph` vs the plain engine on a legacy-only trace;
+//! - `degree`: a star of degree D (a path among the leaves); repeated
+//!   deactivate / query / reactivate of the center, about `--window`
+//!   operations (rounded up to a multiple of 3);
+//! - `degree-remove`: the same star; each of `--window` cycles removes the
+//!   center, re-registers it and re-links it to every leaf.
 //!
-//! `resources` prints one checkpoint after construction and one after each
-//! churn cycle: logical counts, engine vertices (lifecycle arm), RSS and,
-//! in the `count-alloc` build, live heap bytes.
-//!
-//! Output: one JSON object per line on stdout.
+//! `resources` first computes the whole churn schedule and the expected
+//! logical counts after every cycle with an independent model, then drops
+//! the model, records a heap and RSS baseline, builds the arm and prints a
+//! checkpoint after construction and after every cycle: logical counts,
+//! expected counts, storage diagnostics (lifecycle arm), RSS and, in the
+//! `count-alloc` build, live heap. Heap and RSS are also reported net of the
+//! baseline, which holds the generated topology and the schedule.
 
 use knotrel_core::{EngineConfig, LifecycleGraph};
 use lifecycle_probes::{
-    Mix, Op, Plain, Reference, Rng, Subject, Topology, generate, parse_engine, rss_bytes, run,
-    trace,
+    Mix, Op, Plain, Reference, Rng, Subject, Topology, build_record, generate, parse_engine,
+    rss_bytes, run, state, trace,
 };
-use serde_json::json;
+use rustc_hash::{FxHashMap, FxHashSet};
+use serde_json::{Value, json};
 use std::{collections::HashMap, process::ExitCode, time::Instant};
 
 #[cfg(feature = "count-alloc")]
@@ -39,6 +49,9 @@ static GLOBAL: &stats_alloc::StatsAlloc<std::alloc::System> = &stats_alloc::INST
 #[cfg(not(feature = "count-alloc"))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+/// Fixed seed for end-state sampling, independent of `--seed`.
+const SAMPLE_SEED: u64 = 0x5a3b_1e00;
 
 fn live_heap() -> Option<i64> {
     #[cfg(feature = "count-alloc")]
@@ -84,6 +97,7 @@ impl Args {
     }
 }
 
+/// A star of degree `degree` around node 0, plus a path among the leaves.
 fn star(degree: u64) -> Vec<(u64, u64)> {
     let mut edges: Vec<(u64, u64)> = (1..=degree).map(|leaf| (0, leaf)).collect();
     for leaf in 1..degree {
@@ -106,6 +120,18 @@ fn timed<S: Subject>(
     (elapsed, digest)
 }
 
+fn verified<S: Subject>(
+    engine: EngineConfig,
+    n: u64,
+    edges: &[(u64, u64)],
+    ops: &[Op],
+    samples: &[(u64, u64)],
+) -> (u64, u64) {
+    let mut subject = S::build(engine, n, edges);
+    let digest = run(&mut subject, ops);
+    (digest, state(&subject, samples))
+}
+
 fn pairs<A: Subject, B: Subject>(
     args: &Args,
     engine: EngineConfig,
@@ -116,29 +142,33 @@ fn pairs<A: Subject, B: Subject>(
 ) -> Result<(), String> {
     let count: usize = args.num("pairs")?;
     let warmup: usize = args.num("warmup")?;
-    let (_, digest_a) = timed::<A>(engine, n, edges, ops);
-    let (_, digest_b) = timed::<B>(engine, n, edges, ops);
+    let mut rng = Rng(SAMPLE_SEED);
+    let samples: Vec<(u64, u64)> = (0..200)
+        .map(|_| (rng.below(n.max(1)), rng.below(n.max(1))))
+        .collect();
+    let (digest_a, state_a) = verified::<A>(engine, n, edges, ops, &samples);
+    let (digest_b, state_b) = verified::<B>(engine, n, edges, ops, &samples);
+    let ok = digest_a == digest_b && state_a == state_b;
     println!(
         "{}",
         json!({"kind":"verify","candidate":labels.0,"reference":labels.1,
                "digest_candidate":format!("{digest_a:016x}"),"digest_reference":format!("{digest_b:016x}"),
-               "match": digest_a == digest_b, "ops": ops.len(), "nodes": n, "edges": edges.len()})
+               "state_candidate":format!("{state_a:016x}"),"state_reference":format!("{state_b:016x}"),
+               "match": ok, "ops": ops.len(), "nodes": n, "edges": edges.len()})
     );
-    if digest_a != digest_b {
-        return Err("result digests differ between arms".into());
+    if !ok {
+        return Err("result digests or end states differ between arms".into());
     }
     for index in 0..warmup + count {
         let candidate_first = index % 2 == 0;
-        let (first, second) = if candidate_first {
+        let (a, b) = if candidate_first {
             let a = timed::<A>(engine, n, edges, ops);
-            let b = timed::<B>(engine, n, edges, ops);
-            (a, b)
+            (a, timed::<B>(engine, n, edges, ops))
         } else {
             let b = timed::<B>(engine, n, edges, ops);
-            let a = timed::<A>(engine, n, edges, ops);
-            (a, b)
+            (timed::<A>(engine, n, edges, ops), b)
         };
-        if first.1 != digest_a || second.1 != digest_b {
+        if a.1 != digest_a || b.1 != digest_b {
             return Err("digest changed between replays".into());
         }
         let pair = index as i64 - warmup as i64;
@@ -146,7 +176,7 @@ fn pairs<A: Subject, B: Subject>(
             "{}",
             json!({"kind": if pair < 0 {"warmup"} else {"pair"}, "pair": pair,
                    "candidate_first": candidate_first,
-                   "candidate_ns": first.0 as u64, "reference_ns": second.0 as u64})
+                   "candidate_ns": a.0 as u64, "reference_ns": b.0 as u64})
         );
     }
     Ok(())
@@ -157,27 +187,38 @@ fn pairs_command(args: &Args) -> Result<(), String> {
     let seed: u64 = args.num("seed")?;
     let window: usize = args.num("window")?;
     let exp = args.get("exp")?;
-    let (n, edges, ops) = if exp == "degree" {
-        let degree: u64 = args.num("degree")?;
-        let edges = star(degree);
-        let mut ops = Vec::with_capacity(window);
-        let mut rng = Rng(seed);
-        while ops.len() < window {
-            ops.push(Op::SetNode(0, false));
-            ops.push(Op::Connected(1 + rng.below(degree), 1 + rng.below(degree)));
-            ops.push(Op::SetNode(0, true));
+    let (n, edges, ops) = match exp {
+        "degree" | "degree-remove" => {
+            let degree: u64 = args.num("degree")?;
+            let edges = star(degree);
+            let mut ops = Vec::new();
+            let mut rng = Rng(seed);
+            if exp == "degree" {
+                for _ in 0..window.div_ceil(3) {
+                    ops.push(Op::SetNode(0, false));
+                    ops.push(Op::Connected(1 + rng.below(degree), 1 + rng.below(degree)));
+                    ops.push(Op::SetNode(0, true));
+                }
+            } else {
+                for _ in 0..window {
+                    ops.push(Op::Remove(0));
+                    ops.push(Op::AddNode(0));
+                    ops.extend((1..=degree).map(|leaf| Op::Link(0, leaf)));
+                }
+            }
+            (degree + 1, edges, ops)
         }
-        (degree + 1, edges, ops)
-    } else {
-        let topology = Topology::parse(args.get("topology")?).ok_or("unknown --topology")?;
-        let n: u64 = args.num("nodes")?;
-        let mix = Mix::parse(args.get("mix")?).ok_or("unknown --mix")?;
-        let edges = generate(topology, n, seed);
-        let ops = trace(n, &edges, mix, window, seed);
-        (n, edges, ops)
+        _ => {
+            let topology = Topology::parse(args.get("topology")?).ok_or("unknown --topology")?;
+            let n: u64 = args.num("nodes")?;
+            let mix = Mix::parse(args.get("mix")?).ok_or("unknown --mix")?;
+            let edges = generate(topology, n, seed);
+            let ops = trace(n, &edges, mix, window, seed);
+            (n, edges, ops)
+        }
     };
     match exp {
-        "ops" | "degree" => pairs::<LifecycleGraph, Reference>(
+        "ops" | "degree" | "degree-remove" => pairs::<LifecycleGraph, Reference>(
             args,
             engine,
             n,
@@ -198,90 +239,240 @@ fn pairs_command(args: &Args) -> Result<(), String> {
     }
 }
 
-/// Uniform churn interface for the resource experiment.
+/// Independent model of registered topology and flags for expected counts.
+#[derive(Default)]
+struct Model {
+    active: FxHashMap<u64, bool>,
+    edges: FxHashMap<(u64, u64), bool>,
+    adjacency: FxHashMap<u64, FxHashSet<u64>>,
+}
+
+fn key(a: u64, b: u64) -> (u64, u64) {
+    (a.min(b), a.max(b))
+}
+
+impl Model {
+    fn apply(&mut self, op: Op) {
+        match op {
+            Op::AddNode(v) => {
+                if let std::collections::hash_map::Entry::Vacant(entry) = self.active.entry(v) {
+                    entry.insert(true);
+                    self.adjacency.insert(v, FxHashSet::default());
+                }
+            }
+            Op::Link(a, b) => {
+                if a == b || self.edges.contains_key(&key(a, b)) {
+                    return;
+                }
+                self.apply(Op::AddNode(a));
+                self.apply(Op::AddNode(b));
+                self.edges.insert(key(a, b), true);
+                self.adjacency.get_mut(&a).unwrap().insert(b);
+                self.adjacency.get_mut(&b).unwrap().insert(a);
+            }
+            Op::Remove(v) => {
+                if self.active.remove(&v).is_none() {
+                    return;
+                }
+                for w in self.adjacency.remove(&v).unwrap() {
+                    self.edges.remove(&key(v, w));
+                    self.adjacency.get_mut(&w).unwrap().remove(&v);
+                }
+            }
+            Op::SetNode(v, f) => {
+                if let Some(flag) = self.active.get_mut(&v) {
+                    *flag = f;
+                }
+            }
+            Op::SetEdge(a, b, f) => {
+                if let Some(flag) = self.edges.get_mut(&key(a, b)) {
+                    *flag = f;
+                }
+            }
+            Op::Cut(..) | Op::Connected(..) => unreachable!("not used by churn schedules"),
+        }
+    }
+
+    /// `[nodes, edges, active nodes, enabled edges, effective edges]`.
+    fn counts(&self) -> [usize; 5] {
+        let effective = self
+            .edges
+            .iter()
+            .filter(|&(&(a, b), &enabled)| enabled && self.active[&a] && self.active[&b])
+            .count();
+        [
+            self.active.len(),
+            self.edges.len(),
+            self.active.values().filter(|&&a| a).count(),
+            self.edges.values().filter(|&&e| e).count(),
+            effective,
+        ]
+    }
+}
+
+/// Operations per cycle, and expected counts after construction and every cycle.
+type Schedule = (Vec<Vec<Op>>, Vec<[usize; 5]>);
+
+/// Builds the churn schedule (operations per cycle) and the expected counts
+/// after construction and after every cycle. Every scheduled operation is
+/// applied to the model as it is scheduled.
+///
+/// Each cycle touches `percent`% of the live IDs:
+/// - `fresh`: remove, register a never-used ID, link it to `relink` live IDs;
+/// - `same`: remove, re-register the same ID, link it to `relink` live IDs;
+/// - `toggle`: first restore the previous cycle's picks (reactivate, re-enable
+///   the edge disabled for them), then deactivate new active picks and
+///   disable one enabled incident edge of each. About `percent`% of the nodes
+///   therefore stay inactive across checkpoints, with as many edges disabled.
+fn schedule(
+    n: u64,
+    edges: &[(u64, u64)],
+    reuse: &str,
+    cycles: usize,
+    percent: u64,
+    seed: u64,
+) -> Result<Schedule, String> {
+    let mut model = Model::default();
+    (0..n).for_each(|v| model.apply(Op::AddNode(v)));
+    edges.iter().for_each(|&(a, b)| model.apply(Op::Link(a, b)));
+    let relink = (2 * edges.len() as u64 / n.max(1)).max(1);
+    let mut expected = vec![model.counts()];
+    let mut plan = Vec::with_capacity(cycles);
+    let mut rng = Rng(seed ^ 0xc0ffee);
+    let mut live: Vec<u64> = (0..n).collect();
+    let mut next_id = n;
+    let mut previous: Vec<(u64, Option<u64>)> = Vec::new();
+    for _ in 0..cycles {
+        let mut ops = Vec::new();
+        let mut push = |op: Op, model: &mut Model| {
+            model.apply(op);
+            ops.push(op);
+        };
+        if reuse == "toggle" {
+            for (v, w) in previous.drain(..) {
+                push(Op::SetNode(v, true), &mut model);
+                if let Some(w) = w {
+                    push(Op::SetEdge(v, w, true), &mut model);
+                }
+            }
+        }
+        let picks = (live.len() as u64 * percent / 100).max(1);
+        for _ in 0..picks {
+            let index = rng.below(live.len() as u64) as usize;
+            let v = live[index];
+            match reuse {
+                "fresh" | "same" => {
+                    push(Op::Remove(v), &mut model);
+                    let id = if reuse == "fresh" {
+                        let id = next_id;
+                        next_id += 1;
+                        id
+                    } else {
+                        v
+                    };
+                    live[index] = id;
+                    push(Op::AddNode(id), &mut model);
+                    for _ in 0..relink {
+                        let w = live[rng.below(live.len() as u64) as usize];
+                        push(Op::Link(id, w), &mut model);
+                    }
+                }
+                "toggle" => {
+                    if !model.active[&v] {
+                        continue;
+                    }
+                    let enabled: Vec<u64> = model.adjacency[&v]
+                        .iter()
+                        .copied()
+                        .filter(|&w| model.edges[&key(v, w)])
+                        .collect();
+                    let w = (!enabled.is_empty())
+                        .then(|| enabled[rng.below(enabled.len() as u64) as usize]);
+                    push(Op::SetNode(v, false), &mut model);
+                    if let Some(w) = w {
+                        push(Op::SetEdge(v, w, false), &mut model);
+                    }
+                    previous.push((v, w));
+                }
+                _ => return Err("unknown --reuse".into()),
+            }
+        }
+        expected.push(model.counts());
+        plan.push(ops);
+    }
+    Ok((plan, expected))
+}
+
+/// Churn interface for the resource experiment.
 trait Churn: Subject {
-    fn counts(&self) -> serde_json::Value;
+    fn counts_json(&self) -> Value;
 }
 
 impl Churn for LifecycleGraph {
-    fn counts(&self) -> serde_json::Value {
-        json!({"nodes": self.node_count(), "edges": self.edge_count(),
-               "active_nodes": self.active_node_count(), "enabled_edges": self.enabled_edge_count(),
-               "effective_edges": self.effective_edge_count(), "engine_vertices": self.engine_vertex_count()})
+    fn counts_json(&self) -> Value {
+        let storage = self.storage_stats();
+        json!({"logical": [self.node_count(), self.edge_count(), self.active_node_count(),
+                           self.enabled_edge_count(), self.effective_edge_count()],
+               "engine_vertices": storage.engine_vertices,
+               "retired_vertices": storage.retired_vertices,
+               "catalog_node_capacity": storage.catalog_node_capacity,
+               "incident_entries": storage.incident_entries,
+               "incident_capacity": storage.incident_capacity})
     }
 }
 
 impl Churn for Reference {
-    fn counts(&self) -> serde_json::Value {
-        json!({})
+    fn counts_json(&self) -> Value {
+        let l = self.logical();
+        json!({"logical": [l[0], l[1], l[2], l[3], l[4]], "engine_vertices": l[5]})
     }
 }
 
 impl Churn for Plain {
-    fn counts(&self) -> serde_json::Value {
-        json!({"nodes": self.0.node_count(), "edges": self.0.edge_count()})
+    fn counts_json(&self) -> Value {
+        json!({"logical": [self.0.node_count(), self.0.edge_count()]})
     }
 }
 
-fn checkpoint<S: Churn>(subject: &S, cycle: usize) {
+fn checkpoint<S: Churn>(
+    subject: &S,
+    cycle: usize,
+    expected: &[usize; 5],
+    baseline: (Option<i64>, Option<u64>),
+) {
+    let heap = live_heap();
+    let rss = rss_bytes();
     println!(
         "{}",
-        json!({"kind":"checkpoint","cycle":cycle,"counts":subject.counts(),
-               "rss_bytes":rss_bytes(),"live_heap_bytes":live_heap()})
+        json!({"kind":"checkpoint","cycle":cycle,"counts":subject.counts_json(),"expected":expected,
+               "rss_bytes":rss,"live_heap_bytes":heap,
+               "net_heap_bytes": heap.zip(baseline.0).map(|(h, b)| h - b),
+               "net_rss_bytes": rss.zip(baseline.1).map(|(r, b)| r as i64 - b as i64)})
     );
 }
 
-/// Churn: each cycle picks `churn%` of the live IDs. `fresh` removes each and
-/// registers a new, never-used ID with `relink` random edges; `same` removes
-/// and re-registers the same ID with `relink` edges; `toggle` deactivates
-/// them, disables one random incident pair, then reactivates and re-enables.
 fn churn<S: Churn>(args: &Args, engine: EngineConfig) -> Result<(), String> {
     let topology = Topology::parse(args.get("topology")?).ok_or("unknown --topology")?;
     let n: u64 = args.num("nodes")?;
     let cycles: usize = args.num("cycles")?;
     let percent: u64 = args.num("churn-percent")?;
     let seed: u64 = args.num("seed")?;
-    let reuse = args.get("reuse")?.to_owned();
+    let reuse = args.get("reuse")?;
     let edges = generate(topology, n, seed);
-    // Re-link count keeps the registered edge count roughly steady.
-    let relink = (2 * edges.len() as u64 / n.max(1)).max(1);
+    let (plan, expected) = schedule(n, &edges, reuse, cycles, percent, seed)?;
+    let baseline = (live_heap(), rss_bytes());
+    println!(
+        "{}",
+        json!({"kind":"baseline","live_heap_bytes":baseline.0,"rss_bytes":baseline.1,
+               "schedule_ops": plan.iter().map(Vec::len).sum::<usize>()})
+    );
     let mut subject = S::build(engine, n, &edges);
-    checkpoint(&subject, 0);
-    let mut rng = Rng(seed ^ 0xc0ffee);
-    let mut live: Vec<u64> = (0..n).collect();
-    let mut next_id = n;
-    for cycle in 1..=cycles {
-        let picks = (live.len() as u64 * percent / 100).max(1);
-        for _ in 0..picks {
-            let index = rng.below(live.len() as u64) as usize;
-            let v = live[index];
-            match reuse.as_str() {
-                "fresh" | "same" => {
-                    subject.apply(Op::Remove(v));
-                    let id = if reuse == "fresh" {
-                        next_id += 1;
-                        next_id
-                    } else {
-                        v
-                    };
-                    live[index] = id;
-                    subject.apply(Op::AddNode(id));
-                    for _ in 0..relink {
-                        let w = live[rng.below(live.len() as u64) as usize];
-                        subject.apply(Op::Link(id, w));
-                    }
-                }
-                "toggle" => {
-                    let w = live[rng.below(live.len() as u64) as usize];
-                    subject.apply(Op::SetNode(v, false));
-                    subject.apply(Op::SetEdge(v, w, false));
-                    subject.apply(Op::SetNode(v, true));
-                    subject.apply(Op::SetEdge(v, w, true));
-                }
-                _ => return Err("unknown --reuse".into()),
-            }
+    checkpoint(&subject, 0, &expected[0], baseline);
+    for (cycle, ops) in plan.iter().enumerate() {
+        for &op in ops {
+            subject.apply(op);
         }
-        checkpoint(&subject, cycle);
+        checkpoint(&subject, cycle + 1, &expected[cycle + 1], baseline);
     }
     Ok(())
 }
@@ -304,6 +495,7 @@ fn resources_command(args: &Args) -> Result<(), String> {
 fn main() -> ExitCode {
     let mut items = std::env::args().skip(1);
     let command = items.next().unwrap_or_default();
+    println!("{}", build_record("core-lifecycle"));
     let result = Args::parse(items).and_then(|args| match command.as_str() {
         "pairs" => pairs_command(&args),
         "resources" => resources_command(&args),

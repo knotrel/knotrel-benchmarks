@@ -239,6 +239,10 @@ pub enum Mix {
     MutationHeavy,
     /// Legacy only: 50% `link`/`cut`, 50% `connected` (opt-in cost).
     Legacy,
+    /// Only removals with fresh-ID re-registration (remove, add a never-used
+    /// ID, link it twice), so retired engine slots accumulate and the
+    /// lifecycle facade compacts inside the window.
+    FreshChurn,
 }
 
 impl Mix {
@@ -248,6 +252,7 @@ impl Mix {
             "query" => Self::QueryHeavy,
             "mutation" => Self::MutationHeavy,
             "legacy" => Self::Legacy,
+            "fresh-churn" => Self::FreshChurn,
             _ => return None,
         })
     }
@@ -267,8 +272,24 @@ pub fn trace(n: u64, edges: &[(u64, u64)], mix: Mix, length: usize, seed: u64) -
         Mix::QueryHeavy => 90,
         Mix::MutationHeavy => 10,
         Mix::Legacy => 50,
+        Mix::FreshChurn => 0,
     };
+    let mut next_id = u64::MAX / 2;
     while ops.len() < length {
+        if mix == Mix::FreshChurn {
+            let v = model.node(&mut rng);
+            ops.push(Op::Remove(v));
+            model.remove_node(v);
+            next_id += 1;
+            ops.push(Op::AddNode(next_id));
+            model.add_node(next_id);
+            for _ in 0..2 {
+                let w = model.node(&mut rng);
+                ops.push(Op::Link(next_id, w));
+                model.add_edge(next_id, w);
+            }
+            continue;
+        }
         if rng.below(100) < query_percent {
             ops.push(Op::Connected(model.node(&mut rng), model.node(&mut rng)));
             continue;
@@ -363,6 +384,22 @@ pub trait Subject {
     fn build(engine: EngineConfig, n: u64, edges: &[(u64, u64)]) -> Self;
     /// Executes one operation and returns its result code.
     fn apply(&mut self, op: Op) -> u64;
+    /// Registered node and edge counts (all nodes and edges for the plain
+    /// engine).
+    fn counts(&self) -> (usize, usize);
+    /// `connected` result code, for end-state comparison.
+    fn query(&self, source: u64, target: u64) -> u64;
+}
+
+/// End-state fingerprint: counts and `connected` on `samples`.
+pub fn state<S: Subject>(subject: &S, samples: &[(u64, u64)]) -> u64 {
+    let (nodes, edges) = subject.counts();
+    let mut digest = 0xcbf2_9ce4_8422_2325_u64 ^ (nodes as u64) ^ ((edges as u64) << 32);
+    for &(a, b) in samples {
+        digest ^= subject.query(a, b);
+        digest = digest.wrapping_mul(0x0100_0000_01b3);
+    }
+    digest
 }
 
 /// Runs a trace and returns an order-sensitive FNV-1a digest of results.
@@ -398,6 +435,14 @@ impl Subject for LifecycleGraph {
             Op::Remove(v) => u64::from(self.remove_node(v)),
         }
     }
+
+    fn counts(&self) -> (usize, usize) {
+        (self.node_count(), self.edge_count())
+    }
+
+    fn query(&self, source: u64, target: u64) -> u64 {
+        code(self.connected(source, target).map_err(graph_kind))
+    }
 }
 
 /// The plain engine, for legacy-only traces (opt-in cost).
@@ -424,6 +469,14 @@ impl Subject for Plain {
             _ => panic!("the plain engine runs legacy traces only"),
         }
     }
+
+    fn counts(&self) -> (usize, usize) {
+        (self.0.node_count(), self.0.edge_count())
+    }
+
+    fn query(&self, source: u64, target: u64) -> u64 {
+        code(self.0.connected(source, target).map_err(graph_kind))
+    }
 }
 
 /// Application-side lifecycle over a plain engine: registered topology and
@@ -439,6 +492,26 @@ struct RefNode {
 }
 
 impl Reference {
+    /// Logical counts: registered nodes, registered edges, active nodes,
+    /// enabled edges, effective edges and engine vertices (which keep removed
+    /// nodes: the reference never compacts).
+    pub fn logical(&self) -> [usize; 6] {
+        let mut edges = 0;
+        let mut enabled = 0;
+        for node in self.nodes.values() {
+            edges += node.neighbors.len();
+            enabled += node.neighbors.values().filter(|&&e| e).count();
+        }
+        [
+            self.nodes.len(),
+            edges / 2,
+            self.nodes.values().filter(|n| n.active).count(),
+            enabled / 2,
+            self.engine.edge_count(),
+            self.engine.node_count(),
+        ]
+    }
+
     fn effective(&self, a: u64, b: u64) -> bool {
         self.nodes[&a].active && self.nodes[&b].active
     }
@@ -607,6 +680,15 @@ impl Subject for Reference {
             Op::Remove(v) => u64::from(self.remove(v)),
         }
     }
+
+    fn counts(&self) -> (usize, usize) {
+        let logical = self.logical();
+        (logical[0], logical[1])
+    }
+
+    fn query(&self, source: u64, target: u64) -> u64 {
+        code(self.connected(source, target))
+    }
 }
 
 /// Current resident set size of this process in bytes, via `ps` (macOS and
@@ -619,6 +701,17 @@ pub fn rss_bytes() -> Option<u64> {
         .ok()?;
     let kib: u64 = String::from_utf8(output.stdout).ok()?.trim().parse().ok()?;
     Some(kib * 1024)
+}
+
+/// First output line of every probe: the measured source and build variant.
+pub fn build_record(probe: &str) -> serde_json::Value {
+    serde_json::json!({
+        "kind": "build",
+        "probe": probe,
+        "knotrel_rev": env!("KNOTREL_REV"),
+        "knotrel_dirty": env!("KNOTREL_DIRTY") == "true",
+        "count_alloc": cfg!(feature = "count-alloc"),
+    })
 }
 
 #[cfg(test)]
@@ -638,6 +731,7 @@ mod tests {
                 (Topology::Sparse, Mix::MutationHeavy),
                 (Topology::Hub, Mix::QueryHeavy),
                 (Topology::Ring, Mix::MutationHeavy),
+                (Topology::Sparse, Mix::FreshChurn),
             ] {
                 let edges = generate(topology, 300, 11);
                 let ops = trace(300, &edges, mix, 3_000, 11);

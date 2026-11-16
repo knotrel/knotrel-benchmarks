@@ -1,43 +1,53 @@
 //! In-process HTTP probe of lifecycle costs through the complete router.
 //!
 //! ```text
-//! http-lifecycle --scenario S --engine E --nodes N --requests R --pairs P
-//!     --warmup K --seed SEED
+//! http-lifecycle --scenario S --engine E --topology T --nodes N
+//!     --requests R --pairs P --warmup K --seed SEED
+//!     [--inactive-percent I --disabled-percent D]
 //! ```
 //!
 //! Requests go through the real Axum router with `tower::ServiceExt::oneshot`
-//! (no sockets). Every pair builds both arms fresh (untimed), then times
-//! each arm's window, alternating which arm runs first. Request bodies are
-//! serialized before the window. Scenarios (candidate vs reference):
+//! (no sockets). The first output line is a `build` record. Every pair builds
+//! both arms fresh (untimed), then times each arm's window, alternating which
+//! arm runs first. Request bodies are prebuilt `Bytes` (cloning is a reference
+//! count); the window sends them in order and drains each response body
+//! without parsing it. After both windows, an untimed check compares
+//! `connected` answers on 200 random pairs between the arms. Both arms stay
+//! alive during both windows (balanced by alternation); every request crosses
+//! the server's blocking-pool hop, as in production.
 //!
-//! - `optin-mutation`: R standalone batches of 1,024 alternating `cut`/`link`
-//!   on a sparse graph; lifecycle-enabled server vs disabled server.
+//! Scenarios (candidate vs reference):
+//! - `optin-mutation`: R batches of 1,024 alternating `cut`/`link`;
+//!   lifecycle-enabled vs disabled server.
 //! - `optin-query`: R batches of 1,024 `connected`; same arms.
-//! - `ops`: R batches of lifecycle mutations (a mutation-heavy trace without
-//!   queries, 256 operations per batch) on a lifecycle server, vs a plain
-//!   server driven by an application-side planner that keeps the same
-//!   registered topology and flags and sends the equivalent `link`/`cut`
-//!   operations. Planning runs before the window (untimed), so the reference
-//!   window measures server work only, which favors the reference.
-//! - `events`: the same trace as source-managed feeder events (128 per
-//!   request) vs the planner's equivalent legacy events (chunked at 1,024).
-//! - `import`: one import of N nodes with 20% inactive nodes and 10% disabled
-//!   edges on a lifecycle server, vs a plain server importing the effective
-//!   graph (the application keeps the flags); `--requests` is ignored.
-//! - `import-optin`: one all-active import on a lifecycle server vs the same
-//!   legacy payload on a plain server.
-//!
-//! After each pair, an untimed check compares `connected` answers on 200
-//! random pairs between the arms (for the `optin-*` scenarios the graphs are
-//! identical by construction and the check still runs). Output: JSON lines.
+//! - `ops`: a mutation-heavy lifecycle trace without queries in batches of
+//!   256 on a lifecycle server, vs a plain server driven by an
+//!   application-side planner that keeps the same registered topology and
+//!   flags and sends the equivalent `link`/`cut`. Planning is untimed.
+//! - `ops-query`: a query-heavy lifecycle trace (90% `connected`); the planner
+//!   answers `connected` locally when an endpoint is inactive or absent and
+//!   forwards the rest. Planning is untimed.
+//! - `events`: the `ops` trace as feeder events, 128 lifecycle events per
+//!   request, vs the planner's equivalent legacy events chunked at 1,024 per
+//!   request (request counts can differ). Planning is untimed.
+//! - `import`: R imports (one fresh source-managed server each) with I%
+//!   inactive nodes and D% disabled edges, vs R plain imports of the
+//!   effective graph where the application keeps the flags: building the
+//!   application-side flag store from the same topology is timed inside the
+//!   reference window.
+//! - `import-optin`: R all-active legacy imports, lifecycle vs plain server.
+//! - `metrics-ops`: the `ops` requests on two lifecycle servers, metrics
+//!   enabled vs disabled.
+//! - `metrics-legacy`: the `optin-mutation` requests on two
+//!   lifecycle-disabled servers, metrics enabled vs disabled.
 
 use axum::{
     Router,
-    body::{Body, to_bytes},
+    body::{Body, Bytes, to_bytes},
     http::{Request, StatusCode},
 };
 use knotrel_server::{ServerConfig, ServerMode, router_with_config};
-use lifecycle_probes::{Mix, Op, Rng, Topology, generate, parse_engine, trace};
+use lifecycle_probes::{Mix, Op, Rng, Topology, build_record, generate, parse_engine, trace};
 use rustc_hash::FxHashMap;
 use serde_json::{Value, json};
 use std::{collections::HashMap, process::ExitCode, time::Instant};
@@ -47,6 +57,25 @@ use tower::ServiceExt;
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 const BATCH: usize = 1_024;
+
+/// One request with a prebuilt body.
+#[derive(Clone)]
+struct Call {
+    app: Router,
+    path: &'static str,
+    instance: Option<String>,
+    body: Bytes,
+}
+
+impl Call {
+    fn request(&self) -> Request<Body> {
+        let mut request = Request::post(self.path).header("content-type", "application/json");
+        if let Some(instance) = &self.instance {
+            request = request.header("x-knotrel-instance-id", instance.as_str());
+        }
+        request.body(Body::from(self.body.clone())).unwrap()
+    }
+}
 
 async fn post(
     app: &Router,
@@ -81,11 +110,17 @@ async fn get(app: &Router, path: &str) -> Value {
     serde_json::from_slice(&bytes).unwrap()
 }
 
-fn config(engine: knotrel_core::EngineConfig, lifecycle: bool, mode: ServerMode) -> ServerConfig {
+fn config(
+    engine: knotrel_core::EngineConfig,
+    lifecycle: bool,
+    mode: ServerMode,
+    metrics: bool,
+) -> ServerConfig {
     ServerConfig::new("127.0.0.1:0".parse().unwrap(), engine, 32)
         .unwrap()
         .with_mode(mode)
         .with_topology_lifecycle(lifecycle)
+        .with_metrics_enabled(metrics)
         .with_graph_limits(knotrel_core::GraphLimits::default())
 }
 
@@ -103,6 +138,10 @@ fn wire(op: &Op) -> Value {
         }
         Op::Remove(v) => json!({"op":"remove_node","node":v.to_string()}),
     }
+}
+
+fn batch_body(ops: &[Op]) -> Bytes {
+    Bytes::from(json!({"operations": ops.iter().map(wire).collect::<Vec<_>>()}).to_string())
 }
 
 /// Application-side planner: keeps registered topology and flags and emits
@@ -130,7 +169,9 @@ impl Planner {
         self.nodes.get(&v).is_some_and(|node| node.0)
     }
 
-    /// Appends the legacy operations equivalent to `op`.
+    /// Appends the legacy operations equivalent to `op`. `connected` is
+    /// forwarded only when both endpoints are active (otherwise the
+    /// application answers it locally).
     fn plan(&mut self, op: Op, out: &mut Vec<Op>) {
         match op {
             Op::AddNode(v) => {
@@ -209,7 +250,11 @@ impl Planner {
                     }
                 }
             }
-            Op::Connected(..) => {}
+            Op::Connected(a, b) => {
+                if self.active(a) && self.active(b) {
+                    out.push(Op::Connected(a, b));
+                }
+            }
         }
     }
 }
@@ -220,7 +265,7 @@ struct Feeder {
 }
 
 impl Feeder {
-    async fn start(app: &Router, nodes: Value, edges: Value) -> Self {
+    async fn session(app: &Router) -> String {
         let instance = get(app, "/v1/info").await["instance_id"]
             .as_str()
             .unwrap()
@@ -233,21 +278,21 @@ impl Feeder {
         )
         .await;
         assert_eq!(status, StatusCode::OK);
-        let (status, body) = post(
-            app,
-            "/v1/feeder/import",
-            Some(&instance),
-            import_body(&instance, nodes, edges),
-        )
-        .await;
-        assert_eq!(status, StatusCode::CREATED, "{body}");
+        instance
+    }
+
+    async fn start(app: &Router, n: u64, edges: &[(u64, u64)]) -> Self {
+        let instance = Self::session(app).await;
+        let body = import_body(&instance, legacy_nodes(n), legacy_edges(edges));
+        let (status, reply) = post(app, "/v1/feeder/import", Some(&instance), body).await;
+        assert_eq!(status, StatusCode::CREATED, "{reply}");
         Self {
             instance,
             sequence: 0,
         }
     }
 
-    fn events(&mut self, ops: &[Op]) -> String {
+    fn events(&mut self, ops: &[Op]) -> Bytes {
         let events: Vec<Value> = ops
             .iter()
             .map(|op| {
@@ -262,10 +307,12 @@ impl Feeder {
                 event
             })
             .collect();
-        json!({"instance_id":self.instance,"graph_id":"default","generation":1,
-               "feeder_session_id":"s","feeder_epoch":1,"source_id":"src","source_epoch":"e1",
-               "events":events})
-        .to_string()
+        Bytes::from(
+            json!({"instance_id":self.instance,"graph_id":"default","generation":1,
+                   "feeder_session_id":"s","feeder_epoch":1,"source_id":"src","source_epoch":"e1",
+                   "events":events})
+            .to_string(),
+        )
     }
 }
 
@@ -292,34 +339,67 @@ fn legacy_edges(edges: &[(u64, u64)]) -> Value {
 async fn standalone(
     engine: knotrel_core::EngineConfig,
     lifecycle: bool,
+    metrics: bool,
     n: u64,
     edges: &[(u64, u64)],
 ) -> Router {
-    let app = router_with_config(config(engine, lifecycle, ServerMode::Standalone));
+    let app = router_with_config(config(engine, lifecycle, ServerMode::Standalone, metrics));
     let mut ops: Vec<Op> = (0..n).map(Op::AddNode).collect();
     ops.extend(edges.iter().map(|&(a, b)| Op::Link(a, b)));
     for chunk in ops.chunks(BATCH) {
-        let body = json!({"operations": chunk.iter().map(wire).collect::<Vec<_>>()}).to_string();
+        let body = String::from_utf8(batch_body(chunk).to_vec()).unwrap();
         assert_eq!(post(&app, "/v1/batch", None, body).await.0, StatusCode::OK);
     }
     app
 }
 
-/// One prepared arm: an app plus the request bodies of its window.
-struct Arm {
-    app: Router,
-    path: &'static str,
-    instance: Option<String>,
-    bodies: Vec<String>,
-    /// Lifecycle server: `connected` answers come from it. Plain reference:
-    /// the planner answers inactive/absent endpoints.
-    planner: Option<Planner>,
+/// Untimed inputs of the import reference's application-side flag store.
+struct FlagStore {
+    n: u64,
+    edges: Vec<(u64, u64)>,
+    inactive: Vec<bool>,
+    disabled: Vec<bool>,
 }
 
-async fn run_window(arm: &Arm) -> u128 {
+impl FlagStore {
+    /// Builds the application-side store holding every registered node and
+    /// edge with its flags (timed inside the reference window).
+    fn build(&self) -> Planner {
+        let mut planner = Planner::new(self.n, &self.edges);
+        let mut sink = Vec::new();
+        for (index, &(a, b)) in self.edges.iter().enumerate() {
+            if self.disabled[index] {
+                planner.plan(Op::SetEdge(a, b, false), &mut sink);
+            }
+        }
+        for v in 0..self.n {
+            if self.inactive[v as usize] {
+                planner.plan(Op::SetNode(v, false), &mut sink);
+            }
+        }
+        planner
+    }
+}
+
+/// One prepared arm: its window's calls, and how to check its answers.
+struct Arm {
+    calls: Vec<Call>,
+    /// App used for the connectivity check.
+    check: Router,
+    planner: Option<Planner>,
+    /// Import reference: the flag store is built inside the window.
+    flag_store: Option<FlagStore>,
+}
+
+async fn run_window(arm: &mut Arm) -> u128 {
     let start = Instant::now();
-    for body in &arm.bodies {
-        let (status, _) = post(&arm.app, arm.path, arm.instance.as_deref(), body.clone()).await;
+    if let Some(store) = &arm.flag_store {
+        arm.planner = Some(store.build());
+    }
+    for call in &arm.calls {
+        let response = call.app.clone().oneshot(call.request()).await.unwrap();
+        let status = response.status();
+        let _ = to_bytes(response.into_body(), 64 << 20).await.unwrap();
         assert!(status.is_success(), "{status}");
     }
     start.elapsed().as_nanos()
@@ -340,7 +420,7 @@ async fn answers(arm: &Arm, pairs: &[(u64, u64)]) -> Vec<Value> {
             continue;
         }
         let (status, body) = post(
-            &arm.app,
+            &arm.check,
             "/v1/operations",
             None,
             wire(&Op::Connected(a, b)).to_string(),
@@ -361,6 +441,25 @@ struct Plan {
     edges: Vec<(u64, u64)>,
     requests: usize,
     seed: u64,
+    inactive_percent: u64,
+    disabled_percent: u64,
+}
+
+fn calls(
+    app: &Router,
+    path: &'static str,
+    instance: Option<&str>,
+    bodies: Vec<Bytes>,
+) -> Vec<Call> {
+    bodies
+        .into_iter()
+        .map(|body| Call {
+            app: app.clone(),
+            path,
+            instance: instance.map(str::to_owned),
+            body,
+        })
+        .collect()
 }
 
 async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, String> {
@@ -370,187 +469,183 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
         ref edges,
         requests,
         seed,
+        inactive_percent,
+        disabled_percent,
     } = *plan;
     match scenario {
-        "optin-mutation" | "optin-query" => {
-            let app = standalone(engine, candidate, n, edges).await;
+        "optin-mutation" | "optin-query" | "metrics-legacy" => {
+            let (lifecycle, metrics) = match scenario {
+                "metrics-legacy" => (false, candidate),
+                _ => (candidate, false),
+            };
+            let app = standalone(engine, lifecycle, metrics, n, edges).await;
             let mut rng = Rng(seed ^ 0x51);
             let bodies = (0..requests)
                 .map(|_| {
-                    let ops: Vec<Value> = (0..BATCH)
+                    let ops: Vec<Op> = (0..BATCH)
                         .map(|i| {
                             if scenario == "optin-query" {
-                                wire(&Op::Connected(rng.below(n), rng.below(n)))
+                                Op::Connected(rng.below(n), rng.below(n))
                             } else {
                                 let (a, b) = edges[(i / 2) % edges.len()];
-                                wire(&if i % 2 == 0 {
+                                if i % 2 == 0 {
                                     Op::Cut(a, b)
                                 } else {
                                     Op::Link(a, b)
-                                })
+                                }
                             }
                         })
                         .collect();
-                    json!({"operations": ops}).to_string()
+                    batch_body(&ops)
                 })
                 .collect();
             Ok(Arm {
-                app,
-                path: "/v1/batch",
-                instance: None,
-                bodies,
+                calls: calls(&app, "/v1/batch", None, bodies),
+                check: app,
                 planner: None,
+                flag_store: None,
             })
         }
-        "ops" | "events" => {
-            let ops: Vec<Op> = trace(n, edges, Mix::MutationHeavy, requests * 256, seed)
+        "ops" | "ops-query" | "events" | "metrics-ops" => {
+            let mix = if scenario == "ops-query" {
+                Mix::QueryHeavy
+            } else {
+                Mix::MutationHeavy
+            };
+            let ops: Vec<Op> = trace(n, edges, mix, requests * 256, seed)
                 .into_iter()
-                .filter(|op| !matches!(op, Op::Connected(..)))
+                .filter(|op| scenario == "ops-query" || !matches!(op, Op::Connected(..)))
                 .collect();
-            let per = if scenario == "ops" { 256 } else { 128 };
-            if scenario == "ops" {
-                let app = standalone(engine, candidate, n, edges).await;
-                if candidate {
-                    let bodies = ops
-                        .chunks(per)
-                        .map(|c| {
-                            json!({"operations": c.iter().map(wire).collect::<Vec<_>>()})
-                                .to_string()
-                        })
-                        .collect();
-                    return Ok(Arm {
-                        app,
-                        path: "/v1/batch",
-                        instance: None,
-                        bodies,
-                        planner: None,
-                    });
-                }
-                // Planning is untimed: bodies are built here, before the window.
-                let mut planner = Planner::new(n, edges);
+            if scenario == "events" {
+                let app =
+                    router_with_config(config(engine, candidate, ServerMode::SourceManaged, false));
+                let mut feeder = Feeder::start(&app, n, edges).await;
+                let mut planner = (!candidate).then(|| Planner::new(n, edges));
                 let mut bodies = Vec::new();
-                for chunk in ops.chunks(per) {
-                    let mut legacy = Vec::new();
-                    for &op in chunk {
-                        planner.plan(op, &mut legacy);
-                    }
-                    for part in legacy.chunks(BATCH) {
-                        bodies.push(
-                            json!({"operations": part.iter().map(wire).collect::<Vec<_>>()})
-                                .to_string(),
-                        );
+                for chunk in ops.chunks(128) {
+                    match planner.as_mut() {
+                        None => bodies.push(feeder.events(chunk)),
+                        Some(planner) => {
+                            let mut legacy = Vec::new();
+                            for &op in chunk {
+                                planner.plan(op, &mut legacy);
+                            }
+                            for part in legacy.chunks(BATCH) {
+                                bodies.push(feeder.events(part));
+                            }
+                        }
                     }
                 }
+                let instance = feeder.instance.clone();
                 return Ok(Arm {
-                    app,
-                    path: "/v1/batch",
-                    instance: None,
-                    bodies,
-                    planner: Some(planner),
+                    calls: calls(&app, "/v1/feeder/events", Some(&instance), bodies),
+                    check: app,
+                    planner,
+                    flag_store: None,
                 });
             }
-            let app = router_with_config(config(engine, candidate, ServerMode::SourceManaged));
-            let mut feeder = Feeder::start(&app, legacy_nodes(n), legacy_edges(edges)).await;
-            let mut planner = (!candidate).then(|| Planner::new(n, edges));
+            let (lifecycle, metrics) = if scenario == "metrics-ops" {
+                (true, candidate)
+            } else {
+                (candidate, false)
+            };
+            let app = standalone(engine, lifecycle, metrics, n, edges).await;
+            if lifecycle {
+                let bodies = ops.chunks(256).map(batch_body).collect();
+                return Ok(Arm {
+                    calls: calls(&app, "/v1/batch", None, bodies),
+                    check: app,
+                    planner: None,
+                    flag_store: None,
+                });
+            }
+            let mut planner = Planner::new(n, edges);
             let mut bodies = Vec::new();
-            for chunk in ops.chunks(per) {
-                match planner.as_mut() {
-                    None => bodies.push(feeder.events(chunk)),
-                    Some(planner) => {
-                        let mut legacy = Vec::new();
-                        for &op in chunk {
-                            planner.plan(op, &mut legacy);
-                        }
-                        for part in legacy.chunks(BATCH) {
-                            bodies.push(feeder.events(part));
-                        }
-                    }
+            for chunk in ops.chunks(256) {
+                let mut legacy = Vec::new();
+                for &op in chunk {
+                    planner.plan(op, &mut legacy);
+                }
+                for part in legacy.chunks(BATCH) {
+                    bodies.push(batch_body(part));
                 }
             }
             Ok(Arm {
-                app,
-                path: "/v1/feeder/events",
-                instance: Some(feeder.instance),
-                bodies,
-                planner,
+                calls: calls(&app, "/v1/batch", None, bodies),
+                check: app,
+                planner: Some(planner),
+                flag_store: None,
             })
         }
         "import" | "import-optin" => {
-            let app = router_with_config(config(engine, candidate, ServerMode::SourceManaged));
-            let instance = get(&app, "/v1/info").await["instance_id"]
-                .as_str()
-                .unwrap()
-                .to_owned();
-            let (status, _) = post(
-                &app,
-                "/v1/feeder/session",
-                Some(&instance),
-                json!({"instance_id":instance,"feeder_session_id":"s","feeder_epoch":1,"lease_duration_ms":60000}).to_string(),
-            )
-            .await;
-            assert_eq!(status, StatusCode::OK);
             let mut rng = Rng(seed ^ 0x1a);
+            let flagged = scenario == "import";
             let inactive: Vec<bool> = (0..n)
-                .map(|_| scenario == "import" && rng.below(100) < 20)
+                .map(|_| flagged && rng.below(100) < inactive_percent)
                 .collect();
             let disabled: Vec<bool> = edges
                 .iter()
-                .map(|_| scenario == "import" && rng.below(100) < 10)
+                .map(|_| flagged && rng.below(100) < disabled_percent)
                 .collect();
-            let (nodes, wire_edges, planner) = if candidate {
-                let nodes: Vec<Value> = (0..n)
-                    .map(|v| {
-                        if inactive[v as usize] {
-                            json!({"node":v.to_string(),"active":false})
-                        } else {
-                            json!(v.to_string())
-                        }
-                    })
-                    .collect();
-                let wire_edges: Vec<Value> = edges
-                    .iter()
-                    .zip(&disabled)
-                    .map(|(&(a, b), &off)| {
-                        if off {
-                            json!({"source":a.to_string(),"target":b.to_string(),"enabled":false})
-                        } else {
-                            json!({"source":a.to_string(),"target":b.to_string()})
-                        }
-                    })
-                    .collect();
-                (json!(nodes), json!(wire_edges), None)
-            } else {
-                // The application keeps the flags (planner) and imports the
-                // effective graph: every node, effective edges only.
-                let mut planner = Planner::new(n, edges);
-                let mut sink = Vec::new();
-                for (index, &(a, b)) in edges.iter().enumerate() {
-                    if disabled[index] {
-                        planner.plan(Op::SetEdge(a, b, false), &mut sink);
-                    }
-                }
-                for v in 0..n {
-                    if inactive[v as usize] {
-                        planner.plan(Op::SetNode(v, false), &mut sink);
-                    }
-                }
-                let effective: Vec<(u64, u64)> = edges
-                    .iter()
-                    .zip(&disabled)
-                    .filter(|&(&(a, b), &off)| {
-                        !off && !inactive[a as usize] && !inactive[b as usize]
-                    })
-                    .map(|(&e, _)| e)
-                    .collect();
-                (legacy_nodes(n), legacy_edges(&effective), Some(planner))
-            };
-            let bodies = vec![import_body(&instance, nodes, wire_edges)];
+            let mut all = Vec::new();
+            let mut check = None;
+            for _ in 0..requests.max(1) {
+                let app =
+                    router_with_config(config(engine, candidate, ServerMode::SourceManaged, false));
+                let instance = Feeder::session(&app).await;
+                let (nodes, wire_edges) = if candidate || !flagged {
+                    let nodes: Vec<Value> = (0..n)
+                        .map(|v| {
+                            if inactive[v as usize] {
+                                json!({"node":v.to_string(),"active":false})
+                            } else {
+                                json!(v.to_string())
+                            }
+                        })
+                        .collect();
+                    let wire_edges: Vec<Value> = edges
+                        .iter()
+                        .zip(&disabled)
+                        .map(|(&(a, b), &off)| {
+                            if off {
+                                json!({"source":a.to_string(),"target":b.to_string(),"enabled":false})
+                            } else {
+                                json!({"source":a.to_string(),"target":b.to_string()})
+                            }
+                        })
+                        .collect();
+                    (json!(nodes), json!(wire_edges))
+                } else {
+                    let effective: Vec<(u64, u64)> = edges
+                        .iter()
+                        .zip(&disabled)
+                        .filter(|&(&(a, b), &off)| {
+                            !off && !inactive[a as usize] && !inactive[b as usize]
+                        })
+                        .map(|(&e, _)| e)
+                        .collect();
+                    (legacy_nodes(n), legacy_edges(&effective))
+                };
+                let body = Bytes::from(import_body(&instance, nodes, wire_edges));
+                all.extend(calls(
+                    &app,
+                    "/v1/feeder/import",
+                    Some(&instance),
+                    vec![body],
+                ));
+                check = Some(app);
+            }
+            let flag_store = (!candidate && flagged).then(|| FlagStore {
+                n,
+                edges: edges.clone(),
+                inactive,
+                disabled,
+            });
             Ok(Arm {
-                app,
-                path: "/v1/feeder/import",
-                instance: Some(instance),
-                bodies,
-                planner,
+                calls: all,
+                check: check.unwrap(),
+                planner: None,
+                flag_store,
             })
         }
         _ => Err("unknown --scenario".into()),
@@ -566,6 +661,14 @@ impl Args {
             .ok_or_else(|| format!("--{key} is required"))?
             .parse()
             .map_err(|_| format!("--{key} is invalid"))
+    }
+
+    fn num_or<T: std::str::FromStr>(&self, key: &str, default: T) -> Result<T, String> {
+        if self.0.contains_key(key) {
+            self.num(key)
+        } else {
+            Ok(default)
+        }
     }
 }
 
@@ -587,29 +690,33 @@ async fn main_async() -> Result<(), String> {
         .clone();
     let engine = parse_engine(args.0.get("engine").ok_or("--engine is required")?)
         .ok_or("unknown --engine")?;
+    let topology = Topology::parse(args.0.get("topology").map_or("sparse", String::as_str))
+        .ok_or("unknown --topology")?;
     let n: u64 = args.num("nodes")?;
     let seed: u64 = args.num("seed")?;
     let plan = Plan {
         engine,
         n,
-        edges: generate(Topology::Sparse, n, seed),
+        edges: generate(topology, n, seed),
         requests: args.num("requests")?,
         seed,
+        inactive_percent: args.num_or("inactive-percent", 20)?,
+        disabled_percent: args.num_or("disabled-percent", 10)?,
     };
     let pairs: usize = args.num("pairs")?;
     let warmup: usize = args.num("warmup")?;
     let mut rng = Rng(seed ^ 0xc4ec);
     let checks: Vec<(u64, u64)> = (0..200).map(|_| (rng.below(n), rng.below(n))).collect();
     for index in 0..warmup + pairs {
-        let candidate = prepare(&scenario, &plan, true).await?;
-        let reference = prepare(&scenario, &plan, false).await?;
+        let mut candidate = prepare(&scenario, &plan, true).await?;
+        let mut reference = prepare(&scenario, &plan, false).await?;
         let candidate_first = index % 2 == 0;
         let (c, r) = if candidate_first {
-            let c = run_window(&candidate).await;
-            (c, run_window(&reference).await)
+            let c = run_window(&mut candidate).await;
+            (c, run_window(&mut reference).await)
         } else {
-            let r = run_window(&reference).await;
-            (run_window(&candidate).await, r)
+            let r = run_window(&mut reference).await;
+            (run_window(&mut candidate).await, r)
         };
         let agree = answers(&candidate, &checks).await == answers(&reference, &checks).await;
         if !agree {
@@ -622,7 +729,7 @@ async fn main_async() -> Result<(), String> {
             "{}",
             json!({"kind": if pair < 0 {"warmup"} else {"pair"}, "pair": pair, "scenario": scenario,
                    "candidate_first": candidate_first, "candidate_ns": c as u64, "reference_ns": r as u64,
-                   "candidate_requests": candidate.bodies.len(), "reference_requests": reference.bodies.len(),
+                   "candidate_requests": candidate.calls.len(), "reference_requests": reference.calls.len(),
                    "answers_agree": agree})
         );
     }
@@ -630,6 +737,7 @@ async fn main_async() -> Result<(), String> {
 }
 
 fn main() -> ExitCode {
+    println!("{}", build_record("http-lifecycle"));
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()

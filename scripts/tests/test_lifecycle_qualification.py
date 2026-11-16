@@ -14,20 +14,39 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import analyze_lifecycle_qualification as an  # noqa: E402
 import run_lifecycle_qualification as run  # noqa: E402
 
+REV = "a" * 40
+SHA = "b" * 64
 
-def write_run(root: Path, cells, raws) -> None:
+
+def build(count_alloc=False, rev=REV, dirty=False):
+    return {"kind": "build", "knotrel_rev": rev, "knotrel_dirty": dirty, "count_alloc": count_alloc}
+
+
+def write_run(root: Path, cells, raws, provenance=None, log_overrides=None) -> None:
     (root / "plan").mkdir(parents=True)
     (root / "raw").mkdir()
     (root / "plan" / "matrix.json").write_text(json.dumps(cells))
     for cell_id, records in raws.items():
         (root / "raw" / f"{cell_id}.jsonl").write_text("\n".join(json.dumps(r) for r in records) + "\n")
+    prov = {"profile": "final", "only": "", "window_multipliers_sha256": SHA}
+    prov.update(provenance or {})
+    (root / "provenance.json").write_text(json.dumps(prov))
+    log = []
+    for cell in cells:
+        record = {"id": cell["id"], "exit": 0, "host_before": {"power": "Now drawing from 'AC Power'"}}
+        record.update((log_overrides or {}).get(cell["id"], {}))
+        log.append(json.dumps(record))
+    (root / "run-log.jsonl").write_text("\n".join(log) + "\n")
 
 
-def pairs(ratios, reference_ns=5_000_000):
-    return [{"kind": "verify", "match": True}] + [
-        {"kind": "pair", "pair": i, "candidate_first": i % 2 == 0,
-         "reference_ns": reference_ns, "candidate_ns": int(reference_ns * r)}
-        for i, r in enumerate(ratios)]
+def pairs(ratios, reference_ns=5_000_000, balanced=True, warmup=2):
+    records = [build(), {"kind": "verify", "match": True}]
+    records += [{"kind": "warmup", "pair": -1 - i, "candidate_first": i % 2 == 0,
+                 "reference_ns": reference_ns, "candidate_ns": reference_ns} for i in range(warmup)]
+    records += [{"kind": "pair", "pair": i, "candidate_first": (i % 2 == 0) if balanced else True,
+                 "reference_ns": reference_ns, "candidate_ns": int(reference_ns * r)}
+                for i, r in enumerate(ratios)]
+    return records
 
 
 class MatrixTests(unittest.TestCase):
@@ -36,80 +55,126 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(first, second)
         ids = [c["id"] for c in first]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 188)
+        self.assertEqual([c["id"] for c in run.matrix("pilot")], ids)
 
-    def test_pilot_differs_only_in_repetitions(self):
-        strip = lambda cells: [  # noqa: E731
-            [a for a in c["args"] if a not in ("2", "12", "0", "3", "30")] for c in cells]
-        self.assertEqual([c["id"] for c in run.matrix("pilot")], [c["id"] for c in run.matrix("final")])
-        self.assertEqual(len(strip(run.matrix("pilot"))), len(strip(run.matrix("final"))))
-
-    def test_multipliers_scale_windows_and_requests_but_not_imports(self):
+    def test_multipliers_must_cover_exactly_the_timed_cells(self):
         cells = run.matrix("final")
+        timed = {c["id"]: 1 for c in cells if c["experiment"] in ("B1", "B2", "B3", "B4")}
+        with self.assertRaises(SystemExit):
+            run.apply_multipliers(run.matrix("final"), {**timed, "B9-unknown": 2})
+        missing = dict(timed)
+        missing.pop(next(iter(missing)))
+        with self.assertRaises(SystemExit):
+            run.apply_multipliers(run.matrix("final"), missing)
+
+    def test_multipliers_scale_windows_and_requests(self):
+        cells = run.matrix("final")
+        factors = {c["id"]: 1 for c in cells if c["experiment"] in ("B1", "B2", "B3", "B4")}
+        factors["B1-ops-ett-ring-1000-query"] = 8
+        factors["B4-http-import-compact-bfs-sparse-10000"] = 4
+        run.apply_multipliers(cells, factors)
         by_id = {c["id"]: c for c in cells}
-        run.apply_multipliers(cells, {"B1-ops-ett-ring-1000-query": 8,
-                                      "B4-http-optin-query-ett-10000": 2,
-                                      "B4-http-import-compact-bfs-10000": 2})
         args = by_id["B1-ops-ett-ring-1000-query"]["args"]
         self.assertEqual(args[args.index("--window") + 1], "32000")
-        args = by_id["B4-http-optin-query-ett-10000"]["args"]
-        self.assertEqual(args[args.index("--requests") + 1], "8")
-        args = by_id["B4-http-import-compact-bfs-10000"]["args"]
-        self.assertEqual(args[args.index("--requests") + 1], "1")
+        args = by_id["B4-http-import-compact-bfs-sparse-10000"]["args"]
+        self.assertEqual(args[args.index("--requests") + 1], "4")
 
 
 class AnalysisTests(unittest.TestCase):
-    def analyze(self, cells, raws):
+    def analyze(self, cells, raws, **kwargs):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            write_run(root, cells, raws)
+            write_run(root, cells, raws, **kwargs)
             out = root / "report.json"
-            sys.argv = ["x", str(root), "--json", str(out), "--markdown", str(root / "r.md")]
-            self.assertEqual(an.main(), 0)
-            return json.loads(out.read_text())
+            sys.argv = ["x", str(root), "--expect-knotrel-rev", REV, "--expect-multipliers-sha256", SHA,
+                        "--json", str(out), "--markdown", str(root / "r.md")]
+            code = an.main()
+            return code, (json.loads(out.read_text()) if code == 0 else None)
 
     def cell(self, cid, tolerance=0.25):
         return {"id": cid, "experiment": "B1", "tolerance": tolerance, "binary": "core", "args": []}
 
     def test_classification_uses_order_statistic_interval(self):
         cells = [self.cell("pass"), self.cell("regression"), self.cell("inconclusive"), self.cell("timer")]
+        incon = [1.0, 1.1, 1.2, 1.3, 1.4, 1.1, 1.2, 1.3, 1.0, 1.2, 1.25, 1.35]
         raws = {
             "pass": pairs([1.0, 1.01, 0.99, 1.02, 0.98, 1.0, 1.03, 0.97, 1.0, 1.01, 0.99, 1.0]),
             "regression": pairs([1.4] * 12),
-            "inconclusive": pairs([1.0, 1.1, 1.2, 1.3, 1.4, 1.1, 1.2, 1.3, 1.0, 1.2, 1.25, 1.35]),
+            "inconclusive": pairs(incon),
             "timer": pairs([1.0] * 12, reference_ns=500_000),
         }
-        report = {t["id"]: t for t in self.analyze(cells, raws)["timing"]}
-        self.assertEqual(report["pass"]["status"], "PASS")
-        self.assertEqual(report["regression"]["status"], "REGRESSION")
-        self.assertEqual(report["inconclusive"]["status"], "INCONCLUSIVE")
-        self.assertEqual(report["timer"]["status"], "TIMER_LIMITED")
-        ratios = sorted(math.log(r) for r in [1.0, 1.1, 1.2, 1.3, 1.4, 1.1, 1.2, 1.3, 1.0, 1.2, 1.25, 1.35])
-        self.assertAlmostEqual(report["inconclusive"]["interval_log"][0], ratios[2], places=6)
-        self.assertAlmostEqual(report["inconclusive"]["interval_log"][1], ratios[9], places=6)
+        code, report = self.analyze(cells, raws)
+        self.assertEqual(code, 0)
+        status = {t["id"]: t for t in report["timing"]}
+        self.assertEqual(status["pass"]["status"], "PASS")
+        self.assertEqual(status["regression"]["status"], "REGRESSION")
+        self.assertEqual(status["inconclusive"]["status"], "INCONCLUSIVE")
+        self.assertEqual(status["timer"]["status"], "TIMER_LIMITED")
+        ratios = sorted(math.log(r) for r in incon)
+        self.assertAlmostEqual(status["inconclusive"]["interval_log"][0], ratios[2], places=6)
+        self.assertAlmostEqual(status["inconclusive"]["interval_log"][1], ratios[9], places=6)
 
-    def test_digest_mismatch_stops_analysis(self):
-        raws = {"bad": [{"kind": "verify", "match": False}]}
-        with self.assertRaises(SystemExit):
-            self.analyze([self.cell("bad")], raws)
+    def test_invalid_runs_are_rejected(self):
+        ok = pairs([1.0] * 12)
+        cases = [
+            ({"c": [build(), {"kind": "verify", "match": False}] + ok[2:]}, {}),
+            ({"c": pairs([1.0] * 12, balanced=False)}, {}),
+            ({"c": pairs([1.0] * 12, warmup=0)}, {}),
+            ({"c": [build(rev="f" * 40)] + ok[1:]}, {}),
+            ({"c": [build(dirty=True)] + ok[1:]}, {}),
+            ({"c": ok}, {"provenance": {"only": "B1"}}),
+            ({"c": ok}, {"provenance": {"window_multipliers_sha256": "0" * 64}}),
+            ({"c": ok}, {"log_overrides": {"c": {"exit": 1}}}),
+            ({"c": ok}, {"log_overrides": {"c": {"host_before": {"power": "Battery Power"}}}}),
+        ]
+        for raws, kwargs in cases:
+            code, _ = self.analyze([self.cell("c")], raws, **kwargs)
+            self.assertEqual(code, 3, kwargs or raws["c"][:2])
+        code, _ = self.analyze([self.cell("c"), self.cell("missing")], {"c": ok})
+        self.assertEqual(code, 3)
 
     def test_sustained_rules(self):
-        def checkpoints(heap, engine=lambda c: 100_000, nodes=100_000):
-            return [{"kind": "checkpoint", "cycle": c,
-                     "counts": {"nodes": nodes, "edges": 5, "active_nodes": nodes, "enabled_edges": 5,
-                                "effective_edges": 5, "engine_vertices": engine(c)},
-                     "live_heap_bytes": heap(c), "rss_bytes": heap(c)} for c in range(31)]
+        def run_records(heap, engine=lambda c: 100_000, wrong=False):
+            records = [build(count_alloc=True)]
+            for c in range(31):
+                logical = [100_000, 5, 100_000, 5, 5]
+                expected = list(logical)
+                if wrong and c == 7:
+                    expected[2] -= 1
+                records.append({"kind": "checkpoint", "cycle": c, "expected": expected,
+                                "counts": {"logical": logical, "engine_vertices": engine(c),
+                                           "retired_vertices": engine(c) - 100_000},
+                                "net_heap_bytes": heap(c), "net_rss_bytes": heap(c)})
+            return records
+        names = ("flat", "grow", "slots", "counts", "linear")
         cells = [{"id": f"C-heap-lifecycle-ett-sparse-{m}-100000", "experiment": "C", "binary": "core-count",
-                  "args": []} for m in ("flat", "grow", "slots")]
+                  "args": ["resources", "--cycles", "30"]} for m in names]
         raws = {
-            cells[0]["id"]: checkpoints(lambda c: 1000),
-            cells[1]["id"]: checkpoints(lambda c: 1000 + 100 * c),
-            cells[2]["id"]: checkpoints(lambda c: 1000, engine=lambda c: 300_000),
+            cells[0]["id"]: run_records(lambda c: 1000),
+            cells[1]["id"]: run_records(lambda c: 1000 + 100 * c),
+            cells[2]["id"]: run_records(lambda c: 1000, engine=lambda c: 300_000),
+            cells[3]["id"]: run_records(lambda c: 1000, wrong=True),
+            cells[4]["id"]: run_records(lambda c: 1000 + 5 * c),
         }
-        report = {r["id"]: r for r in self.analyze(cells, raws)["sustained"]}
-        self.assertEqual(report[cells[0]["id"]]["C3"], "PASS")
-        self.assertEqual(report[cells[1]["id"]]["C3"], "FAIL")
-        self.assertEqual(report[cells[2]["id"]]["C1"], "FAIL")
+        code, report = self.analyze(cells, raws)
+        self.assertEqual(code, 0)
+        result = {r["id"]: r for r in report["sustained"]}
+        self.assertEqual(result[cells[0]["id"]]["C3"], "PASS")
+        self.assertEqual(result[cells[1]["id"]]["C3"], "FAIL")
+        self.assertEqual(result[cells[2]["id"]]["C1"], "FAIL")
+        self.assertEqual(result[cells[3]["id"]]["C2"], "FAIL")
+        # 5 bytes per cycle on ~1,027: max ratio passes, projected 30-cycle growth (14.6%) fails.
+        self.assertEqual(result[cells[4]["id"]]["C3"], "FAIL")
+
+    def test_missing_checkpoint_is_invalid(self):
+        cell = {"id": "C-heap-lifecycle-ett-sparse-x-100000", "experiment": "C", "binary": "core-count",
+                "args": ["resources", "--cycles", "30"]}
+        records = [build(count_alloc=True)] + [
+            {"kind": "checkpoint", "cycle": c, "expected": [1, 0, 1, 0, 0],
+             "counts": {"logical": [1, 0, 1, 0, 0], "engine_vertices": 1, "retired_vertices": 0},
+             "net_heap_bytes": 1, "net_rss_bytes": 1} for c in range(30)]
+        code, _ = self.analyze([cell], {cell["id"]: records})
+        self.assertEqual(code, 3)
 
 
 if __name__ == "__main__":
