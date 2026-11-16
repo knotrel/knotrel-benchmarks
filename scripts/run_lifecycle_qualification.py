@@ -61,7 +61,37 @@ def apply_multipliers(cells: List[Dict[str, Any]], multipliers: Dict[str, int]) 
         cell["scale"] = factor
 
 
-def matrix(profile: str) -> List[Dict[str, Any]]:
+ALL_LIFECYCLE_ENGINES = ",".join(ENGINES)
+
+
+def in_lifecycle_scope(cell: Dict[str, Any], lifecycle_engines: str) -> bool:
+    """Whether ``cell`` belongs to a qualification restricted to ``lifecycle_engines``.
+
+    A cell is kept when its engine supports lifecycle in this scope, or when it
+    measures no lifecycle at all (``metrics-legacy``: two lifecycle-disabled
+    servers). Every other cell of an excluded engine measures lifecycle support
+    (or is the paired reference of a lifecycle arm in B5/C) and is dropped.
+    """
+    args = cell["args"]
+    engine = args[args.index("--engine") + 1]
+    if engine in lifecycle_engines.split(","):
+        return True
+    return "--scenario" in args and args[args.index("--scenario") + 1] == "metrics-legacy"
+
+
+def matrix(profile: str, lifecycle_engines: str = ALL_LIFECYCLE_ENGINES) -> List[Dict[str, Any]]:
+    """Every cell of experiments B and C within the lifecycle-engine scope.
+
+    ``profile`` only shrinks repetition counts. The default scope (all engines)
+    reproduces the original matrix; amendment 4 restricts it to ``compact-bfs``.
+    """
+    unknown = set(lifecycle_engines.split(",")) - set(ENGINES)
+    if unknown or not lifecycle_engines:
+        raise SystemExit(f"unknown lifecycle engines: {sorted(unknown)}")
+    return [c for c in _full_matrix(profile) if in_lifecycle_scope(c, lifecycle_engines)]
+
+
+def _full_matrix(profile: str) -> List[Dict[str, Any]]:
     """Every cell of experiments B and C. ``profile`` only shrinks repetition counts."""
     pairs, warmup = (2, 0) if profile == "pilot" else (12, 2)
     cycles = 3 if profile == "pilot" else 30
@@ -174,6 +204,8 @@ def main() -> int:
     parser.add_argument("--order-seed", type=int, required=True)
     parser.add_argument("--knotrel", type=Path, required=True, help="candidate knotrel checkout")
     parser.add_argument("--only", default="", help="comma-separated experiment filter (B1,B2,...,C)")
+    parser.add_argument("--lifecycle-engines", default=ALL_LIFECYCLE_ENGINES,
+                        help="engines whose lifecycle cells are in scope (amendment 4: compact-bfs)")
     parser.add_argument("--window-multipliers", type=Path,
                         help="pilot-derived JSON {cell id: factor}; archived in plan/")
     parser.add_argument("--dry-run", action="store_true")
@@ -182,7 +214,7 @@ def main() -> int:
         print(f"refusing to reuse existing output directory {args.out}", file=sys.stderr)
         return 2
     binaries = {"core": args.core, "core-count": args.core_count, "http": args.http}
-    cells = matrix(args.profile)
+    cells = matrix(args.profile, args.lifecycle_engines)
     if args.profile == "final" and not args.window_multipliers:
         print("--window-multipliers is required for the final profile", file=sys.stderr)
         return 2
@@ -195,7 +227,7 @@ def main() -> int:
     random.Random(args.order_seed).shuffle(order)
     provenance = {
         "profile": args.profile, "order_seed": args.order_seed, "seed": SEED,
-        "only": args.only, "cells": len(cells),
+        "only": args.only, "cells": len(cells), "lifecycle_engines": args.lifecycle_engines,
         "knotrel": {"path": str(args.knotrel.resolve()), "head": git(args.knotrel, "rev-parse", "HEAD"),
                     "dirty": git(args.knotrel, "status", "--porcelain")},
         "benchmarks": {"head": git(Path.cwd(), "rev-parse", "HEAD"),

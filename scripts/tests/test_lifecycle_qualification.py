@@ -6,6 +6,7 @@ import json
 import math
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -84,8 +85,44 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(args[args.index("--requests") + 1], "4")
 
 
+class ScopeTests(unittest.TestCase):
+    def test_compact_bfs_scope_keeps_every_compact_bfs_cell_and_only_non_lifecycle_others(self):
+        full = run.matrix("final")
+        scoped = run.matrix("final", "compact-bfs")
+        engine = lambda c: c["args"][c["args"].index("--engine") + 1]
+        self.assertEqual([c for c in full if engine(c) == "compact-bfs"],
+                         [c for c in scoped if engine(c) == "compact-bfs"])
+        others = [c["id"] for c in scoped if engine(c) != "compact-bfs"]
+        self.assertEqual(others, ["B4-http-metrics-legacy-ett-sparse-10000",
+                                  "B4-http-metrics-legacy-hdt-sparse-10000"])
+        self.assertEqual(len(scoped), 127)
+        self.assertEqual(run.matrix("final", "compact-bfs,ett,hdt"), full)
+        with self.assertRaises(SystemExit):
+            run.matrix("final", "compact-bfs,unknown")
+
+    def test_analysis_rejects_a_plan_outside_the_expected_scope(self):
+        cells = [c for c in run.matrix("final", "compact-bfs") if c["experiment"] == "B1"][:1]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_run(root, cells, {cells[0]["id"]: pairs([1.0] * 12)},
+                      provenance={"lifecycle_engines": "compact-bfs"})
+            sys.argv = ["x", str(root), "--expect-knotrel-rev", REV, "--expect-multipliers-sha256", SHA,
+                        "--expect-probes-rev", PROBES, "--expect-lifecycle-engines", "compact-bfs"]
+            self.assertEqual(an.main(), 3)  # one cell is not the full 127-cell scope
+            sys.argv[-1] = "compact-bfs,ett,hdt"
+            self.assertEqual(an.main(), 3)  # scope recorded differs from the expected scope
+
+
 class AnalysisTests(unittest.TestCase):
+    def setUp(self):
+        # These tests use synthetic plans; the scope check is covered by ScopeTests.
+        self._runner = an._runner
+
+    def tearDown(self):
+        an._runner = self._runner
+
     def analyze(self, cells, raws, **kwargs):
+        an._runner = lambda: types.SimpleNamespace(matrix=lambda profile, engines: cells)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             write_run(root, cells, raws, **kwargs)
