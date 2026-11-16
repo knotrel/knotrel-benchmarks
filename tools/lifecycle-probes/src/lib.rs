@@ -710,6 +710,8 @@ pub fn build_record(probe: &str) -> serde_json::Value {
         "probe": probe,
         "knotrel_rev": env!("KNOTREL_REV"),
         "knotrel_dirty": env!("KNOTREL_DIRTY") == "true",
+        "probes_rev": env!("PROBES_REV"),
+        "probes_dirty": env!("PROBES_DIRTY") == "true",
         "count_alloc": cfg!(feature = "count-alloc"),
     })
 }

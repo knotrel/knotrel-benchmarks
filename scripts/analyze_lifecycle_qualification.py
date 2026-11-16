@@ -8,8 +8,9 @@ benchmark.
 **Validation (any failure stops the analysis):** the run is the ``final`` profile with no
 ``--only`` filter; every matrix cell has a raw file and a run-log record with exit 0, with
 AC power recorded before it; ``provenance.json`` names the expected window-multiplier hash;
-every raw file starts with a ``build`` record naming the expected knotrel revision, not
-dirty, with the build variant the cell requires; every timing cell has a matching ``verify``
+every raw file starts with a ``build`` record naming the expected knotrel revision and the
+expected knotrel-benchmarks (probe source) revision, neither dirty, with the build variant
+the cell requires; every timing cell has a matching ``verify``
 record, exactly 2 warmup and 12 analyzed pairs, 6 with each arm first.
 
 **Rules (frozen in the protocol before the final collection):**
@@ -36,7 +37,7 @@ record, exactly 2 warmup and 12 analyzed pairs, 6 with each arm first.
 Usage::
 
     analyze_lifecycle_qualification.py RUN_DIR --expect-knotrel-rev SHA \\
-        --expect-multipliers-sha256 SHA [--json OUT] [--markdown OUT]
+        --expect-multipliers-sha256 SHA --expect-probes-rev SHA [--json OUT] [--markdown OUT]
 """
 
 from __future__ import annotations
@@ -72,12 +73,14 @@ def lines(path: Path) -> List[Dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
-def check_build(cell: Dict[str, Any], records: List[Dict[str, Any]], rev: str) -> None:
+def check_build(cell: Dict[str, Any], records: List[Dict[str, Any]], rev: str, probes_rev: str) -> None:
     build = records[0] if records else {}
     if build.get("kind") != "build":
         raise Invalid(f"{cell['id']}: missing build record")
     if build.get("knotrel_rev") != rev or build.get("knotrel_dirty") is not False:
         raise Invalid(f"{cell['id']}: built from {build.get('knotrel_rev')} dirty={build.get('knotrel_dirty')}")
+    if build.get("probes_rev") != probes_rev or build.get("probes_dirty") is not False:
+        raise Invalid(f"{cell['id']}: probes built from {build.get('probes_rev')} dirty={build.get('probes_dirty')}")
     if build.get("count_alloc") != (cell["binary"] == "core-count"):
         raise Invalid(f"{cell['id']}: wrong build variant")
 
@@ -193,6 +196,8 @@ def main() -> int:
     parser.add_argument("run", type=Path)
     parser.add_argument("--expect-knotrel-rev", required=True)
     parser.add_argument("--expect-multipliers-sha256", required=True)
+    parser.add_argument("--expect-probes-rev", required=True,
+                        help="knotrel-benchmarks commit the probes were built from")
     parser.add_argument("--json", type=Path)
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
@@ -203,7 +208,7 @@ def main() -> int:
         timing, resources = [], []
         for cell_id, cell in cells.items():
             records = lines(raw / f"{cell_id}.jsonl")
-            check_build(cell, records, args.expect_knotrel_rev)
+            check_build(cell, records, args.expect_knotrel_rev, args.expect_probes_rev)
             if cell["experiment"] in ("B1", "B2", "B3", "B4"):
                 timing.append(paired(cell, records))
             elif cell["experiment"] == "C":

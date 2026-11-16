@@ -32,9 +32,9 @@
 //!   request (request counts can differ). Planning is untimed.
 //! - `import`: R imports (one fresh source-managed server each) with I%
 //!   inactive nodes and D% disabled edges, vs R plain imports of the
-//!   effective graph where the application keeps the flags: building the
-//!   application-side flag store from the same topology is timed inside the
-//!   reference window.
+//!   effective graph where the application keeps the flags: a lean store
+//!   (registered edge list, node and edge flag vectors) is copied once per
+//!   import call inside the reference window.
 //! - `import-optin`: R all-active legacy imports, lifecycle vs plain server.
 //! - `metrics-ops`: the `ops` requests on two lifecycle servers, metrics
 //!   enabled vs disabled.
@@ -353,31 +353,31 @@ async fn standalone(
     app
 }
 
-/// Untimed inputs of the import reference's application-side flag store.
+/// The import reference's application-side flag store: a lean copy of what
+/// the application must keep beside a plain server holding only the
+/// effective graph (the registered edge list, one inactive flag per node and
+/// one disabled flag per edge). One store is built per import call, inside
+/// the reference window; node IDs are `0..n`.
+#[derive(Clone)]
 struct FlagStore {
-    n: u64,
     edges: Vec<(u64, u64)>,
     inactive: Vec<bool>,
     disabled: Vec<bool>,
 }
 
 impl FlagStore {
-    /// Builds the application-side store holding every registered node and
-    /// edge with its flags (timed inside the reference window).
-    fn build(&self) -> Planner {
-        let mut planner = Planner::new(self.n, &self.edges);
-        let mut sink = Vec::new();
-        for (index, &(a, b)) in self.edges.iter().enumerate() {
-            if self.disabled[index] {
-                planner.plan(Op::SetEdge(a, b, false), &mut sink);
-            }
-        }
-        for v in 0..self.n {
-            if self.inactive[v as usize] {
-                planner.plan(Op::SetNode(v, false), &mut sink);
-            }
-        }
-        planner
+    /// Copies the payload's topology and flags (timed).
+    fn build(&self) -> Self {
+        self.clone()
+    }
+
+    fn active(&self, v: u64) -> bool {
+        !self.inactive[v as usize]
+    }
+
+    /// Registered edges and their flags line up (checked after the window).
+    fn consistent(&self) -> bool {
+        self.edges.len() == self.disabled.len()
     }
 }
 
@@ -387,16 +387,18 @@ struct Arm {
     /// App used for the connectivity check.
     check: Router,
     planner: Option<Planner>,
-    /// Import reference: the flag store is built inside the window.
+    /// Import reference: the source of one flag store per import call,
+    /// built inside the window; the last one built answers the check.
     flag_store: Option<FlagStore>,
+    built_store: Option<FlagStore>,
 }
 
 async fn run_window(arm: &mut Arm) -> u128 {
     let start = Instant::now();
-    if let Some(store) = &arm.flag_store {
-        arm.planner = Some(store.build());
-    }
     for call in &arm.calls {
+        if let Some(store) = &arm.flag_store {
+            arm.built_store = Some(store.build());
+        }
         let response = call.app.clone().oneshot(call.request()).await.unwrap();
         let status = response.status();
         let _ = to_bytes(response.into_body(), 64 << 20).await.unwrap();
@@ -408,6 +410,12 @@ async fn run_window(arm: &mut Arm) -> u128 {
 async fn answers(arm: &Arm, pairs: &[(u64, u64)]) -> Vec<Value> {
     let mut out = Vec::new();
     for &(a, b) in pairs {
+        if let Some(store) = &arm.built_store
+            && (!store.consistent() || !store.active(a) || !store.active(b))
+        {
+            out.push(json!(false));
+            continue;
+        }
         if let Some(planner) = &arm.planner
             && (!planner.active(a) || !planner.active(b))
         {
@@ -504,6 +512,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 check: app,
                 planner: None,
                 flag_store: None,
+                built_store: None,
             })
         }
         "ops" | "ops-query" | "events" | "metrics-ops" => {
@@ -542,6 +551,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     check: app,
                     planner,
                     flag_store: None,
+                    built_store: None,
                 });
             }
             let (lifecycle, metrics) = if scenario == "metrics-ops" {
@@ -557,6 +567,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     check: app,
                     planner: None,
                     flag_store: None,
+                    built_store: None,
                 });
             }
             let mut planner = Planner::new(n, edges);
@@ -575,6 +586,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 check: app,
                 planner: Some(planner),
                 flag_store: None,
+                built_store: None,
             })
         }
         "import" | "import-optin" => {
@@ -636,7 +648,6 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 check = Some(app);
             }
             let flag_store = (!candidate && flagged).then(|| FlagStore {
-                n,
                 edges: edges.clone(),
                 inactive,
                 disabled,
@@ -646,6 +657,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 check: check.unwrap(),
                 planner: None,
                 flag_store,
+                built_store: None,
             })
         }
         _ => Err("unknown --scenario".into()),

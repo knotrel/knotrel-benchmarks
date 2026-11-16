@@ -14,7 +14,34 @@ fn git(args: &[&str]) -> String {
         .unwrap_or_else(|| "unknown".to_owned())
 }
 
+fn bench_git(args: &[&str]) -> String {
+    Command::new("git")
+        .args(["-C", "../.."])
+        .args(args)
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
 fn main() {
+    println!("cargo:rerun-if-changed=src");
+    println!(
+        "cargo:rustc-env=PROBES_REV={}",
+        bench_git(&["rev-parse", "HEAD"])
+    );
+    let probes_dirty = bench_git(&["status", "--porcelain", "--", "tools/lifecycle-probes"]);
+    println!("cargo:rustc-env=PROBES_DIRTY={}", !probes_dirty.is_empty());
+    for path in [
+        "HEAD".to_owned(),
+        bench_git(&["symbolic-ref", "-q", "HEAD"]),
+    ] {
+        let resolved = bench_git(&["rev-parse", "--path-format=absolute", "--git-path", &path]);
+        if resolved != "unknown" {
+            println!("cargo:rerun-if-changed={resolved}");
+        }
+    }
     println!("cargo:rerun-if-changed=../../../knotrel/crates");
     println!("cargo:rerun-if-changed=../../../knotrel/Cargo.lock");
     // Re-run when HEAD or the checked-out branch moves (also for commits that

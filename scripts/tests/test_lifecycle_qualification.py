@@ -18,8 +18,12 @@ REV = "a" * 40
 SHA = "b" * 64
 
 
-def build(count_alloc=False, rev=REV, dirty=False):
-    return {"kind": "build", "knotrel_rev": rev, "knotrel_dirty": dirty, "count_alloc": count_alloc}
+PROBES = "c" * 40
+
+
+def build(count_alloc=False, rev=REV, dirty=False, probes=PROBES, probes_dirty=False):
+    return {"kind": "build", "knotrel_rev": rev, "knotrel_dirty": dirty, "count_alloc": count_alloc,
+            "probes_rev": probes, "probes_dirty": probes_dirty}
 
 
 def write_run(root: Path, cells, raws, provenance=None, log_overrides=None) -> None:
@@ -87,6 +91,7 @@ class AnalysisTests(unittest.TestCase):
             write_run(root, cells, raws, **kwargs)
             out = root / "report.json"
             sys.argv = ["x", str(root), "--expect-knotrel-rev", REV, "--expect-multipliers-sha256", SHA,
+                        "--expect-probes-rev", PROBES,
                         "--json", str(out), "--markdown", str(root / "r.md")]
             code = an.main()
             return code, (json.loads(out.read_text()) if code == 0 else None)
@@ -122,6 +127,8 @@ class AnalysisTests(unittest.TestCase):
             ({"c": pairs([1.0] * 12, warmup=0)}, {}),
             ({"c": [build(rev="f" * 40)] + ok[1:]}, {}),
             ({"c": [build(dirty=True)] + ok[1:]}, {}),
+            ({"c": [build(probes="d" * 40)] + ok[1:]}, {}),
+            ({"c": [build(probes_dirty=True)] + ok[1:]}, {}),
             ({"c": ok}, {"provenance": {"only": "B1"}}),
             ({"c": ok}, {"provenance": {"window_multipliers_sha256": "0" * 64}}),
             ({"c": ok}, {"log_overrides": {"c": {"exit": 1}}}),
