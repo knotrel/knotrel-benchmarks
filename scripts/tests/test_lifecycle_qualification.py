@@ -108,6 +108,16 @@ class CliPathTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 cli_paths.confined_directory(script, "x")
 
+    def test_data_derived_names_cannot_leave_their_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = Path(tmp) / "raw"
+            raw.mkdir()
+            self.assertEqual(cli_paths.contained_file(raw, "B1-x.jsonl", "x"), (raw / "B1-x.jsonl").resolve())
+            (raw / "link.jsonl").symlink_to(Path(tmp) / "elsewhere.jsonl")
+            for bad in ("../escape.jsonl", "sub/inner.jsonl", "/etc/passwd", "link.jsonl"):
+                with self.assertRaises(SystemExit):
+                    cli_paths.contained_file(raw, bad, "x")
+
 
 class ScopeTests(unittest.TestCase):
     def test_compact_bfs_scope_keeps_every_compact_bfs_cell_and_only_non_lifecycle_others(self):

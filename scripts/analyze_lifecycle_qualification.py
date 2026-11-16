@@ -50,7 +50,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-from cli_paths import confined, confined_directory
+from cli_paths import confined, confined_directory, contained_file
 
 HERE = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("analyze_bc_qualification", HERE / "analyze_bc_qualification.py")
@@ -124,7 +124,7 @@ def memory(cells: Dict[str, Dict[str, Any]], raw: Path) -> List[Dict[str, Any]]:
         heap = {}
         for arm in ("plain", "lifecycle", "reference"):
             arm_id = cell_id.replace("-plain-", f"-{arm}-")
-            heap[arm] = checkpoints(arm_id, lines(raw / f"{arm_id}.jsonl"), 0)[0]["net_heap_bytes"]
+            heap[arm] = checkpoints(arm_id, lines(contained_file(raw, f"{arm_id}.jsonl", "raw record")), 0)[0]["net_heap_bytes"]
         ratio = heap["lifecycle"] / heap["plain"]
         out.append({"id": cell_id.replace("-plain-", "-"), "net_heap_bytes": heap,
                     "lifecycle_over_plain": ratio, "reference_over_plain": heap["reference"] / heap["plain"],
@@ -196,7 +196,7 @@ def validate(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipliers_
             raise Invalid(f"{cell_id}: missing or failed run")
         if "AC Power" not in record["host_before"]["power"]:
             raise Invalid(f"{cell_id}: not on AC power")
-        if not (run / "raw" / f"{cell_id}.jsonl").exists():
+        if not contained_file(run / "raw", f"{cell_id}.jsonl", "raw record").exists():
             raise Invalid(f"{cell_id}: missing raw output")
     return provenance
 
@@ -234,7 +234,7 @@ def main() -> int:
         raw = args.run / "raw"
         timing, resources = [], []
         for cell_id, cell in cells.items():
-            records = lines(raw / f"{cell_id}.jsonl")
+            records = lines(contained_file(raw, f"{cell_id}.jsonl", "raw record"))
             check_build(cell, records, args.expect_knotrel_rev, args.expect_probes_rev)
             if cell["experiment"] in ("B1", "B2", "B3", "B4"):
                 timing.append(paired(cell, records))
