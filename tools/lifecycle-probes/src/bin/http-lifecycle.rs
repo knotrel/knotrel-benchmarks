@@ -33,8 +33,10 @@
 //! - `import`: R imports (one fresh source-managed server each) with I%
 //!   inactive nodes and D% disabled edges, vs R plain imports of the
 //!   effective graph where the application keeps the flags: a lean store
-//!   (registered edge list, node and edge flag vectors) is copied once per
-//!   import call inside the reference window.
+//!   (registered edge list, node and edge flag vectors) is copied and the
+//!   effective edge list derived from it once per import call inside the
+//!   reference window (amendment 2: the derivation is necessary reference
+//!   work; the request body itself is serialized untimed in both arms).
 //! - `import-optin`: R all-active legacy imports, lifecycle vs plain server.
 //! - `metrics-ops`: the `ops` requests on two lifecycle servers, metrics
 //!   enabled vs disabled.
@@ -356,28 +358,47 @@ async fn standalone(
 /// The import reference's application-side flag store: a lean copy of what
 /// the application must keep beside a plain server holding only the
 /// effective graph (the registered edge list, one inactive flag per node and
-/// one disabled flag per edge). One store is built per import call, inside
-/// the reference window; node IDs are `0..n`.
+/// one disabled flag per edge), plus the effective edge list it derives for
+/// the plain import. One store is built per import call, inside the
+/// reference window; node IDs are `0..n`.
 #[derive(Clone)]
 struct FlagStore {
     edges: Vec<(u64, u64)>,
     inactive: Vec<bool>,
     disabled: Vec<bool>,
+    effective: Vec<(u64, u64)>,
+    /// Effective edges in the imported payload, computed untimed.
+    imported_effective: usize,
 }
 
 impl FlagStore {
-    /// Copies the payload's topology and flags (timed).
+    /// Copies the payload's topology and flags and derives the effective
+    /// edge list (timed).
     fn build(&self) -> Self {
-        self.clone()
+        let effective = self
+            .edges
+            .iter()
+            .zip(&self.disabled)
+            .filter(|&(&(a, b), &off)| !off && self.active(a) && self.active(b))
+            .map(|(&edge, _)| edge)
+            .collect();
+        Self {
+            edges: self.edges.clone(),
+            inactive: self.inactive.clone(),
+            disabled: self.disabled.clone(),
+            effective,
+            imported_effective: self.imported_effective,
+        }
     }
 
     fn active(&self, v: u64) -> bool {
         !self.inactive[v as usize]
     }
 
-    /// Registered edges and their flags line up (checked after the window).
+    /// Registered edges and their flags line up and the derived effective
+    /// list matches the imported one (checked after the window).
     fn consistent(&self) -> bool {
-        self.edges.len() == self.disabled.len()
+        self.edges.len() == self.disabled.len() && self.effective.len() == self.imported_effective
     }
 }
 
@@ -647,10 +668,17 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 ));
                 check = Some(app);
             }
+            let imported_effective = edges
+                .iter()
+                .zip(&disabled)
+                .filter(|&(&(a, b), &off)| !off && !inactive[a as usize] && !inactive[b as usize])
+                .count();
             let flag_store = (!candidate && flagged).then(|| FlagStore {
                 edges: edges.clone(),
                 inactive,
                 disabled,
+                effective: Vec::new(),
+                imported_effective,
             });
             Ok(Arm {
                 calls: all,
