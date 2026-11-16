@@ -235,3 +235,23 @@ cargo run --release --locked --bin hdt-profile -- --engine hdt --nodes 512 --rou
 ```
 
 The JSON contains structural storage snapshots after registration, initial edges and replay, registration/loading stage durations, cumulative work counters and operation latency groups.
+
+## Release archive checklist
+
+Before each Knotrel release tag:
+
+- Commit a versioned performance diff against the previous release, including
+  absolute values, percentage changes, uncertainty, coverage gaps, original
+  verdicts and explicit maintainer dispositions. Link the durable evidence and
+  checksum manifest without exposing private archives.
+- Record the product and benchmark release SHAs separately from the measured
+  binary and tooling identities; document evidence applicability to the final SHA.
+- After maintainer authorization, create and verify the same signed version tag
+  in both repositories, pointing to their respective commits. Push the benchmark
+  tag before the product publication tag and verify both remote references.
+- Link the performance diff and both tags from the product release notes.
+
+Follow the [product release procedure](https://github.com/knotrel/knotrel/blob/main/docs/releases/release-procedure.md)
+for qualification and publication gates. A benchmark tag archives the report and
+reproduction tooling; it does not change this crate's package version or turn
+failed qualification results into passes.
