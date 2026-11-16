@@ -343,3 +343,48 @@ binary identity check or a new A campaign on `a1d9577` is complete, A has no
 result for `a1d9577`. The line "Measured runtime before run 3: about 2 h 20 min"
 was an estimate; log-based figures are in `RUN-3-a1d9577.md` (errata E5).
 Run 3's concurrent agent activity is recorded in `RUN3-CONCURRENT-ACTIVITY.md`.
+
+## Amendment 3: experiment A on candidate a1d9577
+
+Recorded 2026-11-16T08:35:15Z, before any A measurement of
+`a1d95778f8c876c49efd09dcddcdf6fbdd8259fe`, under the owner's authorization of
+the minimum verification identified by the evidence audit.
+
+**Why.** Transfer of A's `6494253` result is not demonstrated. With the frozen
+build recipe (`logs/build-commands.sh`, identical apart from the campaign
+path) the v0.4.0 server rebuilt with an identical code section
+(`__TEXT,__text`, 1,977,984 bytes) but not an identical file, so whole-file
+hashes cannot show identity; the candidate's measured binaries changed their
+code section: server 2,030,656 → 2,035,904 bytes, harness 567,772 → 568,796
+bytes (`A-20261116T083239Z-a1d9577/logs/identity-vs-6494253.txt`). A is
+therefore run on `a1d9577` as a distinct candidate.
+
+**Unchanged:** the nine-cell design, thresholds and rules (`--rules v0.4.0`),
+collector `run_p0_aa.py`, plan generator and analysis (byte-identical to the
+amendment-1 tooling), session seeds 130500-130502 and extension seeds
+130510-130512, one extension of 12 pairs per cell with an INCONCLUSIVE gated
+metric, no further extension.
+
+**Result handling.** Run 2's A result remains the record for `6494253`; this
+campaign's result is the record for `a1d9577`. Neither replaces the other and
+no best result is selected between candidates.
+
+**Host.** Main phase, analysis, extension (if required) and final analysis run
+as one chained command under `caffeinate`. During that interval the agent runs
+no other command; the only monitoring is the harness completion notification.
+
+- Campaign: `evidence/v0.5.0-qualification/A-20261116T083239Z-a1d9577`;
+  smoke tests B and C exit 0; plan and dry-run preflight exit 0.
+- Plan sha256: manifest `1b0d18018a6c4d980b73b6c56dc70a8a2e362f849540e6e9002875aa0270fa84`,
+  schedule `39f7b3991c548bec83a56ec8b416418780bb6f9487a56c2a4e4dc13284f8b311`.
+
+| Binary | sha256 |
+|---|---|
+| B server (v0.4.0 `556683c8`) | `cffad32fc6a782ae5b4476488af52a03904e6409901f4d8c448e4f162f622303` |
+| B harness (`df635a1e`) | `dca7c28f30087c0917cba131238428dfd60ccfdd4b0769ee214ba40662b55131` |
+| C server (`a1d9577`) | `3a32bb322eef35b5c58eb9b3c334f0d1c2cae0fb1ed3b5538469867734414f4f` |
+| C harness (`df635a1e`, core `a1d9577`) | `fc5dd29f204bc8c181b0b0fd24c17bf0bc9b1ef8aae294f658d49059f0605d9c` |
+| measure_e2e | `88f0afb1f1d602ecfbb6fb5d2c3fad0f225a42dc0ec35c5c3fa6ba7f8160a2d4` |
+
+- Budget before launch: about 1 h 54 min logged plus at most 15 min unlogged
+  diagnostics; this campaign is projected at about 27 minutes.
