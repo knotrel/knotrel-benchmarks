@@ -416,3 +416,90 @@ extension 09:36:33Z-09:49:51Z, both exit 0, in new output directories
 (`raw-main/`, `extension/`). Result for `a1d9577`: 5 PASS, 1
 INCONCLUSIVE_DISCLOSED, 3 UNRESOLVED, no REGRESSION (`RESULT.md` in the
 campaign directory). No further A rerun is permitted for this candidate.
+
+## Amendment 4: candidate dcd8ccc, lifecycle scope compact-bfs (owner decision B1)
+
+Recorded 2026-11-16T11:42:48Z, before any final measurement of candidate
+`dcd8ccca10ef5766e3c9252832594186bf93bbc3` (pilot 6 only, as for every earlier
+candidate). Prospective; authorized by the owner together with decision B1.
+
+**Candidate.** knotrel `dcd8ccc` = `a1d9577` + `754ddbc` (test harness port
+race) + `a7eb215` and `9fb05b5` (lifecycle restricted to `compact-bfs`;
+`ett`/`hdt` lifecycle rejected explicitly in core constructors and server
+configuration; review follow-ups) + documentation commits `1032eed`,
+`74467e5`, `a4131cf`, `beeacc9`, `dcd8ccc`. Independent contract and code
+reviews: no blocker or major; all minor findings addressed in `9fb05b5` and
+`dcd8ccc`. Local validation: 14/14
+(`evidence/v0.5.0-dev/validation-dcd8ccc/`, including the python-tests
+cache incident and rerun recorded in `VALIDATION-NOTE.md`).
+
+**Experiment A (complete, unchanged rules).** Nine cells, `--rules v0.4.0`,
+session seeds 130500-130502, one extension of 12 pairs per cell with an
+INCONCLUSIVE gated metric (seeds 130510-130512), no further extension; the
+amendment-1 collector, plan generator and analysis, unchanged; build recipe
+identical to amendment 3 apart from the campaign path. Campaign
+`evidence/v0.5.0-qualification/A-20261116T113709Z-dcd8ccc`; smoke B and C exit 0;
+plan and dry-run preflight exit 0. Plan sha256: manifest
+`66ad1a992576fc467770197aec6b3731566945eff1ad3047369dcab59ce1252c`, schedule
+`c67708e374c64f422cf73c42405a3da11082d0faec3976538253b3b9d8e3db35`.
+
+| A binary | sha256 |
+|---|---|
+| B server (v0.4.0 `556683c8`) | `0b1d71dd9b2fc9f0f972adb6ab4bf5be5a2014b53094076ab2d27b568b6c1a08` |
+| B harness (`df635a1e`) | `5c186a14920f866c3375cf5582efd39060826f796301ea516f134845765cb2bb` |
+| C server (`dcd8ccc`) | `71d8acaf2a88e6a128ead8401c162d36ffc99d5fedb1da8373c053fb37deb4b7` |
+| C harness (`df635a1e`, core `dcd8ccc`) | `28b7a8d2b9d9665aa391cfa442299649652c78043b4514a458c913c4c22bee6f` |
+| measure_e2e | `88f0afb1f1d602ecfbb6fb5d2c3fad0f225a42dc0ec35c5c3fa6ba7f8160a2d4` |
+
+**Experiments B and C (scope compact-bfs).** `run_lifecycle_qualification.py
+--lifecycle-engines compact-bfs` (tooling `f1d099cc`): 127 cells. Kept: every
+`compact-bfs` cell of the original matrix, including every cell that failed or
+was inconclusive before, and `B4-http-metrics-legacy-{ett,hdt}-sparse-10000`
+(two lifecycle-disabled servers, not a lifecycle cell). Excluded (238 cells):
+the cells that measure lifecycle on `ett` or `hdt`, which can no longer be
+constructed (B1, B2, B3, B4 lifecycle scenarios including `metrics-ops`), and
+the B5 and C cells of those engines (lifecycle arms and their paired plain or
+reference arms, which carry no verdict of their own). Thresholds,
+definitions, budgets, rules and result handling are unchanged; the analysis
+additionally requires the archived plan to equal the generated matrix for the
+expected scope. Window multipliers: re-derived by the same mechanical rule from
+pilot 6 (`evidence/v0.5.0-qualification/pilot6-dcd8ccc`, order seed 12, 83.5 s;
+13 of 61 timed cells scaled, none at the cap): `window-multipliers-dcd8ccc.json`,
+sha256 `130c35bbac5ee7909e787610bcdd7922aef91aa81879448f0cfc7916587d2630`. Order
+seed 50500.
+
+| Probe binary (knotrel `dcd8ccc`, probes `f1d099cc`, both clean) | sha256 |
+|---|---|
+| `tools/lifecycle-probes/target-r4/release/core-lifecycle` | `6512653b91f4f8e5a1e7655ba1f86a094c95d07467e40c2d65ddede35f39b74a` |
+| `tools/lifecycle-probes/target-r4-count/release/core-lifecycle` | `97d660fe502b28263e32e7bf62d5fead215f206167a8d2a16c889a60b4ca9938` |
+| `tools/lifecycle-probes/target-r4/release/http-lifecycle` | `2d3b7889c4d4a48b71290aac32068f5e4704d94b73695df0048d164bf852428a` |
+| `tools/lifecycle-probes/target-r4-peak/release/memory-peak` (D5 only) | `09a0c2d99950c3177a95f2f0993c86cc0c4800ccb40152c68d69152e93c95bcc` |
+
+Analysis command for run 4:
+`analyze_lifecycle_qualification.py BC-final-dcd8ccc --expect-knotrel-rev dcd8ccca10ef5766e3c9252832594186bf93bbc3 --expect-multipliers-sha256 130c35bbac5ee7909e787610bcdd7922aef91aa81879448f0cfc7916587d2630 --expect-probes-rev f1d099cc5b66be609a9624c2cab3169104223d2b --expect-lifecycle-engines compact-bfs`.
+
+**D5 diagnostic (no verdict).** After B/C in the same chain:
+`evidence/v0.5.0-remediation/run_d5.py` (sha256
+`1e7bd4c34967e26dae60582b65e5703e6b7376c599609566803faa21290b23e3`): D4a's
+`compact-bfs` churn runs (fresh, same, toggle; sparse 100k; 30 cycles) and
+D4d's `compact-bfs` 100k import runs (core and HTTP create at 20/10 and
+60/30; HTTP replace at 20/10), 8 runs, cap 5 minutes, same metric
+definitions as D4.
+
+**Host.** AC power; no build or other campaign; the agent runs no other
+command during immediate preparation, quiet, cooldown and collection. The
+whole sequence is one chained script,
+`evidence/v0.5.0-qualification/run4-chain-dcd8ccc.sh` (sha256
+`a91cb1b243462ddbbdeb8d481a05b65855b9412664ef7c75395eb746d312d867`); the only
+monitoring is its completion. Frozen binaries are read-only; new output
+directories only.
+
+**Results.** Earlier candidates' results (runs 1-3, A for `6494253` and
+`a1d9577`, D1-D4) remain their records and are not re-scored; excluded
+`ett`/`hdt` lifecycle results stay recorded for those candidates and are not
+passes. No rerun or extension beyond the rules above; the B "no rerun" rule
+is unchanged.
+
+**Budget.** Before run 4: 151.6 min logged plus at most 15 min unlogged, plus
+pilot 6 1.4 min. Run 4 is projected at about 27 min (A) + 7 min (B/C) + 1 min
+(D5), within the six-hour cap.
