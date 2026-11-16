@@ -515,6 +515,7 @@ async fn import_http(args: &Args) -> Result<(), String> {
         .map_err(|e| e.to_string())?
         .with_mode(ServerMode::SourceManaged)
         .with_topology_lifecycle(true)
+        .map_err(|e| e.to_string())?
         .with_metrics_enabled(false)
         .with_graph_limits(GraphLimits::default());
     let app = router_with_config(config);

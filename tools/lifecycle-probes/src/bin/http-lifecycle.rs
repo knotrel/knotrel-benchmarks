@@ -122,6 +122,7 @@ fn config(
         .unwrap()
         .with_mode(mode)
         .with_topology_lifecycle(lifecycle)
+        .expect("lifecycle servers use a supported engine")
         .with_metrics_enabled(metrics)
         .with_graph_limits(knotrel_core::GraphLimits::default())
 }

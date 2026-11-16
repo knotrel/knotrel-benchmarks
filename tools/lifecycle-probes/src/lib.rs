@@ -414,7 +414,10 @@ pub fn run<S: Subject>(subject: &mut S, ops: &[Op]) -> u64 {
 
 impl Subject for LifecycleGraph {
     fn build(engine: EngineConfig, n: u64, edges: &[(u64, u64)]) -> Self {
-        let mut graph = LifecycleGraph::new(engine);
+        // Since knotrel 0.5.0 (B1) only compact-bfs supports lifecycle; the
+        // matrix gives the lifecycle arm no other engine.
+        let mut graph =
+            LifecycleGraph::new(engine).expect("lifecycle cells use a supported engine");
         for v in 0..n {
             graph.add_node(v).unwrap();
         }
@@ -724,11 +727,8 @@ mod tests {
     /// operation by operation (not only on the folded digest).
     #[test]
     fn reference_matches_lifecycle_graph_operation_by_operation() {
-        for engine in [
-            EngineConfig::CompactBfs,
-            EngineConfig::EulerTour,
-            EngineConfig::Hdt,
-        ] {
+        // Lifecycle support is compact-bfs only since knotrel 0.5.0 (B1).
+        for engine in [EngineConfig::CompactBfs] {
             for (topology, mix) in [
                 (Topology::Sparse, Mix::MutationHeavy),
                 (Topology::Hub, Mix::QueryHeavy),
