@@ -38,11 +38,25 @@ def confined(value: os.PathLike | str, what: str) -> Path:
     text = os.fspath(value)
     if not text or text.startswith("-"):
         raise SystemExit(f"{what}: invalid path {text!r}")
-    real = os.path.realpath(text)
+    resolved = Path(text).resolve()
     for root in allowed_roots():
-        if os.path.commonpath([real, root]) == root:
-            return Path(real)
+        if resolved == Path(root) or resolved.is_relative_to(root):
+            return resolved
     raise SystemExit(f"{what}: {text} resolves outside the allowed roots {allowed_roots()}")
+
+
+def contained_file(directory: Path, name: str, what: str) -> Path:
+    """``directory / name`` resolved, refused unless it lies directly inside ``directory``.
+
+    Used for file names derived from data (cell identifiers in a plan), so that
+    a name containing a separator, ``..`` or a symbolic link cannot escape the
+    run directory.
+    """
+    root = Path(directory).resolve()
+    resolved = (root / name).resolve()
+    if resolved.parent != root:
+        raise SystemExit(f"{what}: {name!r} resolves outside {root}")
+    return resolved
 
 
 def confined_executable(value: os.PathLike | str, what: str) -> Path:

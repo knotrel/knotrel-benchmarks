@@ -15,7 +15,7 @@ import statistics
 import sys
 from pathlib import Path
 
-from cli_paths import confined, confined_directory
+from cli_paths import confined, confined_directory, contained_file
 
 TARGET_NS = 2_000_000
 CAP = 64
@@ -35,7 +35,8 @@ def main() -> int:
     for cell in cells:
         if cell["experiment"] not in ("B1", "B2", "B3", "B4"):
             continue
-        records = [json.loads(line) for line in (pilot / "raw" / f"{cell['id']}.jsonl").read_text().splitlines()]
+        raw = contained_file(pilot / "raw", f"{cell['id']}.jsonl", "pilot record")
+        records = [json.loads(line) for line in raw.read_text().splitlines()]
         pairs = [r for r in records if r.get("kind") == "pair"]
         if not pairs:
             raise SystemExit(f"{cell['id']}: no pilot pairs")
