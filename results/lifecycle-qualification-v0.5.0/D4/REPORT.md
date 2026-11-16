@@ -100,7 +100,20 @@ candidate graph while the old graph is still published). Whether the plain
 3. **Retained capacities:** vectors and hash tables never shrink except
    incident lists; HDT vector capacity reached 154 MiB at engine level; the
    catalog table doubled under fresh-ID churn (114,688 → 229,268 capacity).
-4. **Not bounded or not guaranteed:** RSS (allocator retention; 66-266 MiB at
-   cycle 30); HDT steady-state heap in general (order- and history-dependent,
-   D4c); peak heap for inputs or schedules not measured; growth beyond 120
-   cycles.
+4. **Not guaranteed:** RSS (allocator retention; 66-266 MiB at cycle 30; no
+   hard bound in the product); a practical steady-state level for HDT heap
+   (D4c's sparse toggle replay kept growing through cycle 120 on that one
+   path, mostly token-arena capacity stepping to larger power-of-two sizes at
+   levels 2 and 3 while stored data stayed flat; this is continued growth on
+   one path, not a demonstrated leak or unbounded structure); peak heap for
+   inputs or schedules not measured; behavior beyond 120 cycles.
+
+**Correction (2026-11-16).** Earlier wording in this report and in the
+release notes called HDT steady-state heap "not bounded". The code bounds
+specific structures: per level at most `V + 2(V − 1)` Euler-tour tokens and
+`V` record slots, with at most `⌊log₂ U⌋ + 1` levels (`U ≤ 2V + 1024` with
+lifecycle slots); vector capacity follows the standard library's growth
+policy, an implementation property rather than a guarantee. That is a bound
+on those arenas and records, not on total process memory, which also
+includes incidence sets, mapping and edge hash tables, the lifecycle
+catalog, allocator overhead and RSS retention. No total ceiling is claimed.

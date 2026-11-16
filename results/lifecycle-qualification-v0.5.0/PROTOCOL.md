@@ -527,3 +527,12 @@ B/C provenance will name benchmarks HEAD at launch (a documentation commit)
 while probe build records name `f1d099cc`, which the analyzer checks; the
 analyzer compares plan cell IDs (not args) with the scoped matrix; provenance
 binary hashes are checked against the table above after the run.
+
+### Amendment 4 — run record (2026-11-16)
+
+Chain launched under `caffeinate` after pre-launch checks (AC power, no build,
+all frozen hashes). A main 11:49:20Z-12:02:46Z, extension 12:02:46Z-12:16:06Z
+(4 cells), B/C 127 cells (433 s), D5 8 runs; every step exit 0; no chain stop.
+Provenance binary hashes equal the amendment table. Results: `RUN-4-dcd8ccc.md`,
+`A-dcd8ccc-RESULT.md`, `run4-bc-analysis.md`. No rerun or extension beyond the
+rules.
