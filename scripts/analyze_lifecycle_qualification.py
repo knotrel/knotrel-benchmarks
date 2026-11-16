@@ -223,10 +223,8 @@ def main() -> int:
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
     args.run = confined_directory(args.run, "run directory")
-    if args.json:
-        args.json = confined(args.json, "--json")
-    if args.markdown:
-        args.markdown = confined(args.markdown, "--markdown")
+    json_out = confined(args.json, "--json") if args.json else None
+    markdown_out = confined(args.markdown, "--markdown") if args.markdown else None
     cells = {c["id"]: c for c in json.loads((args.run / "plan" / "matrix.json").read_text())}
     try:
         validate(args.run, cells, args.expect_knotrel_rev, args.expect_multipliers_sha256,
@@ -245,8 +243,8 @@ def main() -> int:
     except Invalid as error:
         print(f"INVALID RUN: {error}", file=sys.stderr)
         return 3
-    if args.json:
-        args.json.write_text(json.dumps(report, indent=1))
+    if json_out is not None:
+        json_out.write_text(json.dumps(report, indent=1))
     md = ["| Cell | Scale | Reference median | Candidate median | Median change | Interval | Tolerance | Status |",
           "|---|---|---|---|---|---|---|---|"]
     for t in sorted(timing, key=lambda t: t["id"]):
@@ -268,8 +266,8 @@ def main() -> int:
                   f"{r.get('projected_growth_30', float('nan')):+.3f} | {r.get('max_retired_vertices', '-')} | "
                   f"{r.get('C1', '-')} | {r['C2']} | {verdict} |")
     text = "\n".join(md) + "\n"
-    if args.markdown:
-        args.markdown.write_text(text)
+    if markdown_out is not None:
+        markdown_out.write_text(text)
     else:
         sys.stdout.write(text)
     counts: Dict[str, int] = {}
