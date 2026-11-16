@@ -50,6 +50,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+from cli_paths import confined, confined_directory
+
 HERE = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("analyze_bc_qualification", HERE / "analyze_bc_qualification.py")
 _bc = importlib.util.module_from_spec(_spec)
@@ -220,6 +222,11 @@ def main() -> int:
     parser.add_argument("--json", type=Path)
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
+    args.run = confined_directory(args.run, "run directory")
+    if args.json:
+        args.json = confined(args.json, "--json")
+    if args.markdown:
+        args.markdown = confined(args.markdown, "--markdown")
     cells = {c["id"]: c for c in json.loads((args.run / "plan" / "matrix.json").read_text())}
     try:
         validate(args.run, cells, args.expect_knotrel_rev, args.expect_multipliers_sha256,

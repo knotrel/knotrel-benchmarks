@@ -21,9 +21,8 @@
 //!     --inactive-percent I --disabled-percent D --seed S --mode create|replace
 //! ```
 //!
-//! `churn` replays the exact `core-lifecycle resources` schedule (copied from
-//! `core-lifecycle.rs` at probes `444806d3`; the logical counts it prints must
-//! equal run 3's) on the lifecycle arm. `hdt-levels` applies the same
+//! `churn` replays the exact `core-lifecycle resources` schedule (`lifecycle_probes::churn`; the
+//! logical counts it prints must equal run 3's) on the lifecycle arm. `hdt-levels` applies the same
 //! schedule's effective-graph changes directly to an `HdtGraph` and prints
 //! its per-level structural counters. The import commands prepare every input
 //! first (the HTTP body is built by string formatting, without a JSON value
@@ -36,10 +35,10 @@ use axum::{
 };
 use knotrel_core::{EdgeSpec, EngineConfig, GraphLimits, HdtGraph, LifecycleGraph, NodeSpec};
 use knotrel_server::{ServerConfig, ServerMode, router_with_config};
+use lifecycle_probes::churn::{Model, schedule};
 use lifecycle_probes::{
     Op, Rng, Subject, Topology, build_record, generate, parse_engine, rss_bytes,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::{Value, json};
 use std::{alloc::System, collections::HashMap, fmt::Write as _, process::ExitCode};
 use tower::ServiceExt;
@@ -78,164 +77,6 @@ impl Args {
             .parse()
             .map_err(|_| format!("--{key} is invalid"))
     }
-}
-
-// ---- Copy of the core-lifecycle `resources` schedule (probes 444806d3). ----
-
-#[derive(Default)]
-struct Model {
-    active: FxHashMap<u64, bool>,
-    edges: FxHashMap<(u64, u64), bool>,
-    adjacency: FxHashMap<u64, FxHashSet<u64>>,
-}
-
-fn key(a: u64, b: u64) -> (u64, u64) {
-    (a.min(b), a.max(b))
-}
-
-impl Model {
-    fn apply(&mut self, op: Op) {
-        match op {
-            Op::AddNode(v) => {
-                if let std::collections::hash_map::Entry::Vacant(entry) = self.active.entry(v) {
-                    entry.insert(true);
-                    self.adjacency.insert(v, FxHashSet::default());
-                }
-            }
-            Op::Link(a, b) => {
-                if a == b || self.edges.contains_key(&key(a, b)) {
-                    return;
-                }
-                self.apply(Op::AddNode(a));
-                self.apply(Op::AddNode(b));
-                self.edges.insert(key(a, b), true);
-                self.adjacency.get_mut(&a).unwrap().insert(b);
-                self.adjacency.get_mut(&b).unwrap().insert(a);
-            }
-            Op::Remove(v) => {
-                if self.active.remove(&v).is_none() {
-                    return;
-                }
-                for w in self.adjacency.remove(&v).unwrap() {
-                    self.edges.remove(&key(v, w));
-                    self.adjacency.get_mut(&w).unwrap().remove(&v);
-                }
-            }
-            Op::SetNode(v, f) => {
-                if let Some(flag) = self.active.get_mut(&v) {
-                    *flag = f;
-                }
-            }
-            Op::SetEdge(a, b, f) => {
-                if let Some(flag) = self.edges.get_mut(&key(a, b)) {
-                    *flag = f;
-                }
-            }
-            Op::Cut(..) | Op::Connected(..) => unreachable!("not used by churn schedules"),
-        }
-    }
-
-    fn counts(&self) -> [usize; 5] {
-        let effective = self
-            .edges
-            .iter()
-            .filter(|&(&(a, b), &enabled)| enabled && self.active[&a] && self.active[&b])
-            .count();
-        [
-            self.active.len(),
-            self.edges.len(),
-            self.active.values().filter(|&&a| a).count(),
-            self.edges.values().filter(|&&e| e).count(),
-            effective,
-        ]
-    }
-
-    fn effective(&self, a: u64, b: u64) -> bool {
-        self.edges.get(&key(a, b)).copied().unwrap_or(false)
-            && self.active.get(&a).copied().unwrap_or(false)
-            && self.active.get(&b).copied().unwrap_or(false)
-    }
-}
-
-type Schedule = (Vec<Vec<Op>>, Vec<[usize; 5]>);
-
-fn schedule(
-    n: u64,
-    edges: &[(u64, u64)],
-    reuse: &str,
-    cycles: usize,
-    percent: u64,
-    seed: u64,
-) -> Result<Schedule, String> {
-    let mut model = Model::default();
-    (0..n).for_each(|v| model.apply(Op::AddNode(v)));
-    edges.iter().for_each(|&(a, b)| model.apply(Op::Link(a, b)));
-    let relink = (2 * edges.len() as u64 / n.max(1)).max(1);
-    let mut expected = vec![model.counts()];
-    let mut plan = Vec::with_capacity(cycles);
-    let mut rng = Rng(seed ^ 0xc0ffee);
-    let mut live: Vec<u64> = (0..n).collect();
-    let mut next_id = n;
-    let mut previous: Vec<(u64, Option<u64>)> = Vec::new();
-    for _ in 0..cycles {
-        let mut ops = Vec::new();
-        let mut push = |op: Op, model: &mut Model| {
-            model.apply(op);
-            ops.push(op);
-        };
-        if reuse == "toggle" {
-            for (v, w) in previous.drain(..) {
-                push(Op::SetNode(v, true), &mut model);
-                if let Some(w) = w {
-                    push(Op::SetEdge(v, w, true), &mut model);
-                }
-            }
-        }
-        let picks = (live.len() as u64 * percent / 100).max(1);
-        for _ in 0..picks {
-            let index = rng.below(live.len() as u64) as usize;
-            let v = live[index];
-            match reuse {
-                "fresh" | "same" => {
-                    push(Op::Remove(v), &mut model);
-                    let id = if reuse == "fresh" {
-                        let id = next_id;
-                        next_id += 1;
-                        id
-                    } else {
-                        v
-                    };
-                    live[index] = id;
-                    push(Op::AddNode(id), &mut model);
-                    for _ in 0..relink {
-                        let w = live[rng.below(live.len() as u64) as usize];
-                        push(Op::Link(id, w), &mut model);
-                    }
-                }
-                "toggle" => {
-                    if !model.active[&v] {
-                        continue;
-                    }
-                    let enabled: Vec<u64> = model.adjacency[&v]
-                        .iter()
-                        .copied()
-                        .filter(|&w| model.edges[&key(v, w)])
-                        .collect();
-                    let w = (!enabled.is_empty())
-                        .then(|| enabled[rng.below(enabled.len() as u64) as usize]);
-                    push(Op::SetNode(v, false), &mut model);
-                    if let Some(w) = w {
-                        push(Op::SetEdge(v, w, false), &mut model);
-                    }
-                    previous.push((v, w));
-                }
-                _ => return Err("unknown --reuse".into()),
-            }
-        }
-        expected.push(model.counts());
-        plan.push(ops);
-    }
-    Ok((plan, expected))
 }
 
 // ---- churn: lifecycle arm with peak tracking ----
