@@ -1,0 +1,2387 @@
+{
+ "schema": "knotrel.v0.6.0.qualification-matrix.v1",
+ "status": "DRAFT (frozen when FREEZE.json is written)",
+ "references": {
+  "product_reference": "knotrel v0.5.0 (published): tag v0.5.0 = 51e3b4da2de802a4ebf352b1e8a8311657e48d38",
+  "benchmarks_reference": "knotrel-benchmarks v0.5.0 = 7ce6abb726ef3112604df2ceaff7b4a7ef21c328"
+ },
+ "rules": {
+  "interval": "paired log ratios ln(C/B); n=12 -> one-based order statistics r(3), r(10); n=24 -> r(7), r(18) (analyze_bc_qualification.summarize_metric, unchanged)",
+  "tolerances": {
+   "primary": 0.1,
+   "query_tail": 0.25,
+   "rss": 0.2,
+   "memory_heap": 0.2
+  },
+  "classification": "PASS if upper <= ln(1+t); REGRESSION if lower > ln(1+t); else INCONCLUSIVE. For higher-is-better metrics the ratio is B/C. IMPROVED is reported (never claimed otherwise) only when the upper bound is below 0.",
+  "A": "v0.4.0 rules unchanged (analyze_bc_qualification.py --rules v0.4.0), one 12-pair extension per cell with an INCONCLUSIVE gated metric; INCONCLUSIVE_DISCLOSED only for an INCONCLUSIVE primary with median <= t and every supporting metric PASS; else UNRESOLVED",
+  "B_C": "v0.5.0 protocol sections 3-4 unchanged (tolerances 25/50/100/6%, B5 3.0x, C1-C4); lifecycle scope compact-bfs; window multipliers of run 4 (window-multipliers-dcd8ccc.json) reused unchanged so cells are identical to v0.5.0's; no extension, no rerun",
+  "R": "12 analyzed pairs after 2 discarded warmup pairs, fresh process per observation, arm order balanced 6/6 within the analyzed pairs by a seeded shuffle (order seed 60500); no extension; tolerance primary 10%",
+  "Rmem": "deterministic allocator byte counts, one run per arm; REGRESSION if candidate > reference x 1.20, otherwise PASS; reported with absolute values",
+  "M_desc": "descriptive, no verdict; feeds the predeclared M5 decision rule of the v0.6.0 design (section 6)",
+  "M_reg": "12 analyzed pairs after 2 warmup pairs, a fresh server process per observation, arm order balanced; throughput tolerance primary 10% (ratio B/C), client p99 tolerance query_tail 25%",
+  "no_waiver_inheritance": "No v0.4.0 or v0.5.0 maintainer waiver applies. A repeated failure is a v0.6.0 failure until the maintainer decides otherwise for v0.6.0 explicitly."
+ },
+ "experiments": {
+  "A": {
+   "question": "lifecycle off: did existing behavior regress against published v0.5.0?",
+   "cells": "the nine v0.4.0/v0.5.0 cells unchanged",
+   "session_seeds": [
+    130600,
+    130601,
+    130602
+   ],
+   "extension_seeds": [
+    130610,
+    130611,
+    130612
+   ],
+   "harness": "knotrel-benchmarks df635a1e core harness with derived lockfiles changing only the knotrel-core version; measure_e2e built from the candidate source"
+  },
+  "B_C": {
+   "question": "lifecycle cost and sustained resources on the candidate, same cells and rules as v0.5.0 run 4",
+   "order_seed": 50600,
+   "collector": "scripts/run_lifecycle_qualification.py --profile final --lifecycle-engines compact-bfs"
+  },
+  "R": {
+   "question": "lifecycle on: candidate vs published v0.5.0 on import and churn",
+   "cells": [
+    {
+     "id": "R-core-import-sparse-100k-20-10",
+     "experiment": "R",
+     "command": "core-import",
+     "args": [
+      "core-import",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10",
+      "--seed",
+      "5000001",
+      "--warmup",
+      "1",
+      "--reps",
+      "5"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-core-import-sparse-100k-60-30",
+     "experiment": "R",
+     "command": "core-import",
+     "args": [
+      "core-import",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--inactive-percent",
+      "60",
+      "--disabled-percent",
+      "30",
+      "--seed",
+      "5000001",
+      "--warmup",
+      "1",
+      "--reps",
+      "5"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-core-import-sparse-10k-20-10",
+     "experiment": "R",
+     "command": "core-import",
+     "args": [
+      "core-import",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "10000",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10",
+      "--seed",
+      "5000001",
+      "--warmup",
+      "3",
+      "--reps",
+      "21"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-core-import-hub-10k-20-10",
+     "experiment": "R",
+     "command": "core-import",
+     "args": [
+      "core-import",
+      "--topology",
+      "hub",
+      "--nodes",
+      "10000",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10",
+      "--seed",
+      "5000001",
+      "--warmup",
+      "3",
+      "--reps",
+      "21"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-http-import-sparse-100k-20-10",
+     "experiment": "R",
+     "command": "http-import",
+     "args": [
+      "http-import",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10",
+      "--seed",
+      "5000001",
+      "--warmup",
+      "1",
+      "--reps",
+      "5"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-http-import-sparse-100k-60-30",
+     "experiment": "R",
+     "command": "http-import",
+     "args": [
+      "http-import",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--inactive-percent",
+      "60",
+      "--disabled-percent",
+      "30",
+      "--seed",
+      "5000001",
+      "--warmup",
+      "1",
+      "--reps",
+      "5"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-http-import-sparse-10k-20-10",
+     "experiment": "R",
+     "command": "http-import",
+     "args": [
+      "http-import",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "10000",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10",
+      "--seed",
+      "5000001",
+      "--warmup",
+      "3",
+      "--reps",
+      "21"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-churn-fresh-sparse-100k",
+     "experiment": "R",
+     "command": "churn",
+     "args": [
+      "churn",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "fresh",
+      "--seed",
+      "5000001"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-churn-fresh-hub-100k",
+     "experiment": "R",
+     "command": "churn",
+     "args": [
+      "churn",
+      "--topology",
+      "hub",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "fresh",
+      "--seed",
+      "5000001"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-churn-same-sparse-100k",
+     "experiment": "R",
+     "command": "churn",
+     "args": [
+      "churn",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "same",
+      "--seed",
+      "5000001"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    },
+    {
+     "id": "R-churn-toggle-sparse-100k",
+     "experiment": "R",
+     "command": "churn",
+     "args": [
+      "churn",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "toggle",
+      "--seed",
+      "5000001"
+     ],
+     "metric": "observation_ns",
+     "tolerance": "primary"
+    }
+   ],
+   "order_seed": 60500,
+   "warmup_pairs": 2,
+   "pairs": 12
+  },
+  "Rmem": {
+   "question": "lifecycle on: memory peaks candidate vs v0.5.0",
+   "cells": [
+    {
+     "id": "Rmem-import-core-20-10",
+     "args": [
+      "import-core",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--seed",
+      "5000001",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10"
+     ],
+     "metrics": [
+      "peak_after",
+      "live_after"
+     ]
+    },
+    {
+     "id": "Rmem-import-http-create-20-10",
+     "args": [
+      "import-http",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--seed",
+      "5000001",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10",
+      "--mode",
+      "create"
+     ],
+     "metrics": [
+      "peak_after",
+      "transient_over_final"
+     ]
+    },
+    {
+     "id": "Rmem-import-core-60-30",
+     "args": [
+      "import-core",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--seed",
+      "5000001",
+      "--inactive-percent",
+      "60",
+      "--disabled-percent",
+      "30"
+     ],
+     "metrics": [
+      "peak_after",
+      "live_after"
+     ]
+    },
+    {
+     "id": "Rmem-import-http-create-60-30",
+     "args": [
+      "import-http",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--seed",
+      "5000001",
+      "--inactive-percent",
+      "60",
+      "--disabled-percent",
+      "30",
+      "--mode",
+      "create"
+     ],
+     "metrics": [
+      "peak_after",
+      "transient_over_final"
+     ]
+    },
+    {
+     "id": "Rmem-import-http-replace-20-10",
+     "args": [
+      "import-http",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--seed",
+      "5000001",
+      "--inactive-percent",
+      "20",
+      "--disabled-percent",
+      "10",
+      "--mode",
+      "replace"
+     ],
+     "metrics": [
+      "peak_after",
+      "transient_over_final"
+     ]
+    },
+    {
+     "id": "Rmem-churn-fresh-sparse",
+     "args": [
+      "churn",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "fresh",
+      "--seed",
+      "5000001"
+     ],
+     "metrics": [
+      "max_net_live",
+      "max_net_peak"
+     ]
+    },
+    {
+     "id": "Rmem-churn-fresh-ring",
+     "args": [
+      "churn",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "ring",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "fresh",
+      "--seed",
+      "5000001"
+     ],
+     "metrics": [
+      "max_net_live",
+      "max_net_peak"
+     ]
+    },
+    {
+     "id": "Rmem-churn-fresh-hub",
+     "args": [
+      "churn",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "hub",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "fresh",
+      "--seed",
+      "5000001"
+     ],
+     "metrics": [
+      "max_net_live",
+      "max_net_peak"
+     ]
+    },
+    {
+     "id": "Rmem-churn-same-sparse",
+     "args": [
+      "churn",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "same",
+      "--seed",
+      "5000001"
+     ],
+     "metrics": [
+      "max_net_live",
+      "max_net_peak"
+     ]
+    },
+    {
+     "id": "Rmem-churn-toggle-sparse",
+     "args": [
+      "churn",
+      "--engine",
+      "compact-bfs",
+      "--topology",
+      "sparse",
+      "--nodes",
+      "100000",
+      "--cycles",
+      "30",
+      "--churn-percent",
+      "5",
+      "--reuse",
+      "toggle",
+      "--seed",
+      "5000001"
+     ],
+     "metrics": [
+      "max_net_live",
+      "max_net_peak"
+     ]
+    }
+   ]
+  },
+  "M_desc": {
+   "question": "contention profile of the candidate",
+   "servers": [
+    {
+     "id": "M-standalone-off-10k",
+     "mode": "standalone",
+     "lifecycle": false,
+     "nodes": 10000,
+     "configs": [
+      {
+       "id": "read95-b1-c1",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c4",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c16",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c64",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c1",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c4",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c16",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c64",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c1",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c4",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c16",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c64",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c1",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c4",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c16",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c64",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c1",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c4",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c16",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c64",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c1",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c4",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c16",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c64",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      }
+     ]
+    },
+    {
+     "id": "M-source-off-10k",
+     "mode": "source-managed",
+     "lifecycle": false,
+     "nodes": 10000,
+     "configs": [
+      {
+       "id": "read100-b8-c4-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c4-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c4-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c16-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c16-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c16-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c64-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c64-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c64-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      }
+     ]
+    },
+    {
+     "id": "M-standalone-off-100k",
+     "mode": "standalone",
+     "lifecycle": false,
+     "nodes": 100000,
+     "configs": [
+      {
+       "id": "read95-b1-c1",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c4",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c16",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c64",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c1",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c4",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c16",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c64",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c1",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c4",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c16",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c64",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c1",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c4",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c16",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c64",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c1",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c4",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c16",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c64",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c1",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c4",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c16",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c64",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      }
+     ]
+    },
+    {
+     "id": "M-source-off-100k",
+     "mode": "source-managed",
+     "lifecycle": false,
+     "nodes": 100000,
+     "configs": [
+      {
+       "id": "read100-b8-c4-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c4-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c4-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c16-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c16-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c16-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c64-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c64-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c64-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      }
+     ]
+    },
+    {
+     "id": "M-standalone-on-10k",
+     "mode": "standalone",
+     "lifecycle": true,
+     "nodes": 10000,
+     "configs": [
+      {
+       "id": "read95-b1-c1",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c4",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c16",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c64",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c1",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c4",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c16",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c64",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c1",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c4",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c16",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c64",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c1",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c4",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c16",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c64",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c1",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c4",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c16",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c64",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c1",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c4",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c16",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c64",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c1",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c4",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c16",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c64",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c1",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c4",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c16",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c64",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c1",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c4",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c16",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c64",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      }
+     ]
+    },
+    {
+     "id": "M-source-on-10k",
+     "mode": "source-managed",
+     "lifecycle": true,
+     "nodes": 10000,
+     "configs": [
+      {
+       "id": "read100-b8-c4-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c4-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c4-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c16-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c16-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c16-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c64-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c64-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c64-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      }
+     ]
+    },
+    {
+     "id": "M-standalone-on-100k",
+     "mode": "standalone",
+     "lifecycle": true,
+     "nodes": 100000,
+     "configs": [
+      {
+       "id": "read95-b1-c1",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c4",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c16",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b1-c64",
+       "mix": "read95",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c1",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c4",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c16",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b8-c64",
+       "mix": "read95",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c1",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c4",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c16",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read95-b64-c64",
+       "mix": "read95",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c1",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c4",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c16",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b1-c64",
+       "mix": "mixed50",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c1",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c4",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c16",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b8-c64",
+       "mix": "mixed50",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c1",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c4",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c16",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "mixed50-b64-c64",
+       "mix": "mixed50",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c1",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c4",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c16",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b1-c64",
+       "mix": "lifecycle50",
+       "batch": 1,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c1",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c4",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c16",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b8-c64",
+       "mix": "lifecycle50",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c1",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 1,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c4",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c16",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "lifecycle50-b64-c64",
+       "mix": "lifecycle50",
+       "batch": 64,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      }
+     ]
+    },
+    {
+     "id": "M-source-on-100k",
+     "mode": "source-managed",
+     "lifecycle": true,
+     "nodes": 100000,
+     "configs": [
+      {
+       "id": "read100-b8-c4-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c4-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c4-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 4,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c16-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c16-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c16-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 16,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      },
+      {
+       "id": "read100-b8-c64-none",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "none"
+      },
+      {
+       "id": "read100-b8-c64-import",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 5000,
+       "open_rate": null,
+       "background": "import"
+      },
+      {
+       "id": "read100-b8-c64-events",
+       "mix": "read100",
+       "batch": 8,
+       "clients": 64,
+       "warmup_ms": 1000,
+       "measure_ms": 3000,
+       "open_rate": null,
+       "background": "events"
+      }
+     ]
+    }
+   ],
+   "open_loop": {
+    "rule": "after M-desc, for each of M-standalone-{off,on}-100k config read95-b8-c16: offered rate = f x the closed-loop requests_per_s measured for that config in M-desc, f in {0.5, 0.9, 1.1}; 16 clients, 1 s warmup, 3 s measure, run on a fresh server of the same kind",
+    "fractions": [
+     0.5,
+     0.9,
+     1.1
+    ]
+   },
+   "seed": 7
+  },
+  "M_reg": {
+   "question": "contention regression against v0.5.0 on a fixed subset",
+   "cells": [
+    {
+     "id": "Mreg-standalone-off-read95-b8-c16-100k-none",
+     "mode": "standalone",
+     "lifecycle": false,
+     "nodes": 100000,
+     "config": {
+      "id": "Mreg-standalone-off-read95-b8-c16-100k-none",
+      "mix": "read95",
+      "batch": 8,
+      "clients": 16,
+      "warmup_ms": 1000,
+      "measure_ms": 3000,
+      "open_rate": null,
+      "background": "none"
+     },
+     "metrics": {
+      "requests_per_s": {
+       "tolerance": "primary",
+       "direction": "higher_is_better"
+      },
+      "latency_ns.p99": {
+       "tolerance": "query_tail",
+       "direction": "lower_is_better"
+      }
+     }
+    },
+    {
+     "id": "Mreg-standalone-off-mixed50-b64-c16-100k-none",
+     "mode": "standalone",
+     "lifecycle": false,
+     "nodes": 100000,
+     "config": {
+      "id": "Mreg-standalone-off-mixed50-b64-c16-100k-none",
+      "mix": "mixed50",
+      "batch": 64,
+      "clients": 16,
+      "warmup_ms": 1000,
+      "measure_ms": 3000,
+      "open_rate": null,
+      "background": "none"
+     },
+     "metrics": {
+      "requests_per_s": {
+       "tolerance": "primary",
+       "direction": "higher_is_better"
+      },
+      "latency_ns.p99": {
+       "tolerance": "query_tail",
+       "direction": "lower_is_better"
+      }
+     }
+    },
+    {
+     "id": "Mreg-standalone-off-read95-b1-c4-10k-none",
+     "mode": "standalone",
+     "lifecycle": false,
+     "nodes": 10000,
+     "config": {
+      "id": "Mreg-standalone-off-read95-b1-c4-10k-none",
+      "mix": "read95",
+      "batch": 1,
+      "clients": 4,
+      "warmup_ms": 1000,
+      "measure_ms": 3000,
+      "open_rate": null,
+      "background": "none"
+     },
+     "metrics": {
+      "requests_per_s": {
+       "tolerance": "primary",
+       "direction": "higher_is_better"
+      },
+      "latency_ns.p99": {
+       "tolerance": "query_tail",
+       "direction": "lower_is_better"
+      }
+     }
+    },
+    {
+     "id": "Mreg-standalone-on-lifecycle50-b8-c16-100k-none",
+     "mode": "standalone",
+     "lifecycle": true,
+     "nodes": 100000,
+     "config": {
+      "id": "Mreg-standalone-on-lifecycle50-b8-c16-100k-none",
+      "mix": "lifecycle50",
+      "batch": 8,
+      "clients": 16,
+      "warmup_ms": 1000,
+      "measure_ms": 3000,
+      "open_rate": null,
+      "background": "none"
+     },
+     "metrics": {
+      "requests_per_s": {
+       "tolerance": "primary",
+       "direction": "higher_is_better"
+      },
+      "latency_ns.p99": {
+       "tolerance": "query_tail",
+       "direction": "lower_is_better"
+      }
+     }
+    },
+    {
+     "id": "Mreg-source-managed-off-read100-b8-c16-100k-import",
+     "mode": "source-managed",
+     "lifecycle": false,
+     "nodes": 100000,
+     "config": {
+      "id": "Mreg-source-managed-off-read100-b8-c16-100k-import",
+      "mix": "read100",
+      "batch": 8,
+      "clients": 16,
+      "warmup_ms": 1000,
+      "measure_ms": 5000,
+      "open_rate": null,
+      "background": "import"
+     },
+     "metrics": {
+      "requests_per_s": {
+       "tolerance": "primary",
+       "direction": "higher_is_better"
+      },
+      "latency_ns.p99": {
+       "tolerance": "query_tail",
+       "direction": "lower_is_better"
+      }
+     }
+    },
+    {
+     "id": "Mreg-source-managed-on-read100-b8-c16-100k-events",
+     "mode": "source-managed",
+     "lifecycle": true,
+     "nodes": 100000,
+     "config": {
+      "id": "Mreg-source-managed-on-read100-b8-c16-100k-events",
+      "mix": "read100",
+      "batch": 8,
+      "clients": 16,
+      "warmup_ms": 1000,
+      "measure_ms": 3000,
+      "open_rate": null,
+      "background": "events"
+     },
+     "metrics": {
+      "requests_per_s": {
+       "tolerance": "primary",
+       "direction": "higher_is_better"
+      },
+      "latency_ns.p99": {
+       "tolerance": "query_tail",
+       "direction": "lower_is_better"
+      }
+     }
+    }
+   ],
+   "order_seed": 60600,
+   "warmup_pairs": 2,
+   "pairs": 12,
+   "seed": 7
+  }
+ },
+ "host_conditions": {
+  "power": "AC (pmset -g batt reports 'AC Power'); checked before every cell; a cell on battery invalidates the run",
+  "thermal": "pmset -g therm recorded before every cell; any recorded thermal or performance warning invalidates the cell",
+  "concurrency": "no cargo/rustc process and no other campaign; checked before each experiment",
+  "awake": "caffeinate -dimsu"
+ },
+ "invalidation": {
+  "code_change": "any change to executed code of knotrel after freezing invalidates every experiment that ran that code; documentation-only commits do not (executed code identity is checked by comparing __TEXT,__text of release builds)",
+  "tooling_change": "any change to a probe, collector or analysis after freezing invalidates the affected experiment",
+  "failed_child": "a failing child stops the experiment; one rerun only for an infrastructure failure unrelated to the measured code, recorded with its cause",
+  "invalid_runs": "kept and reported; never deleted or overwritten (collectors refuse to overwrite)"
+ },
+ "resource_ceilings": {
+  "max_nodes": 100000,
+  "max_clients": 64,
+  "max_import_body_bytes": "64 MiB server default",
+  "memory": "the host must keep at least 4 GiB free; probes report RSS"
+ },
+ "budget": {
+  "optimization_candidates": 3,
+  "diagnostics_hours": 3,
+  "final_estimate_minutes": {
+   "A": 27,
+   "B_C": 8,
+   "R": 12,
+   "Rmem": 2,
+   "M_desc": 16,
+   "M_reg": 18,
+   "total": 83
+  },
+  "final_cap_minutes": 240
+ }
+}
