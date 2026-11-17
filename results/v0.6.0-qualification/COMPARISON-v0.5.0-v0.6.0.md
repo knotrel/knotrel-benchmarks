@@ -335,3 +335,4 @@ under verified absence of automated activity. The report is
 - **Proposed** to the maintainer as the coverage evidence for §8 item 9.
   The verdicts in §6 and the other non-PASS items are unchanged.
 
+**Maintainer decision (2026-11-17): "Accept both".** The two rerun M_reg verdicts (PASS, PASS) are accepted as the coverage evidence for comparison §8 item 9, together with the disclosed residual activity and the confirmed small degradation within tolerance in the feeder catch-up cell. This acceptance covers only those two cells. It changes no frozen verdict, closes no other non-PASS item and is not acceptance of v0.6.0.

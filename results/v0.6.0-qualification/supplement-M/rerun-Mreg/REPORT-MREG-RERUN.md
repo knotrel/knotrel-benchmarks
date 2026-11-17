@@ -112,3 +112,7 @@ The proposal is limited to those two cells:
 - The M supplement stays evidence with limitations. That includes its 60
   descriptive configurations, whose run did not conform.
 - No other non-PASS item is affected.
+
+## 6. Decision
+
+**Maintainer decision (2026-11-17): "Accept both".** The two rerun M_reg verdicts (PASS, PASS) are accepted as the coverage evidence for comparison §8 item 9, together with the disclosed residual activity and the confirmed small degradation within tolerance in the feeder catch-up cell. This acceptance covers only those two cells. It changes no frozen verdict, closes no other non-PASS item and is not acceptance of v0.6.0.
