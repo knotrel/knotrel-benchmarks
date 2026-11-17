@@ -11,6 +11,9 @@ FREEZE=$1
 ATTEMPT=${2:-1}
 BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 WORKSPACE=/Users/rt/workspace/knotrel
+# Command-line paths are confined (scripts/cli_paths.py); the Git-state snapshot
+# reads the whole workspace, which is granted explicitly.
+export LIFECYCLE_QUALIFICATION_ROOTS=$WORKSPACE
 OUT=$WORKSPACE/evidence/v0.6.0-mreg-rerun-48bc82f
 if [ "$ATTEMPT" != 1 ]; then OUT=$OUT-attempt$ATTEMPT; fi
 if [ -e "$OUT" ]; then echo "refusing to reuse $OUT" >&2; exit 3; fi
