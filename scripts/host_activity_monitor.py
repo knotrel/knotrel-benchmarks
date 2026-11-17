@@ -23,7 +23,11 @@ import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined  # noqa: E402
 
 PATTERN = re.compile(r"(^|/)(git|git-[a-z-]+|cargo|rustc)( |$)|Antigravity|Visual Studio Code|Code Helper")
 MEASURED = re.compile(r"knotrel-server|contention-probe")
@@ -61,6 +65,7 @@ def main() -> int:
         return 1 if found else 0
     if not args.out:
         parser.error("--out is required unless --check")
+    out = confined(args.out, "--out")
     running = True
 
     def stop(*_):
@@ -71,7 +76,7 @@ def main() -> int:
     signal.signal(signal.SIGINT, stop)
     last_top = 0.0
     samples = 0
-    with open(args.out, "a", buffering=1) as handle:
+    with open(out, "a", buffering=1) as handle:
         handle.write(json.dumps({"kind": "start", "utc": utc(), "interval_s": args.interval,
                                  "pattern": PATTERN.pattern}) + "\n")
         while running:

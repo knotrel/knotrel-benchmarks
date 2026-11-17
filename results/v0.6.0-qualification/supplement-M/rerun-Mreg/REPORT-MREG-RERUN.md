@@ -116,3 +116,21 @@ The proposal is limited to those two cells:
 ## 6. Decision
 
 **Maintainer decision (2026-11-17): "Accept both".** The two rerun M_reg verdicts (PASS, PASS) are accepted as the coverage evidence for comparison §8 item 9, together with the disclosed residual activity and the confirmed small degradation within tolerance in the feeder catch-up cell. This acceptance covers only those two cells. It changes no frozen verdict, closes no other non-PASS item and is not acceptance of v0.6.0.
+
+## 7. Post-run tooling change (no effect on the results)
+
+On 2026-11-17, after the rerun, the CLI entry points of
+`host_activity_monitor.py`, `git_state_snapshot.py` and
+`analyze_v060_mreg_rerun.py` were changed in response to SonarCloud S8707
+(path traversal).
+- **What changed.** They now confine command-line paths with the existing
+  `scripts/cli_paths.py`. `run_mreg_rerun.sh` grants the workspace root
+  explicitly (`LIFECYCLE_QUALIFICATION_ROOTS`).
+- **What did not change.** Sampling, matching, snapshot and analysis logic
+  are untouched.
+- **Which version produced the results.** The results above come from the
+  frozen versions: freeze `ea26dd12`, and the clone inside
+  `evidence/v0.6.0-mreg-rerun-48bc82f-attempt2/`, whose hashes are recorded
+  in `FREEZE-MREG-RERUN.json`. Those hashes therefore no longer match the
+  current scripts on the branch.
+

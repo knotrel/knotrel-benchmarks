@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from analyze_v060_m_supplement import analyze_supplement_mreg  # noqa: E402
 from analyze_v060_qualification import NAME, AnalysisError  # noqa: E402
+from cli_paths import confined, confined_directory  # noqa: E402
 
 MATRIX = (Path(__file__).resolve().parent.parent / "results" / "v0.6.0-qualification" / "supplement-M"
           / "rerun-Mreg" / "MATRIX-MREG-RERUN.json")
@@ -88,6 +89,10 @@ def main() -> int:
     parser.add_argument("--quiet", required=True, type=Path)
     parser.add_argument("--git-diff", required=True, type=Path)
     args = parser.parse_args()
+    args.directory = confined_directory(args.directory, "DIR")
+    args.monitor = confined(args.monitor, "--monitor")
+    args.quiet = confined(args.quiet, "--quiet")
+    args.git_diff = confined(args.git_diff, "--git-diff")
     matrix = json.loads(MATRIX.read_text())
     try:
         result = analyze(args.directory, args.monitor, args.quiet, args.git_diff, matrix)

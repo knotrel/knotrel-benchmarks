@@ -15,7 +15,11 @@ from __future__ import annotations
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Dict
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_directory  # noqa: E402
 
 
 def snapshot(root: str) -> Dict[str, Dict[str, float]]:
@@ -40,14 +44,24 @@ def snapshot(root: str) -> Dict[str, Dict[str, float]]:
 
 def main() -> int:
     if len(sys.argv) == 4 and sys.argv[1] == "snapshot":
-        json.dump(snapshot(sys.argv[2]), open(sys.argv[3], "w"), indent=1, sort_keys=True)
+        root = confined_directory(sys.argv[2], "ROOT")
+        out = confined(sys.argv[3], "OUT")
+        with open(out, "w") as handle:
+            json.dump(snapshot(str(root)), handle, indent=1, sort_keys=True)
         return 0
     if len(sys.argv) == 5 and sys.argv[1] == "compare":
-        before, after = json.load(open(sys.argv[2])), json.load(open(sys.argv[3]))
+        before_path = confined(sys.argv[2], "BEFORE")
+        after_path = confined(sys.argv[3], "AFTER")
+        out = confined(sys.argv[4], "OUT")
+        with open(before_path) as handle:
+            before = json.load(handle)
+        with open(after_path) as handle:
+            after = json.load(handle)
         changed = sorted(f"{clone}:{key}" for clone in set(before) | set(after)
                          for key in set(before.get(clone, {})) | set(after.get(clone, {}))
                          if before.get(clone, {}).get(key) != after.get(clone, {}).get(key))
-        json.dump({"clones": len(after), "changed": changed}, open(sys.argv[4], "w"), indent=1)
+        with open(out, "w") as handle:
+            json.dump({"clones": len(after), "changed": changed}, handle, indent=1)
         print(f"{len(changed)} changes across {len(after)} clones")
         return 0
     print(__doc__, file=sys.stderr)
