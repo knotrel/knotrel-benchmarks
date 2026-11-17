@@ -47,6 +47,13 @@ qualification did **not pass unconditionally**. Results by area:
   - One setup deviation before measurement: [`analysis/SETUP-DEVIATION.md`](analysis/SETUP-DEVIATION.md).
 - **Release commit:** documentation-only commits after `48bc82f` must leave the executed code unchanged. This is verified by comparing `__TEXT,__text` of release builds and recorded in the release notes.
 
+**Wording in the frozen protocol (unchanged, noted here):**
+- `PROTOCOL.md` says Rmem runs "10 runs per arm". `MATRIX.json` and the raw
+  data have one run per arm for each of 10 cells.
+- `MATRIX.json` asks for host checks "before every cell". The A collector
+  checks once per session and the M_desc collector once per server process
+  (24–36 configurations); R, Rmem and M_reg check before every child.
+
 **How to read:** *paired change* is `exp(median ln(C/B)) − 1`; positive means
 v0.6.0 is slower or larger, except for throughput, where the ratio is inverted
 so that positive is still worse. The *interval* is the paired order-statistic
