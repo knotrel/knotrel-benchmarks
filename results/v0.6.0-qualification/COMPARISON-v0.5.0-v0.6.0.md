@@ -317,3 +317,21 @@ It is reported in
     8–11× from 4 to 16 clients.
   - Admission reserves nothing for feeder requests. The 64-client catch-up
     numbers are mostly a probe artifact.
+
+**M_reg rerun (supplementary, 2026-11-17).** The two M_reg cells were rerun
+under verified absence of automated activity. The report is
+`supplement-M/rerun-Mreg/REPORT-MREG-RERUN.md`.
+- **Run:**
+  - Attempt 1 was stopped by the quiet-period gate (a VS Code updater
+    launchd loop), with no measurement.
+  - Attempt 2 was clean on all declared conformance checks. Residual desktop
+    activity is disclosed in the report.
+- **Results, v0.6.0 against v0.5.0, paired:**
+  - `mixed50`: throughput −0.33% [−0.66, +0.00], p99 −0.43% [−2.42, +0.90].
+    **PASS.**
+  - Feeder catch-up: throughput −1.63% [−3.79, −0.82], p99 +3.98%
+    [+0.75, +6.20]. **PASS**, with a confirmed small degradation within
+    tolerance.
+- **Proposed** to the maintainer as the coverage evidence for §8 item 9.
+  The verdicts in §6 and the other non-PASS items are unchanged.
+

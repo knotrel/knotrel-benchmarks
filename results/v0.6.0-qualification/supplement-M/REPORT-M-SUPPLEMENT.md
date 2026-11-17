@@ -3,9 +3,10 @@
 **SUPPLEMENTARY, WITH A PROTOCOL NON-CONFORMITY (§7).** An automated
 process ran `git fetch` during measured children, against the protocol's
 "Nothing else runs during measurement". The run is kept as evidence with
-limitations, and acceptance of its results is **not** recommended. A minimal
-rerun of the two M_reg cells is prepared but not started
-([`rerun-Mreg/`](rerun-Mreg/)).
+limitations, and acceptance of its results is **not** recommended. The
+minimal rerun of the two M_reg cells has since run, conforming to its
+declared rules; both cells PASS
+([`rerun-Mreg/REPORT-MREG-RERUN.md`](rerun-Mreg/REPORT-MREG-RERUN.md)).
 
 This run does not replace, re-classify or extend any result
 of the frozen v0.6.0 campaign, and it grants no waiver. The frozen verdicts in
