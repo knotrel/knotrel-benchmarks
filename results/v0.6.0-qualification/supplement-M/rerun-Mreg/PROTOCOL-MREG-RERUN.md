@@ -110,3 +110,26 @@ rerun's `logs/`.
 ## 6. Budget
 
 About 10 minutes (5 quiet and 5 measuring); cap 20.
+
+## 7. Attempt record
+
+**Attempt 1** (freeze `50be4d61`), 2026-11-17:
+- The prelaunch gate passed with the IDEs closed. The quiet period ran
+  07:38:33–07:43:34Z and recorded 5 samples of
+  `Visual Studio Code.app/.../Squirrel.framework/Resources/ShipIt`.
+- That is VS Code's updater, relaunched by the launchd job
+  `com.microsoft.VSCode.ShipIt` every 40–90 s. Each launch fails at once
+  ("Could not read update request"; `ShipIt_stderr.log` in
+  `~/Library/Caches/com.microsoft.VSCode.ShipIt/`).
+- The run stopped before measuring, with exit 5, as declared. **No
+  measurement was taken.**
+- Record: `evidence/v0.6.0-mreg-rerun-48bc82f/logs/`, kept unchanged.
+
+**Restart.**
+- The run script takes an optional attempt number and writes attempt N ≥ 2
+  to `evidence/v0.6.0-mreg-rerun-48bc82f-attemptN/`.
+- Nothing else changed: matrix, statistics, binaries, monitor, collector and
+  analysis are byte-identical to freeze `50be4d61`.
+- It runs only after the operator has stopped the ShipIt loop and the gate
+  and quiet period pass.
+
