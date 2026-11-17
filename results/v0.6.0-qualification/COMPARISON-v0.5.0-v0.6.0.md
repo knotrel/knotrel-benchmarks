@@ -284,23 +284,36 @@ It is reported in
 (tooling `8e190f72`, freeze `8faf37bb`, evidence
 `evidence/v0.6.0-m-supplement-48bc82f/`).
 
-**Nothing in sections 1–8 is changed by it.** Its results:
-- All 60 configurations and 48 analyzed observations are valid.
-- Both M_reg cells are supplementary **PASS** against v0.5.0:
-  - `mixed50` with effective toggles: throughput +0.33% [−1.32, +1.33],
-    p99 +1.98% [−1.62, +5.36];
-  - feeder catch-up: throughput +1.01% [−1.15, +4.21], p99 +3.86%
-    [−1.63, +9.41].
-- Feeder catch-up and import overlap are now measured at every size and
-  client count.
-- New descriptive findings:
-  - The feeder has no priority over queued queries. At 100k, catch-up falls
-    from about 7,000–9,800 events/s with 4 clients to about 900 with 16.
-  - Admission reserves nothing for feeder requests. The 64-client catch-up
-    numbers are mostly a probe artifact: refused query clients resend without
-    backoff, while the feeder sleeps 10 ms after each refusal.
-  - A single 10k observation shows a high query p99 under import overlap.
-  - Disclosures (report §6): an editor's git auto-fetch, probably,
-    periodically rewrote `FETCH_HEAD` in evidence source clones; measurement
-    outputs verify.
+**Nothing in sections 1–8 is changed by it.**
 
+**Status after verification (report §2–§3 and §7):**
+- **Probe functional correctness:** shown, with limits.
+- **Analyzer inputs:** valid. All 60 configurations and 48 analyzed
+  observations meet the declared rule.
+- **Protocol conformance: not met.**
+  - An automated process ran `git fetch` during measured M_desc children.
+    Ref updates at 06:25:54–06:26:06Z in three evidence clones prove it.
+  - For M_reg, conformance cannot be determined.
+  - The fetching process observed afterwards was `Antigravity IDE Helper
+    (Plugin)`; that it caused the in-run fetches is inferred.
+  - Sources, binaries and outputs are intact. The performance impact is not
+    quantified.
+- **Analyzer outcomes (supplementary, not proposed for acceptance).** Both
+  M_reg cells come out PASS. Changes are v0.6.0 against v0.5.0, paired:
+  - `mixed50` with effective toggles: throughput −0.33% [−1.32, +1.34],
+    p99 +1.98% [−1.62, +5.36];
+  - feeder catch-up: throughput −1.00% [−4.04, +1.16], p99 +3.86%
+    [−1.63, +9.41].
+  - The throughput values are small decreases.
+- **Recommendation.** Keep the run as evidence with limitations. A minimal
+  rerun of the two M_reg cells only is prepared and not started
+  (`supplement-M/rerun-Mreg/`).
+- **Frozen campaign.** No commit was made during the frozen campaign, so the
+  same method cannot show whether fetches ran there. The fetching process was
+  already running. Conformance to "no concurrent activity" is undetermined;
+  its machine-checked rule, no concurrent build or campaign, was met.
+- **Descriptive findings (single observations):**
+  - The feeder has no priority over queued queries. At 100k, catch-up falls
+    8–11× from 4 to 16 clients.
+  - Admission reserves nothing for feeder requests. The 64-client catch-up
+    numbers are mostly a probe artifact.

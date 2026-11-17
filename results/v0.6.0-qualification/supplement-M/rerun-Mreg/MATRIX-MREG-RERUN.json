@@ -1,0 +1,118 @@
+{
+ "schema": "knotrel-v0.6.0-mreg-rerun/1",
+ "status": "declared, not frozen, not started; frozen by FREEZE-MREG-RERUN.json only after maintainer approval",
+ "label": "SUPPLEMENTARY RERUN - minimal rerun of the two M_reg supplement cells after the concurrent-activity non-conformity of the M supplement (REPORT-M-SUPPLEMENT.md section 7); does not replace, re-classify or extend any frozen v0.6.0 result",
+ "supplement_matrix_sha256": "cecdf7d193b92f6a295219ebe63bc04f3acfde039ab3bb3b3fe80acdd43e0d39",
+ "binaries": {
+  "probe": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.6.0-m-supplement-48bc82f/targets/contention/release/contention-probe",
+   "sha256": "e7d0b4b6757b5941eef156eed9f3073d3581879dff9ab78c2aadee8a8058a34d",
+   "note": "the M supplement's probe revision 2 build (tooling 8e190f72, freeze 8faf37bb), read in place; not rebuilt"
+  },
+  "cand": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.6.0-qualification-48bc82f/targets/cand-server/release/knotrel-server",
+   "sha256": "d4adec2e8813c8316a813a8b33969c193245723e5964b3ded20b4d543021667d"
+  },
+  "ref": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.6.0-qualification-48bc82f/targets/ref-server/release/knotrel-server",
+   "sha256": "e3d12df8e669224c20890fe8720dfb7b372a352c5ff5aa01bb9d6e8de6c1b236"
+  }
+ },
+ "M_reg_supplement": {
+  "question": "the two M_reg cells of the M supplement, rerun under verified absence of automated host activity",
+  "cells": [
+   {
+    "id": "Mreg-standalone-off-mixed50-b64-c16-100k-none",
+    "mode": "standalone",
+    "lifecycle": false,
+    "nodes": 100000,
+    "config": {
+     "id": "Mreg-standalone-off-mixed50-b64-c16-100k-none",
+     "mix": "mixed50",
+     "batch": 64,
+     "clients": 16,
+     "warmup_ms": 1000,
+     "measure_ms": 3000,
+     "open_rate": null,
+     "background": "none"
+    },
+    "metrics": {
+     "requests_per_s": {
+      "tolerance": "primary",
+      "direction": "higher_is_better"
+     },
+     "latency_ns.p99": {
+      "tolerance": "query_tail",
+      "direction": "lower_is_better"
+     }
+    }
+   },
+   {
+    "id": "Mreg-source-managed-on-read100-b8-c16-100k-events",
+    "mode": "source-managed",
+    "lifecycle": true,
+    "nodes": 100000,
+    "config": {
+     "id": "Mreg-source-managed-on-read100-b8-c16-100k-events",
+     "mix": "read100",
+     "batch": 8,
+     "clients": 16,
+     "warmup_ms": 1000,
+     "measure_ms": 3000,
+     "open_rate": null,
+     "background": "events"
+    },
+    "metrics": {
+     "requests_per_s": {
+      "tolerance": "primary",
+      "direction": "higher_is_better"
+     },
+     "latency_ns.p99": {
+      "tolerance": "query_tail",
+      "direction": "lower_is_better"
+     }
+    }
+   }
+  ],
+  "order_seed": 60602,
+  "warmup_pairs": 2,
+  "pairs": 12,
+  "seed": 7
+ },
+ "rules": {
+  "interval": "paired log ratios ln(C/B); n=12 -> one-based order statistics r(3), r(10); n=24 -> r(7), r(18) (analyze_bc_qualification.summarize_metric, unchanged)",
+  "tolerances": {
+   "primary": 0.1,
+   "query_tail": 0.25
+  },
+  "classification": "PASS if upper <= ln(1+t); REGRESSION if lower > ln(1+t); else INCONCLUSIVE. For higher-is-better metrics the ratio is B/C. IMPROVED is reported (never claimed otherwise) only when the upper bound is below 0.",
+  "M_reg": "12 analyzed pairs after 2 warmup pairs, a fresh server process per observation, arm order balanced; throughput tolerance primary 10% (ratio B/C), client p99 tolerance query_tail 25%",
+  "validity": "a configuration record is VALID only if errors == 0, item_errors is empty, noop_mutations == 0 and, with background activity, background.failures == 0 and background.completed > 0. 503 refusals are allowed and reported (admission limit 32 pending jobs). For M_reg every analyzed observation must also have only status 200 (unchanged analyzer). An invalid record is reported as invalid, never rerun or dropped; an M_reg cell with any invalid analyzed observation gets no verdict (INVALID).",
+  "interpretation": "Supplementary verdicts are reported beside the frozen ones. They never replace or re-classify a frozen verdict and grant no waiver; their use is the maintainer's decision.",
+  "no_extension": "no extension and no rerun, except one rerun of a child for a documented infrastructure failure unrelated to the measured code",
+  "no_waiver_inheritance": "No v0.4.0 or v0.5.0 maintainer waiver applies. A repeated failure is a v0.6.0 failure until the maintainer decides otherwise for v0.6.0 explicitly.",
+  "conformance": "Before measuring: no process matching the activity pattern (git, cargo, rustc, Antigravity IDE, Visual Studio Code) and a 300 s quiet period in which the host-activity monitor records none; otherwise the run does not start. During measuring: the monitor samples the process table every 0.2 s; a child whose interval [start, start+duration+1 s] overlaps a recorded matching process is NON-CONFORMING, and a cell with a non-conforming analyzed observation gets no verdict (NONCONFORMING). After measuring: FETCH_HEAD mtimes and remote-tracking reflog lengths of every Git clone under /Users/rt/workspace/knotrel are compared with the pre-run snapshot (read only); any change during the run makes the whole run NONCONFORMING.",
+  "outcome_commitment": "The rerun's outcome is reported whatever it is (PASS, INCONCLUSIVE, REGRESSION, INVALID or NONCONFORMING). There is no further rerun of these cells for v0.6.0 without a new maintainer decision. Its verdicts are supplementary and never replace frozen verdicts or close other non-PASS items."
+ },
+ "host_conditions": {
+  "power": "AC (pmset -g batt reports 'AC Power'); checked before every cell; a cell on battery invalidates the run",
+  "thermal": "pmset -g therm recorded before every cell; any recorded thermal or performance warning invalidates the cell",
+  "concurrency": "no cargo/rustc process and no other campaign; checked before each experiment",
+  "awake": "caffeinate -dimsu",
+  "automated_activity": "Antigravity IDE and Visual Studio Code closed (or their Git auto-fetch disabled and evidence/ removed from their workspaces) by the operator before the run; verified by the pre-run gate and the monitor, not assumed"
+ },
+ "invalidation": {
+  "code_change": "any change to executed code of knotrel after freezing invalidates every experiment that ran that code; documentation-only commits do not (executed code identity is checked by comparing __TEXT,__text of release builds)",
+  "tooling_change": "any change to a probe, collector or analysis after freezing invalidates the affected experiment",
+  "failed_child": "a failing child stops the experiment; one rerun only for an infrastructure failure unrelated to the measured code, recorded with its cause",
+  "invalid_runs": "kept and reported; never deleted or overwritten (collectors refuse to overwrite)"
+ },
+ "budget": {
+  "estimate_minutes": {
+   "quiet_period": 5,
+   "M_reg": 5,
+   "total": 10
+  },
+  "cap_minutes": 20
+ }
+}
