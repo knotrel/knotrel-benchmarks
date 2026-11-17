@@ -35,12 +35,13 @@ qualification did **not pass unconditionally**. Results by area:
 - **Shared binaries:**
   - `measure_e2e` (A HTTP driver, from the candidate source): `3bc27430584b0eafb2845dcd313457d853f5d5f4f65a617998bd46a22d6bb55b`.
   - `contention-probe`: `a3f3c3ff6065d0bd1aaf80605619b60c955492fbec6a56dad310d7ebf1077a69`.
-  - Candidate lifecycle probes: `core-lifecycle` `7f220b28…`, count-alloc `core-lifecycle` `ef7d8eb4…`, `http-lifecycle` `0f970339…`.
+  - Candidate lifecycle probes: `core-lifecycle` `7f220b28…`, count-alloc `core-lifecycle` `ef7d8eb4…`, `http-lifecycle` `0f9703bc…`.
   - Full list: [`analysis/binaries-sha256.txt`](analysis/binaries-sha256.txt).
-- **Tooling:** knotrel-benchmarks `54dcfc514582f495dd0c0eb51d8604fcd0fc2114`; freeze commit `763584627ffeebe195ad0cfc2f9af0a9b4f25a2e`, which adds only `FREEZE.json`. Reference probes are built from the same tooling with the v0.5.0 probe lockfile (diff recorded); their build records name `51e3b4d` clean. Candidate builds name `48bc82f` clean.
-- **Host and toolchain:** Apple M3, macOS 26.5.2; rustc 1.100.0, release profile, `--locked --offline`. All 506 collector children ran on AC power with no recorded thermal or performance warning. The 1-minute load average was 9.41 at launch (decaying after the campaign builds; no build process was running) and 1.8–4.9 during R and M.
+- **Tooling:** knotrel-benchmarks `54dcfc514582f495dd0c0eb51d8604fcd0fc2114`; freeze commit `763584627ffeebe195ad0cfc2f9af0a9b4f25a2e`, which adds only `FREEZE.json`. Reference probes are built from the same tooling with the v0.5.0 probe lockfile (diff recorded); their build records name knotrel `51e3b4d` clean and, as expected from that lockfile derivation, `probes_dirty: true`. Candidate builds name `48bc82f` clean.
+- **Host and toolchain:** Apple M3, macOS 26.5.2; rustc 1.100.0, release profile, `--locked --offline`. All 506 collector children ran on AC power with no recorded thermal or performance warning. The 1-minute load average was 9.41 at launch (decaying after the campaign builds; no build process was running). A main session 0 ran at a 1-minute load of 5.31–5.98 (5-minute about 9.6), with no visible effect on its paired ratios relative to the other sessions. R and M children started at 1.80–6.46. No load limit exists in the rules; this is disclosure, not a validity condition.
 - **Campaign:** 2026-11-16T22:50:26Z → 23:49:59Z (A main 13.4 min, A extension 13.3 min, B/C 7.2 min, R 1.1 min, Rmem 0.1 min, M_desc 11.5 min, M_reg 12.8 min), estimated at 83 min, cap 240 min.
 - **Raw evidence:** `evidence/v0.6.0-qualification-48bc82f/` (outside this repository).
+  - **Post-campaign change to the evidence tree:** a `git fetch` ran in the A source clones (`A/sources/{B,C}/knotrel`, `A/sources/knotrel-benchmarks`) at about 00:04Z on 2026-11-17, during the post-campaign review. It most likely came from the reviewing agent; this is not established. Three `.git/FETCH_HEAD` files now fail `outputs-sha256.txt` and git objects were added. HEADs and all measured outputs are unchanged.
   - Output checksums: [`analysis/outputs-sha256.txt`](analysis/outputs-sha256.txt).
   - Input checksums: [`analysis/inputs-sha256.txt`](analysis/inputs-sha256.txt).
   - One setup deviation before measurement: [`analysis/SETUP-DEVIATION.md`](analysis/SETUP-DEVIATION.md).
@@ -92,7 +93,8 @@ paths (except through startup), and metrics-enabled operation.
 | toggle churn, sparse 100k | PASS | 77.65 → 77.74 ms | +0.57% [−4.33, +3.11] |
 
 Slowest single operation in fresh-ID churn (one compaction per run in both
-releases), medians: sparse 29.76 → 17.50 ms, hub 28.76 → 16.47 ms.
+releases), medians over the 12 analyzed pairs: sparse 29.63 → 17.50 ms, hub
+28.75 → 16.42 ms.
 
 ## 4. Lifecycle on: memory (Rmem; allocator byte counts, deterministic, tolerance 20%)
 
@@ -128,7 +130,7 @@ source in the same process. Verdicts are compared with v0.5.0 run 4
 | B5 memory (budget 3×) | 2.45×, 2.44× PASS | 2.45×, 2.44× PASS |
 | C1 engine slots / C2 counts | all PASS | all PASS (max retired slots 95,000 at 100k) |
 | C3 heap growth | 12 PASS, **3 FAIL** | 12 PASS, **3 FAIL** (same cells) |
-| C4 RSS (disclosure) | 7 PASS, 8 EXCEEDS_BUDGET | 7 PASS, 8 EXCEEDS_BUDGET |
+| C4 RSS (disclosure) | 7 PASS, 8 EXCEEDS_BUDGET | 7 PASS, 8 EXCEEDS_BUDGET (`sparse-toggle-1000` newly exceeds, `sparse-same-100000` newly passes) |
 
 Cells that changed verdict or are not PASS:
 
@@ -159,21 +161,25 @@ the one-time catalog hash-table doubling described in the lifecycle contract
 
 | Cell (100k nodes unless noted, 16 closed-loop clients) | Throughput v0.5.0 → v0.6.0 | Change [interval] | Client p99 | Change [interval] | Outcome |
 |---|---|---|---|---|---|
-| standalone, lifecycle off, read95, batch 8 | 208.3 → 209.2 req/s | +0.16% [−0.64, +5.04] | 91.6 → 92.3 ms | +2.60% [−3.90, +22.05] | PASS |
+| standalone, lifecycle off, read95, batch 8 | 209.2 → 208.3 req/s | +0.16% [−0.64, +5.04] | 91.6 → 92.3 ms | +2.60% [−3.90, +22.05] | PASS |
 | standalone, off, mixed50, batch 64 † | 50.33 → 50.33 req/s | 0.00% [−0.66, +2.01] | 353.8 → 352.7 ms | +1.19% [−2.55, +4.83] | PASS † |
-| standalone, off, read95, batch 1, 4 clients, 10k | 15,250 → 15,360 req/s | +0.66% [+0.34, +1.20] | 0.524 → 0.533 ms | +1.64% [+0.62, +3.25] | PASS |
-| standalone, lifecycle on, lifecycle50, batch 8 | 388.2 → 391.0 req/s | +0.47% [−0.95, +1.87] | 56.4 → 56.5 ms | +2.22% [−4.78, +3.85] | PASS |
-| source-managed, off, read100, batch 8, replace import every second | 199.6 → 200.1 req/s | +0.55% [−0.40, +1.79] | 95.0 → 94.9 ms | −0.70% [−22.70, +6.00] | PASS |
-| source-managed, on, read100, batch 8, feeder catch-up ‡ | 203.7 → 202.3 req/s | −1.55% [−2.47, +1.32] | 93.2 → 91.8 ms | −1.60% [−9.84, +2.58] | **invalid for its purpose ‡** |
+| standalone, off, read95, batch 1, 4 clients, 10k | 15,363 → 15,246 req/s | +0.66% [+0.34, +1.20] | 0.524 → 0.533 ms | +1.64% [+0.62, +3.25] | PASS |
+| standalone, lifecycle on, lifecycle50, batch 8 | 391.0 → 388.2 req/s | +0.47% [−0.95, +1.87] | 56.4 → 56.5 ms | +2.22% [−4.78, +3.85] | PASS |
+| source-managed, off, read100, batch 8, replace import every second | 200.1 → 199.6 req/s | +0.55% [−0.40, +1.79] | 95.0 → 94.9 ms | −0.70% [−22.70, +6.00] | PASS |
+| source-managed, on, read100, batch 8, feeder catch-up ‡ | 202.3 → 203.7 req/s | −1.55% [−2.47, +1.32] | 93.2 → 91.8 ms | −1.60% [−9.84, +2.58] | **invalid for its purpose ‡** |
 
-Throughput "change" is positive when v0.6.0 is slower.
+Throughput "change" is positive when v0.6.0 is slower. The 10k batch-1 cell
+is slightly but consistently slower in both metrics (throughput +0.66%
+[+0.34, +1.20], p99 +1.64% [+0.62, +3.25]), within tolerance. (An earlier
+version of this table printed the throughput medians in reversed order; the
+percentages and verdicts were correct.)
 
 ## 7. Contention profile of the candidate (M_desc, descriptive) and coverage defect
 
 Full table: [`analysis/Mdesc-summary.md`](analysis/Mdesc-summary.md).
 
 - **Lock-bound reads.** The predeclared M5 rule (i) holds in 32 of 32 saturated
-  read-heavy configurations: mean graph-lock wait is 0.90–1.01 of mean client
+  read-heavy configurations: mean graph-lock wait is 0.85–1.01 of mean client
   latency at 16 or 64 clients. Throughput does not grow with clients:
   - 100k, lifecycle off, read95 batch 1: 1,482 / 1,561 / 1,344 req/s at
     1 / 16 / 64 clients, p99 1.90 / 17.2 / 50.7 ms;
@@ -187,14 +193,19 @@ Full table: [`analysis/Mdesc-summary.md`](analysis/Mdesc-summary.md).
   (p50 0.54 / 4.8 / 37.6 ms). At 16 clients, a 64-operation batch waits
   about 0.6 s at p50.
 - **Saturation.** With 64 clients (above the 32 pending-job limit), excess
-  requests get 503 `busy`, about 254,000–306,000 per 3-second window from
-  64 tight-looping clients. Achieved throughput falls 10–51% below the
-  16-client level (for example read95 batch 64, lifecycle on: 1,728 → 853
-  operations/s). Fairness drops at batch 64 (Jain 0.60–0.89).
-- **Imports overlapping queries.** A replacement import of 100k nodes every
-  second completed in every configuration. Its p50 HTTP duration rose with
+  requests get 503 `busy`, 163,000–306,000 per 3-second window from 64
+  tight-looping clients (237,000–306,000 at 100k). At 100k, achieved
+  throughput falls 10–51% below the 16-client level (for example read95 batch
+  64, lifecycle on: 1,728 → 853 operations/s), and fairness drops at batch 64
+  (Jain 0.60–0.89). At 10k the change ranges from +44% to −12%, with Jain
+  0.98–0.99.
+- **Imports overlapping queries.** At 100k, a replacement import every second
+  completed in every configuration. Its p50 HTTP duration rose with
   query load (85 ms with 4 clients, 206 ms with 16, 425 ms with 64): it waits
-  for the graph lock behind queries. Query throughput changed by −1% to −3.4%.
+  for the graph lock behind queries. Query throughput changed by −0.7% to
+  −3.5%. **At 10k with 16 and 64 clients, every background import failed**
+  (completed 0, failures 5, in both lifecycle off and on; see the second
+  coverage defect below).
 - **Open loop.** Load was offered at 0.5 / 0.9 / 1.1 × the measured
   closed-loop saturation (100k, read95, batch 8, 16 clients; lifecycle off).
   - Client p50 was 14.1 / 15.2 / 377 ms and p99 24.1 / 26.0 / 514 ms
@@ -222,9 +233,18 @@ Full table: [`analysis/Mdesc-summary.md`](analysis/Mdesc-summary.md).
       feeder stopped after one batch. The cause was not logged; it is
       probably admission refusal (503) while queries hold all pending-job
       slots, which is unverified.
-  - The defect was found after the campaign, by reproducing it with a scratch
-    copy of the probe. The frozen results are kept unchanged. A fix would
-    change frozen tooling and needs a new, separately declared run.
+  - The defect was found after the campaign and reproduced with a scratch copy
+    of the probe that prints the server's reply. The record is in
+    `evidence/v0.6.0-diagnostics/post-campaign-probe-defect/`: feeder events
+    at 100k return 422 `node_limit_exceeded`, and a probe-style toggle at 100k
+    returns a per-item `node_limit_exceeded` link and a no-op cut. The frozen
+    results are kept unchanged. A fix would change frozen tooling and needs a
+    new, separately declared run.
+- **Second coverage defect (tooling).** At 10k nodes with 16 and 64 clients,
+  the background replacement imports all failed (4 M_desc configurations).
+  The probable cause, not reproduced, is that the probe reuses an etag the
+  preceding feeder-events configuration made stale. The reply is not logged.
+  Import overlap at 10k is therefore covered only with 4 clients.
 
 ## 8. Non-PASS results: impact, evidence and options
 
@@ -238,7 +258,7 @@ decision for v0.6.0 only.
 | 3 | C3 heap growth **FAIL** ×3 (fresh-ID churn, 100k) | Heap grows over 30 cycles before compaction; peaks are lower than v0.5.0 | Bounded one-time catalog table doubling plus the retired-slot sawtooth until compaction at `V` retired slots (lifecycle contract); slopes +0.103 / +0.172 / +0.119 | (a) accept with disclosure; (b) pre-size the catalog against doubling (about +5 MiB per 100k nodes, with a B5 cost) and re-measure; (c) a longer-window resource rule for future releases (product decision, before measuring) |
 | 4 | A batch 1 **UNRESOLVED** (request p99 interval [−26.62, +52.03]) | Tail latency of single-operation batches is undetermined; the window PASSes | No code change on the standalone batch path; same outcome as v0.5.0; very wide interval | (a) accept as undetermined; (b) a longer-window p99 diagnostic, then a declared re-measurement |
 | 5 | A batch 256 **UNRESOLVED** (sampled max RSS upper bound +22.16% against 20%) | RSS might exceed tolerance; the median is +1.15% | No code change on the batch path; sampled RSS is noisy | Same as 4 |
-| 6 | A `compact-workspace` traversal, startup **INCONCLUSIVE_DISCLOSED** | Disclosure under the existing policy | Startup passes through import (C2); traversal code is unchanged | Disclose |
+| 6 | A `compact-workspace` traversal, startup **INCONCLUSIVE_DISCLOSED** | Traversal: paired median +6.20%, upper bound +19.43%, ratio of arm medians +10.6% (5.108 → 5.652 ms). Startup: +7.18%, upper bound +24.15% | Startup passes through import (C2). The traversal path has no code change, apart from new crate-private functions in the same crate | (a) disclose under the existing policy; (b) a declared re-measurement if the traversal size matters for the decision |
 | 7 | B4 `metrics-ops` **INCONCLUSIVE** +5.57% [+1.83, +9.42] (t = 6%) | Metrics overhead on lifecycle batches may exceed the 6% budget | Repeats v0.5.0; no code change on the metrics path | (a) accept with disclosure; (b) a targeted overhead diagnostic |
 | 8 | C4 RSS EXCEEDS_BUDGET 8/15 | Disclosure only (allocator retention) | Same count as v0.5.0 | Disclose |
-| 9 | Feeder catch-up not measured at 100k; `mixed50` at 100k deviated (§7) | The catch-up overlap requirement of the contention matrix is not covered at 100k | Tooling defect; reproduction recorded | (a) declare and run a separate, labelled run of the affected M cells with fixed tooling, with no change to frozen results; (b) leave as a coverage gap for v0.7.0's contention work |
+| 9 | Contention coverage defects (§7): feeder catch-up not measured at 100k (6 M_desc configurations and the M_reg events cell); `mixed50` at 100k ran rejected links and no-op cuts; import overlap at 10k not measured with 16 or 64 clients (4 configurations) | The catch-up overlap requirement is not covered at 100k, and the import overlap requirement only partly at 10k | Tooling defects. Node-limit cause reproduced (`evidence/v0.6.0-diagnostics/post-campaign-probe-defect/`); the import cause is probable, not reproduced | (a) declare and run a separate, labelled run of the affected M cells with fixed tooling, with no change to frozen results; (b) leave as coverage gaps for v0.7.0's contention work |
