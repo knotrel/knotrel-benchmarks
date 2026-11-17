@@ -1,15 +1,18 @@
 #!/bin/sh
 # Runs the declared v0.6.0 M_reg rerun (PROTOCOL-MREG-RERUN.md). Do not start
 # without maintainer approval.
-# Usage: caffeinate -dimsu sh run_mreg_rerun.sh FREEZE_SHA
+# Usage: caffeinate -dimsu sh run_mreg_rerun.sh FREEZE_SHA [ATTEMPT]
 #   FREEZE_SHA  knotrel-benchmarks commit that contains FREEZE-MREG-RERUN.json
-# Creates /Users/rt/workspace/knotrel/evidence/v0.6.0-mreg-rerun-48bc82f/ (refuses to reuse it).
+# Creates /Users/rt/workspace/knotrel/evidence/v0.6.0-mreg-rerun-48bc82f/ (attempt 1) or
+# ...-48bc82f-attempt<N>/ (N >= 2, after a recorded gate stop; protocol section 5); refuses to reuse it.
 # Never writes to historical evidence: binaries are read in place, Git state is only read.
 set -eu
 FREEZE=$1
+ATTEMPT=${2:-1}
 BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 WORKSPACE=/Users/rt/workspace/knotrel
 OUT=$WORKSPACE/evidence/v0.6.0-mreg-rerun-48bc82f
+if [ "$ATTEMPT" != 1 ]; then OUT=$OUT-attempt$ATTEMPT; fi
 if [ -e "$OUT" ]; then echo "refusing to reuse $OUT" >&2; exit 3; fi
 mkdir -p "$OUT/logs"
 L=$OUT/logs
