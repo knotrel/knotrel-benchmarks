@@ -294,8 +294,13 @@ It is reported in
 - Feeder catch-up and import overlap are now measured at every size and
   client count.
 - New descriptive findings:
-  - The feeder has no priority over queries. At 100k, catch-up falls from
-    about 7,000–9,800 events/s with 4 clients to about 900 with 16. With 64
-    clients most feeder attempts are refused with `503 import_in_progress`.
+  - The feeder has no priority over queued queries. At 100k, catch-up falls
+    from about 7,000–9,800 events/s with 4 clients to about 900 with 16.
+  - Admission reserves nothing for feeder requests. The 64-client catch-up
+    numbers are mostly a probe artifact: refused query clients resend without
+    backoff, while the feeder sleeps 10 ms after each refusal.
   - A single 10k observation shows a high query p99 under import overlap.
+  - Disclosures (report §6): an editor's git auto-fetch, probably,
+    periodically rewrote `FETCH_HEAD` in evidence source clones; measurement
+    outputs verify.
 
