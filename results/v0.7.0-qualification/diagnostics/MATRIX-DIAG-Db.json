@@ -1,0 +1,216 @@
+{
+ "schema": "knotrel-v0.7.0-diagnostic-Db/1",
+ "label": "DIAGNOSTIC - decides retain/reject of candidate 0.7.4b (sonic-rs import parse) only; never a qualification verdict. b1 (hand-written visitor) was rejected by a micro-benchmark before this diagnostic (not faster than the derived code).",
+ "candidate": {
+  "knotrel": "66540827ae4b9a1a4a94127a40dadf4f298082fa",
+  "note": "includes 0.7.4a (shared read lock), which is not on the single-client import path"
+ },
+ "reference": {
+  "knotrel": "48bc82fabbd36b2cd34bf3790b2d625de3503195",
+  "note": "v0.6.0 campaign's own candidate probe builds, read in place"
+ },
+ "lockfile_derivation": "evidence/v0.7.0-diagnostics/lifecycle-probes.Cargo.lock.diff (sonic-rs and its dependencies added; no existing version changed)",
+ "binaries": {
+  "R": {
+   "ref": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.6.0-qualification-48bc82f/targets/cand-probes/release/release-cells",
+    "sha256": "8cb44029b12c783ac7cfd47b73f2ed758335796b630523645dbbae4576701e3f"
+   },
+   "cand": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-diagnostics/targets/db-probes/release/release-cells",
+    "sha256": "6484a08aa002c89e3cc9704806753eb4bc5112872c09a1afbadd7360fbbe19f9"
+   }
+  },
+  "Rmem": {
+   "ref": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.6.0-qualification-48bc82f/targets/cand-probes-peak/release/memory-peak",
+    "sha256": "3a8391e1564d67c535a2ad4a8c367b88c25928ac386ae50f2a3ca904b5bce378"
+   },
+   "cand": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-diagnostics/targets/db-probes-peak/release/memory-peak",
+    "sha256": "f8d42d921f35b67c5d1cf2486fe4b90d1f359334cfebbe5345fa4f9484b507b4"
+   }
+  }
+ },
+ "R": {
+  "cells": [
+   {
+    "id": "R-http-import-sparse-100k-60-30",
+    "experiment": "R",
+    "command": "http-import",
+    "args": [
+     "http-import",
+     "--topology",
+     "sparse",
+     "--nodes",
+     "100000",
+     "--inactive-percent",
+     "60",
+     "--disabled-percent",
+     "30",
+     "--seed",
+     "5000001",
+     "--warmup",
+     "1",
+     "--reps",
+     "5"
+    ],
+    "metric": "observation_ns",
+    "tolerance": "primary"
+   },
+   {
+    "id": "R-http-import-sparse-100k-20-10",
+    "experiment": "R",
+    "command": "http-import",
+    "args": [
+     "http-import",
+     "--topology",
+     "sparse",
+     "--nodes",
+     "100000",
+     "--inactive-percent",
+     "20",
+     "--disabled-percent",
+     "10",
+     "--seed",
+     "5000001",
+     "--warmup",
+     "1",
+     "--reps",
+     "5"
+    ],
+    "metric": "observation_ns",
+    "tolerance": "primary"
+   },
+   {
+    "id": "R-http-import-sparse-10k-20-10",
+    "experiment": "R",
+    "command": "http-import",
+    "args": [
+     "http-import",
+     "--topology",
+     "sparse",
+     "--nodes",
+     "10000",
+     "--inactive-percent",
+     "20",
+     "--disabled-percent",
+     "10",
+     "--seed",
+     "5000001",
+     "--warmup",
+     "3",
+     "--reps",
+     "21"
+    ],
+    "metric": "observation_ns",
+    "tolerance": "primary"
+   },
+   {
+    "id": "R-core-import-sparse-100k-60-30",
+    "experiment": "R",
+    "command": "core-import",
+    "args": [
+     "core-import",
+     "--topology",
+     "sparse",
+     "--nodes",
+     "100000",
+     "--inactive-percent",
+     "60",
+     "--disabled-percent",
+     "30",
+     "--seed",
+     "5000001",
+     "--warmup",
+     "1",
+     "--reps",
+     "5"
+    ],
+    "metric": "observation_ns",
+    "tolerance": "primary"
+   }
+  ],
+  "warmup_pairs": 1,
+  "pairs": 8,
+  "order_seed": 70702
+ },
+ "Rmem": {
+  "cells": [
+   {
+    "id": "Rmem-import-http-create-20-10",
+    "args": [
+     "import-http",
+     "--engine",
+     "compact-bfs",
+     "--topology",
+     "sparse",
+     "--nodes",
+     "100000",
+     "--seed",
+     "5000001",
+     "--inactive-percent",
+     "20",
+     "--disabled-percent",
+     "10",
+     "--mode",
+     "create"
+    ],
+    "metrics": [
+     "peak_after",
+     "transient_over_final"
+    ]
+   },
+   {
+    "id": "Rmem-import-http-create-60-30",
+    "args": [
+     "import-http",
+     "--engine",
+     "compact-bfs",
+     "--topology",
+     "sparse",
+     "--nodes",
+     "100000",
+     "--seed",
+     "5000001",
+     "--inactive-percent",
+     "60",
+     "--disabled-percent",
+     "30",
+     "--mode",
+     "create"
+    ],
+    "metrics": [
+     "peak_after",
+     "transient_over_final"
+    ]
+   },
+   {
+    "id": "Rmem-import-http-replace-20-10",
+    "args": [
+     "import-http",
+     "--engine",
+     "compact-bfs",
+     "--topology",
+     "sparse",
+     "--nodes",
+     "100000",
+     "--seed",
+     "5000001",
+     "--inactive-percent",
+     "20",
+     "--disabled-percent",
+     "10",
+     "--mode",
+     "replace"
+    ],
+    "metrics": [
+     "peak_after",
+     "transient_over_final"
+    ]
+   }
+  ],
+  "runs_per_arm": 1
+ },
+ "retain_rule": "retain if R HTTP import 100k 60/30 improves with r(2)-r(7) entirely below 0 and reaches within 10% of v0.5.0 (25.133 ms, comparison section 3) at the median; no other R cell worse than +10% at the median; every Rmem HTTP import peak within 20% of v0.6.0"
+}

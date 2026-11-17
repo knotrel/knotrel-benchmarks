@@ -1,0 +1,213 @@
+{
+ "schema": "knotrel-v0.7.0-diagnostic-Da/1",
+ "label": "DIAGNOSTIC - decides retain/reject of candidate 0.7.4a (shared read lock) only; never a qualification verdict (design 2026-11-17-v0.7.0-measured-concurrency.md section 8)",
+ "candidate": {
+  "knotrel": "008b9b1f1b2a5ee605dc1ca56bf21cf692f5846b",
+  "branch": "feature/v0.7.0-measured-concurrency"
+ },
+ "reference": {
+  "knotrel": "48bc82fabbd36b2cd34bf3790b2d625de3503195",
+  "note": "v0.6.0 measured candidate; executed code identical to published v0.6.0 (release notes, executed-code identity)"
+ },
+ "binaries": {
+  "probe": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.6.0-m-supplement-48bc82f/targets/contention/release/contention-probe",
+   "sha256": "e7d0b4b6757b5941eef156eed9f3073d3581879dff9ab78c2aadee8a8058a34d",
+   "note": "probe revision 2, read in place"
+  },
+  "ref": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.6.0-qualification-48bc82f/targets/cand-server/release/knotrel-server",
+   "sha256": "d4adec2e8813c8316a813a8b33969c193245723e5964b3ded20b4d543021667d"
+  },
+  "cand": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-diagnostics/targets/da-server/release/knotrel-server",
+   "sha256": "c1adff8af627a36504c6c81510ce7a25ddde3c3e78e2de844083119ec69d660f"
+  }
+ },
+ "design": {
+  "warmup_pairs": 1,
+  "pairs": 8,
+  "order_seed": 70701,
+  "seed": 7,
+  "summary": "paired ln(cand/ref) per metric; median and r(2)-r(7) of 8 pairs (about a 93% distribution-free interval for the median); descriptive only"
+ },
+ "retain_rule": "retain if, at 16 clients read-heavy (Da-*-read95-*-c16, Da-*-read100-b8-c16-*), requests_per_s improves with the r(2)-r(7) range entirely above 0, and feeder catch-up (background.completed) at 16 clients improves likewise; reject if mixed50, lifecycle50, 1-client or 10k cells regress beyond the v0.6.0 tolerances (throughput 10%, p99 25%) at the median",
+ "cells": [
+  {
+   "id": "Da-standalone-off-read95-b1-c1-100k-none",
+   "mode": "standalone",
+   "lifecycle": false,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-standalone-off-read95-b1-c1-100k-none",
+    "mix": "read95",
+    "batch": 1,
+    "clients": 1,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-standalone-off-read95-b1-c16-100k-none",
+   "mode": "standalone",
+   "lifecycle": false,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-standalone-off-read95-b1-c16-100k-none",
+    "mix": "read95",
+    "batch": 1,
+    "clients": 16,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-standalone-off-read95-b8-c4-100k-none",
+   "mode": "standalone",
+   "lifecycle": false,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-standalone-off-read95-b8-c4-100k-none",
+    "mix": "read95",
+    "batch": 8,
+    "clients": 4,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-standalone-off-read95-b8-c16-100k-none",
+   "mode": "standalone",
+   "lifecycle": false,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-standalone-off-read95-b8-c16-100k-none",
+    "mix": "read95",
+    "batch": 8,
+    "clients": 16,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-standalone-off-read95-b1-c64-100k-none",
+   "mode": "standalone",
+   "lifecycle": false,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-standalone-off-read95-b1-c64-100k-none",
+    "mix": "read95",
+    "batch": 1,
+    "clients": 64,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-standalone-off-mixed50-b8-c16-100k-none",
+   "mode": "standalone",
+   "lifecycle": false,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-standalone-off-mixed50-b8-c16-100k-none",
+    "mix": "mixed50",
+    "batch": 8,
+    "clients": 16,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-standalone-on-lifecycle50-b8-c16-100k-none",
+   "mode": "standalone",
+   "lifecycle": true,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-standalone-on-lifecycle50-b8-c16-100k-none",
+    "mix": "lifecycle50",
+    "batch": 8,
+    "clients": 16,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-standalone-off-read95-b1-c4-10k-none",
+   "mode": "standalone",
+   "lifecycle": false,
+   "nodes": 10000,
+   "config": {
+    "id": "Da-standalone-off-read95-b1-c4-10k-none",
+    "mix": "read95",
+    "batch": 1,
+    "clients": 4,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "none"
+   }
+  },
+  {
+   "id": "Da-source-managed-on-read100-b8-c4-100k-events",
+   "mode": "source-managed",
+   "lifecycle": true,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-source-managed-on-read100-b8-c4-100k-events",
+    "mix": "read100",
+    "batch": 8,
+    "clients": 4,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "events"
+   }
+  },
+  {
+   "id": "Da-source-managed-on-read100-b8-c16-100k-events",
+   "mode": "source-managed",
+   "lifecycle": true,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-source-managed-on-read100-b8-c16-100k-events",
+    "mix": "read100",
+    "batch": 8,
+    "clients": 16,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "events"
+   }
+  },
+  {
+   "id": "Da-source-managed-off-read100-b8-c16-100k-import",
+   "mode": "source-managed",
+   "lifecycle": false,
+   "nodes": 100000,
+   "config": {
+    "id": "Da-source-managed-off-read100-b8-c16-100k-import",
+    "mix": "read100",
+    "batch": 8,
+    "clients": 16,
+    "warmup_ms": 1000,
+    "measure_ms": 3000,
+    "open_rate": null,
+    "background": "import"
+   }
+  }
+ ]
+}
