@@ -48,7 +48,14 @@ are **valid** under the declared rule:
 
 The run had no `node_limit_exceeded`, no failed import and no stopped feeder.
 The only refusals were 503 admission refusals at 64 clients, which the rule
-allows and which are reported below.
+allows. Query-client refusals per 64-client configuration (all in
+`analysis/Mdesc-supplement-analysis.json`, field `statuses`):
+- about 288,000–303,000 with no background or with feeder events;
+- about 479,000–496,000 with import (6 s window);
+- 282,000–307,000 for `mixed50`.
+
+The probe counts every refused attempt: refused query clients resend
+immediately (closed loop).
 
 ## 3. M_reg supplement against v0.5.0 (12 analyzed pairs, fresh server per observation)
 
@@ -60,9 +67,12 @@ allows and which are reported below.
 Notes:
 - Throughput "change" is positive when v0.6.0 is slower; the ratio is B/C, as
   in the frozen analysis. Medians are per arm, intervals are paired.
-- Feeder catch-up was effective in every observation of the second cell:
-  3,328–3,648 events per observation on the candidate and 3,520–3,712 on
-  v0.5.0, with zero failures.
+- In every observation of the second cell, the feeder's event batches were
+  accepted (HTTP 200) with zero failures: 3,328–3,648 events per observation
+  on the candidate and 3,520–3,712 on v0.5.0. The probe does not inspect
+  per-event results (`applied`, `unchanged`, `duplicate`). The feeder uses
+  fresh IDs and an advancing delivery sequence, so non-applied events are
+  unlikely, but they were not checked.
 - Frozen outcomes stay unchanged:
   - the `mixed50` cell: **PASS †**, which measured rejected links;
   - the events cell: **invalid for its purpose**.
@@ -81,22 +91,31 @@ when it can.
 | 100k, off | 16 | 196.0 | 92.8 ms | 3,520 | 0 | 82.0 / 94.3 ms |
 | 100k, off | 64 | 152.0 | 407.0 ms | 512 | 308 | 0.1 / 152.9 ms |
 | 100k, on | 4 | 204.7 | 26.3 ms | 39,360 | 0 | 0.1 / 27.1 ms |
-| 100k, on | 16 | 204.7 | 91.4 ms | 3,648 | 0 | 78.7 / 91.4 ms |
+| 100k, on | 16 | 204.7 | 91.4 ms | 3,648 | 0 | 78.7 / 91.1 ms |
 | 100k, on | 64 | 162.7 | 244.3 ms | 448 | 303 | 0.1 / 190.2 ms |
 | 10k, off / on | 64 | 1,855 / 1,839 | 22.2 / 32.8 ms | 15,552 / 15,488 | 313 / 306 | 0.1 / 18.8 and 17.4 ms |
 
 What this shows:
-- **The feeder queues behind queries for the single graph lock.** At 100k
-  with 16 clients, a 64-event batch takes about one query batch's lock time
-  (p50 about 80 ms), so catch-up falls to about 900 events/s from about 7,000
-  (lifecycle off) or 9,800 (lifecycle on) with 4 clients.
-- **At 64 clients most feeder attempts are refused.** Queries hold all 32
-  admission permits, and the feeder is refused with
-  `503 import_in_progress` (documented admission behavior). Accepted batches
-  still progress, but catch-up drops to about 120 events/s at 100k.
-- **There is no feeder priority over queries.** This is a measured property
-  relevant to v0.7.0 and to the supported-envelope work (v1.0 readiness
-  criterion 4). It is not a defect of v0.6.0's contract.
+- **With 16 clients, the feeder queues behind queries for the single graph
+  lock.** At 100k, query batches hold the lock about 5 ms each (about 196
+  serialized batches/s). A 64-event feeder batch waits behind the queued
+  query batches, about one round of 16 (feeder batch p50 about 80 ms, close to
+  one client's latency). Catch-up therefore falls to about 900 events/s from
+  about 7,000 (lifecycle off) or 9,800 (lifecycle on) with 4 clients. The
+  server gives feeder work no priority over queued queries.
+- **The 64-client feeder numbers are an artifact of the probe and are not
+  server characteristics.**
+  - Queries hold all 32 admission permits, and the feeder is refused with
+    `503 import_in_progress` (documented admission behavior).
+  - Refused query clients resend immediately, with no backoff (about 300,000
+    refused attempts per configuration). The feeder sleeps 10 ms after each
+    refusal: 303–313 refusals, about 3 s of a 4 s run.
+  - The low catch-up (about 120 events/s at 100k) therefore mostly measures
+    the feeder losing a permit race against hot-spinning clients.
+  - What it shows is that admission has no reservation for feeder requests.
+    It says nothing about catch-up under any realistic client retry policy.
+- These properties are relevant to v0.7.0 and to the supported-envelope work
+  (v1.0 readiness criterion 4). They are not defects of v0.6.0's contract.
 
 ### 4.2 Import overlap at 10k with 16 and 64 clients (previously every import failed)
 
@@ -116,9 +135,19 @@ systematic import-overlap tail or noise.
 
 Full rows are in `analysis/Mdesc-supplement-analysis.json`.
 
-- With batch 1 and 8, throughput and p99 are within a few percent of the
-  frozen rows that measured rejected links. With 1 to 16 clients, effective
-  toggles cost no visible time beside the BFS queries.
+- **Caveats for any comparison with the frozen rows:**
+  - Each row is a single observation.
+  - The supplement's `mixed50` servers start fresh. The frozen ones had
+    first run 12 `read95` configurations on the same process.
+  - The frozen rows measured rejected links and no-op cuts.
+- **With 1 to 16 clients and batch 1 or 8,** throughput and p99 are within
+  about 6% of the frozen rows (lifecycle on, b8-c16: −4.2% req/s, p99 +6%).
+- **Larger differences:**
+  - lifecycle on, b8-c64: 291.0 against 334.7 req/s (−13%), p99 202.1
+    against 168.3 ms (+20%);
+  - lifecycle on, b1-c64: −7.6% req/s;
+  - lifecycle off, b1-c64: p99 −10%;
+  - lifecycle on, b64-c16: p99 418.7 against 362.3 ms (+16%).
 - At batch 64 with 64 clients, the tail is heavier than in the frozen run:
   - lifecycle off: p99 971.8 ms against 893.5 ms;
   - lifecycle on: p99 1,693 ms against 890.9 ms, and 32.7 against
@@ -138,12 +167,51 @@ Full rows are in `analysis/Mdesc-supplement-analysis.json`.
 - **Frozen results.** The frozen verdicts and the frozen coverage-defect
   record are not changed.
 - **New descriptive findings** for v0.7.0 and the envelope work:
-  - The feeder has no priority over queries: catch-up slows by 8–11× from 4 to
-    16 clients at 100k, and at 64 clients it is mostly refused by
-    admission.
+  - The feeder has no priority over queued queries: at 100k, catch-up slows
+    by 8–11× from 4 to 16 clients. Admission reserves nothing for feeder
+    requests; the 64-client catch-up numbers are a probe artifact (§4.1).
   - At 10k with 16 clients and lifecycle off, one high query p99 coincided
     with import overlap (single observation).
 - **M5 rule (i)** was not re-evaluated, as declared; its configurations were
   not affected by the defects. Note that `analysis.json` contains an
   `m5_rule_i` block that the reused analyzer computes automatically over the
   supplement's rows. It is not part of this supplement's results.
+
+## 6. Disclosures and limitations
+
+- **Git fetches inside evidence clones (outside measurement outputs).**
+  - Clones under the frozen campaign directory (`A/sources/*` and
+    `src/{ref,cand}/*`) and this supplement's clone have `FETCH_HEAD` files
+    rewritten on 2026-11-17. The supplement clone's was written after its run
+    (07:35:39 and 07:38:39 +0100, exactly 180 s apart). They name branches of
+    the main repositories.
+  - The 180-second period matches the default `git.autofetch` interval of
+    Visual Studio Code, which was running on the host. It probably auto-fetched
+    the nested clones of an open workspace folder. This is an inference, not
+    verified.
+  - These fetches change only `.git` metadata of source clones. Every
+    measurement output verifies against `logs/outputs-sha256.txt`, and the
+    frozen campaign's outputs verify against its own checksums (only
+    `FETCH_HEAD` files differ).
+  - A light local `git fetch` every 180 s may also have run during the 8.5
+    measured minutes. That cannot be excluded; it is disclosed as possible
+    background host activity. The earlier fetch disclosed in comparison §1
+    is a separate event.
+  - **To prevent it:** exclude `evidence/` from the editor's workspace, or
+    disable auto-fetch there, before any further run.
+- **Probe limitations (none triggered in this run):**
+  - The validity counters cover only the measure window.
+  - A client transport error drops the batch body instead of resending it.
+    Errors were 0 everywhere.
+  - A non-200 analyzed M_reg observation would abort the reused frozen
+    analyzer instead of marking only its cell INVALID.
+  - **Positive control of `noop_mutations`.** Outputs from an earlier probe
+    iteration, kept after the run in
+    `evidence/v0.6.0-diagnostics/m-supplement-functional-check/positive-control-earlier-iteration/`,
+    show the no-op detector firing on the revision-1 defects:
+    - 9–10 no-ops at b64-c16;
+    - 465–468 at b1-c64.
+  - **No positive control of `item_errors`.** None is preserved. The
+    detector's correctness rests on code reading of the documented
+    `{"result":"error","code":…}` shape.
+
