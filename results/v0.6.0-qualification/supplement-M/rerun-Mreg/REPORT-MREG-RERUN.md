@@ -37,6 +37,7 @@ Before attempt 2:
 | Measurement | 08:17:17–08:21:22Z, 56 children, all exit 0, AC power on all, no thermal or performance warning |
 | Run monitor | 1,054 samples, **0 matching processes**, no gap above 1.3 s in the per-second top log |
 | Git state | **0 changes** across 41 clones under `/Users/rt/workspace/knotrel`, compared before the quiet period and after the run |
+| Output checksums | All entries of `logs/outputs-sha256.txt` verify except `logs/steps.txt`, because the run script appends its final `RUN complete` line after hashing (a script-ordering defect). With that last line removed, `steps.txt` matches its recorded hash (`b6e384c7…`). |
 
 ## 3. Classification
 
