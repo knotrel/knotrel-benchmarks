@@ -1,6 +1,13 @@
 # v0.6.0 supplementary contention run (M supplement): report
 
-**SUPPLEMENTARY.** This run does not replace, re-classify or extend any result
+**SUPPLEMENTARY, WITH A PROTOCOL NON-CONFORMITY (§7).** An automated
+process ran `git fetch` during measured children, against the protocol's
+"Nothing else runs during measurement". The run is kept as evidence with
+limitations, and acceptance of its results is **not** recommended. A minimal
+rerun of the two M_reg cells is prepared but not started
+([`rerun-Mreg/`](rerun-Mreg/)).
+
+This run does not replace, re-classify or extend any result
 of the frozen v0.6.0 campaign, and it grants no waiver. The frozen verdicts in
 `COMPARISON-v0.5.0-v0.6.0.md` stand as they are. Whether these results count
 for v0.6.0 is the maintainer's decision.
@@ -38,10 +45,18 @@ repeated-for-order rule requires, and the run executed exactly the matrix:
 4 × 9 + 2 × 12 = 60 configurations. Only the prose miscounted; the frozen
 files are left unchanged.
 
-## 2. Validity
+## 2. Validity, classified
 
-All 60 M_desc configuration records and all 48 analyzed M_reg observations
-are **valid** under the declared rule:
+"Valid" in this report refers only to the first two levels below. It never
+means protocol conformance, which is level 3 and is **not met** (§7).
+
+| Level | Status | Basis |
+|---|---|---|
+| 1. Functional correctness of the probe | **Shown, with limits** | Zero transport errors, per-item errors and no-op mutations; zero background failures. The no-op detector has a positive control. The `item_errors` detector rests on code reading. Feeder per-event results are not inspected (§3). |
+| 2. Validity of the analyzer inputs | **Met** | All 60 M_desc records and 48 analyzed M_reg observations satisfy the declared validity rule (protocol §5). All children exited 0. Every start record has probe revision 2. Server and probe hashes are verified, and outputs match `logs/outputs-sha256.txt`. |
+| 3. Conformance of the run to the protocol | **Not met for M_desc, undetermined for M_reg** | §7 |
+
+At level 2, the declared rule requires:
 - no transport or batch-shape errors;
 - no per-item error results and no no-op mutations;
 - every background activity completed work with zero failures.
@@ -61,12 +76,42 @@ immediately (closed loop).
 
 | Cell (100k, 16 clients) | Throughput v0.5.0 → v0.6.0 | Change [interval] | Client p99 v0.5.0 → v0.6.0 | Change [interval] | Supplementary outcome |
 |---|---|---|---|---|---|
-| standalone, lifecycle off, `mixed50`, batch 64, effective toggles | 50.33 → 50.00 req/s | +0.33% [−1.32, +1.33] | 351.1 → 359.9 ms | +1.98% [−1.62, +5.36] | **PASS** |
-| source-managed, lifecycle on, `read100`, batch 8, feeder catch-up | 200.83 → 199.33 req/s | +1.01% [−1.15, +4.21] | 92.0 → 94.8 ms | +3.86% [−1.63, +9.41] | **PASS** |
+| standalone, lifecycle off, `mixed50`, batch 64, effective toggles | 50.33 → 50.00 req/s | **−0.33%** [−1.32, +1.34] | 351.1 → 359.9 ms | **+1.98%** [−1.62, +5.36] | PASS (analyzer) |
+| source-managed, lifecycle on, `read100`, batch 8, feeder catch-up | 200.83 → 199.33 req/s | **−1.00%** [−4.04, +1.16] | 92.0 → 94.8 ms | **+3.86%** [−1.63, +9.41] | PASS (analyzer) |
+
+**How the numbers are computed** (frozen `summarize_metric`, unchanged):
+- **Per pair.** Pair *i* (one v0.5.0 and one v0.6.0 observation, each on a
+  fresh server, order balanced) gives one value per arm:
+  - throughput: completed requests in the 3 s window divided by 3;
+  - latency: client p99 of that observation.
+- **Changes in the table.** They are always v0.6.0 against v0.5.0:
+  - *d_i = ln(v0.6.0_i / v0.5.0_i)*;
+  - the change shown is *exp(median d_i) − 1*;
+  - the interval is *[exp(d₍₃₎) − 1, exp(d₍₁₀₎) − 1]*, order statistics of
+    the 12 sorted *d_i*.
+- **Reading the signs.**
+  - A negative throughput change means **v0.6.0 completed fewer requests**:
+    −0.33% and −1.00% are small decreases, not speedups.
+  - A positive p99 change means v0.6.0's tail is longer.
+- **How the analyzer decides.** The verdict is computed on the orientation in
+  which positive means worse:
+  - throughput uses *ln(v0.5.0/v0.6.0)*, which `analysis.json` stores as
+    +0.33% [−1.33, +1.32] and +1.01% [−1.15, +4.21];
+  - p99 uses *ln(v0.6.0/v0.5.0)*.
+  - PASS requires the upper bound to be at most ln(1.10) for throughput and
+    ln(1.25) for p99. Both cells meet it, and neither interval excludes zero.
+  - In `analysis.json`, for throughput, `B_median` holds v0.6.0 and
+    `C_median` holds v0.5.0.
+- **Why the medians shown can disagree with the change.** The values in the
+  "v0.5.0 → v0.6.0" columns are separate medians of each arm. The change is
+  the median of the paired ratios, which is a different statistic.
+  - mixed50 throughput: ratio of arm medians −0.66%, paired −0.33%;
+  - events throughput: −0.75% against −1.00%;
+  - p99: +2.50% against +1.98%, and +3.08% against +3.86%.
+- **Throughput resolution.** It is quantized: a window completes an integer
+  number of requests, so at about 50 req/s one request is 0.67%.
 
 Notes:
-- Throughput "change" is positive when v0.6.0 is slower; the ratio is B/C, as
-  in the frozen analysis. Medians are per arm, intervals are paired.
 - In every observation of the second cell, the feeder's event batches were
   accepted (HTTP 200) with zero failures: 3,328–3,648 events per observation
   on the candidate and 3,520–3,712 on v0.5.0. The probe does not inspect
@@ -77,7 +122,7 @@ Notes:
   - the `mixed50` cell: **PASS †**, which measured rejected links;
   - the events cell: **invalid for its purpose**.
 
-## 4. M_desc supplement (candidate, descriptive, one observation per configuration)
+## 4. M_desc supplement (candidate, descriptive, one observation per configuration; conformance in §7)
 
 Background `completed` counts work over the whole background run (warmup plus
 measure window, about 4 s, or 6 s with import). An import runs once per second
@@ -160,10 +205,15 @@ Full rows are in `analysis/Mdesc-supplement-analysis.json`.
 ## 5. What changes for the v0.6.0 decision
 
 - **Coverage defect 9 of comparison §8.** The cells the frozen run did not
-  measure as declared now have valid supplementary measurements:
-  - both M_reg cells PASS against v0.5.0;
-  - feeder catch-up and import overlap are covered at both sizes and all
-    client counts.
+  measure as declared now have supplementary measurements with valid
+  analyzer inputs (levels 1–2 of §2). The run does **not** conform to its
+  protocol (§7):
+  - Both M_reg cells come out PASS from the analyzer, but they are not
+    proposed for acceptance.
+  - Feeder catch-up and import overlap are covered descriptively at both
+    sizes and all client counts. The 10k source-managed servers
+    (`S-source-{off,on}-10k`) ran while a fetch was recorded, and all rows
+    are single observations.
 - **Frozen results.** The frozen verdicts and the frozen coverage-defect
   record are not changed.
 - **New descriptive findings** for v0.7.0 and the envelope work:
@@ -179,26 +229,9 @@ Full rows are in `analysis/Mdesc-supplement-analysis.json`.
 
 ## 6. Disclosures and limitations
 
-- **Git fetches inside evidence clones (outside measurement outputs).**
-  - Clones under the frozen campaign directory (`A/sources/*` and
-    `src/{ref,cand}/*`) and this supplement's clone have `FETCH_HEAD` files
-    rewritten on 2026-11-17. The supplement clone's was written after its run
-    (07:35:39 and 07:38:39 +0100, exactly 180 s apart). They name branches of
-    the main repositories.
-  - The 180-second period matches the default `git.autofetch` interval of
-    Visual Studio Code, which was running on the host. It probably auto-fetched
-    the nested clones of an open workspace folder. This is an inference, not
-    verified.
-  - These fetches change only `.git` metadata of source clones. Every
-    measurement output verifies against `logs/outputs-sha256.txt`, and the
-    frozen campaign's outputs verify against its own checksums (only
-    `FETCH_HEAD` files differ).
-  - A light local `git fetch` every 180 s may also have run during the 8.5
-    measured minutes. That cannot be excluded; it is disclosed as possible
-    background host activity. The earlier fetch disclosed in comparison §1
-    is a separate event.
-  - **To prevent it:** exclude `evidence/` from the editor's workspace, or
-    disable auto-fetch there, before any further run.
+- **Automated git activity.** The facts, timeline and impact are in §7.
+  An earlier version of this section attributed the fetches to Visual Studio
+  Code. That attribution was unproven and is withdrawn.
 - **Probe limitations (none triggered in this run):**
   - The validity counters cover only the measure window.
   - A client transport error drops the batch body instead of resending it.
@@ -214,4 +247,104 @@ Full rows are in `analysis/Mdesc-supplement-analysis.json`.
   - **No positive control of `item_errors`.** None is preserved. The
     detector's correctness rests on code reading of the documented
     `{"result":"error","code":…}` shape.
+
+## 7. Protocol conformance (concurrent activity)
+
+### 7.1 The rules
+
+- **Machine-checked rule** (`MATRIX-M-SUPPLEMENT.json` `host_conditions`,
+  copied from the frozen matrix):
+  - No `cargo`/`rustc` process and no other campaign.
+  - The collector checks it before each experiment with
+    `pgrep cargo|rustc`; power and thermal state are checked before every
+    child.
+  - It was met.
+- **Operator rule** (`PROTOCOL-M-SUPPLEMENT.md` §4, host prerequisites):
+  - "Nothing else runs during measurement."
+  - It is not machine-checked.
+  - The invalidation rules (code change, tooling change, failed child,
+    invalid runs) attach no stated consequence to it.
+  - It is the rule at issue.
+
+### 7.2 What the evidence shows
+
+**Integrity of sources, binaries and results: intact.**
+- Every evidence clone has a detached HEAD at its recorded commit and no
+  tracked changes.
+- Server binaries verify against the frozen campaign's checksums, and the
+  probe's hash matches its build.
+- All outputs verify against `logs/outputs-sha256.txt`.
+- The automated fetches changed only `.git` metadata: remote refs,
+  `FETCH_HEAD`, new objects and reflogs.
+
+**Measurement conditions: not met for M_desc, undetermined for M_reg.** The
+evidence comes from the remote-tracking reflogs (`core.logAllRefUpdates`) of
+the clones, scanned without following symlinks.
+- **Ref-updating fetches inside measured M_desc children:**
+  - 06:25:54Z, `src/cand/knotrel-benchmarks`;
+  - 06:25:55Z, `src/ref/knotrel-benchmarks`;
+  - 06:26:06Z, `A/sources/knotrel-benchmarks`.
+  - Each moved `origin/feature/v0.6.0-qualification` 04cb25d7 → 8faf37bb,
+    picking up the freeze commit made at 06:23:21Z.
+  - They fall inside children `00003-S-source-off-10k` and
+    `00004-S-source-on-10k`.
+  - A `git fetch` process therefore ran and wrote objects while the run was
+    measuring. **The operator rule was violated during M_desc.**
+- **M_reg (06:28:11–06:32:14Z):**
+  - No ref-updating fetch is recorded.
+  - No commit existed between 06:23:21Z and 06:33:37Z, so any fetch in that
+    window would have updated no ref. It would have left only `FETCH_HEAD`,
+    which every later fetch overwrites.
+  - Fetches are observed every 2–3 minutes, by ref updates and by current
+    `FETCH_HEAD` times (for example 07:35:39 and 07:38:39 +0100). That
+    cadence makes fetches during M_reg likely, but neither their presence
+    nor their absence can be shown. **Conformance for M_reg is
+    undetermined.**
+- **Frozen campaign (22:50–23:50Z on 2026-11-16):**
+  - No commit was made during it, so the same method cannot detect fetches
+    there either.
+  - The fetching process (see below) had been running since 2026-11-14
+    21:31Z.
+  - Conformance of the frozen campaign to the user's instruction "no
+    concurrent activity during measurement" is therefore also undetermined.
+  - Its machine-checked rule, no concurrent build or campaign, was met.
+  - Nothing in sections 1–8 of the comparison changes. This is an evidence
+    limitation for the maintainer.
+- **Load average.** The recorded 1-minute load average ranged from 2.08 to
+  6.95 across children. It includes the probe's own client threads and
+  servers, so it cannot isolate other activity.
+
+**Attribution, shown live after the run and not for the past.**
+- A passive 250-second poll of the process table, 2026-11-17 06:53–06:57Z,
+  recorded `git fetch` processes whose parent is PID 5603,
+  `Antigravity IDE Helper (Plugin)`, started 2026-11-14 22:31 local time.
+- They ran in repositories all over `/Users/rt/workspace/knotrel`, including
+  `evidence/` clones, and included HTTPS fetches from `github.com` for the
+  main clones.
+- Record: `evidence/v0.6.0-diagnostics/m-supplement-host-activity/`.
+- That this same process caused the 06:25–06:26Z fetches is a strong
+  inference: same cadence, same repositories, and it was the only fetching
+  process observed. It is not proven.
+
+**Possible performance impact: not quantified, and not assumed to be zero.**
+A fetch is a short burst of process creation, CPU, disk writes and, for
+remote clones, network I/O, on the same machine as the probe and server. Its
+effect on the affected observations was not measured, and modifying only Git
+metadata says nothing about the CPU and I/O it consumed.
+
+### 7.3 Recommendation (single)
+
+Conformance is violated for M_desc and undetermined for M_reg, so:
+- **Keep this supplement as evidence with limitations.** Do not propose its
+  two M_reg PASS results for acceptance.
+- **Rerun only the two M_reg cells**, with the same statistical protocol
+  (2 warmup and 12 analyzed pairs, same tolerances and analyzer), the same
+  frozen probe revision 2 binary and the same server binaries.
+  - The rerun's preparation is in [`rerun-Mreg/`](rerun-Mreg/), including how
+    automated activity is removed and how its absence is verified.
+  - The 60 descriptive configurations are not repeated.
+  - The rerun is **not started**.
+- **Scope of the supplementary results.** The supplementary PASS results,
+  from this run or from the rerun, never replace frozen verdicts
+  automatically, and they close no other non-PASS item.
 
