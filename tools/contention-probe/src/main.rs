@@ -44,8 +44,32 @@
 //!
 //! Every response is checked: a status other than 200 is counted by status
 //! (503 = admission refusal); a 200 batch must return one result per
-//! operation. Correctness of answers is not re-verified here (it is covered
-//! by the test suites and the core oracles); the probe measures timing.
+//! operation, and per-item `error` results and no-op mutations
+//! (`changed: false`) are counted by code.
+//!
+//! # Revision 2 (v0.6.0 supplementary contention run)
+//!
+//! Fixes the coverage defects found after the frozen v0.6.0 campaign:
+//! - the server is started with `KNOTREL_MAX_NODES = nodes + 100000`, so the
+//!   new node IDs registered by `mixed50` toggles and feeder catch-up fit
+//!   (the default limit is 100,000);
+//! - a background import reads the current `ETag` from `GET /v1/stats` when
+//!   its configuration starts, instead of reusing one that an earlier
+//!   configuration's events made stale;
+//! - a background feeder request refused with 503 is retried unchanged after
+//!   10 ms and counted; any other failure stops the background activity, and
+//!   every failure is recorded with its status and error code;
+//! - a toggle's phase is read before the pass boundary flips it, so the last
+//!   owned item of the first pass is no longer cut before it was linked (one
+//!   no-op mutation per client in revision 1);
+//! - each configuration toggles its own fresh extra-edge IDs (client-owned
+//!   and feeder-owned), and a client resends a refused batch body unchanged,
+//!   so link/cut toggles stay effective across configurations and 503s.
+//!   `lifecycle50` toggles base items and is meant for one configuration per
+//!   server process.
+//!
+//! Correctness of answers is not re-verified here (it is covered by the test
+//! suites and the core oracles); the probe measures timing.
 
 use serde_json::{Value, json};
 use std::{
@@ -167,6 +191,13 @@ impl Conn {
     }
 }
 
+/// Probe revision recorded in every `start` record (1 = frozen v0.6.0 campaign).
+const PROBE_REVISION: u32 = 2;
+
+/// Node-limit headroom above the loaded graph for IDs that toggles and feeder
+/// events register (at most 128 per client plus 128 feeder IDs).
+const NODE_HEADROOM: u64 = 100_000;
+
 fn free_port() -> u16 {
     TcpListener::bind("127.0.0.1:0")
         .and_then(|listener| listener.local_addr())
@@ -175,7 +206,13 @@ fn free_port() -> u16 {
 }
 
 /// Starts the server with a cleared environment and waits for `/health`.
-fn start_server(bin: &str, port: u16, mode: &str, lifecycle: bool) -> Result<Child, String> {
+fn start_server(
+    bin: &str,
+    port: u16,
+    mode: &str,
+    lifecycle: bool,
+    max_nodes: u64,
+) -> Result<Child, String> {
     let child = Command::new(bin)
         .env_clear()
         .env("KNOTREL_ADDR", format!("127.0.0.1:{port}"))
@@ -183,6 +220,7 @@ fn start_server(bin: &str, port: u16, mode: &str, lifecycle: bool) -> Result<Chi
         .env("KNOTREL_ENGINE", "compact-bfs")
         .env("KNOTREL_TOPOLOGY_LIFECYCLE", lifecycle.to_string())
         .env("KNOTREL_METRICS_ENABLED", "true")
+        .env("KNOTREL_MAX_NODES", max_nodes.to_string())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -259,6 +297,9 @@ impl Workload {
         }
         // Advance through owned items; flip the phase after a full pass.
         let index = self.cursor;
+        // The phase of this item is read before a pass boundary flips it
+        // (revision 1 gave the last item of a pass the next pass's phase).
+        let phase = self.phase;
         self.cursor += 1;
         let pool = if self.mix == "lifecycle50" {
             self.own_nodes.len() + self.own_base.len()
@@ -275,20 +316,15 @@ impl Workload {
                     "set_node_active",
                     self.own_nodes[index],
                     None,
-                    Some(("active", self.phase)),
+                    Some(("active", phase)),
                 )
             } else {
                 let (a, b) = self.own_base[index - self.own_nodes.len()];
-                op_json(
-                    "set_edge_enabled",
-                    a,
-                    Some(b),
-                    Some(("enabled", self.phase)),
-                )
+                op_json("set_edge_enabled", a, Some(b), Some(("enabled", phase)))
             }
         } else {
             let (a, b) = self.own_edges[index];
-            op_json(if self.phase { "cut" } else { "link" }, a, Some(b), None)
+            op_json(if phase { "cut" } else { "link" }, a, Some(b), None)
         }
     }
 }
@@ -565,6 +601,7 @@ fn run_config(
     edges: &Arc<Vec<(u64, u64)>>,
     feeder: &mut Option<Feeder>,
     seed: u64,
+    ordinal: u64,
 ) -> Result<Value, String> {
     let mix = config["mix"].as_str().ok_or("mix")?.to_owned();
     let batch = config["batch"].as_u64().ok_or("batch")? as usize;
@@ -612,7 +649,10 @@ fn run_config(
                 .map(|k| {
                     // Extra edges between nodes n+.. are never in the base
                     // graph: endpoints are new IDs owned by this client.
-                    let base = n + 1_000_000 * (client as u64 + 1);
+                    // Each configuration gets fresh IDs (256 per client), so
+                    // edges left linked by an earlier configuration on the
+                    // same server do not turn its links into no-ops.
+                    let base = n + 1_000_000 * (client as u64 + 1) + 256 * ordinal;
                     (base + 2 * k, base + 2 * k + 1)
                 })
                 .collect();
@@ -628,6 +668,11 @@ fn run_config(
             let mut statuses: BTreeMap<u16, u64> = BTreeMap::new();
             let mut errors = 0u64;
             let mut operations = 0u64;
+            let mut item_errors: BTreeMap<String, u64> = BTreeMap::new();
+            let mut noop_mutations = 0u64;
+            // A body refused with a non-200 status is sent again unchanged,
+            // so skipped toggles do not desynchronize the link/cut phases.
+            let mut pending_body: Option<String> = None;
             loop {
                 let due = match interval {
                     Some(interval) => {
@@ -644,22 +689,38 @@ fn run_config(
                 if due >= measure_end || stop.load(Ordering::Relaxed) {
                     break;
                 }
-                let ops: Vec<String> = (0..batch).map(|_| workload.next_op()).collect();
-                let body = format!(r#"{{"operations":[{}]}}"#, ops.join(","));
+                let body = pending_body.take().unwrap_or_else(|| {
+                    let ops: Vec<String> = (0..batch).map(|_| workload.next_op()).collect();
+                    format!(r#"{{"operations":[{}]}}"#, ops.join(","))
+                });
                 let result = conn.request("POST", "/v1/batch", &[], body.as_bytes());
                 let done = Instant::now();
                 let in_window = due >= measure_start;
                 match result {
                     Ok((status, _, reply)) => {
+                        if status != 200 {
+                            pending_body = Some(body);
+                        }
                         if in_window {
                             *statuses.entry(status).or_default() += 1;
                             if status == 200 {
                                 let value: Value = serde_json::from_slice(&reply).unwrap_or(Value::Null);
-                                if value["results"].as_array().map(Vec::len) != Some(batch) {
-                                    errors += 1;
-                                } else {
-                                    latencies.push((done - due).as_nanos() as u64);
-                                    operations += batch as u64;
+                                match value["results"].as_array() {
+                                    Some(results) if results.len() == batch => {
+                                        for item in results {
+                                            match item["result"].as_str() {
+                                                Some("error") => {
+                                                    let code = item["code"].as_str().unwrap_or("unknown").to_owned();
+                                                    *item_errors.entry(code).or_default() += 1;
+                                                }
+                                                Some("changed") if item["changed"] == Value::Bool(false) => noop_mutations += 1,
+                                                _ => {}
+                                            }
+                                        }
+                                        latencies.push((done - due).as_nanos() as u64);
+                                        operations += batch as u64;
+                                    }
+                                    _ => errors += 1,
                                 }
                             }
                         }
@@ -670,7 +731,8 @@ fn run_config(
                     }
                 }
             }
-            Ok(json!({"latencies": latencies, "statuses": statuses, "errors": errors, "operations": operations}))
+            Ok(json!({"latencies": latencies, "statuses": statuses, "errors": errors, "operations": operations,
+                      "item_errors": item_errors, "noop_mutations": noop_mutations}))
         }));
     }
 
@@ -687,22 +749,56 @@ fn run_config(
             let mut conn = Conn::connect(address).expect("background connection");
             let mut count = 0u64;
             let mut failures = 0u64;
+            let mut refused = 0u64;
+            let mut failure_kinds: BTreeMap<String, u64> = BTreeMap::new();
             let mut durations = Vec::new();
             let mut toggled = false;
+            let mut pending_events: Option<String> = None;
+            if background == "import" {
+                // The stored ETag may be stale (events of an earlier
+                // configuration advance the state version): read it fresh.
+                match conn.request("GET", "/v1/stats", &[], b"") {
+                    Ok((200, headers, _)) => {
+                        if let Some((_, tag)) = headers.iter().find(|(k, _)| k == "etag") {
+                            feeder_state.etag = tag.clone();
+                        }
+                    }
+                    other => {
+                        let kind = match other {
+                            Ok((status, _, _)) => format!("stats-{status}"),
+                            Err(e) => format!("stats-io: {e}"),
+                        };
+                        *failure_kinds.entry(kind).or_default() += 1;
+                    }
+                }
+            }
+            let describe = |result: &Result<(u16, Headers, Value), String>| -> String {
+                match result {
+                    Ok((status, _, reply)) => format!(
+                        "{status} {}",
+                        reply["code"]
+                            .as_str()
+                            .or(reply["error"]["code"].as_str())
+                            .unwrap_or("-")
+                    ),
+                    Err(e) => format!("io: {e}"),
+                }
+            };
             while !stop.load(Ordering::Relaxed) {
                 let start = Instant::now();
                 if background == "import" {
                     let position = format!("i{count}");
                     let body = import_body(&feeder_state, "replace", n, &edges, &position);
                     let etag = feeder_state.etag.clone();
-                    match post_feeder(
+                    let result = post_feeder(
                         &mut conn,
                         &feeder_state,
                         "/v1/feeder/import",
                         &body,
                         Some(&etag),
-                    ) {
-                        Ok((201, headers, reply)) => {
+                    );
+                    match result {
+                        Ok((201, ref headers, ref reply)) => {
                             feeder_state.generation = reply["generation"].as_u64().unwrap_or(0);
                             if let Some((_, tag)) = headers.iter().find(|(k, _)| k == "etag") {
                                 feeder_state.etag = tag.clone();
@@ -711,7 +807,17 @@ fn run_config(
                             feeder_state.position = position;
                             count += 1;
                         }
-                        _ => failures += 1,
+                        Ok((503, _, _)) => {
+                            refused += 1;
+                            *failure_kinds.entry(describe(&result)).or_default() += 1;
+                        }
+                        _ => {
+                            failures += 1;
+                            *failure_kinds.entry(describe(&result)).or_default() += 1;
+                            if result.is_err() {
+                                conn = Conn::connect(address).expect("background reconnection");
+                            }
+                        }
                     }
                     durations.push(start.elapsed().as_nanos() as u64);
                     // One import per second (start to start).
@@ -726,47 +832,65 @@ fn run_config(
                     }
                 } else {
                     // Feeder catch-up: closed-loop event batches of 64
-                    // link/cut toggles on feeder-owned extra edges.
-                    let mut events = Vec::new();
-                    for k in 0..64u64 {
-                        let sequence = feeder_state.sequence + 1;
-                        let position = format!("e{}-{sequence}", feeder_state.generation);
-                        let (a, b) = (n + 10 * k, n + 10 * k + 1);
-                        events.push(format!(
+                    // link/cut toggles on feeder-owned extra edges. A body
+                    // refused with 503 is resent unchanged.
+                    let body = match pending_events.take() {
+                        Some(body) => body,
+                        None => {
+                            let mut events = Vec::new();
+                            for k in 0..64u64 {
+                                let sequence = feeder_state.sequence + 1;
+                                let position = format!("e{}-{sequence}", feeder_state.generation);
+                                let (a, b) =
+                                    (n + 1000 * ordinal + 10 * k, n + 1000 * ordinal + 10 * k + 1);
+                                events.push(format!(
                             r#"{{"event_id":"ev-{}-{sequence}","delivery_sequence":{sequence},"prev_delivery_sequence":{},"source_position":"{position}","prev_source_position":"{}","op":"{}","source":"{a}","target":"{b}"}}"#,
                             feeder_state.generation,
                             feeder_state.sequence,
                             feeder_state.position,
                             if toggled { "cut" } else { "link" }
                         ));
-                        feeder_state.sequence = sequence;
-                        feeder_state.position = position;
-                    }
-                    toggled = !toggled;
-                    let body = format!(
-                        r#"{{"instance_id":"{}","graph_id":"default","generation":{},"feeder_session_id":"probe","feeder_epoch":1,"source_id":"src","source_epoch":"e1","events":[{}]}}"#,
-                        feeder_state.instance,
-                        feeder_state.generation,
-                        events.join(",")
-                    );
-                    match post_feeder(
+                                feeder_state.sequence = sequence;
+                                feeder_state.position = position;
+                            }
+                            toggled = !toggled;
+                            format!(
+                                r#"{{"instance_id":"{}","graph_id":"default","generation":{},"feeder_session_id":"probe","feeder_epoch":1,"source_id":"src","source_epoch":"e1","events":[{}]}}"#,
+                                feeder_state.instance,
+                                feeder_state.generation,
+                                events.join(",")
+                            )
+                        }
+                    };
+                    let result = post_feeder(
                         &mut conn,
                         &feeder_state,
                         "/v1/feeder/events",
                         body.as_bytes(),
                         None,
-                    ) {
-                        Ok((200, _, _)) => count += 64,
+                    );
+                    match result {
+                        Ok((200, _, _)) => {
+                            count += 64;
+                            durations.push(start.elapsed().as_nanos() as u64);
+                        }
+                        Ok((503, _, _)) => {
+                            refused += 1;
+                            *failure_kinds.entry(describe(&result)).or_default() += 1;
+                            pending_events = Some(body);
+                            thread::sleep(Duration::from_millis(10));
+                        }
                         _ => {
                             failures += 1;
+                            *failure_kinds.entry(describe(&result)).or_default() += 1;
                             break;
                         }
                     }
-                    durations.push(start.elapsed().as_nanos() as u64);
                 }
             }
             durations.sort_unstable();
             let summary = json!({"kind": background, "completed": count, "failures": failures,
+                                 "refused_503": refused, "failure_kinds": failure_kinds,
                                  "p50_ns": percentile(&durations, 0.5), "max_ns": durations.last().copied().unwrap_or(0)});
             (feeder_state, summary)
         }))
@@ -796,6 +920,8 @@ fn run_config(
     let mut statuses: BTreeMap<String, u64> = BTreeMap::new();
     let mut errors = 0;
     let mut operations = 0;
+    let mut item_errors: BTreeMap<String, u64> = BTreeMap::new();
+    let mut noop_mutations = 0u64;
     for handle in handles {
         let result = handle.join().map_err(|_| "client thread panicked")??;
         let client_latencies: Vec<u64> =
@@ -807,6 +933,10 @@ fn run_config(
         }
         errors += result["errors"].as_u64().unwrap_or(0);
         operations += result["operations"].as_u64().unwrap_or(0);
+        for (code, count) in result["item_errors"].as_object().into_iter().flatten() {
+            *item_errors.entry(code.clone()).or_default() += count.as_u64().unwrap_or(0);
+        }
+        noop_mutations += result["noop_mutations"].as_u64().unwrap_or(0);
     }
     let (hist_after, _) = scrape(address)?;
     stop.store(true, Ordering::Relaxed);
@@ -846,6 +976,7 @@ fn run_config(
                         "max": latencies.last().copied().unwrap_or(0),
                         "mean": if latencies.is_empty() { 0.0 } else { latencies.iter().sum::<u64>() as f64 / latencies.len() as f64 }},
         "statuses": statuses, "errors": errors,
+        "item_errors": item_errors, "noop_mutations": noop_mutations,
         "fairness": {"jain": jain, "min_over_max": min_max},
         "outstanding_jobs": {"samples": outstanding.len(),
                              "median": outstanding.get(outstanding.len() / 2).copied(),
@@ -885,9 +1016,10 @@ fn main() {
         .unwrap_or_else(free_port);
     println!(
         "{}",
-        json!({"kind": "start", "server_bin": bin, "mode": mode, "lifecycle": lifecycle, "nodes": n, "seed": seed, "configs": configs.len()})
+        json!({"kind": "start", "probe_revision": PROBE_REVISION, "server_bin": bin, "mode": mode, "lifecycle": lifecycle, "nodes": n, "max_nodes": n + NODE_HEADROOM, "seed": seed, "configs": configs.len()})
     );
-    let mut child = match start_server(&bin, port, &mode, lifecycle) {
+    let max_nodes = n + NODE_HEADROOM;
+    let mut child = match start_server(&bin, port, &mode, lifecycle, max_nodes) {
         Ok(child) => child,
         Err(error) => {
             eprintln!("contention-probe: {error}");
@@ -903,8 +1035,17 @@ fn main() {
             "{}",
             json!({"kind": "setup", "edges": edges.len(), "setup_ns": setup_start.elapsed().as_nanos() as u64, "server_rss_kib": rss_kib(child.id())})
         );
-        for config in &configs {
-            let record = run_config(address, child.id(), config, n, &edges, &mut feeder, seed)?;
+        for (ordinal, config) in configs.iter().enumerate() {
+            let record = run_config(
+                address,
+                child.id(),
+                config,
+                n,
+                &edges,
+                &mut feeder,
+                seed,
+                ordinal as u64,
+            )?;
             println!("{record}");
         }
         Ok(())
