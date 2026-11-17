@@ -1,0 +1,59 @@
+{
+ "frozen_utc": "2026-11-17T22:26:26Z",
+ "candidate": {
+  "repository": "knotrel",
+  "commit": "e75ff6a26ec245aefcadfff254e0ac2dd6efc4fc",
+  "branch": "feature/v0.7.0-measured-concurrency",
+  "version": "0.7.0"
+ },
+ "reference": {
+  "repository": "knotrel",
+  "tag": "v0.6.0",
+  "commit": "5db9ec4738a7f90bf06a83ea12f35c0dab9ab538",
+  "published": "crates.io 0.6.0 and signed tag v0.6.0"
+ },
+ "benchmarks_reference": {
+  "tag": "v0.6.0",
+  "commit": "bddef0f301f582495cb22e47cfd67def88fa9967"
+ },
+ "tooling": {
+  "repository": "knotrel-benchmarks",
+  "commit": "9616984f3bfadea8f5900beb762243cc10dc5ca7",
+  "note": "collectors, conformance monitor and gate, analyses and this matrix; the freeze commit adds only FREEZE.json"
+ },
+ "first_campaign": {
+  "tooling": "82123ae3",
+  "freeze": "4c03cf7b",
+  "evidence": "evidence/v0.7.0-qualification-e75ff6a",
+  "status": "NONCONFORMING (campaign); data and verdicts unchanged; nothing reused"
+ },
+ "file_sha256": {
+  "results/v0.7.0-requalification/MATRIX.json": "aaea251785482dea1c8aca1930cc9cb061e47e0ba5090c8b638ab5b03c2df533",
+  "results/v0.7.0-requalification/PROTOCOL.md": "7afce2eec084489fce7453509c9f9763ae5d8f084e45cd5d1a7f2a4fd7774b57",
+  "results/v0.7.0-requalification/RERUN-PROPOSAL.md": "b0bee62b9a76c8618a92e8c81e169456aed17f17abfa524c1369579f4cf20c84",
+  "results/v0.7.0-requalification/run_final_chain.sh": "a08fe70fd57632336e0023e252a4e9a1e382eec753e64cf64a2f2ecb74a38096",
+  "results/v0.7.0-requalification/prepare_campaign.sh": "a9a8c3b336c0575afbba35e7921433b78e72f4f617410e10bf59c77ac35dbaa3",
+  "scripts/conformance_monitor.py": "20912b3b05061b2cdfc7ce04fca58afac11c3674f284ba5ac7b4ea545e4f4f22",
+  "scripts/conformance_gate.py": "8bad092c9d52dc0d82005263f5e6d33b09ca79d81d02f3b2234f7e2cba2941c5",
+  "scripts/run_v070r_collect.py": "29c84947f848cf1328292cb7d73f3313d3eddce3d5e98167ef78ef91b11604ad",
+  "scripts/analyze_v070r_qualification.py": "06efd9d731544faea1753767341b2204ee1da2295ba9baab2ec4e4613f4d43e5",
+  "scripts/run_p0_aa.py": "d5abebd60a318aed49057cf9d377c94296c1c7661caca06733b4f988aea90b69",
+  "scripts/run_lifecycle_qualification.py": "649c70ea1d7299b9c22c170071c83a962aab9c2d819818820c4516a2d559c4ba",
+  "scripts/run_v060_qualification.py": "333b5cb170256b027099fcb27b1030cde3cd141a7e24c4e2cade9dcb1275e741",
+  "scripts/prepare_bc_qualification.py": "3f0e10d5eb0b23436178f0bbd0e907056a82f4c73497318c34b42d8d9c83dc3d",
+  "scripts/analyze_bc_qualification.py": "3fcebe951c95841f2b2c54f2259b71d6a8c98878133b557f70dace0cc2577f21",
+  "scripts/analyze_lifecycle_qualification.py": "c86a56a492abc277d22ce1e177c23d85dbdf5cdb8115874c193893b1b4c79355",
+  "scripts/analyze_v070_qualification.py": "b459e45f7e93b19e3f4d525555def59a21886264944622bdbe01bf774abc7450",
+  "scripts/analyze_v060_qualification.py": "24fcfda46835c9db7f884a050b976c726eef7cd9fc67741340e25f38d5a97ac9",
+  "scripts/analyze_v060_m_supplement.py": "52bf2ad10497e8e3b642addc584575e52d01bd659375cfe62cc091fa757580b5"
+ },
+ "maintainer_records": {
+  "non_conformity": "2026-11-17: acceptance with disclosure not approved; rerun selection by INCONCLUSIVE cells not authorized; conforming collection to be scoped by conformance",
+  "proposal": "2026-11-17: 'Approve, build tooling' (RERUN-PROPOSAL.md)",
+  "freeze": "2026-11-17: 'Freeze and prepare'",
+  "thresholds": "unchanged from v0.6.0 / first v0.7.0 campaign; no inherited waivers"
+ },
+ "tooling_reviews": "TOOLING-REVIEW.md: first pass (2 blocking, 10 should-fix, 12 minor) and verification pass (N1-N8); dispositions in PROTOCOL.md section 7",
+ "authorized_extensions": "A: one 12-pair extension per cell with an INCONCLUSIVE gated metric (v0.4.0 rules). No other extension. One rerun of an experiment only for an infrastructure failure unrelated to the measured code. Conformance failures: restart into a new attempt directory with the same matrix and seeds, at most 3 attempts.",
+ "known_concurrent_activity": "none permitted from quiet-period start to chain end (MATRIX.json conformance); the operator prepares the host per PROTOCOL.md section 4"
+}
