@@ -269,3 +269,33 @@ decision for v0.6.0 only.
 | 7 | B4 `metrics-ops` **INCONCLUSIVE** +5.57% [+1.83, +9.42] (t = 6%) | Metrics overhead on lifecycle batches may exceed the 6% budget | Repeats v0.5.0; no code change on the metrics path | (a) accept with disclosure; (b) a targeted overhead diagnostic |
 | 8 | C4 RSS EXCEEDS_BUDGET 8/15 | Disclosure only (allocator retention) | Same count as v0.5.0 | Disclose |
 | 9 | Contention coverage defects (§7): feeder catch-up not measured at 100k (6 M_desc configurations and the M_reg events cell); `mixed50` at 100k ran rejected links and no-op cuts; import overlap at 10k not measured with 16 or 64 clients (4 configurations) | The catch-up overlap requirement is not covered at 100k, and the import overlap requirement only partly at 10k | Tooling defects. Node-limit cause reproduced (`evidence/v0.6.0-diagnostics/post-campaign-probe-defect/`); the import cause is probable, not reproduced | (a) declare and run a separate, labelled run of the affected M cells with fixed tooling, with no change to frozen results; (b) leave as coverage gaps for v0.7.0's contention work |
+
+## 9. Supplementary contention run (declared after this comparison)
+
+The maintainer chose option 9(a) on 2026-11-17. A separate, labelled run then
+measured the affected M cells with probe revision 2:
+- the probe fixes the node limit, the stale import ETag and the fatal feeder
+  503;
+- it also fixes two further revision-1 defects found while validating it: a
+  first-pass toggle off-by-one and carry-over between configurations.
+
+It is reported in
+[`supplement-M/REPORT-M-SUPPLEMENT.md`](supplement-M/REPORT-M-SUPPLEMENT.md)
+(tooling `8e190f72`, freeze `8faf37bb`, evidence
+`evidence/v0.6.0-m-supplement-48bc82f/`).
+
+**Nothing in sections 1–8 is changed by it.** Its results:
+- All 60 configurations and 48 analyzed observations are valid.
+- Both M_reg cells are supplementary **PASS** against v0.5.0:
+  - `mixed50` with effective toggles: throughput +0.33% [−1.32, +1.33],
+    p99 +1.98% [−1.62, +5.36];
+  - feeder catch-up: throughput +1.01% [−1.15, +4.21], p99 +3.86%
+    [−1.63, +9.41].
+- Feeder catch-up and import overlap are now measured at every size and
+  client count.
+- New descriptive findings:
+  - The feeder has no priority over queries. At 100k, catch-up falls from
+    about 7,000–9,800 events/s with 4 clients to about 900 with 16. With 64
+    clients most feeder attempts are refused with `503 import_in_progress`.
+  - A single 10k observation shows a high query p99 under import overlap.
+
