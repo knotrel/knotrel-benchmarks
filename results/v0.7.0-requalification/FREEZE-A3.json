@@ -1,5 +1,5 @@
 {
- "frozen_utc": "2026-11-18T15:50:20Z",
+ "frozen_utc": "2026-11-18T19:40:07Z",
  "amendment": 3,
  "amends": {
   "freeze": "FREEZE-A2.json revision 3 (freeze 564ced8d)",
@@ -17,8 +17,8 @@
  },
  "tooling": {
   "repository": "knotrel-benchmarks",
-  "commit": "8924e03d03aa5c7356c21a0d07dfafed23ba9f8e",
-  "note": "amendment 3 tooling after the independent review and its re-verification; the freeze commit adds only FREEZE-A3.json"
+  "commit": "087526ad36aa0f94513f41c3318287556c8f0dd2",
+  "note": "amendment 3 revision 2 tooling (launch environment check, PROTOCOL 10.7) after its independent delta review; the freeze commit adds only FREEZE-A3.json"
  },
  "controller_kind": "terminal",
  "background_allowed": true,
@@ -31,15 +31,16 @@
   "request": "'Non possiamo solo accettare che altri processi possano essere running? E' un laptop non un server dedicato'",
   "delegation": "'Scegli tu quello che ci aiuta a portare risultati sensati ma anche a non restare bloccati per giorni'",
   "controller_choices": "background allowed and recorded; interference disclosure only (report marks > 25% of one core); launcher audit record-only; no soak; series a3 cap 3; delta review before the freeze",
-  "date": "2026-11-18"
+  "date": "2026-11-18",
+  "launch_environment": "'Fix and refreeze' (after a3-2 FAILED BC, 2026-11-18)"
  },
  "file_sha256": {
-  "results/v0.7.0-requalification/MATRIX.json": "b223cf43084af7197c9bb56713c2db59f63ab91b5a27a3dae8314062326732ff",
-  "results/v0.7.0-requalification/PROTOCOL.md": "5ad5b2fa56dda5d6f35988354a5628c34f6a0f361261c326d87da1b30a0f2e34",
+  "results/v0.7.0-requalification/MATRIX.json": "0e1abe2ff4ecc8ec09cd068575f70f0befd750abf8aa1d02f7f1797ea155ec8f",
+  "results/v0.7.0-requalification/PROTOCOL.md": "c0329b395665f3c775178fbe41b05d79349b71292ae76bf812da83c68ba633f5",
   "results/v0.7.0-requalification/AMENDMENT-1-PROPOSAL.md": "38ac93bbda8e93df1b8c4a814f4062ba34f707722922b93a14c29350231860ec",
   "results/v0.7.0-requalification/EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256": "839efa75ce3ab56588cdd8c42f432909bd86a6bec507f982f6adcd55917722d1",
   "results/v0.7.0-requalification/run_final_chain.sh": "afba355407fe42422d7b5584e3a1b7027288df3402ba0beb416ef6c7bce7fbc0",
-  "results/v0.7.0-requalification/prepare_campaign.sh": "5124079445c66548d5b81d844f20c0be9494da1149263ac6dc21fc052ae331a5",
+  "results/v0.7.0-requalification/prepare_campaign.sh": "46b9874fa496900afcb3fb3b8628e48f57a9988da94dbe668e04f8e8e0ffd6b5",
   "results/v0.7.0-requalification/prepare_soak.sh": "64a0e7baa0ec08a055648c963d9c4d81590f98950ffbf69d6cfabeab542dee7f",
   "results/v0.7.0-requalification/check_restored.sh": "2a10048c075c85ae0d1c49bdf5e88222a9f670312956802b2ec36eff5cac8451",
   "scripts/launcher_audit.py": "93962886ce03cddf597d9ec3902f51899e990e1d78545ade566360cee4127ffe",
@@ -58,12 +59,14 @@
   "scripts/analyze_v060_m_supplement.py": "52bf2ad10497e8e3b642addc584575e52d01bd659375cfe62cc091fa757580b5",
   "results/v0.7.0-requalification/FREEZE-A1.json": "0e8f178ad2d7618f61dece21dce9af81a8d8dfbdc9be072a03c7bb0501c2a090",
   "results/v0.7.0-requalification/AMENDMENT-2-OPTIONS.md": "bbde3ca0b465ec0c4a315d0fdfdbc44823f4d3e65ad25e120a8f25e937b784ef",
-  "results/v0.7.0-requalification/precheck_terminal.sh": "a63ef9bddec948fe50f0516a66f315b2444323e2b2e3d513c414fa3e39a9d701",
-  "results/v0.7.0-requalification/launch_command.sh": "17874694f55cc7da352262da7271899bf52c4adbb044d640e2d2763043a85423",
+  "results/v0.7.0-requalification/precheck_terminal.sh": "d0ed3bd5e7c30cea0afd59a18ad73c5a7ec75512ac3b8749413d86a880e2db57",
+  "results/v0.7.0-requalification/launch_command.sh": "571200080f6d06a0be58447dfd0716c046b911d11ac0119dd7cb3312c0391a4b",
   "results/v0.7.0-requalification/series_budget.sh": "185b91956ec5fc9f960b54309e68b6cf2ec157043b242619a6b8222730b6e977",
-  "scripts/tests/test_v070r_amendment2.py": "8b0ae2079fb2c76f1da43824cfc22847ebfc344adb836daa1511f81e21579b2c",
+  "scripts/tests/test_v070r_amendment2.py": "f6f4fcc85c72691ee161ba8d7d5217677faea4dd8931182b62cd40a7f9f9a5c1",
   "results/v0.7.0-requalification/FREEZE-A2.json": "0516f3af1cde9a77504317d674b7950f4127578c9989c78b584cd2bc8de86cfc",
-  "scripts/tests/test_v070r_amendment3.py": "265fbb62db515ca85ad404b21993414c73fd9e1329bc8c7c1a07a25ba66b8065"
+  "scripts/tests/test_v070r_amendment3.py": "8ee2472ede9797dad4a1bde030f69263222b5cf9c2d7bd0792fc20eec23b1d26",
+  "results/v0.7.0-requalification/launch_env_check.sh": "93cc502e37350d9775b6e34423a584fb8aa5b220528f26465eb38e817798b620",
+  "results/v0.7.0-requalification/launch_tools.txt": "951b642b800276ff270ab7bf6a08ee573865968931527df82c61b63b16ddb767"
  },
  "changed_since_freeze_a2": [
   "results/v0.7.0-requalification/MATRIX.json",
@@ -75,5 +78,32 @@
   "scripts/tests/test_v070r_amendment2.py"
  ],
  "unchanged": "experiments, seeds, statistics, thresholds, analyzers; MATRIX diff vs FREEZE-A2 limited to status, outcome, background_allowed, launcher_audit, amendment_3 (test_v070r_amendment3.py)",
- "tests": "647 passed, 2 skipped at the tooling commit"
+ "tests": "655 passed, 2 skipped at the tooling commit",
+ "changed_since_freeze_a3_revision_1": [
+  "results/v0.7.0-requalification/MATRIX.json (conformance.amendment_3.revision_2 only)",
+  "results/v0.7.0-requalification/PROTOCOL.md (section 10.7)",
+  "results/v0.7.0-requalification/launch_env_check.sh (new)",
+  "results/v0.7.0-requalification/launch_tools.txt (new)",
+  "results/v0.7.0-requalification/prepare_campaign.sh",
+  "results/v0.7.0-requalification/precheck_terminal.sh",
+  "results/v0.7.0-requalification/launch_command.sh (comments)",
+  "scripts/tests/test_v070r_amendment2.py",
+  "scripts/tests/test_v070r_amendment3.py"
+ ],
+ "attempts": {
+  "used": [
+   "v0.7.0-requalification-e75ff6a-a3-attempt1 (NONCONFORMING: quiet period, HID input)",
+   "v0.7.0-requalification-e75ff6a-a3-attempt2 (FAILED: BC, rustc missing on the launch PATH; no verdict)"
+  ],
+  "remaining": 1,
+  "note": "every directory counts (PROTOCOL 10.4); no maintainer decision to exclude a3-2 or raise the cap"
+ },
+ "revision": 2,
+ "superseded": [
+  {
+   "freeze": "162348c4d058d9eae6d19b90143ea0d00a3c36ed",
+   "tooling": "8924e03d03aa5c7356c21a0d07dfafed23ba9f8e",
+   "reason": "launch PATH lacked rustc (PROTOCOL 10.7); attempts a3-1 and a3-2 were prepared from it and stay as recorded"
+  }
+ ]
 }
