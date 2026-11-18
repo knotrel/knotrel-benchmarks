@@ -107,7 +107,7 @@ gate_check() {
 
 # --- Prelaunch: host state, grace period, policy, allow-list check, Git state ---
 { date -u +%Y-%m-%dT%H:%M:%SZ; pmset -g batt | head -2; pmset -g therm; uptime
-  echo "python3: $(command -v python3) $(python3 -V 2>&1)"; echo "PATH=$PATH"; echo "environment names: $(env | cut -d= -f1 | sort | tr '\n' ' ')"; env | /usr/bin/grep -E '^(PYTHON|DYLD_|RUST|CARGO|LANG=|LC_)' | sort; } > "$L/prelaunch-host.txt"
+  echo "python3: $(command -v python3) $(python3 -V 2>&1)"; echo "PATH=$PATH"; echo "environment names: $(env | cut -d= -f1 | sort | tr '\n' ' ')"; env | /usr/bin/grep -E '^(PYTHON|DYLD_|RUST|CARGO|LANG=|LC_)' | sed -E 's/^([^=]*(TOKEN|SECRET|PASSWORD|KEY)[^=]*)=.*/\1=<redacted>/' | sort; } > "$L/prelaunch-host.txt"
 case "$(pmset -g batt | head -1)" in *"AC Power"*) ;; *) RESULT="${P}NOT STARTED: not on AC power"; exit 4;; esac
 # Amendment 2: the controller is Terminal.app; check it (and that Claude is quit) before anything changes on the host.
 [ "$(conf controller_kind)" = terminal ] || { RESULT="${P}NOT STARTED: MATRIX conformance.controller_kind is not terminal"; exit 4; }

@@ -388,16 +388,14 @@ class Prepare(unittest.TestCase):
             out = subprocess.run(["sh", str(RQ / "launch_command.sh"), *args], capture_output=True, text=True, check=True).stdout
             self.assertEqual(subprocess.run(["/bin/zsh", "-n", "-c", out]).returncode, 0, out)
 
-    def test_launch_command_refuses_tool_rich_python_dir(self):
-        with tempfile.TemporaryDirectory() as d:
-            for name in ("python3", "git"):
-                f = Path(d) / name
-                f.write_text("#!/bin/sh\n")
-                f.chmod(0o755)
-            env = {**os.environ, "PATH": d + ":/usr/bin:/bin"}
-            r = subprocess.run(["/bin/sh", str(RQ / "launch_command.sh"), "/e/x-a2-soak2", "-", "--soak"], env=env, capture_output=True, text=True)
-            self.assertEqual(r.returncode, 3)
-            self.assertIn("also contains git", r.stderr)
+    def test_launch_command_path_is_campaign_bin(self):
+        camp = "/e/v0.7.0-requalification-a2-soak2"
+        out = subprocess.run(["sh", str(RQ / "launch_command.sh"), camp, "-", "--soak"], capture_output=True, text=True, check=True).stdout
+        self.assertTrue(out.startswith(f"export PATH={camp}/bin:/usr/bin:/bin:/usr/sbin:/sbin; "), out)
+        for name in ("prepare_soak.sh", "prepare_campaign.sh"):
+            text = (RQ / name).read_text()
+            link = text.index('ln -s "$(command -v python3)" "$CAMP/bin/python3"')
+            self.assertLess(link, text.index('launch_command.sh" "$CAMP"'), name)
 
     def test_precheck_runs_policy_read_only(self):
         t = (RQ / "precheck_terminal.sh").read_text()
