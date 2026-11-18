@@ -35,7 +35,14 @@ if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A1
   CAP=$(git -C "$BREPO" show "$FREEZE:results/v0.7.0-requalification/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['amendment_1']['attempts_cap'])")
   case "$ATTEMPT" in [1-9]) ;; *) echo "attempt must be 1-9" >&2; exit 3;; esac
   [ "$ATTEMPT" -le "$CAP" ] || { echo "attempt $ATTEMPT exceeds the cap $CAP: the maintainer decides" >&2; exit 3; }
-  ls /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-a1-soak*/logs/CONFORMANCE.txt 2>/dev/null | while read -r f; do head -1 "$f"; done | grep -q '^SOAK CONFORMING' || { echo "no SOAK CONFORMING soak yet (required before attempt 1)" >&2; exit 3; }
+  # A conforming soak run from this very freeze (its tooling clone is at $FREEZE).
+  SOAK_OK=""
+  for D in /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-a1-soak[1-9]; do
+    [ -f "$D/logs/CONFORMANCE.txt" ] || continue
+    head -1 "$D/logs/CONFORMANCE.txt" | grep -q '^SOAK CONFORMING' || continue
+    [ "$(git -C "$D/src/cand/knotrel-benchmarks" rev-parse HEAD 2>/dev/null)" = "$FREEZE" ] && SOAK_OK=1
+  done
+  [ -n "$SOAK_OK" ] || { echo "no SOAK CONFORMING soak from freeze $FREEZE yet (required before attempt 1)" >&2; exit 3; }
   sh "$(dirname "$0")/check_restored.sh" || exit 3
   CAMP=$CAMP-$SERIES-attempt$ATTEMPT
 elif [ -n "$SERIES" ]; then echo "series $SERIES needs an amendment freeze" >&2; exit 3

@@ -26,7 +26,7 @@
 set -u
 # Arguments: the soak flag must match the directory and the candidate (refused before anything runs).
 case $# in 4|5) ;; *) echo "usage: run_final_chain.sh CAMP CAND_SHA CONTROLLER_PID TRANSCRIPT [--soak]" >&2; exit 2;; esac
-CAMP=$1
+CAMP=${1%/}
 CAND=$2
 CONTROLLER=$3
 TRANSCRIPT=$4
@@ -40,6 +40,7 @@ if [ -n "$SOAK" ]; then
   { [ "$CAND" = "-" ] && [ -n "$ISSOAKDIR" ]; } || { echo "--soak needs CAND '-' and a *-soakN directory" >&2; exit 2; }
 else
   { [ -z "$ISSOAKDIR" ] && echo "$CAND" | grep -Eq '^[0-9a-f]{40}$'; } || { echo "an attempt needs a full candidate SHA and a non-soak directory" >&2; exit 2; }
+  case "$(basename "$CAMP")" in *-"$(echo "$CAND" | cut -c1-7)"|*-"$(echo "$CAND" | cut -c1-7)"-*) ;; *) echo "CAND $CAND does not match the campaign directory" >&2; exit 2;; esac
 fi
 P=""; [ -n "$SOAK" ] && P="SOAK "
 B=$CAMP/src/cand/knotrel-benchmarks

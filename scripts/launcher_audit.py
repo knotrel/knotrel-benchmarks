@@ -50,7 +50,9 @@ Runner = Callable[[Sequence[str]], Tuple[int, str]]
 
 
 def run(cmd: Sequence[str]) -> Tuple[int, str]:
-    """(exit code, stdout); on failure stderr is appended so callers can read the reason."""
+    """(exit code, stdout); on failure stderr is appended so callers can read the reason.
+    Callers must parse the output as data only when the exit code is 0 (crontab -l reads the
+    failure text on purpose)."""
     proc = subprocess.run(list(cmd), capture_output=True, text=True, env=cm.C_ENV)
     return proc.returncode, proc.stdout if proc.returncode == 0 else proc.stdout + proc.stderr
 
