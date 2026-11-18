@@ -185,10 +185,16 @@ class LaunchEnvironment(unittest.TestCase):
         for step in ("a", "bc", "r", "rmem", "mdesc", "mreg"):
             self.assertIn(f"scripts/run_v070r_collect.py {step} ", text, step)
         self.assertEqual(text.count("--dry-run"), 6)
-        # B/C: the same arguments as the chain, apart from --out.
+        # Every collector: the same arguments as the chain, apart from --out (and A's --execute).
+        a_chain = chain[chain.index("run_v070r_collect.py a --manifest \"$A/plan"):].split("\n")[0]
+        self.assertIn(a_chain[a_chain.index("--manifest"):a_chain.index(" --execute")], text)
         bc_chain = chain[chain.index("run_v070r_collect.py bc"):].split("\n")[0]
-        bc_args = bc_chain[bc_chain.index("--profile"):bc_chain.index(" >")]
-        self.assertIn(bc_args, text)
+        self.assertIn(bc_chain[bc_chain.index("--profile"):bc_chain.index(" >")], text)
+        for name in ("R", "Rmem", "Mdesc", "Mreg"):
+            line = chain[chain.index(f"step {name} "):].split("\n")[0]
+            args = line[line.index(f'--out "$CAMP/{name}" ') + len(f'--out "$CAMP/{name}" '):]
+            self.assertIn(f'--out "$D-{name}" {args} --dry-run', text, name)
+        self.assertIn('D=${OUT%.txt}-dryrun', text)
         self.assertIn("unset KNOTREL_GATE_DIR", text)
         self.assertIn("rustc +1.100.0 -Vv", text)
 
