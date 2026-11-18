@@ -1,6 +1,8 @@
 # Knotrel v0.7.0 re-qualification protocol
 
-**Status: DRAFT until `FREEZE.json` exists in this directory.**
+**Status:** sections 1–7 were frozen in `FREEZE.json` (2026-11-17) and are
+exhausted (3 NONCONFORMING attempts). **Amendment 1 (§8) is a DRAFT until
+`FREEZE-A1.json` exists in this directory.**
 - The machine-readable definition is [`MATRIX.json`](MATRIX.json); this file
   explains it.
 - It implements [`RERUN-PROPOSAL.md`](RERUN-PROPOSAL.md), approved by the
@@ -348,3 +350,144 @@ Minor findings of the first pass:
   - M3 (PIDs without start times);
   - M8 (root-writable firmlinked directories);
   - M9 (`python3` scope).
+
+## 8. Amendment 1 (approved 2026-11-18, "Approve, build tooling")
+
+[`AMENDMENT-1-PROPOSAL.md`](AMENDMENT-1-PROPOSAL.md) explains the reasons. The
+frozen series ended with 3 NONCONFORMING attempts:
+1. user input;
+2. the WhatsApp notification extension, started by the system;
+3. GoogleUpdater, started by launchd.
+
+None of them produced a verdict.
+
+The amendment changes only host preparation, one pre-launch precondition, an
+unmeasured soak and attempt accounting. Sections 1–7 apply unchanged otherwise.
+That includes the rule, the classes, the deny-list, HID, liveness, granularity,
+the experiments, seeds, statistics, thresholds and analyzers.
+
+### 8.1 What runs, in order
+
+1. **Preparation.**
+   - **Soak:** `prepare_soak.sh FREEZE_A1 N a1` creates
+     `evidence/v0.7.0-requalification-a1-soakN`. It clones the frozen tooling
+     only: no build and no candidate.
+   - **Attempt:** `prepare_campaign.sh CAND FREEZE_A1 N a1` creates
+     `…-<cand8>-a1-attemptN`.
+2. **Host preparation (§4)**, with one added item (A4): external keyboards,
+   mice and trackpads are off or unplugged, and nothing rests on the built-in
+   keyboard or trackpad.
+3. **Launch.** `caffeinate -dimsu sh run_final_chain.sh CAMP CAND CONTROLLER_PID TRANSCRIPT [--soak]`.
+   For a soak, CAND is `-`.
+   1. **AC power check.**
+   2. **Quiesce (A1):** `launcher_audit.py quiesce`.
+      - It refuses (NOT STARTED) while any `evidence/*/logs/quiesce-restore.json`
+        has no successful restore result.
+      - It boots out `conformance.quiesce.launchd` from `gui/<uid>`.
+      - It renames each bundle in `conformance.quiesce.park_apps` to
+        `<name>.parked-qualification`.
+      - The manifest is written before each action and updated after it. Each
+        action is verified.
+   3. **Audit (A2)**, before the grace period: `launcher_audit.py audit`. A
+      failure is NOT STARTED.
+   4. **Grace period.** Then, as in §5: transcript validation, stability check
+      and HID idle check.
+   5. **Audit (A2) again**, just before the policy. A failure is NOT STARTED.
+   6. **As in §5:** policy, allow-list check, inventory, Git and session
+      snapshots, monitor and quiet period.
+   7. **Experiments.** For an attempt, the experiments exactly as in §5. For a
+      soak (A3), a single gated campaign child (`/bin/sleep`,
+      `conformance.soak.duration_s` = 4800 s). The end checks then require
+      exactly one gated `soak` child and no measurement output. The result
+      prefix is `SOAK`.
+4. **`finish`, on every exit path.**
+   1. Stop the monitor.
+   2. Write the Git state, `CONFORMANCE.txt`, the monitor log copy and the
+      checksums.
+   3. **Then** run `launcher_audit.py restore`:
+      - bootstrap every job that was booted out;
+      - rename each parked bundle back;
+      - never overwrite an occupied path;
+      - write `logs/quiesce-restore-result.json` and print `RESTORE OK` or
+        `RESTORE FAILED`.
+   4. A failed restore is reported to the maintainer. It is never retried
+      silently.
+
+### 8.2 The audit (A2)
+
+**Apple criterion.** A job counts as *Apple* only when both its plist and its
+program are in Apple locations:
+- **Locations:** `SYSTEM_PREFIXES` plus `/System/Applications/` (sealed
+  system volume). This wider set applies to this criterion only; process
+  classification is unchanged.
+- **Labels are ignored.**
+- **A job without a plist,** such as one shown as `(submitted by …)`, or a
+  failed `launchctl print`, counts as third-party.
+
+**A failure is any of:**
+1. A loaded job in `gui/<uid>` or `user/<uid>` that is third-party, not in
+   `allow_jobs`, and matches no `allow_jobs_prefix`, and either:
+   - has `RunAtLoad`, `KeepAlive`, `StartInterval`, `StartCalendarInterval`,
+     `WatchPaths`, `QueueDirectories`, `StartOnMount` or `LaunchEvents`; or
+   - has triggers that cannot be read (fail closed).
+2. A third-party app extension (`pluginkit -m -A -v`) whose bundle path
+   exists and is not in `allow_extensions` (empty).
+3. A non-empty user crontab.
+
+**Recorded but not gating:** third-party jobs in the `system` domain. Root
+would be needed to act on them. The resident ones are in `host_baseline`, and
+anything they spawn is still forbidden.
+
+**`allow_jobs`.** The reasons are in MATRIX `conformance.quiesce.allow_jobs_reasons`:
+- `com.docker.helper` (SMAppService, no plist);
+- three ShipIt updaters, which run on demand from apps that are quit;
+- `com.jetbrains.toolbox` (`RunAtLoad` only);
+- four CoreSimulator XPC services;
+- the Claude desktop app's job, by prefix.
+
+### 8.3 Attempt accounting (A5)
+
+- **New series:** `a1`, with a cap of 3 attempts.
+- **The first CONFORMING attempt is final,** whatever its statistical result.
+- **No further series** without a new maintainer decision, recorded before
+  any result of this series.
+- **Soaks:** at most 2, and they are required before attempt 1.
+  - A soak consumes no attempt and produces no data.
+  - After a failed soak, the only changes allowed are those in
+    `conformance.soak.allowed_changes_after_a_soak`. They never widen a
+    class, the baseline or the deny-list, and each needs a new freeze and
+    approval.
+- **Reporting:** the report lists every attempt of both series, every soak,
+  and the outputs of the exhausted attempts
+  ([`EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256`](EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256)).
+  Those outputs have no verdict and are not reused.
+
+### 8.4 Differences from the proposal (declared before freezing)
+
+1. **Tool layout.**
+   - A2, quiesce and restore are one script, `scripts/launcher_audit.py`. The
+     proposal had a `conformance_monitor.py` subcommand and two shell scripts.
+   - `conformance_monitor.py` is unchanged.
+2. **Audit timing.** The audit also runs before the grace period, so a failure
+   shows up at once. It still runs again just before the policy.
+3. **`/System/Applications/` added** to the launcher criterion's Apple
+   locations. Two Apple jobs live there: `com.apple.systemsettingsagent`
+   (`LaunchEvents`) and `com.apple.systemprofiler` (`RunAtLoad`). Without it
+   they would fail the audit.
+4. **Four CoreSimulator XPC services added to `allow_jobs`.** The first live
+   audit, read-only and before any approval-dependent action, found them in
+   `user/501`. They are on-demand XPC services of Xcode under
+   `/Library/Developer`; `simdiskimaged` is already `host_baseline`.
+5. **A process already running from a parked bundle is not ended** by
+   quiesce. Parking stops new launches only. A leftover process, such as
+   WhatsApp's extension started earlier, makes the allow-list check fail
+   (NOT STARTED). The operator then ends it with the maintainer's approval.
+6. **Root-owned plist round trip.** The bootout and bootstrap round trip of
+   each Q job was run once for real on 2026-11-18, including the root-owned
+   `/Library/LaunchAgents/com.microsoft.update.agent` from `gui/501`. It is
+   recorded in `evidence/v0.7.0-requalification-a1-roundtrip/logs/`:
+   - after quiesce the audit passed;
+   - restore succeeded for all 4 actions, and the audit then failed exactly
+     on the Q jobs and the two WhatsApp extensions;
+   - restoring the MAU agent started Microsoft Update Assistant, as
+     disclosed.

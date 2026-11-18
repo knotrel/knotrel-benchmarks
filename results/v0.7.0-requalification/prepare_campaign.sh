@@ -5,12 +5,14 @@
 # --source-manifest for the A plan (the first campaign's sibling-directory defect), and an
 # informational __TEXT,__text comparison with the first campaign's builds.
 #
-# Usage: prepare_campaign.sh CAND_SHA FREEZE_SHA [ATTEMPT]
+# Usage: prepare_campaign.sh CAND_SHA FREEZE_SHA [ATTEMPT [SERIES]]
 #   CAND_SHA   knotrel candidate commit (full SHA)
-#   FREEZE_SHA knotrel-benchmarks commit containing MATRIX.json, PROTOCOL.md and FREEZE.json
+#   FREEZE_SHA knotrel-benchmarks commit containing MATRIX.json, PROTOCOL.md and the freeze record
 #   ATTEMPT    attempt number (default 1); attempt N >= 2 uses the suffix -attemptN
+#   SERIES     attempt series of an amendment (amendment 1: a1); the suffix is then
+#              -SERIES-attemptN for every N, including 1
 #
-# Creates /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-<cand8>[-attemptN]/ (refuses to
+# Creates /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-<cand8>[-SERIES][-attemptN]/ (refuses to
 # reuse it) with git clones at the recorded commits, derived lockfiles (recorded as diffs),
 # every binary of the campaign built with --locked --offline into its own target directory,
 # release-binary smoke tests, identities.json for experiment A and its plan, and
@@ -19,13 +21,15 @@ set -eu
 CAND=$1
 FREEZE=$2
 ATTEMPT=${3:-1}
+SERIES=${4:-}
 REF=5db9ec4738a7f90bf06a83ea12f35c0dab9ab538      # knotrel v0.6.0 (published, signed tag)
 HARNESS=df635a1e872fd9e2d556b166ac23f342ee45d675  # core harness used by A since v0.4.0
 KREPO=/Users/rt/workspace/knotrel/knotrel
 BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 C8=$(echo "$CAND" | cut -c1-7)
 CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-$C8
-if [ "$ATTEMPT" != 1 ]; then CAMP=$CAMP-attempt$ATTEMPT; fi
+if [ -n "$SERIES" ]; then CAMP=$CAMP-$SERIES-attempt$ATTEMPT
+elif [ "$ATTEMPT" != 1 ]; then CAMP=$CAMP-attempt$ATTEMPT; fi
 SOURCE_MANIFEST=/Users/rt/workspace/knotrel/evidence/p0-coverage-increment-1-plan-20261030/manifest.json
 if [ -e "$CAMP" ]; then echo "refusing to reuse $CAMP" >&2; exit 3; fi
 mkdir -p "$CAMP/logs" "$CAMP/src/ref" "$CAMP/src/cand" "$CAMP/targets" "$CAMP/A/sources/B" "$CAMP/A/sources/C" "$CAMP/A/build-inputs/B" "$CAMP/A/build-inputs/C"
