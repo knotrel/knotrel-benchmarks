@@ -644,14 +644,12 @@ audit.
 - The options are in [`AMENDMENT-2-OPTIONS.md`](AMENDMENT-2-OPTIONS.md). The
   maintainer chose option A.
 
-**Approved and pending.**
-- **Approved:** option A only.
-- **Pending maintainer decisions (options §3, items 3–5):**
-  - the soak budget (§9.7);
-  - the series a2 and closing series a1 (§9.7);
-  - the review path (§9.9).
-- The tooling implements the proposals. The matrix marks them as pending, and
-  nothing is frozen before the decisions are recorded.
+**Maintainer decisions (2026-11-18).**
+- Option A: "Option A".
+- Options §3, items 3–5, decided after the first tooling review:
+  - soak budget: "No reset" (§9.7);
+  - series: "a2, cap 3", with series a1 closed (§9.7);
+  - review path: "Verification pass" (§9.9).
 
 **What changes.** Only the controller and how the chain is launched.
 - The maintainer launches the chain from Terminal.app with Claude quit
@@ -776,8 +774,7 @@ A `RESTORE FAILED` line means §8.5 applies.
 
 ### 9.7 Accounting
 
-- **Pending decisions:** the series and the soak budget (options §3, items 3
-  and 4).
+- **Decided:** the series ("a2, cap 3") and the soak budget ("No reset").
 - **Series a1.** Closed with zero attempts, recorded and reported.
 - **Series a2.**
   - Cap: 3 (`amendment_2.attempts_cap`).
@@ -821,14 +818,15 @@ A `RESTORE FAILED` line means §8.5 applies.
 
 ### 9.9 Tooling review (amendment 2)
 
-**Pending decision (options §3, item 5):** the review path.
+**Decided (options §3, item 5):** "Verification pass". The same reviewer
+checks the fixes before the freeze.
 
 An independent reviewer read the first draft (`3795f144`) with read-only
 access.
 
 | Finding | Disposition |
 |---|---|
-| B1 options §3.3–3.5 recorded as approved | marked pending in MATRIX and §9; decisions requested before the freeze |
+| B1 options §3.3–3.5 recorded as approved | marked pending, then decided by the maintainer and recorded with the wording |
 | B2 NOT STARTED accounting more permissive than amendment 1 | withdrawn: every directory counts (the amendment-1 rule), with stricter numbering checks; `precheck_terminal.sh` added so that refusable launches start nothing |
 | S1 any Apple-location ancestor accepted, placed before the deny-list | exact lineage `login`, `zsh`, `caffeinate`; tested with `sudo`, `osascript`, `open`, `script`, `bash` and no `caffeinate` |
 | S2 PID reuse more permissive | the policy records each ancestor's path; baseline only while PID and path match; tested |
