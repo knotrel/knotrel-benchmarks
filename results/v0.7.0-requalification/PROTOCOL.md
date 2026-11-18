@@ -734,6 +734,10 @@ the Claude Code CLI's. This is a declared difference. The launch command:
 - uses absolute `/usr/bin/caffeinate` and `/bin/sh`;
 - gives stdin from `/dev/null`.
 
+Through the symlink, `sys.executable` is `CAMP/bin/python3`. `sys.prefix`
+and the executable the monitor sees stay the framework's. No v070r collector
+records the interpreter path.
+
 `prelaunch-host.txt` records:
 - python3's path and version;
 - `PATH`;
@@ -904,8 +908,16 @@ domain fails, the audit lists the domain again:
 - **Label still there:** the job is printed once more. A second failure is
   still third-party with unknown triggers, so the audit fails closed.
 
-Nothing else in the audit changes. The tests cover the exited, retried and
-second-failure cases.
+A non-Apple label that exits is also reported as a warning on stderr. The
+warning is only informational and never fails the audit.
+
+Nothing else in the audit changes. The tests cover the exited, retried,
+second-failure and failed re-list cases. A failed re-list raises, so the
+audit fails closed.
+
+**Review of the delta (`e57106bc..7a0f4e36`).** No blockers and no
+should-fix findings. The three minor findings are addressed: the non-Apple
+warning, the re-list test and the `sys.executable` disclosure (§9.4).
 
 **Freeze.** `FREEZE-A2.json` revision 2 supersedes freeze `e57106bc`.
 - The soak directory prepared from `e57106bc` was never launched and holds no

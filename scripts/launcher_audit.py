@@ -240,6 +240,9 @@ def inventory(runner: Runner = run, uid: Optional[int] = None) -> Dict[str, obje
                 # a second failure stays third-party with unknown triggers (fail closed).
                 if label not in domain_labels(domain, runner):
                     exited.append({"domain": domain, "label": label, "utc": utc()})
+                    if not label.startswith("com.apple."):
+                        print(f"warning: non-Apple job {domain}/{label} exited during the inventory (recorded, not audited)",
+                              file=sys.stderr)
                     continue
                 info = describe_job(domain, label, runner)
                 info["print_retried"] = True
