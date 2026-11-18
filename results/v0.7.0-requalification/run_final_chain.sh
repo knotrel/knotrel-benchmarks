@@ -24,12 +24,23 @@
 # logs/CONFORMANCE.txt). Every exit path writes logs/CONFORMANCE.txt, the final Git state and
 # output checksums.
 set -u
+# Arguments: the soak flag must match the directory and the candidate (refused before anything runs).
+case $# in 4|5) ;; *) echo "usage: run_final_chain.sh CAMP CAND_SHA CONTROLLER_PID TRANSCRIPT [--soak]" >&2; exit 2;; esac
 CAMP=$1
 CAND=$2
 CONTROLLER=$3
 TRANSCRIPT=$4
 SOAK=""
-if [ "${5:-}" = "--soak" ]; then SOAK=1; fi
+if [ $# -eq 5 ]; then
+  [ "$5" = "--soak" ] || { echo "unknown argument: $5" >&2; exit 2; }
+  SOAK=1
+fi
+case "$(basename "$CAMP")" in *-soak[1-9]) ISSOAKDIR=1;; *) ISSOAKDIR="";; esac
+if [ -n "$SOAK" ]; then
+  { [ "$CAND" = "-" ] && [ -n "$ISSOAKDIR" ]; } || { echo "--soak needs CAND '-' and a *-soakN directory" >&2; exit 2; }
+else
+  { [ -z "$ISSOAKDIR" ] && echo "$CAND" | grep -Eq '^[0-9a-f]{40}$'; } || { echo "an attempt needs a full candidate SHA and a non-soak directory" >&2; exit 2; }
+fi
 P=""; [ -n "$SOAK" ] && P="SOAK "
 B=$CAMP/src/cand/knotrel-benchmarks
 T=$CAMP/targets
@@ -52,20 +63,26 @@ MON=""
 RESULT="${P}NONCONFORMING: chain ended before its last step"
 finish() {  # runs on every exit: stop the monitor, record conformance, Git state and checksums,
             # then (strictly after all records) restore the quiesced launchers and apps
-  trap - EXIT INT TERM HUP
+  trap - EXIT
+  trap '' INT TERM HUP  # a second signal must not skip the records or the restore
   if [ -n "$MON" ]; then kill "$MON" 2>/dev/null; wait "$MON" 2>/dev/null; MON=""; fi
   [ -e "$L/git-after.json" ] || python3 scripts/conformance_monitor.py git-snapshot /Users/rt/workspace/knotrel > "$L/git-after.json" 2>/dev/null
   { echo "$RESULT"; cat "$G/gate-stop.json" 2>/dev/null; } > "$L/CONFORMANCE.txt"
   [ -e "$G/activity-monitor.jsonl" ] && cp "$G/activity-monitor.jsonl" "$L/activity-monitor.jsonl"
   ( cd "$CAMP" && find A BC R Rmem Mdesc Mreg gate -type f -print0 2>/dev/null | xargs -0 shasum -a 256 > logs/outputs-sha256.txt )
+  RESTORE_FAILED=""
   if [ -e "$L/quiesce-restore.json" ]; then
     if python3 scripts/launcher_audit.py restore --camp "$CAMP" > "$L/quiesce-restore.log" 2>&1; then
+      stamp RESTORE "ok (logs/quiesce-restore-result.json)"
       echo "RESTORE OK (logs/quiesce-restore-result.json)"
     else
-      echo "RESTORE FAILED: see logs/quiesce-restore-result.json and its manual_restore commands"
+      RESTORE_FAILED=1
+      stamp RESTORE "FAILED (logs/quiesce-restore-result.json; manual procedure in PROTOCOL.md section 8.5)"
+      echo "RESTORE FAILED: see logs/quiesce-restore-result.json and PROTOCOL.md section 8.5"
     fi
   fi
   echo "$RESULT"
+  if [ -n "$RESTORE_FAILED" ]; then exit 21; fi
 }
 trap finish EXIT
 trap 'RESULT="${P}NONCONFORMING: chain interrupted by a signal"; exit 20' INT TERM HUP
