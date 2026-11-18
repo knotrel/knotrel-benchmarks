@@ -3,12 +3,13 @@
 # LAUNCH-COMMAND.txt, with the same ancestry (/usr/bin/caffeinate -dimsu /bin/sh ...).
 # It changes nothing on the host and nothing in the campaign directory except
 # logs/precheck-*.{json,txt}. If it fails, the chain is not launched, so the campaign directory
-# stays usable (a refusal inside the chain would use up the directory: PROTOCOL.md section 9.5).
+# stays usable (a refusal inside the chain would use up the directory: PROTOCOL.md section 9.7).
 #
 # Usage: precheck_terminal.sh CAMP
 # Checks: the campaign was never launched (no gate/ directory, no CONFORMANCE.txt); AC power;
 # MATRIX conformance.controller_kind is terminal; the controller policy (Terminal lineage, one
-# window and tab, no Claude process); ~/.claude/projects readable; no unrestored quiesce.
+# window and tab, no Claude process); no forbidden process now (the read-only check with that
+# policy); ~/.claude/projects readable; no unrestored quiesce.
 set -u
 [ $# -eq 1 ] || { echo "usage: precheck_terminal.sh CAMP" >&2; exit 2; }
 CAMP=${1%/}
@@ -23,6 +24,8 @@ KIND=$(python3 -c "import json;print(json.load(open('$MATRIX'))['conformance']['
 [ "$KIND" = terminal ] || fail "MATRIX conformance.controller_kind is not terminal"
 python3 scripts/conformance_monitor.py policy --chain $$ --controller-kind terminal --matrix "$MATRIX" --out "$L/precheck-policy.json" 2> "$L/precheck-policy-error.txt" \
   || fail "$(cat "$L/precheck-policy-error.txt")"
+python3 scripts/conformance_monitor.py check --policy "$L/precheck-policy.json" > "$L/precheck-check.txt" 2>&1 \
+  || fail "forbidden processes running (quit them first): $(cut -c1-300 "$L/precheck-check.txt")"
 S=$(python3 scripts/conformance_monitor.py tree-state "$HOME/.claude/projects" 2>/dev/null) && [ -n "$S" ] || fail "~/.claude/projects unreadable"
 sh "$B/results/v0.7.0-requalification/check_restored.sh" 2> "$L/precheck-restored.txt" || fail "unrestored quiesce: $(cat "$L/precheck-restored.txt")"
 echo "PRECHECK OK: launching the chain now. Leave the Mac; do not reopen Claude until this window prints the result."

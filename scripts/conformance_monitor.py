@@ -396,7 +396,8 @@ def _denied(name: str) -> bool:
 
 
 def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree: Set[int],
-                 foreground: Dict[int, str], by_pid: Dict[int, Proc], depth: int = 0) -> str:
+                 foreground: Dict[int, str], by_pid: Dict[int, Proc], depth: int = 0,
+                 lineage: Optional[Set[int]] = None) -> str:
     """Class of one process (module docstring, rules 1-11)."""
     if proc.pid in campaign:
         return "campaign"
@@ -404,14 +405,16 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
             and proc.pid not in policy.controller_children):
         return "forbidden"
     terminal = policy.controller_kind == "terminal"
+    lineage = lineage or set()
     if (terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children)
-            and proc.path is not None and proc.path == policy.controller_paths.get(proc.pid)):
+            and proc.path is not None and proc.path == policy.controller_paths.get(proc.pid)
+            and proc.pid in lineage):
         return "baseline"
     if proc.zombie and depth < 8:
         parent = by_pid.get(proc.ppid)
         if parent is None or parent.pid <= 1:
             return "system"
-        return classify_one(parent, policy, campaign, controller_tree, foreground, by_pid, depth + 1)
+        return classify_one(parent, policy, campaign, controller_tree, foreground, by_pid, depth + 1, lineage)
     if proc.pid == 0:
         return "system"
     path = proc.path
@@ -440,7 +443,9 @@ def classify(procs: List[Proc], policy: Policy, foreground: Optional[Dict[int, s
     tree = descendants(procs, policy.controller_pid)
     by_pid = {p.pid: p for p in procs}
     fg = foreground or {}
-    return [(p, classify_one(p, policy, campaign, tree, fg, by_pid)) for p in procs]
+    # Amendment 2: lineage baseline only for PIDs that are still the chain's ancestors in this sample.
+    lineage = set(ancestors(procs, policy.chain_pid)) if policy.controller_kind == "terminal" else set()
+    return [(p, classify_one(p, policy, campaign, tree, fg, by_pid, 0, lineage)) for p in procs]
 
 
 def forbidden(procs: List[Proc], policy: Policy, alive: Callable[[int], bool] = lambda pid: True,

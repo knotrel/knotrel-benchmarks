@@ -107,7 +107,7 @@ gate_check() {
 
 # --- Prelaunch: host state, grace period, policy, allow-list check, Git state ---
 { date -u +%Y-%m-%dT%H:%M:%SZ; pmset -g batt | head -2; pmset -g therm; uptime
-  echo "python3: $(command -v python3) $(python3 -V 2>&1)"; echo "PATH=$PATH"; echo "environment names: $(env | cut -d= -f1 | sort | tr '\n' ' ')"; } > "$L/prelaunch-host.txt"
+  echo "python3: $(command -v python3) $(python3 -V 2>&1)"; echo "PATH=$PATH"; echo "environment names: $(env | cut -d= -f1 | sort | tr '\n' ' ')"; env | /usr/bin/grep -E '^(PYTHON|DYLD_|RUST|CARGO|LANG=|LC_)' | sort; } > "$L/prelaunch-host.txt"
 case "$(pmset -g batt | head -1)" in *"AC Power"*) ;; *) RESULT="${P}NOT STARTED: not on AC power"; exit 4;; esac
 # Amendment 2: the controller is Terminal.app; check it (and that Claude is quit) before anything changes on the host.
 [ "$(conf controller_kind)" = terminal ] || { RESULT="${P}NOT STARTED: MATRIX conformance.controller_kind is not terminal"; exit 4; }
@@ -122,7 +122,7 @@ stamp GRACE "start ${GRACE}s (operator leaves the Mac; Claude is quit)"
 tty_note "Grace period ${GRACE}s: leave the Mac now. Do not reopen Claude until this window prints the result."
 sleep "$GRACE"
 S1=$(session_state); sleep "$STABLE"; S2=$(session_state)
-[ "$S1" != TREE-STATE-FAILED ] || { RESULT="${P}NOT STARTED: ~/.claude/projects unreadable"; exit 4; }
+[ "$S1" != TREE-STATE-FAILED ] && [ "$S2" != TREE-STATE-FAILED ] || { RESULT="${P}NOT STARTED: ~/.claude/projects unreadable"; exit 4; }
 [ "$S1" = "$S2" ] || { RESULT="${P}NOT STARTED: Claude session files still changing after the grace period"; exit 4; }
 IDLE=$(python3 scripts/conformance_monitor.py hid-idle) || { RESULT="${P}NOT STARTED: HID idle time unreadable"; exit 4; }
 python3 -c "import sys; sys.exit(0 if float('$IDLE') >= float('$MIN_IDLE') else 1)" || { RESULT="${P}NOT STARTED: user input ${IDLE}s ago (minimum ${MIN_IDLE}s)"; exit 4; }
