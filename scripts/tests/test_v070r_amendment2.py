@@ -84,7 +84,35 @@ class TerminalPolicy(unittest.TestCase):
     def test_non_apple_ancestor_refused(self):
         procs = terminal_tree()
         procs[3] = P(102, 101, "/opt/homebrew/bin/zsh", "-zsh")
-        self.refused(procs, needle="Apple location")
+        self.refused(procs, needle="must be exactly")
+
+    def test_lineage_must_be_exact(self):
+        base = terminal_tree()
+        for idx, path in ((3, "/usr/bin/osascript"), (3, "/usr/bin/sudo"), (4, "/usr/bin/open"), (4, "/usr/bin/script"),
+                          (3, "/bin/bash"), (2, "/usr/bin/sudo")):
+            procs = list(base)
+            procs[idx] = P(procs[idx].pid, procs[idx].ppid, path)
+            self.refused(procs, needle="must be exactly")
+        # deny-listed or sudo ancestor inserted between caffeinate and the chain
+        procs = list(base)
+        procs[5] = P(104, 106, "/bin/sh")
+        procs.append(P(106, 103, "/usr/bin/sudo"))
+        self.refused(procs, needle="must be exactly")
+        # without caffeinate
+        procs = [p for p in base if p.pid != 103]
+        procs[[p.pid for p in procs].index(104)] = P(104, 102, "/bin/sh")
+        self.refused(procs, needle="must be exactly")
+
+    def test_claude_cli_installs_detected(self):
+        self.refused(terminal_tree([P(300, 1, "/Users/rt/.local/share/claude/versions/2.0.65", "2.0.65")]), needle="Claude")
+        procs = terminal_tree([P(301, 1, "/opt/homebrew/Cellar/node/22/bin/node", "node")])
+        with self.assertRaises(cm.PolicyError):
+            cm.build_policy_terminal(procs, 104, [], [(301, "node /opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/cli.js")])
+        cm.build_policy_terminal(terminal_tree(), 104, [], [(999, "node claude-code (exited)")])  # not in the table
+
+    def test_policy_records_paths(self):
+        pol = cm.build_policy_terminal(terminal_tree(), 104, [])
+        self.assertEqual(pol.controller_paths, {100: TERM, 101: "/usr/bin/login", 102: "/bin/zsh", 103: "/usr/bin/caffeinate"})
 
     def test_chain_without_ancestors_refused(self):
         self.refused([P(1, 0, "/sbin/launchd"), P(104, 1, "/bin/sh")], needle="")
@@ -116,6 +144,14 @@ class TerminalClassify(unittest.TestCase):
               301: "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari"}
         c = self.classes([P(300, 1, CLAUDE_APP), P(301, 1, fg[301])], fg)
         self.assertEqual((c[100], c[201], c[300], c[301]), ("baseline", "system", "forbidden", "forbidden"))
+
+    def test_reused_lineage_pid_not_baseline(self):
+        procs = terminal_tree()
+        pol = cm.build_policy_terminal(procs, 104, [])
+        later = [p for p in procs if p.pid not in (103,)] + [P(103, 1, "/usr/bin/git"), P(101, 1, CLAUDE_APP)]
+        later = [p for p in later if not (p.pid == 101 and p.path == "/usr/bin/login")]
+        c = {p.pid: cls for p, cls in cm.classify(later, pol, {101: CLAUDE_APP})}
+        self.assertEqual((c[103], c[101]), ("forbidden", "forbidden"))
 
     def test_deny_list_and_baseline_unchanged(self):
         c = self.classes([P(400, 1, "/usr/bin/git"), P(401, 1, "/x/helper"), P(402, 1, "/Applications/Other.app/x")])
@@ -165,8 +201,8 @@ class ClaudeCliModeUnchanged(unittest.TestCase):
         old = _frozen_monitor()
         procs = [P(1, 0, "/sbin/launchd"), P(10, 1, CLAUDE_CLI), P(11, 10, "/bin/zsh"), P(12, 11, "/usr/bin/caffeinate"), P(13, 12, "/bin/sh")]
         oprocs = [old.Proc(p.pid, p.ppid, 0.0, p.comm, p.path, 0.0, p.stat) for p in procs]
-        self.assertEqual(cm.build_policy(procs, 13, 10, []).to_json() | {"controller_kind": None},
-                         old.build_policy(oprocs, 13, 10, []).to_json() | {"controller_kind": None})
+        drop = {"controller_kind": None, "controller_paths": None}
+        self.assertEqual(cm.build_policy(procs, 13, 10, []).to_json() | drop, old.build_policy(oprocs, 13, 10, []).to_json() | drop)
 
     def test_old_policy_file_loads_as_claude_cli(self):
         with tempfile.TemporaryDirectory() as d:
@@ -239,6 +275,17 @@ class Chain(unittest.TestCase):
         self.assertIn('"$(session_state)" != "$SESSION_BEFORE"', gate)
         self.assertIn("~/.claude/projects (after $1)\" 16", gate)
 
+    def test_tree_state_fails_closed(self):
+        t = self.text
+        self.assertIn('&& [ -n "$_S" ] && echo "$_S" || echo "TREE-STATE-FAILED"', t)
+        self.assertIn('[ "$S1" != TREE-STATE-FAILED ] ||', t)
+        gate = t[t.index("gate_check() {"):t.index("# --- Prelaunch")]
+        self.assertNotIn('[ -n "$SESSION_BEFORE" ]', gate)
+
+    def test_environment_recorded(self):
+        self.assertIn('echo "python3: $(command -v python3)', self.text)
+        self.assertIn("environment names:", self.text)
+
     def test_policy_after_grace_and_audit(self):
         t = self.text
         self.assertLess(t.index('sleep "$GRACE"'), t.index('policy "$G/policy.json"'))
@@ -280,23 +327,56 @@ class Prepare(unittest.TestCase):
     def test_series_budget(self):
         self.assertEqual(self.budget("soak", 2, 2, ["SOAK NONCONFORMING: x"]), 0)
         self.assertEqual(self.budget("soak", 3, 2, ["SOAK NONCONFORMING: x", "SOAK NONCONFORMING: y"]), 1)
-        self.assertEqual(self.budget("soak", 3, 2, ["SOAK NONCONFORMING: x", "SOAK NOT STARTED: y"]), 0)
+        self.assertEqual(self.budget("soak", 3, 2, ["SOAK NONCONFORMING: x", "SOAK NOT STARTED: y"]), 1)  # every directory counts
         self.assertEqual(self.budget("soak", 2, 2, []), 1)          # numbers are never skipped
         self.assertEqual(self.budget("soak", 1, 2, ["SOAK NONCONFORMING"]), 1)  # nor reused
-        self.assertEqual(self.budget("soak", 2, 2, [None]), 1)      # prepared, never launched
+        self.assertEqual(self.budget("soak", 2, 2, [None]), 1)      # no CONFORMANCE.txt
         self.assertEqual(self.budget("attempt", 1, 3, []), 0)
         self.assertEqual(self.budget("attempt", 3, 3, ["NONCONFORMING: a", "NOT STARTED: b"]), 0)
-        self.assertEqual(self.budget("attempt", 4, 3, ["NONCONFORMING: a", "NONCONFORMING: b", "FAILED: c"]), 1)
+        self.assertEqual(self.budget("attempt", 4, 3, ["NONCONFORMING: a", "NOT STARTED: b", "FAILED: c"]), 1)
         self.assertEqual(self.budget("attempt", 2, 3, ["CONFORMING: every gate check passed"]), 1)
 
-    def test_launch_command_written(self):
-        for name, needle in (("prepare_soak.sh", "run_final_chain.sh $CAMP - --soak"),
-                             ("prepare_campaign.sh", "run_final_chain.sh $CAMP $CAND >")):
+    def test_launch_command_used(self):
+        for name in ("prepare_soak.sh", "prepare_campaign.sh"):
             text = (RQ / name).read_text()
-            self.assertIn(needle, text, name)
+            self.assertIn('launch_command.sh" "$CAMP"', text, name)
             self.assertIn("LAUNCH-COMMAND.txt", text, name)
-            self.assertIn("caffeinate -dimsu sh", text, name)
-            self.assertNotIn("| tee", text, name)
+
+    def test_launch_command_shape(self):
+        camp = "/e/v0.7.0-requalification-a2-soak2"
+        out = subprocess.run(["sh", str(RQ / "launch_command.sh"), camp, "-", "--soak"], capture_output=True, text=True, check=True).stdout
+        r = camp + "/src/cand/knotrel-benchmarks/results/v0.7.0-requalification"
+        self.assertTrue(out.startswith("export PATH="), out)
+        self.assertIn(":/usr/bin:/bin:/usr/sbin:/sbin; cd /; ", out)
+        pre = out.index(f"if /usr/bin/caffeinate -dimsu /bin/sh {r}/precheck_terminal.sh {camp} < /dev/null; then ")
+        chain = out.index(f"/usr/bin/caffeinate -dimsu /bin/sh {r}/run_final_chain.sh {camp} - --soak < /dev/null >> {camp}/chain-launch.log 2>&1;")
+        self.assertLess(pre, chain)
+        self.assertIn('echo "chain exit=$?" >> ' + camp + "/chain-launch.log", out)
+        self.assertTrue(out.rstrip().endswith("; fi"))
+        self.assertNotIn("| ", out)
+        self.assertNotIn("> " + camp + "/chain-launch.log", out.replace(">> " + camp + "/chain-launch.log", ""))
+        bad = subprocess.run(["sh", str(RQ / "launch_command.sh"), "/e/x y", "-"], capture_output=True, text=True)
+        self.assertNotEqual(bad.returncode, 0)
+
+    def test_precheck_refuses_launched_campaign_and_starts_nothing(self):
+        with tempfile.TemporaryDirectory() as d:
+            camp = Path(d) / "v0.7.0-requalification-a2-soak2"
+            (camp / "src/cand/knotrel-benchmarks").mkdir(parents=True)
+            (camp / "logs").mkdir()
+            (camp / "gate").mkdir()
+            r = subprocess.run(["sh", str(RQ / "precheck_terminal.sh"), str(camp)], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("PRECHECK REFUSED", r.stdout)
+            self.assertIn("already launched", r.stdout)
+            self.assertEqual(sorted(p.name for p in (camp / "logs").iterdir()), [])
+        r = subprocess.run(["sh", str(RQ / "precheck_terminal.sh"), "/nonexistent/x"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1)
+
+    def test_precheck_runs_policy_read_only(self):
+        t = (RQ / "precheck_terminal.sh").read_text()
+        self.assertIn("policy --chain $$ --controller-kind terminal", t)
+        for forbidden in ("launcher_audit", "mkdir", "rm ", "run_final_chain", "bootout", "mv "):
+            self.assertNotIn(forbidden, t.split("set -u", 1)[1])
 
 
 class MatrixAmendment2(unittest.TestCase):
@@ -324,6 +404,52 @@ class MatrixAmendment2(unittest.TestCase):
         self.assertEqual(c["soak"]["max_soaks"], 2)
         for key in ("controller", "classes", "claude_state", "soak_budget", "scope_note", "limits", "closed_series"):
             self.assertTrue(a.get(key), key)
+
+
+STUB_AUDIT = r"""
+import os, sys
+open(os.environ["STUB_ORDER"], "a").write(sys.argv[1] + "\n")
+sys.exit(0 if sys.argv[1] == "restore" else 1)
+"""
+STUB_MONITOR = r"""
+import os, sys
+open(os.environ["STUB_ORDER"], "a").write(sys.argv[1] + "\n")
+if sys.argv[1] == "policy" and os.environ.get("STUB_POLICY") == "fail":
+    print("policy refused: Claude processes are running", file=sys.stderr)
+    sys.exit(1)
+print("{}")
+"""
+
+
+def _ac_power():
+    out = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True).stdout
+    return "AC Power" in out.splitlines()[0] if out else False
+
+
+@unittest.skipUnless(_ac_power(), "the chain checks AC power before the controller check")
+class PrequiesceRefusalExecuted(unittest.TestCase):
+    """The real chain against a stub tooling clone: a refused controller check stops it before the quiesce."""
+
+    def test_refused_before_quiesce(self):
+        with tempfile.TemporaryDirectory() as d:
+            camp = Path(d) / "v0.7.0-requalification-a2-soak2"
+            b = camp / "src/cand/knotrel-benchmarks"
+            (b / "scripts").mkdir(parents=True)
+            (b / "results/v0.7.0-requalification").mkdir(parents=True)
+            (camp / "logs").mkdir()
+            (b / "scripts/launcher_audit.py").write_text(STUB_AUDIT)
+            (b / "scripts/conformance_monitor.py").write_text(STUB_MONITOR)
+            (b / "results/v0.7.0-requalification/MATRIX.json").write_text('{"conformance": {"controller_kind": "terminal"}}')
+            order = Path(d) / "order.txt"
+            env = {**os.environ, "STUB_ORDER": str(order), "STUB_POLICY": "fail"}
+            r = subprocess.run(["sh", str(RQ / "run_final_chain.sh"), str(camp), "-", "--soak"], env=env, capture_output=True, text=True, timeout=60)
+            self.assertEqual(r.returncode, 4, r.stdout + r.stderr)
+            calls = order.read_text().splitlines()
+            self.assertEqual(calls[0], "policy")
+            self.assertNotIn("quiesce", calls)
+            self.assertNotIn("restore", calls)
+            self.assertTrue((camp / "logs/CONFORMANCE.txt").read_text().startswith("SOAK NOT STARTED: controller check refused"))
+            self.assertFalse((camp / "logs/quiesce-restore.json").exists())
 
 
 if __name__ == "__main__":

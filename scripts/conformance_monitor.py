@@ -61,22 +61,29 @@ Amendment 2 (PROTOCOL §9), controller kind ``terminal`` (``Policy.controller_ki
 the chain is launched from Terminal.app with no Claude process running. The
 controller is then the Terminal.app process. Changes to the rules above:
 - rule 2 applies to Terminal's descendants (another window or tab is forbidden);
-- the controller and the chain's ancestors below it (``login``, the login
-  shell, ``caffeinate``) are ``baseline`` right after rule 2, before the
-  deny-list (``login`` is deny-listed);
+- the controller and the chain's ancestors below it, which must be exactly
+  ``/usr/bin/login``, ``/bin/zsh`` and ``/usr/bin/caffeinate``
+  (``TERMINAL_LINEAGE``), are ``baseline`` right after rule 2, before the
+  deny-list (``login`` is deny-listed), only while each PID still runs the
+  executable the policy recorded for it (``Policy.controller_paths``); a
+  reused PID falls through to the other rules;
 - rule 6 allows Finder and Terminal.app as foreground apps, not the Claude
   desktop app;
 - rule 7 no longer makes the Claude desktop app ``baseline``. Any Claude
-  executable (the desktop app, the Claude Code CLI, or a process named
-  ``claude``) is ``forbidden``, wherever it lives.
+  executable (``is_claude``: the desktop app, the Claude Code CLI under the
+  app or a native install ``~/.local/share/claude/versions/``, or a process
+  named ``claude``) is ``forbidden``, wherever it lives.
 The policy refuses the launch if Terminal.app is not the chain's topmost
-ancestor below launchd, if an ancestor in between is not at an Apple
-location, if Terminal has any other live descendant, if another Terminal
-process exists, or if any Claude process is running.
+ancestor below launchd, if the ancestors in between are not exactly
+``TERMINAL_LINEAGE``, if Terminal has any other live descendant, if another
+Terminal process exists, or if any Claude process is running (``is_claude``,
+or a command line naming claude-code, for example a node-based CLI).
 
 Limits (PROTOCOL §3.6): a process that starts and exits between two samples
-can be missed. Tool calls that start no process are covered only by the
-controller transcript check in the chain.
+can be missed. With controller kind ``claude-cli``, tool calls that start no
+process are covered only by the controller transcript check in the chain;
+with ``terminal`` (amendment 2), Claude is quit and ``~/.claude/projects`` is
+compared instead (PROTOCOL §9.3).
 
     conformance_monitor.py monitor --policy POLICY.json --out LOG.jsonl --status STATUS.json [--interval 0.2]
     conformance_monitor.py check|inventory --policy POLICY.json
@@ -122,6 +129,10 @@ TERMINAL_APP = "/System/Applications/Utilities/Terminal.app/"
 TERMINAL_EXE = TERMINAL_APP + "Contents/MacOS/Terminal"
 ALLOWED_FOREGROUND_TERMINAL: Tuple[str, ...] = ("/System/Library/CoreServices/Finder.app/", TERMINAL_APP)
 KINDS = ("claude-cli", "terminal")
+# Amendment 2: the only accepted ancestors between Terminal.app and the chain, from the top.
+TERMINAL_LINEAGE: Tuple[str, ...] = ("/usr/bin/login", "/bin/zsh", "/usr/bin/caffeinate")
+CLAUDE_NATIVE = re.compile(r"/\.local/share/claude/versions/[^/]+$")
+CLAUDE_CMDLINE = re.compile(r"claude-code|@anthropic-ai/claude|/\.local/share/claude/")
 DENY_BASENAMES: Set[str] = {
     "diskimages-helper", "hdiejectd", "hdiutil",
     "com.apple.appkit.xpc.openAndSavePanelService",
@@ -248,6 +259,7 @@ class Policy:
     controller_children: Set[int] = field(default_factory=set)
     baseline_paths: Set[str] = field(default_factory=set)
     controller_kind: str = "claude-cli"
+    controller_paths: Dict[int, str] = field(default_factory=dict)
 
     @staticmethod
     def load(path: Path) -> "Policy":
@@ -255,13 +267,15 @@ class Policy:
         kind = data.get("controller_kind", "claude-cli")
         if kind not in KINDS:
             raise ValueError(f"unknown controller_kind {kind!r}")
+        paths = {int(k): v for k, v in data.get("controller_paths", {}).items()}
         return Policy(int(data["chain_pid"]), data.get("controller_pid"),
-                      set(data.get("controller_children", [])), set(data.get("baseline_paths", [])), kind)
+                      set(data.get("controller_children", [])), set(data.get("baseline_paths", [])), kind, paths)
 
     def to_json(self) -> Dict[str, object]:
         return {"chain_pid": self.chain_pid, "controller_pid": self.controller_pid,
                 "controller_children": sorted(self.controller_children),
-                "baseline_paths": sorted(self.baseline_paths), "controller_kind": self.controller_kind}
+                "baseline_paths": sorted(self.baseline_paths), "controller_kind": self.controller_kind,
+                "controller_paths": {str(k): v for k, v in sorted(self.controller_paths.items())}}
 
 
 class PolicyError(Exception):
@@ -326,19 +340,33 @@ def is_claude(proc: Proc) -> bool:
     """Any Claude executable: the desktop app, the Claude Code CLI, or a process named ``claude``."""
     path = proc.path or ""
     name = os.path.basename(path if path else proc.comm)
-    return path.startswith(CONTROLLER_APP) or bool(CONTROLLER_CLI.search(path)) or name.lower() == "claude"
+    return (path.startswith(CONTROLLER_APP) or bool(CONTROLLER_CLI.search(path)) or bool(CLAUDE_NATIVE.search(path))
+            or name.lower() == "claude")
 
 
-def build_policy_terminal(procs: List[Proc], chain_pid: int, baseline_paths: Iterable[str]) -> Policy:
+def claude_cmdlines() -> List[Tuple[int, str]]:
+    """Processes whose command line names the Claude Code CLI (for example a node-based install)."""
+    out = subprocess.run(["ps", "-Ao", "pid=,args="], capture_output=True, text=True, env=C_ENV).stdout
+    found = []
+    for line in out.splitlines():
+        parts = line.strip().split(None, 1)
+        if len(parts) == 2 and CLAUDE_CMDLINE.search(parts[1]) and int(parts[0]) != os.getpid():
+            found.append((int(parts[0]), parts[1][:160]))
+    return found
+
+
+def build_policy_terminal(procs: List[Proc], chain_pid: int, baseline_paths: Iterable[str],
+                          cmdlines: Iterable[Tuple[int, str]] = ()) -> Policy:
     """Validated policy for a chain launched from Terminal.app with Claude quit (amendment 2).
 
-    Terminal.app must be the chain's topmost ancestor below launchd, every
-    ancestor in between must be at an Apple location, Terminal must have no
-    other live descendant, no other Terminal process may exist, and no Claude
-    process may be running.
+    Terminal.app must be the chain's topmost ancestor below launchd, the
+    ancestors in between must be exactly ``TERMINAL_LINEAGE``, Terminal must
+    have no other live descendant, no other Terminal process may exist, and no
+    Claude process may be running (``is_claude`` or a ``cmdlines`` entry).
     """
     by_pid = {p.pid: p for p in procs}
-    claude = sorted((p.pid, p.path or p.comm) for p in procs if is_claude(p) and not p.zombie)
+    claude = sorted({(p.pid, p.path or p.comm) for p in procs if is_claude(p) and not p.zombie}
+                    | {(pid, args) for pid, args in cmdlines if pid in by_pid and not by_pid[pid].zombie})
     if claude:
         raise PolicyError(f"Claude processes are running (quit Claude completely): {claude}")
     lineage = ancestors(procs, chain_pid)
@@ -351,16 +379,16 @@ def build_policy_terminal(procs: List[Proc], chain_pid: int, baseline_paths: Ite
     if terminals != [top.pid]:
         raise PolicyError(f"more than one Terminal process: {terminals}")
     between = lineage[1:-1]
-    for pid in between:
-        path = by_pid[pid].path or ""
-        if not path.startswith(SYSTEM_PREFIXES):
-            raise PolicyError(f"ancestor {pid} of the chain is not at an Apple location: {path!r}")
+    found = tuple(by_pid[pid].path or "" for pid in reversed(between))
+    if found != TERMINAL_LINEAGE:
+        raise PolicyError(f"the chain's ancestors below Terminal must be exactly {list(TERMINAL_LINEAGE)}, found {list(found)}")
     others = descendants(procs, top.pid) - descendants(procs, chain_pid) - set(between) - {top.pid}
     others = {pid for pid in others if not by_pid[pid].zombie}
     if others:
         listing = [(pid, by_pid[pid].path or by_pid[pid].comm) for pid in sorted(others)]
         raise PolicyError(f"Terminal has other live descendants (close every other window and tab): {listing}")
-    return Policy(chain_pid, top.pid, set(between), set(baseline_paths), "terminal")
+    paths = {pid: by_pid[pid].path or "" for pid in [top.pid] + between}
+    return Policy(chain_pid, top.pid, set(between), set(baseline_paths), "terminal", paths)
 
 
 def _denied(name: str) -> bool:
@@ -376,7 +404,8 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
             and proc.pid not in policy.controller_children):
         return "forbidden"
     terminal = policy.controller_kind == "terminal"
-    if terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children):
+    if (terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children)
+            and proc.path is not None and proc.path == policy.controller_paths.get(proc.pid)):
         return "baseline"
     if proc.zombie and depth < 8:
         parent = by_pid.get(proc.ppid)
@@ -393,7 +422,7 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
         return "forbidden"
     if terminal and is_claude(proc):
         return "forbidden"
-    if proc.pid == policy.controller_pid or proc.pid in policy.controller_children:
+    if not terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children):
         return "baseline"
     if path is None:
         return "forbidden"
@@ -657,7 +686,7 @@ def main() -> int:
             if args.controller_kind == "terminal":
                 if args.controller is not None:
                     raise PolicyError("--controller is not used with --controller-kind terminal (Terminal.app is found from the chain)")
-                policy = build_policy_terminal(snapshot(), args.chain, baseline)
+                policy = build_policy_terminal(snapshot(), args.chain, baseline, claude_cmdlines())
             else:
                 if args.controller is None:
                     raise PolicyError("--controller is required with --controller-kind claude-cli")
