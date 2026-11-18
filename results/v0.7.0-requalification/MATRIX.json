@@ -1,6 +1,6 @@
 {
  "schema": "knotrel.v0.7.0.requalification-matrix.v1",
- "status": "AMENDMENT 1 DRAFT (frozen when FREEZE-A1.json is written); the original matrix was frozen in FREEZE.json and is exhausted (3 NONCONFORMING attempts)",
+ "status": "AMENDMENT 2 DRAFT (frozen when FREEZE-A2.json is written); amendment 1 frozen in FREEZE-A1.json, series a1 closed with zero attempts after soak a1-1 (SOAK NONCONFORMING); the original matrix was frozen in FREEZE.json and is exhausted (3 NONCONFORMING attempts)",
  "references": {
   "product_reference": "knotrel v0.6.0 (published): signed tag v0.6.0 = 5db9ec4738a7f90bf06a83ea12f35c0dab9ab538 (crates.io 0.6.0)",
   "benchmarks_reference": "knotrel-benchmarks v0.6.0 = bddef0f301f582495cb22e47cfd67def88fa9967",
@@ -2674,7 +2674,7 @@
   "quiet_period_s": 300,
   "git_state": "read-only snapshot (FETCH_HEAD mtime, remote-tracking reflog sizes) of every clone under /Users/rt/workspace/knotrel before the quiet period and after the chain; any difference is forbidden activity",
   "cpu_accounting": "per child, CPU seconds of system, baseline and forbidden classes from cumulative ps CPU time; disclosure only, no threshold",
-  "outcome": "any failed check stops the chain at the next gate and makes the whole attempt NONCONFORMING (no verdict for any experiment of the attempt, completed ones included); data kept; every exit path writes logs/CONFORMANCE.txt, the final Git state and checksums; restart only after the cause is removed, into a new directory, with the same frozen matrix and seeds; at most 3 attempts, then the maintainer decides; amendment 1: a new series a1 with its own cap (conformance.amendment_1.attempts_cap), the first CONFORMING attempt is final",
+  "outcome": "any failed check stops the chain at the next gate and makes the whole attempt NONCONFORMING (no verdict for any experiment of the attempt, completed ones included); data kept; every exit path writes logs/CONFORMANCE.txt, the final Git state and checksums; restart only after the cause is removed, into a new directory, with the same frozen matrix and seeds; at most 3 attempts, then the maintainer decides; amendment 1: a new series a1 with its own cap (conformance.amendment_1.attempts_cap), the first CONFORMING attempt is final; amendment 2: series a1 closed with zero attempts; a new series a2 with its own cap (conformance.amendment_2.attempts_cap), the first CONFORMING attempt is final",
   "limits": "a process that starts and exits between two 0.2 s samples can be missed (CPU accounting and the Git snapshot cover such processes in part); tool calls that start no process are covered only by the transcript check; allowed system processes are not limited in CPU; root-writable firmlinked data directories under /System/Library and /usr/libexec are treated as system; PIDs are not paired with start times (the baseline PIDs are the chain's own ancestors, alive throughout); a SIGTERM to the chain alone takes effect when the current collector ends (the attempt is still NONCONFORMING); rare system dialogs registered as foreground apps (for example Problem Reporter) stop the attempt",
   "hid_tolerance_s": 1.0,
   "grace_period_s": 120,
@@ -2760,11 +2760,11 @@
     }
    },
    "allow_jobs_prefix": {
-    "application.com.anthropic.claudefordesktop.": {
-     "program_prefix": "/Applications/Claude.app/",
+    "application.com.apple.Terminal.": {
+     "program_prefix": "/System/Applications/Utilities/Terminal.app/",
      "triggers": [],
      "unreadable_ok": true,
-     "reason": "the Claude desktop app's runningboard job (label varies); the app is baseline"
+     "reason": "amendment 2: Terminal.app's runningboard job (label varies); Terminal is the controller"
     }
    },
    "allow_extensions": [],
@@ -2780,7 +2780,26 @@
    "required_before_first_attempt": true,
    "allowed_changes_after_a_soak": "add to quiesce.launchd or quiesce.park_apps, add host-preparation steps, or add an on-demand job (no autonomous trigger) to allow_jobs; never widen a process class, host_baseline or the deny-list; each change needs a matrix amendment, a new freeze and the maintainer's approval"
   },
-  "input_devices": "external keyboards, mice and trackpads powered off or unplugged before the grace period; nothing resting on the built-in keyboard or trackpad"
+  "input_devices": "external keyboards, mice and trackpads powered off or unplugged before the grace period; nothing resting on the built-in keyboard or trackpad",
+  "controller_kind": "terminal",
+  "amendment_2": {
+   "proposal": "AMENDMENT-2-OPTIONS.md, option A (approved 2026-11-18: 'Option A')",
+   "cause": "soak a1-1: the controlling Claude Code CLI spawned git (forbidden) while idle, 46 min into the soak; host preparation held",
+   "changes": "controller: the chain is launched by the maintainer from Terminal.app with Claude quit; the Claude Code controller, its transcript check and the Claude desktop app baseline are removed; rule, deny-list, HID, liveness, granularity, experiments, seeds, statistics, thresholds and analyzers unchanged",
+   "controller": "Terminal.app (/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal) must be the chain's topmost ancestor below launchd; the ancestors in between (login, the login shell, caffeinate) must be at Apple locations; Terminal must have no other live descendant (one window, one tab) and be the only Terminal process; no Claude process (the desktop app, the Claude Code CLI, any process named claude) may run. Checked before the quiesce (NOT STARTED) and again for the policy after the grace period",
+   "classes": "with controller_kind terminal: new Terminal descendant -> forbidden (rule 2); Terminal and the chain's ancestors below it -> baseline, before the deny-list (login is deny-listed); foreground apps allowed: Finder and Terminal.app (not the Claude desktop app); any Claude executable -> forbidden; the Claude desktop app is no longer baseline",
+   "claude_state": "replaces controller_transcript: the size and mtime of every file under ~/.claude/projects must be unchanged for session_stable_s after the grace period (else NOT STARTED) and at every gate check and at chain end (else NONCONFORMING, exit 16)",
+   "attempt_series": "a2",
+   "attempts_cap": 3,
+   "first_conforming_attempt_is_final": true,
+   "closed_series": "a1: zero attempts (soak a1-1 SOAK NONCONFORMING); recorded and reported",
+   "soak_budget": "soak.max_soaks counts every soak of every amendment: soak a1-1 used one; a2 soaks are numbered after it (a2-soak2); a SOAK CONFORMING soak from the amendment-2 freeze is required before attempt 1",
+   "further_series": "none without a new maintainer decision recorded before any result of this series",
+   "launch": "the maintainer runs the command that the prepare script writes to CAMP/LAUNCH-COMMAND.txt in the only Terminal window, then leaves the Mac; Claude is reopened only after the window prints the result",
+   "scope_note": "this changes the controller's baseline class, which soak.allowed_changes_after_a_soak does not cover; it was approved by the maintainer as option A. Net effect: the Claude desktop app and the Claude Code CLI leave the baseline; Terminal.app, login, the login shell and caffeinate enter it only as the chain's own ancestors",
+   "limits": "replaces the transcript limit: a Claude process that starts and exits between two samples and writes nothing under ~/.claude/projects is not detected; the policy refuses a launch while any Claude process runs",
+   "not_started": "implements the existing rule 'NOT STARTED, no attempt consumed' (grace_period) in the prepare scripts (series_budget.sh): directory numbers are never reused or skipped; a soak or attempt whose CONFORMANCE.txt starts with NOT STARTED consumes nothing; FAILED and NONCONFORMING consume; a prepared but unlaunched directory blocks the next one; no attempt after a CONFORMING one. Under amendment 1 the prepare scripts capped the directory number instead (a NOT STARTED would have consumed a number); none occurred"
+  }
  },
  "analysis": "A: analyze_bc_qualification.py --rules v0.4.0; B/C: analyze_lifecycle_qualification.py; R/Rmem/M_desc/M_reg: analyze_v070r_qualification.py (the first campaign's analyzers bound to this matrix); conformance: the gate log, CONFORMANCE.txt and analyze_v070_conformance.py-style cross-check of the monitor log"
 }

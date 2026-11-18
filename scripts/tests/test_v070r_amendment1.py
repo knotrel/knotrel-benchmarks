@@ -394,7 +394,7 @@ class Chain(unittest.TestCase):
         quiesce = t.index("python3 scripts/launcher_audit.py quiesce")
         self.assertLess(quiesce, t.index('stamp GRACE'))
         self.assertLess(t.index("launcher_audit.py audit --matrix \"$MATRIX\" --out \"$L/launcher-audit.json\""),
-                        t.index("conformance_monitor.py policy --chain"))
+                        t.index('policy "$G/policy.json"'))  # amendment 2: policy() helper
         self.assertLess(t.index("pmset -g batt | head -1"), quiesce)
 
     def test_restore_strictly_after_records(self):
@@ -417,10 +417,12 @@ class Chain(unittest.TestCase):
     def test_argument_validation_before_any_action(self):
         chain = str(RQ / "run_final_chain.sh")
         sha = "e" * 40
-        for args in (["/e/x-soak1", sha, "1", "t"], ["/e/x-a1-attempt1", "-", "1", "t", "--soak"],
-                     ["/e/x-soak1", "-", "1", "t", "--soak", "extra"], ["/e/x-a1-attempt1", sha, "1", "t", "--soakx"],
-                     ["/e/x-a1-attempt1", "abc", "1", "t"], ["/e/x"],
-                     ["/e/v-1111111-a1-attempt1", "2" * 40, "1", "t"]):
+        # amendment 2: CAMP CAND [--soak]; the old four-argument form is refused too
+        for args in (["/e/x-soak1", sha], ["/e/x-a2-attempt1", "-", "--soak"],
+                     ["/e/x-soak1", "-", "--soak", "extra"], ["/e/x-a2-attempt1", sha, "--soakx"],
+                     ["/e/x-a2-attempt1", "abc"], ["/e/x"],
+                     ["/e/v-1111111-a2-attempt1", "2" * 40],
+                     ["/e/x-soak1", "-", "1", "t", "--soak"], ["/e/v-eeeeeee-a2-attempt1", sha, "1", "t"]):
             proc = subprocess.run(["sh", chain] + args, capture_output=True, text=True)
             self.assertEqual(proc.returncode, 2, args)
         head = self.text[:self.text.index("B=$CAMP/src")]
@@ -438,13 +440,13 @@ class Chain(unittest.TestCase):
     def test_prepare_series_and_soak(self):
         prep = (RQ / "prepare_campaign.sh").read_text()
         self.assertIn('CAMP=$CAMP-$SERIES-attempt$ATTEMPT', prep)
-        for needle in ("FREEZE-A1.json", "attempts_cap", "SOAK CONFORMING", "check_restored.sh"):
+        for needle in ("FREEZE-A2.json", "attempts_cap", "SOAK CONFORMING", "check_restored.sh"):  # amendment 2
             self.assertIn(needle, prep)
         self.assertLess(prep.index("check_restored.sh"), prep.index('mkdir -p "$CAMP/logs"'))
         soak = (RQ / "prepare_soak.sh").read_text()
         self.assertNotIn("cargo", soak)
         self.assertNotIn("rm -rf", soak)
-        for needle in ("max_soaks", "FREEZE-A1.json", "check_restored.sh", "[1-9]) ;;"):
+        for needle in ("max_soaks", "FREEZE-A2.json", "check_restored.sh", "[1-9]) ;;"):  # amendment 2
             self.assertLess(soak.index(needle), soak.index("mkdir"), needle)
 
     def test_prepare_soak_refuses_bad_number(self):
@@ -463,7 +465,8 @@ class MatrixAmendment(unittest.TestCase):
         self.assertEqual(changed_top, {"status", "conformance"})
         fc, nc = frozen["conformance"], new["conformance"]
         changed = {k for k in set(fc) | set(nc) if fc.get(k) != nc.get(k)}
-        self.assertEqual(changed, {"outcome", "amendment_1", "quiesce", "soak", "input_devices"})
+        # amendment 2 adds controller_kind and amendment_2 (checked in test_v070r_amendment2.py)
+        self.assertEqual(changed, {"outcome", "amendment_1", "quiesce", "soak", "input_devices", "controller_kind", "amendment_2"})
         self.assertTrue(nc["outcome"].startswith(fc["outcome"]))
 
     def test_quiesce_lists(self):
@@ -536,11 +539,11 @@ class FinishExecuted(unittest.TestCase):
         (camp / "logs").mkdir()
         (b / "scripts/launcher_audit.py").write_text(STUB_AUDIT)
         (b / "scripts/conformance_monitor.py").write_text(STUB_MONITOR)
-        (b / "results/v0.7.0-requalification/MATRIX.json").write_text("{}")
+        (b / "results/v0.7.0-requalification/MATRIX.json").write_text('{"conformance": {"controller_kind": "terminal"}}')
         order = Path(tmp.name) / "order.txt"
         ready = Path(tmp.name) / "ready"
         env = {**os.environ, "STUB_ORDER": str(order), "STUB_RESTORE": mode, "STUB_READY": str(ready)}
-        proc = subprocess.Popen(["sh", str(RQ / "run_final_chain.sh"), str(camp), "-", "1", "t", "--soak"],
+        proc = subprocess.Popen(["sh", str(RQ / "run_final_chain.sh"), str(camp), "-", "--soak"],
                                 env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if signal_during_restore:
             deadline = time.time() + 20
@@ -554,7 +557,7 @@ class FinishExecuted(unittest.TestCase):
     def test_restore_after_records_on_not_started(self):
         rc, out, order, camp = self.run_chain("ok")
         self.assertEqual(rc, 4, out)
-        self.assertEqual(order[:2], ["quiesce", "audit"])
+        self.assertEqual(order[:3], ["policy", "quiesce", "audit"])  # amendment 2: controller check first
         self.assertIn("git-snapshot", order)
         self.assertLess(order.index("git-snapshot"), order.index("restore-start conformance=True checksums=True"))
         self.assertTrue((camp / "logs/CONFORMANCE.txt").read_text().startswith("SOAK NOT STARTED: launcher audit failed"))

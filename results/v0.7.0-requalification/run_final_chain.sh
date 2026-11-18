@@ -3,14 +3,17 @@
 # then A (main, extension if required), B/C, R, Rmem, M_desc, M_reg. Every measured child is
 # gated (scripts/conformance_gate.py) by the allow-list monitor (scripts/conformance_monitor.py).
 #
-# Run under: caffeinate -dimsu sh run_final_chain.sh CAMP CAND_SHA CONTROLLER_PID TRANSCRIPT [--soak]
+# Amendment 2 (PROTOCOL.md section 9): the maintainer runs it from the only window of
+# Terminal.app, with Claude (desktop app and Claude Code CLI) quit completely:
+#   caffeinate -dimsu sh run_final_chain.sh CAMP CAND_SHA [--soak]
 #   CAMP            campaign directory made by prepare_campaign.sh (prepare_soak.sh for --soak)
 #   CAND_SHA        knotrel candidate commit ("-" with --soak)
-#   CONTROLLER_PID  PID of the controlling Claude Code CLI (an ancestor of this chain)
-#   TRANSCRIPT      that session's transcript file (~/.claude/projects/.../<id>.jsonl); it and
-#                   every file of the session directory (subagents) must not change during the attempt
 #   --soak          amendment 1, A3: run everything except the experiments; one gated campaign
 #                   child sleeps conformance.soak.duration_s. No binary is built or run; no data.
+# The controller is Terminal.app (scripts/conformance_monitor.py, controller kind "terminal"): the
+# policy refuses the launch while any Claude process runs, while Terminal has another window or
+# tab, or if the chain does not descend from Terminal.app. ~/.claude/projects must not change
+# during the attempt (it replaces the transcript check of the Claude Code controller).
 #
 # Amendment 1 (PROTOCOL.md section 8): before the grace period, third-party autonomous
 # launchers are quiesced (scripts/launcher_audit.py quiesce, A1) and audited (A2, again just
@@ -25,14 +28,12 @@
 # output checksums.
 set -u
 # Arguments: the soak flag must match the directory and the candidate (refused before anything runs).
-case $# in 4|5) ;; *) echo "usage: run_final_chain.sh CAMP CAND_SHA CONTROLLER_PID TRANSCRIPT [--soak]" >&2; exit 2;; esac
+case $# in 2|3) ;; *) echo "usage: run_final_chain.sh CAMP CAND_SHA [--soak]  (amendment 2: from Terminal.app, Claude quit)" >&2; exit 2;; esac
 CAMP=${1%/}
 CAND=$2
-CONTROLLER=$3
-TRANSCRIPT=$4
 SOAK=""
-if [ $# -eq 5 ]; then
-  [ "$5" = "--soak" ] || { echo "unknown argument: $5" >&2; exit 2; }
+if [ $# -eq 3 ]; then
+  [ "$3" = "--soak" ] || { echo "unknown argument: $3" >&2; exit 2; }
   SOAK=1
 fi
 case "$(basename "$CAMP")" in *-soak[1-9]) ISSOAKDIR=1;; *) ISSOAKDIR="";; esac
@@ -58,7 +59,9 @@ done
 mkdir -p "$G"
 stamp() { echo "$1 $(date -u +%Y-%m-%dT%H:%M:%SZ) $2" >> "$L/chain-steps.txt"; }
 conf() { python3 -c "import json;print(json.load(open('$MATRIX'))['conformance']['$1'])"; }
-session_state() { python3 scripts/conformance_monitor.py session-state "$TRANSCRIPT"; }
+CLAUDE_STATE_DIR=$HOME/.claude/projects
+session_state() { python3 scripts/conformance_monitor.py tree-state "$CLAUDE_STATE_DIR"; }
+policy() { python3 scripts/conformance_monitor.py policy --chain $$ --controller-kind terminal --matrix "$MATRIX" --out "$1"; }
 
 MON=""
 RESULT="${P}NONCONFORMING: chain ended before its last step"
@@ -95,31 +98,31 @@ gate_check() {
   if [ -e "$G/gate-stop.json" ]; then nonconforming "gate stop after $1" 13; fi
   if [ -n "$SESSION_BEFORE" ] && [ "$(session_state)" != "$SESSION_BEFORE" ]; then
     session_state > "$L/session-after.json"
-    nonconforming "controller session or subagent transcript changed (after $1)" 16
+    nonconforming "Claude session files changed under ~/.claude/projects (after $1)" 16
   fi
 }
 
 # --- Prelaunch: host state, grace period, policy, allow-list check, Git state ---
 { date -u +%Y-%m-%dT%H:%M:%SZ; pmset -g batt | head -2; pmset -g therm; uptime; } > "$L/prelaunch-host.txt"
 case "$(pmset -g batt | head -1)" in *"AC Power"*) ;; *) RESULT="${P}NOT STARTED: not on AC power"; exit 4;; esac
+# Amendment 2: the controller is Terminal.app; check it (and that Claude is quit) before anything changes on the host.
+[ "$(conf controller_kind)" = terminal ] || { RESULT="${P}NOT STARTED: MATRIX conformance.controller_kind is not terminal"; exit 4; }
+policy "$L/policy-prequiesce.json" 2> "$L/policy-error.txt" || { RESULT="${P}NOT STARTED: controller check refused ($(cat "$L/policy-error.txt"))"; exit 4; }
 # Amendment 1, A1/A2: quiesce (refuses while any earlier manifest is unrestored), then audit.
 python3 scripts/launcher_audit.py quiesce --matrix "$MATRIX" --camp "$CAMP" > "$L/quiesce.log" 2>&1 || notstarted "launcher quiesce failed (logs/quiesce.log)"
 python3 scripts/launcher_audit.py audit --matrix "$MATRIX" --out "$L/launcher-audit-pregrace.json" 2> "$L/launcher-audit-pregrace.txt" || notstarted "launcher audit failed before the grace period (logs/launcher-audit-pregrace.txt)"
 GRACE=$(conf grace_period_s)
 STABLE=$(conf session_stable_s)
 MIN_IDLE=$(conf min_hid_idle_at_policy_s)
-stamp GRACE "start ${GRACE}s (operator leaves the Mac; the controller ends its turn)"
+stamp GRACE "start ${GRACE}s (operator leaves the Mac; Claude is quit)"
+echo "Grace period ${GRACE}s: leave the Mac now. Do not reopen Claude until this window prints the result."
 sleep "$GRACE"
-# The launch command reaches the transcript only after the tool call returns: validate after the grace.
-if ! python3 scripts/conformance_monitor.py validate-transcript "$TRANSCRIPT" "$CAMP" 2> "$L/transcript-error.txt"; then
-  RESULT="${P}NOT STARTED: transcript not validated ($(cat "$L/transcript-error.txt"))"; exit 4
-fi
 S1=$(session_state); sleep "$STABLE"; S2=$(session_state)
-[ "$S1" = "$S2" ] || { RESULT="${P}NOT STARTED: controller session still active after the grace period"; exit 4; }
+[ "$S1" = "$S2" ] || { RESULT="${P}NOT STARTED: Claude session files still changing after the grace period"; exit 4; }
 IDLE=$(python3 scripts/conformance_monitor.py hid-idle) || { RESULT="${P}NOT STARTED: HID idle time unreadable"; exit 4; }
 python3 -c "import sys; sys.exit(0 if float('$IDLE') >= float('$MIN_IDLE') else 1)" || { RESULT="${P}NOT STARTED: user input ${IDLE}s ago (minimum ${MIN_IDLE}s)"; exit 4; }
 python3 scripts/launcher_audit.py audit --matrix "$MATRIX" --out "$L/launcher-audit.json" 2> "$L/launcher-audit.txt" || notstarted "launcher audit failed (logs/launcher-audit.txt)"
-if ! python3 scripts/conformance_monitor.py policy --chain $$ --controller "$CONTROLLER" --matrix "$MATRIX" --out "$G/policy.json" 2> "$L/policy-error.txt"; then
+if ! policy "$G/policy.json" 2> "$L/policy-error.txt"; then
   RESULT="${P}NOT STARTED: policy refused ($(cat "$L/policy-error.txt"))"; exit 4
 fi
 cp "$G/policy.json" "$L/policy.json"
@@ -186,7 +189,7 @@ PY
   fi
   session_state > "$L/session-after.json"
   gate_check soak-end
-  RESULT="SOAK CONFORMING: every gate check passed; monitor alive with no gap, zero totals; one gated sleep child; Git state and controller transcript unchanged (no data)"
+  RESULT="SOAK CONFORMING: every gate check passed; monitor alive with no gap, zero totals; one gated sleep child; Git state and Claude session files unchanged (no data)"
   stamp CHAIN "soak complete"
   exit 0
 fi
@@ -251,5 +254,5 @@ if ! cmp -s "$L/git-before.json" "$L/git-after.json"; then
 fi
 session_state > "$L/session-after.json"
 gate_check chain-end
-RESULT="CONFORMING: every gate check passed; monitor alive with no gap, zero totals; every child gated; Git state and controller transcript unchanged"
+RESULT="CONFORMING: every gate check passed; monitor alive with no gap, zero totals; every child gated; Git state and Claude session files unchanged"
 stamp CHAIN complete

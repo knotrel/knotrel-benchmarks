@@ -553,7 +553,7 @@ class Matrix(unittest.TestCase):
         self.assertEqual(subprocess.run(["sh", "-n", str(chain)]).returncode, 0)
         text = chain.read_text()
         for needle in ("130730 130731 130732", "--order-seed 50720", "trap finish EXIT", "conformance_monitor.py policy",
-                       "verify_gating", "full_log_check", "session_state", "validate-transcript", "hid-idle"):
+                       "verify_gating", "full_log_check", "session_state", "tree-state", "hid-idle"):  # amendment 2: tree-state replaces validate-transcript
             self.assertIn(needle, text)
         self.assertNotIn("scripts/run_p0_aa.py --manifest", text, "A must run through the gate")
         self.assertNotIn("scripts/run_v070_qualification.py", text, "R/M must run through the gate")
