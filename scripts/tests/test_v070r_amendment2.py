@@ -604,6 +604,25 @@ class InventoryRace(unittest.TestCase):
         self.assertTrue(inv["jobs"][0]["print_retried"])
         self.assertEqual(la.audit(inv, {}), [])
 
+    def test_relist_failure_raises(self):
+        lab = "com.example.thing"
+        r = self.make_runner({"gui/501": [[lab]]}, {lab: [113]})
+        state = {"n": 0}
+        def runner(cmd):
+            if cmd[:2] == ["launchctl", "print"] and cmd[-1] == "gui/501":
+                state["n"] += 1
+                if state["n"] > 1:
+                    return 5, "launchctl failed"
+            return r(cmd)
+        orig_ext, orig_cron = la.extensions, la.user_crontab
+        la.extensions = lambda runner=None: []
+        la.user_crontab = lambda runner=None: ""
+        try:
+            with self.assertRaises(RuntimeError):
+                la.inventory(runner, uid=501)
+        finally:
+            la.extensions, la.user_crontab = orig_ext, orig_cron
+
     def test_second_failure_fails_closed(self):
         lab = "com.example.thing"
         inv = self.inv({"gui/501": [[lab]]}, {lab: [113, 113]})
