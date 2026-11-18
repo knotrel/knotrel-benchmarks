@@ -852,7 +852,7 @@ access.
 |---|---|
 | B1 options §3.3–3.5 recorded as approved | marked pending, then decided by the maintainer and recorded with the wording |
 | B2 NOT STARTED accounting more permissive than amendment 1 | withdrawn: every directory counts (the amendment-1 rule), with stricter numbering checks; `precheck_terminal.sh` added so that refusable launches start nothing |
-| S1 any Apple-location ancestor accepted, placed before the deny-list | exact lineage `login`, `zsh`, `caffeinate`; tested with `sudo`, `osascript`, `open`, `script`, `bash` and no `caffeinate` |
+| S1 any Apple-location ancestor accepted, placed before the deny-list | exact lineage (`login`, `zsh`, `caffeinate` in revision 2, corrected to `login`, `zsh` plus a required `caffeinate` child in §9.11); tested with `sudo`, `osascript`, `open`, `script`, `bash` |
 | S2 PID reuse more permissive | the policy records each ancestor's path; baseline only while PID and path match; tested |
 | S3 tree-state fails open | fails closed (`TREE-STATE-FAILED`); NOT STARTED before the monitor, NONCONFORMING after |
 | S4 native-install and node-based CLI not detected | `~/.local/share/claude/versions/` pattern and command-line scan; tested |
