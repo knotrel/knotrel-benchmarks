@@ -1,5 +1,5 @@
 {
- "frozen_utc": "2026-11-18T13:41:49Z",
+ "frozen_utc": "2026-11-18T13:48:29Z",
  "amendment": 2,
  "amends": {
   "freeze": "FREEZE-A1.json (tooling dae30690, freeze 8b931e1f)",
@@ -17,8 +17,8 @@
  },
  "tooling": {
   "repository": "knotrel-benchmarks",
-  "commit": "5eea0b4ced9417ccb2df6d8d9f5001e03ad725d0",
-  "note": "amendment 2 tooling after the independent review, its verification pass and a re-verification of the last delta; the freeze commit adds only FREEZE-A2.json"
+  "commit": "ef7ebe43055ed8977c151e077ef0de2896e386ea",
+  "note": "amendment 2 tooling after the independent review, its verification pass, a re-verification and the review of the audit-race delta; the freeze commit adds only FREEZE-A2.json"
  },
  "controller_kind": "terminal",
  "attempt_series": "a2",
@@ -42,18 +42,19 @@
   "series": "'a2, cap 3'",
   "review": "'Verification pass'",
   "freeze": "approved with the review path: verification pass, then freeze and prepare a2-soak2",
-  "date": "2026-11-18"
+  "date": "2026-11-18",
+  "audit_race": "'Fix and refreeze'"
  },
  "file_sha256": {
-  "results/v0.7.0-requalification/MATRIX.json": "77c06966cccebe472dfb4509c6de3ac2fa5423ed3fa60ac47261c8911c644ca7",
-  "results/v0.7.0-requalification/PROTOCOL.md": "b8797c403c1c7ea0d1cb88afd4eb0394b19ce798010033e60bce380966767cd5",
+  "results/v0.7.0-requalification/MATRIX.json": "09dcd7bef6d73e5496942f126aff45939f2f729b828e965df303fa4d7b19a14c",
+  "results/v0.7.0-requalification/PROTOCOL.md": "38b5abe41b8047a2893f7994650795f2011b6581d93e8a99e8737af4ee14c536",
   "results/v0.7.0-requalification/AMENDMENT-1-PROPOSAL.md": "38ac93bbda8e93df1b8c4a814f4062ba34f707722922b93a14c29350231860ec",
   "results/v0.7.0-requalification/EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256": "839efa75ce3ab56588cdd8c42f432909bd86a6bec507f982f6adcd55917722d1",
   "results/v0.7.0-requalification/run_final_chain.sh": "42de1b1a2700d1f48e2af807ad25bf43598dde66aabfc048be2996e2f73e2bd6",
   "results/v0.7.0-requalification/prepare_campaign.sh": "7fd69617779d387ccc6361429a8aa071b3148b30182b16b28d7edd07f7f5519b",
   "results/v0.7.0-requalification/prepare_soak.sh": "8a7f582d8168a257d80577385531ceb1633cad3144fd4ed525397534b6e39544",
   "results/v0.7.0-requalification/check_restored.sh": "2a10048c075c85ae0d1c49bdf5e88222a9f670312956802b2ec36eff5cac8451",
-  "scripts/launcher_audit.py": "ec821ac3ba9fdc7d242de0e05420efc9d46d3d785cdfab4c8ecf22f64a9d8c52",
+  "scripts/launcher_audit.py": "93962886ce03cddf597d9ec3902f51899e990e1d78545ade566360cee4127ffe",
   "scripts/conformance_monitor.py": "80c7268d540517c22f128cb0ef2a4fadcb707cfac9dfe93b5ec5ee065272d38d",
   "scripts/conformance_gate.py": "8bad092c9d52dc0d82005263f5e6d33b09ca79d81d02f3b2234f7e2cba2941c5",
   "scripts/run_v070r_collect.py": "29c84947f848cf1328292cb7d73f3313d3eddce3d5e98167ef78ef91b11604ad",
@@ -72,7 +73,7 @@
   "results/v0.7.0-requalification/precheck_terminal.sh": "3fb45d1ccd0a70b4b10859c15c66e63cb370f3902959026c7aa2f81f4637866f",
   "results/v0.7.0-requalification/launch_command.sh": "17874694f55cc7da352262da7271899bf52c4adbb044d640e2d2763043a85423",
   "results/v0.7.0-requalification/series_budget.sh": "185b91956ec5fc9f960b54309e68b6cf2ec157043b242619a6b8222730b6e977",
-  "scripts/tests/test_v070r_amendment2.py": "fcdbf2e98b13de310c1f68019076f369cc88d041ceaad2ea74f0009069308ab9"
+  "scripts/tests/test_v070r_amendment2.py": "f40f9930626e8f8ff4f58251a15f9430fd9503abd5bc2cd726ac2491a4e20cc5"
  },
  "changed_since_freeze_a1": [
   "results/v0.7.0-requalification/MATRIX.json",
@@ -80,8 +81,15 @@
   "results/v0.7.0-requalification/run_final_chain.sh",
   "results/v0.7.0-requalification/prepare_campaign.sh",
   "results/v0.7.0-requalification/prepare_soak.sh",
+  "scripts/launcher_audit.py",
   "scripts/conformance_monitor.py"
  ],
  "unchanged": "rule, deny-list, HID, liveness, granularity, experiments, seeds, statistics, thresholds, analyzers (MATRIX diff vs FREEZE-A1 limited to status, outcome, quiesce.allow_jobs_prefix, controller_kind, amendment_2; checked by test_v070r_amendment2.py)",
- "tests": "627 passed, 2 skipped at the tooling commit"
+ "tests": "631 passed, 2 skipped at the tooling commit",
+ "revision": 2,
+ "supersedes": {
+  "freeze": "e57106bc9b3dafd3fc01425ffc0aa73a43250d05",
+  "tooling": "5eea0b4ced9417ccb2df6d8d9f5001e03ad725d0",
+  "reason": "audit race fix (PROTOCOL \u00a79.10), approved 2026-11-18 'Fix and refreeze'; the directory prepared from it was never launched and is kept as v0.7.0-requalification-a2-soak2.unlaunched-e57106bc"
+ }
 }
