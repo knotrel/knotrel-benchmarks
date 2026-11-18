@@ -1,11 +1,14 @@
 #!/bin/sh
-# Prepares an amendment-1 soak (A3): no build, no candidate, no measurement. Only the frozen
+# Prepares a soak (amendment 1, A3): no build, no candidate, no measurement. Only the frozen
 # knotrel-benchmarks tooling is cloned, so run_final_chain.sh --soak can run from it.
 #
 # Usage: prepare_soak.sh FREEZE_SHA N SERIES
-#   FREEZE_SHA knotrel-benchmarks commit containing the amendment's freeze record
-#   N          soak number (at most conformance.soak.max_soaks)
-#   SERIES     attempt series of the amendment (a1)
+#   FREEZE_SHA knotrel-benchmarks commit containing the amendment-2 freeze record (FREEZE-A2.json)
+#   N          soak number, counted across amendments: the number of existing soak directories
+#              plus one (series_budget.sh: a NOT STARTED soak consumes nothing, consumed soaks
+#              stay below conformance.soak.max_soaks)
+#   SERIES     attempt series of the amendment (a2; series a1 is closed)
+# Writes CAMP/LAUNCH-COMMAND.txt: the command the maintainer runs in Terminal.app with Claude quit.
 #
 # Creates /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-SERIES-soakN/ (refuses to reuse it).
 set -eu
@@ -14,15 +17,19 @@ N=$2
 SERIES=$3
 BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 case "$N" in [1-9]) ;; *) echo "soak number must be 1-9" >&2; exit 3;; esac
-case "$SERIES" in a1) ;; *) echo "series must be a1 (amendment 1)" >&2; exit 3;; esac
+case "$SERIES" in a2) ;; a1) echo "series a1 is closed (amendment 2)" >&2; exit 3;; *) echo "series must be a2 (amendment 2)" >&2; exit 3;; esac
 CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-$SERIES-soak$N
 if [ -e "$CAMP" ]; then echo "refusing to reuse $CAMP" >&2; exit 3; fi
-git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A1.json" || { echo "FREEZE-A1.json is not in $FREEZE: the amendment is not frozen" >&2; exit 3; }
+git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A2.json" || { echo "FREEZE-A2.json is not in $FREEZE: the amendment is not frozen" >&2; exit 3; }
+
 sh "$(dirname "$0")/check_restored.sh" || exit 3
 MAX=$(git -C "$BREPO" show "$FREEZE:results/v0.7.0-requalification/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['soak']['max_soaks'])")
-if [ "$N" -gt "$MAX" ]; then echo "soak $N exceeds max_soaks $MAX: the maintainer decides" >&2; exit 3; fi
+# The soak budget counts every soak of every amendment (MATRIX conformance.amendment_2.soak_budget).
+sh "$(dirname "$0")/series_budget.sh" soak "$N" "$MAX" /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-a*-soak[1-9] || exit 3
 mkdir -p "$CAMP/logs" "$CAMP/src/cand"
 git clone --quiet "$BREPO" "$CAMP/src/cand/knotrel-benchmarks"
 git -C "$CAMP/src/cand/knotrel-benchmarks" checkout --quiet --detach "$FREEZE"
 test "$(git -C "$CAMP/src/cand/knotrel-benchmarks" rev-parse HEAD)" = "$FREEZE"
+R=$CAMP/src/cand/knotrel-benchmarks/results/v0.7.0-requalification
+echo "caffeinate -dimsu sh $R/run_final_chain.sh $CAMP - --soak > $CAMP/chain-launch.log 2>&1; echo \"chain exit=\$?\" >> $CAMP/chain-launch.log; tail -4 $CAMP/chain-launch.log" > "$CAMP/LAUNCH-COMMAND.txt"
 echo "PREPARED $CAMP"

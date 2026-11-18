@@ -9,8 +9,10 @@
 #   CAND_SHA   knotrel candidate commit (full SHA)
 #   FREEZE_SHA knotrel-benchmarks commit containing MATRIX.json, PROTOCOL.md and the freeze record
 #   ATTEMPT    attempt number (default 1); attempt N >= 2 uses the suffix -attemptN
-#   SERIES     attempt series of an amendment (amendment 1: a1); the suffix is then
-#              -SERIES-attemptN for every N, including 1
+#   SERIES     attempt series of an amendment (amendment 2: a2; a1 is closed); the suffix is
+#              then -SERIES-attemptN for every N, including 1
+# For an amendment-2 freeze it writes CAMP/LAUNCH-COMMAND.txt: the command the maintainer runs
+# in Terminal.app with Claude quit.
 #
 # Creates /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-<cand8>[-SERIES][-attemptN]/ (refuses to
 # reuse it) with git clones at the recorded commits, derived lockfiles (recorded as diffs),
@@ -28,16 +30,19 @@ KREPO=/Users/rt/workspace/knotrel/knotrel
 BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 C8=$(echo "$CAND" | cut -c1-7)
 CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-$C8
-if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A1.json" 2>/dev/null; then
-  # Amendment 1 (PROTOCOL.md section 8): series a1, cap from the frozen matrix, a conforming
-  # soak first, no unrestored quiesce anywhere.
-  [ "$SERIES" = a1 ] || { echo "FREEZE $FREEZE is amendment 1: pass ATTEMPT and series a1" >&2; exit 3; }
-  CAP=$(git -C "$BREPO" show "$FREEZE:results/v0.7.0-requalification/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['amendment_1']['attempts_cap'])")
+LAUNCH=""
+if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A2.json" 2>/dev/null; then
+  # Amendment 2 (PROTOCOL.md section 9): series a2, cap from the frozen matrix, a conforming
+  # soak from this freeze first, no unrestored quiesce anywhere.
+  [ "$SERIES" = a2 ] || { echo "FREEZE $FREEZE is amendment 2: pass ATTEMPT and series a2" >&2; exit 3; }
+  LAUNCH=1
+  CAP=$(git -C "$BREPO" show "$FREEZE:results/v0.7.0-requalification/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['amendment_2']['attempts_cap'])")
   case "$ATTEMPT" in [1-9]) ;; *) echo "attempt must be 1-9" >&2; exit 3;; esac
-  [ "$ATTEMPT" -le "$CAP" ] || { echo "attempt $ATTEMPT exceeds the cap $CAP: the maintainer decides" >&2; exit 3; }
+  # A NOT STARTED attempt consumes nothing; the first CONFORMING attempt is final (series_budget.sh).
+  sh "$(dirname "$0")/series_budget.sh" attempt "$ATTEMPT" "$CAP" "$CAMP-$SERIES"-attempt[1-9] || exit 3
   # A conforming soak run from this very freeze (its tooling clone is at $FREEZE).
   SOAK_OK=""
-  for D in /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-a1-soak[1-9]; do
+  for D in /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-a2-soak[1-9]; do
     [ -f "$D/logs/CONFORMANCE.txt" ] || continue
     head -1 "$D/logs/CONFORMANCE.txt" | grep -q '^SOAK CONFORMING' || continue
     [ "$(git -C "$D/src/cand/knotrel-benchmarks" rev-parse HEAD 2>/dev/null)" = "$FREEZE" ] && SOAK_OK=1
@@ -45,6 +50,8 @@ if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A1
   [ -n "$SOAK_OK" ] || { echo "no SOAK CONFORMING soak from freeze $FREEZE yet (required before attempt 1)" >&2; exit 3; }
   sh "$(dirname "$0")/check_restored.sh" || exit 3
   CAMP=$CAMP-$SERIES-attempt$ATTEMPT
+elif git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A1.json" 2>/dev/null; then
+  echo "FREEZE $FREEZE is amendment 1: series a1 is closed (amendment 2)" >&2; exit 3
 elif [ -n "$SERIES" ]; then echo "series $SERIES needs an amendment freeze" >&2; exit 3
 elif [ "$ATTEMPT" != 1 ]; then CAMP=$CAMP-attempt$ATTEMPT; fi
 SOURCE_MANIFEST=/Users/rt/workspace/knotrel/evidence/p0-coverage-increment-1-plan-20261030/manifest.json
@@ -140,4 +147,8 @@ for X in cand-server/release/knotrel-server ref-server/release/knotrel-server ca
     echo "$X new=$NEW first=$OLD $( [ "$NEW" = "$OLD" ] && echo identical || echo different )"
   fi
 done > "$L/text-section-compare.txt"
+if [ -n "$LAUNCH" ]; then
+  R=$B/results/v0.7.0-requalification
+  echo "caffeinate -dimsu sh $R/run_final_chain.sh $CAMP $CAND > $CAMP/chain-launch.log 2>&1; echo \"chain exit=\$?\" >> $CAMP/chain-launch.log; tail -4 $CAMP/chain-launch.log" > "$CAMP/LAUNCH-COMMAND.txt"
+fi
 echo "PREPARED $CAMP"

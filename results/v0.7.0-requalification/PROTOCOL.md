@@ -1,8 +1,10 @@
 # Knotrel v0.7.0 re-qualification protocol
 
 **Status:** sections 1–7 were frozen in `FREEZE.json` (2026-11-17) and are
-exhausted (3 NONCONFORMING attempts). **Amendment 1 (§8) is a DRAFT until
-`FREEZE-A1.json` exists in this directory.**
+exhausted (3 NONCONFORMING attempts). Amendment 1 (§8) was frozen in
+`FREEZE-A1.json`. Its series a1 is closed with zero attempts after soak a1-1
+ended SOAK NONCONFORMING. **Amendment 2 (§9) is a DRAFT until
+`FREEZE-A2.json` exists in this directory.**
 - The machine-readable definition is [`MATRIX.json`](MATRIX.json); this file
   explains it.
 - It implements [`RERUN-PROPOSAL.md`](RERUN-PROPOSAL.md), approved by the
@@ -629,3 +631,133 @@ audit.
     invoked from (the worktree at the freeze commit), not from a clone.
   - The manual command `restore --camp <CAMP>` must be run from the tooling
     clone (§8.5).
+
+## 9. Amendment 2 (approved 2026-11-18, "Option A")
+
+**Why.** Soak a1-1 (`evidence/v0.7.0-requalification-a1-soak1`) ended
+`SOAK NONCONFORMING` (exit 13).
+- At 11:11:01Z the controlling Claude Code CLI (pid 32478) spawned
+  `/Library/Developer/CommandLineTools/usr/bin/git` while idle. Git is
+  deny-listed, and rule 2 forbids any new descendant of the controller.
+- There was no human input and no controller tool call.
+- The quiesce, the audit and the restore all worked.
+- The options are in [`AMENDMENT-2-OPTIONS.md`](AMENDMENT-2-OPTIONS.md). The
+  maintainer chose option A.
+
+**What changes.** Only the controller.
+- The maintainer launches the chain from Terminal.app, with Claude quit
+  completely.
+- MATRIX `conformance.controller_kind` is `terminal`. The details are in
+  `conformance.amendment_2`.
+- Unchanged: the rule, the deny-list, HID, liveness, granularity,
+  experiments, seeds, statistics, thresholds and analyzers. The quiesce, the
+  audit and the soak of §8 are also unchanged, except the one allow-list entry
+  below.
+
+### 9.1 Controller check
+
+`conformance_monitor.py policy --controller-kind terminal` runs twice: before
+the quiesce (`logs/policy-prequiesce.json`) and after the grace period (the
+policy). It refuses the launch (NOT STARTED, no attempt consumed) unless:
+- Terminal.app (`/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal`)
+  is the chain's topmost ancestor below launchd;
+- every ancestor in between is at an Apple location. Observed on this host:
+  `login`, `-zsh`, then `caffeinate`;
+- Terminal has no other live descendant: one window, one tab;
+- there is no other Terminal process;
+- no Claude process runs: the desktop app, the Claude Code CLI, or any
+  process named `claude`.
+
+### 9.2 Classes (controller kind `terminal`)
+
+Changes to §3.2:
+- **Rule 2** applies to Terminal's descendants. A new window, a new tab or a
+  command typed in the window is forbidden.
+- **Ancestors are baseline.** Terminal and the chain's ancestors below it are
+  `baseline` right after rule 2, before the deny-list. `login` is
+  deny-listed.
+- **Foreground apps.** The allowed foreground apps are Finder and
+  Terminal.app.
+- **Claude is forbidden.** The Claude desktop app is no longer baseline. Any
+  Claude executable is `forbidden`, wherever it lives.
+- **Scope.** This changes the controller's baseline class, which
+  `soak.allowed_changes_after_a_soak` does not cover. The maintainer approved
+  it as option A.
+  - Net effect: Claude leaves the baseline.
+  - Terminal, `login`, the login shell and `caffeinate` enter the baseline
+    only as the chain's own ancestors.
+
+### 9.3 Claude state (replaces the transcript check)
+
+The size and mtime of every file under `~/.claude/projects` are taken twice:
+- after the grace period, then again `session_stable_s` later. A difference
+  is NOT STARTED;
+- at every gate check and at chain end, compared with that state. A
+  difference is NONCONFORMING (exit 16).
+
+With Claude quit, nothing writes there.
+
+### 9.4 Allow-list
+
+In `quiesce.allow_jobs_prefix`:
+- **Removed:** `application.com.anthropic.claudefordesktop.`, the Claude app,
+  which is now quit.
+- **Added:** `application.com.apple.Terminal.`, Terminal's runningboard job,
+  with program prefix `/System/Applications/Utilities/Terminal.app/`. It has
+  no triggers, and undeterminable triggers are allowed.
+- With Terminal open, the live audit (2026-11-18) failed on this job only,
+  besides the jobs the quiesce handles.
+
+### 9.5 Sequence for the maintainer
+
+1. **Preparation.** The controller (Claude) runs `prepare_soak.sh` or
+   `prepare_campaign.sh`. The prepare script writes the exact command to
+   `CAMP/LAUNCH-COMMAND.txt`, and the controller shows it to the maintainer.
+2. **Host.** §4 and §8 apply: AC power, every application quit, external
+   input devices off.
+3. **Quit Claude.** Quit the Claude desktop app completely (Cmd-Q).
+4. **Open one Terminal window and run the command.** The output goes to
+   `CAMP/chain-launch.log`. The window shows its last lines when the chain
+   ends.
+5. **Leave the Mac** for the whole run. Do not reopen Claude, open a new
+   tab or type anything in the window.
+6. **After the result.** When the window prints the result, reopen Claude
+   and tell the controller. It reads the logs and reports.
+
+A `RESTORE FAILED` line means §8.5 applies.
+
+### 9.6 Accounting
+
+- **Series a1.** Closed with zero attempts, recorded and reported.
+- **Series a2.**
+  - Cap: 3 (`amendment_2.attempts_cap`).
+  - The first CONFORMING attempt is final.
+  - No further series without a prior maintainer decision.
+- **Soaks.** `soak.max_soaks` (2) counts every soak of every amendment.
+  - Soak a1-1 used one, so the only possible a2 soak is
+    `v0.7.0-requalification-a2-soak2`.
+  - A SOAK CONFORMING soak from the amendment-2 freeze is required before
+    attempt 1. `prepare_campaign.sh` enforces this.
+- **Directories.** Attempts go in `…-e75ff6a-a2-attemptN`.
+- **NOT STARTED consumes nothing.** This was already the rule
+  (`grace_period`). `series_budget.sh` now enforces it in both prepare
+  scripts, which is a difference from amendment 1, where the prepare scripts
+  capped the directory number. No NOT STARTED occurred under amendment 1.
+  - Directory numbers are never reused or skipped.
+  - A soak or attempt whose `CONFORMANCE.txt` starts with `NOT STARTED`
+    consumes nothing. FAILED and NONCONFORMING consume.
+  - A directory that was prepared but never launched blocks the next one.
+  - No attempt is prepared after a CONFORMING one.
+- **Prepare scripts.** Both refuse series a1 and amendment-1 freezes.
+
+### 9.7 Limits (disclosed)
+
+- **Transcript limit replaced.** A Claude process that starts and exits
+  between two 0.2 s samples, and writes nothing under `~/.claude/projects`, is
+  not detected. The policy refuses a launch while any Claude process runs.
+- **Typing is not attributed.** Typing in the Terminal window after launch
+  shows up as HID input. Commands run from it show up under rule 2.
+- **Monitor log content.** Tests and the live check confirm that the frozen
+  `claude-cli` mode is unchanged. Policies written before this amendment have
+  no `controller_kind` and load as `claude-cli`.
+
