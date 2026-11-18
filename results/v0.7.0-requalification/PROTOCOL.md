@@ -872,7 +872,7 @@ freeze. The follow-up fixes:
 | N3 zsh `NO_CLOBBER` | not set on this host; with it set, the chain does not start, which is safe |
 | N4 PATH could bring other tools | `launch_command.sh` refuses such a python3 directory |
 | N5 precheck refusal tests | precheck policy and process-check refusals tested, files written pinned, one-liner parsed with `zsh -n` |
-| S2 residue: a reused PID that is no longer an ancestor | the lineage baseline also requires the PID to be an ancestor of the chain in that sample |
+| S2 residue: a reused PID that is no longer an ancestor | the lineage baseline also requires the PID to be an ancestor of the chain in that sample; in terminal mode, rule 2 exempts a recorded PID only under the same condition (found by the new test: a reused PID had fallen through to `system`) |
 | S3 cosmetic: wrong message when only S2 fails | a failure in either reading is reported as "unreadable" |
 | S5 residue: other variables inherited | the values of `PYTHON*`, `DYLD_*`, `RUST*`, `CARGO*`, `LANG` and `LC_*` are recorded |
 | S7 residue: the "no attempt consumed" phrase | `superseded_keys.grace_period` says it is now stricter |
