@@ -401,14 +401,17 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
     """Class of one process (module docstring, rules 1-11)."""
     if proc.pid in campaign:
         return "campaign"
-    if (proc.pid in controller_tree and proc.pid != policy.controller_pid
-            and proc.pid not in policy.controller_children):
-        return "forbidden"
     terminal = policy.controller_kind == "terminal"
     lineage = lineage or set()
-    if (terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children)
-            and proc.path is not None and proc.path == policy.controller_paths.get(proc.pid)
-            and proc.pid in lineage):
+    # Amendment 2: a recorded lineage PID counts as the controller's only while it runs the
+    # recorded executable and is still an ancestor of the chain in this sample.
+    is_lineage = (terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children)
+                  and proc.path is not None and proc.path == policy.controller_paths.get(proc.pid)
+                  and proc.pid in lineage)
+    if (proc.pid in controller_tree and proc.pid != policy.controller_pid
+            and (proc.pid not in policy.controller_children or (terminal and not is_lineage))):
+        return "forbidden"
+    if is_lineage:
         return "baseline"
     if proc.zombie and depth < 8:
         parent = by_pid.get(proc.ppid)
