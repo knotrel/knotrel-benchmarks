@@ -228,10 +228,22 @@ def inventory(runner: Runner = run, uid: Optional[int] = None) -> Dict[str, obje
     uid = os.getuid() if uid is None else uid
     jobs: List[Dict[str, object]] = []
     recorded: List[Dict[str, object]] = []
+    exited: List[Dict[str, object]] = []
     for template in GATED_DOMAINS:
         domain = template.format(uid=uid)
         for label in domain_labels(domain, runner):
-            jobs.append(describe_job(domain, label, runner))
+            info = describe_job(domain, label, runner)
+            if not info["print_ok"]:
+                # Amendment 2 (PROTOCOL §9.10): a job can exit between the domain listing and its
+                # own print (Spotlight's mdworker instances do). Re-list the domain: a label no
+                # longer loaded is recorded as exited; one still loaded is printed once more, and
+                # a second failure stays third-party with unknown triggers (fail closed).
+                if label not in domain_labels(domain, runner):
+                    exited.append({"domain": domain, "label": label, "utc": utc()})
+                    continue
+                info = describe_job(domain, label, runner)
+                info["print_retried"] = True
+            jobs.append(info)
     for domain in RECORDED_DOMAINS:
         try:
             labels = domain_labels(domain, runner)
@@ -243,7 +255,7 @@ def inventory(runner: Runner = run, uid: Optional[int] = None) -> Dict[str, obje
             if not info["apple"]:
                 recorded.append(info)
     return {"utc": utc(), "uid": uid, "apple_locations": list(APPLE_LOCATIONS),
-            "jobs": jobs, "system_third_party": recorded,
+            "jobs": jobs, "exited_during_inventory": exited, "system_third_party": recorded,
             "extensions": extensions(runner), "user_crontab": user_crontab(runner)}
 
 
