@@ -669,10 +669,12 @@ unless:
 - **Terminal is the top.** Terminal.app
   (`/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal`) is
   the chain's topmost ancestor, with launchd as its parent.
-- **Exact lineage.** The ancestors in between are exactly `/usr/bin/login`,
-  `/bin/zsh`, `/usr/bin/caffeinate` (`TERMINAL_LINEAGE`), as observed on this
-  host. Anything else is refused, for example `sudo`, `osascript`, `open`,
-  `script`, another shell, or no `caffeinate`.
+- **Exact lineage.** The ancestors in between are exactly `/usr/bin/login`
+  and `/bin/zsh` (`TERMINAL_LINEAGE`). Anything else is refused, for example
+  `sudo`, `osascript`, `open`, `script`, another shell, or `caffeinate` as a
+  parent.
+- **A `caffeinate` child.** The chain has a live `/usr/bin/caffeinate` child
+  (§9.11).
 - **One window, one tab.** Terminal has no other live descendant.
 - **One Terminal.** There is no other Terminal process.
 - **No Claude process.** None of these runs:
@@ -709,8 +711,8 @@ Changes to §3.2:
   `soak.allowed_changes_after_a_soak` does not cover. The maintainer approved
   it as option A.
   - Net effect: Claude leaves the baseline.
-  - The four Apple executables above enter it only as the chain's own
-    ancestors.
+  - Terminal, `login` and `zsh` enter it only as the chain's own ancestors.
+    `caffeinate` is the chain's child, so it is campaign class.
 
 ### 9.3 Claude state (replaces the transcript check)
 
@@ -926,4 +928,41 @@ warning, the re-list test and the `sys.executable` disclosure (§9.4).
   soak budget.
 - `a2-soak2` is prepared again from revision 2. The soak budget is unchanged:
   one soak left.
+
+### 9.11 Lineage correction (freeze revision 3)
+
+**Decision (2026-11-18):** "Fix and refreeze".
+
+**What happened.** The first launch of a2-soak2 was refused by the precheck,
+so nothing started and no soak was used. The precheck reported the lineage
+`login`, `zsh`, without `caffeinate`.
+
+**Cause.** Revision 2 required `/usr/bin/caffeinate` as an ancestor of the
+chain. That was assumed, not observed: the earlier live check of the Terminal
+tree had stopped at `-zsh`, and the reviews checked the code against the
+assumption. On this host, `caffeinate UTILITY` behaves differently:
+- it execs the utility in its own PID;
+- it forks a `caffeinate` child that holds the assertions on the utility's
+  behalf (`pmset -g assertions`: "caffeinate asserting on behalf of
+  '/bin/sh'").
+
+**Change.**
+- **Lineage.** `TERMINAL_LINEAGE` is `/usr/bin/login`, `/bin/zsh`. The
+  baseline loses `caffeinate`.
+- **Required child.** The policy requires a live `/usr/bin/caffeinate` child
+  of the chain, checked in the precheck and in the chain's policy. This is a
+  new requirement, so it is stricter. The child is a chain descendant, so it
+  is campaign class.
+- **Tests** use the real tree. A live test (`CaffeinateLive`) checks how
+  `caffeinate` behaves on this host. A live check from a `caffeinate`-wrapped
+  shell found the child as expected.
+
+**Freeze.** `FREEZE-A2.json` revision 3 supersedes revision 2 (`58ed921a`).
+- The directory prepared from revision 2 was not launched: the precheck
+  refused, it holds only `logs/precheck-policy-error.txt`, and no data. It is
+  kept, renamed `v0.7.0-requalification-a2-soak2.unlaunched-58ed921a`, and is
+  outside the soak budget.
+- `a2-soak2` is prepared again. The soak budget is unchanged: one soak left.
+- Earlier statements in this section that the lineage including `caffeinate`
+  had been observed were wrong and are corrected above.
 
