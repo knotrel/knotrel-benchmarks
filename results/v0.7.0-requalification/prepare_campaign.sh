@@ -28,7 +28,17 @@ KREPO=/Users/rt/workspace/knotrel/knotrel
 BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 C8=$(echo "$CAND" | cut -c1-7)
 CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-$C8
-if [ -n "$SERIES" ]; then CAMP=$CAMP-$SERIES-attempt$ATTEMPT
+if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A1.json" 2>/dev/null; then
+  # Amendment 1 (PROTOCOL.md section 8): series a1, cap from the frozen matrix, a conforming
+  # soak first, no unrestored quiesce anywhere.
+  [ "$SERIES" = a1 ] || { echo "FREEZE $FREEZE is amendment 1: pass ATTEMPT and series a1" >&2; exit 3; }
+  CAP=$(git -C "$BREPO" show "$FREEZE:results/v0.7.0-requalification/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['amendment_1']['attempts_cap'])")
+  case "$ATTEMPT" in [1-9]) ;; *) echo "attempt must be 1-9" >&2; exit 3;; esac
+  [ "$ATTEMPT" -le "$CAP" ] || { echo "attempt $ATTEMPT exceeds the cap $CAP: the maintainer decides" >&2; exit 3; }
+  ls /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-a1-soak*/logs/CONFORMANCE.txt 2>/dev/null | while read -r f; do head -1 "$f"; done | grep -q '^SOAK CONFORMING' || { echo "no SOAK CONFORMING soak yet (required before attempt 1)" >&2; exit 3; }
+  sh "$(dirname "$0")/check_restored.sh" || exit 3
+  CAMP=$CAMP-$SERIES-attempt$ATTEMPT
+elif [ -n "$SERIES" ]; then echo "series $SERIES needs an amendment freeze" >&2; exit 3
 elif [ "$ATTEMPT" != 1 ]; then CAMP=$CAMP-attempt$ATTEMPT; fi
 SOURCE_MANIFEST=/Users/rt/workspace/knotrel/evidence/p0-coverage-increment-1-plan-20261030/manifest.json
 if [ -e "$CAMP" ]; then echo "refusing to reuse $CAMP" >&2; exit 3; fi

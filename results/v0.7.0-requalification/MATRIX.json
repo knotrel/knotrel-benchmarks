@@ -2701,33 +2701,78 @@
    "park_apps": [
     "/Applications/WhatsApp.app"
    ],
-   "allow_jobs": [
-    "com.docker.helper",
-    "com.google.antigravity-ide.ShipIt",
-    "com.google.antigravity.ShipIt",
-    "com.microsoft.VSCode.ShipIt",
-    "com.jetbrains.toolbox",
-    "com.apple.CoreSimulator.CoreSimulatorService",
-    "com.apple.CoreSimulator.SimulatorTrampoline",
-    "com.apple.CoreSimulator.SimLaunchHost-arm64",
-    "com.apple.CoreSimulator.SimLaunchHost-x86"
-   ],
-   "allow_jobs_prefix": [
-    "application.com.anthropic.claudefordesktop."
-   ],
-   "allow_jobs_reasons": {
-    "com.docker.helper": "SMAppService-submitted (no plist); on demand from Docker Desktop, which is quit",
-    "com.google.antigravity-ide.ShipIt": "submitted by its app; Squirrel updater on demand from the app, which is quit",
-    "com.google.antigravity.ShipIt": "as above",
-    "com.microsoft.VSCode.ShipIt": "as above",
-    "com.jetbrains.toolbox": "RunAtLoad only (fires at load/login, not during a run); booting it out would launch the app at restore",
-    "com.apple.CoreSimulator.*": "Xcode CoreSimulator XPC services under /Library/Developer (on demand; simdiskimaged is already host_baseline)",
-    "application.com.anthropic.claudefordesktop.": "the Claude desktop app's job (label varies); the app is baseline"
+   "allow_jobs": {
+    "com.docker.helper": {
+     "program_prefix": null,
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "SMAppService-submitted (no plist, no program line); on demand from Docker Desktop, which is quit"
+    },
+    "com.google.antigravity-ide.ShipIt": {
+     "program_prefix": "/Applications/Antigravity IDE.app/Contents/Frameworks/Squirrel.framework/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "submitted by its app; Squirrel updater on demand from the app, which is quit"
+    },
+    "com.google.antigravity.ShipIt": {
+     "program_prefix": "/Applications/Antigravity.app/Contents/Frameworks/Squirrel.framework/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "as above"
+    },
+    "com.microsoft.VSCode.ShipIt": {
+     "program_prefix": "/Applications/Visual Studio Code.app/Contents/Frameworks/Squirrel.framework/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "as above"
+    },
+    "com.jetbrains.toolbox": {
+     "program_prefix": "/Applications/JetBrains Toolbox.app/",
+     "triggers": [
+      "RunAtLoad"
+     ],
+     "unreadable_ok": false,
+     "reason": "RunAtLoad only (fires at load/login, not during a run); booting it out would launch the app at restore"
+    },
+    "com.apple.CoreSimulator.CoreSimulatorService": {
+     "program_prefix": "/Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/XPCServices/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "Xcode CoreSimulator XPC service (on demand; its plist is the .xpc bundle); simdiskimaged is already host_baseline"
+    },
+    "com.apple.CoreSimulator.SimulatorTrampoline": {
+     "program_prefix": "/Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/XPCServices/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "Xcode CoreSimulator XPC service (on demand; its plist is the .xpc bundle); simdiskimaged is already host_baseline"
+    },
+    "com.apple.CoreSimulator.SimLaunchHost-arm64": {
+     "program_prefix": "/Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/XPCServices/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "Xcode CoreSimulator XPC service (on demand; its plist is the .xpc bundle); simdiskimaged is already host_baseline"
+    },
+    "com.apple.CoreSimulator.SimLaunchHost-x86": {
+     "program_prefix": "/Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/XPCServices/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "Xcode CoreSimulator XPC service (on demand; its plist is the .xpc bundle); simdiskimaged is already host_baseline"
+    }
+   },
+   "allow_jobs_prefix": {
+    "application.com.anthropic.claudefordesktop.": {
+     "program_prefix": "/Applications/Claude.app/",
+     "triggers": [],
+     "unreadable_ok": true,
+     "reason": "the Claude desktop app's runningboard job (label varies); the app is baseline"
+    }
    },
    "allow_extensions": [],
    "apple_locations": "conformance_monitor.SYSTEM_PREFIXES plus /System/Applications/ (launcher criterion only; process classification unchanged)",
    "restore": "strictly after the monitor stops and CONFORMANCE.txt, the Git state and checksums are written; verified; never overwrites an occupied path; a later quiesce refuses while any manifest under evidence/ lacks a successful restore",
-   "disclosed_side_effect": "bootstrapping com.microsoft.update.agent at restore starts Microsoft Update Assistant (RunAtLoad), after the attempt"
+   "disclosed_side_effect": "bootstrapping com.microsoft.update.agent at restore starts Microsoft Update Assistant (RunAtLoad), after the attempt",
+   "allow_entry_rule": "an allow-listed job must run a program under program_prefix (null: no program line), may declare only the listed autonomous triggers, and may have undeterminable triggers only if unreadable_ok; otherwise the audit fails",
+   "triggers_source": "the plist on disk at audit time (a plist edited after load is read as edited; disclosed)"
   },
   "soak": {
    "duration_s": 4800,

@@ -23,6 +23,52 @@ RQ = REPO / "results/v0.7.0-requalification"
 FROZEN = "cda112c0b5c994a540c2293fe11f5d6aa4cfbc0e"
 
 
+# Real-format samples (macOS 26, 2026-11-18), trimmed.
+LAUNCHCTL_JOB_REAL = """gui/501/com.google.GoogleUpdater.wake = {
+\tactive count = 0
+\tpath = /Users/rt/Library/LaunchAgents/com.google.GoogleUpdater.wake.plist
+\ttype = LaunchAgent
+\tstate = not running
+
+\tprogram = /Users/rt/Library/Application Support/Google/GoogleUpdater/Current/GoogleUpdater.app/Contents/MacOS/GoogleUpdater
+\targuments = {
+\t\t/Users/rt/Library/Application Support/Google/GoogleUpdater/Current/GoogleUpdater.app/Contents/MacOS/GoogleUpdater
+\t\t--wake-all
+\t}
+
+\tdomain = gui/501 [100024]
+\trun interval = 3600 seconds
+}
+"""
+LAUNCHCTL_SUBMITTED_REAL = """gui/501/com.docker.helper = {
+\tactive count = 0
+\tpath = (submitted by smd.412)
+\ttype = Submitted
+\tstate = not running
+
+\tprogram identifier = com.docker.helper (mode: 1)
+\tproperties = supports transactions | resolve program | has LWCR
+}
+"""
+LAUNCHCTL_DOMAIN_REAL = """gui/501 = {
+\ttype = gui
+\thandle = 501
+\tservices = {
+\t\t   16433   (pe) \tcom.apple.syncdefaultsd
+\t\t       0      0 \tcom.google.GoogleUpdater.wake
+\t\t       0     78 \tcom.microsoft.EdgeUpdater.wake
+\t}
+
+\tunmanaged processes = {
+\t\tx
+\t}
+}
+"""
+PLUGINKIT_REAL = ("     com.apple.StoreKit.SKAskPermissionExtension(1.0)\t3F077662-0DB4-54A0-A191-C5961C055B3D\t2026-07-21 00:10:58 +0000\t"
+                  "/System/Library/Frameworks/StoreKit.framework/Versions/A/PlugIns/SKAskPermissionExtension.appex\n"
+                  " (1 plug-ins)\n")
+
+
 def service_text(path, program):
     return f"x = {{\n\tpath = {path}\n\ttype = LaunchAgent\n\n\tprogram = {program}\n}}\n"
 
@@ -60,9 +106,9 @@ class FakeLaunchd:
                 return 0, ""
             return 5, ""
         if cmd[0] == "pluginkit":
-            return 0, ""
+            return 0, PLUGINKIT_REAL
         if cmd[0] == "crontab":
-            return 1, ""
+            return 1, "crontab: no crontab for u\n"
         raise AssertionError(cmd)
 
 
@@ -86,7 +132,7 @@ class Criterion(unittest.TestCase):
         runner = lambda cmd: (0, service_text("/Users/u/Library/LaunchAgents/com.apple.evil.plist", "/bin/sh"))
         job = la.describe_job("gui/501", "com.apple.evil", runner, lambda p: ["StartInterval"])
         self.assertFalse(job["apple"])
-        self.assertEqual(len(la.audit_jobs([job], [], [])), 1)
+        self.assertEqual(len(la.audit_jobs([job], {}, {})), 1)
 
     def test_apple_program_with_third_party_plist(self):
         self.assertFalse(self.job("/Library/LaunchAgents/x.plist", "/usr/bin/python3")["apple"])
@@ -129,16 +175,65 @@ class Audit(unittest.TestCase):
             {"apple": True, "domain": "gui/501", "label": "com.apple.a", "path": "/System/Library/x", "triggers": ["RunAtLoad"]},
         ]
 
+    CLAUDE = {"application.com.anthropic.claudefordesktop.": {"program_prefix": "/Applications/Claude.app/", "unreadable_ok": True}}
+
+    def jobs_with_programs(self):
+        jobs = self.jobs()
+        for j in jobs:
+            j.setdefault("program", "/Applications/Claude.app/Contents/MacOS/Claude" if j["label"].startswith("application.") else "/x/" + j["label"])
+        return jobs
+
     def test_fail_closed_and_allow_lists(self):
-        reasons = la.audit_jobs(self.jobs(), [], ["application.com.anthropic.claudefordesktop."])
+        reasons = la.audit_jobs(self.jobs_with_programs(), {}, self.CLAUDE)
         self.assertEqual(len(reasons), 2)
         self.assertTrue(any("timer" in r for r in reasons) and any("unknown" in r and "undeterminable" in r for r in reasons))
-        self.assertEqual(la.audit_jobs(self.jobs(), ["timer", "unknown"], ["application.com.anthropic.claudefordesktop."]), [])
+        allow = {"timer": {"program_prefix": "/x/", "triggers": ["StartInterval"]},
+                 "unknown": {"program_prefix": "/x/", "unreadable_ok": True}}
+        self.assertEqual(la.audit_jobs(self.jobs_with_programs(), allow, self.CLAUDE), [])
+
+    def test_allow_entries_are_verified_not_trusted(self):
+        jobs = self.jobs_with_programs()
+        # a timer the entry does not permit
+        r = la.audit_jobs(jobs, {"timer": {"program_prefix": "/x/", "triggers": ["RunAtLoad"]}}, self.CLAUDE)
+        self.assertTrue(any("timer" in x and "not permitted" in x for x in r))
+        # wrong program for an allow-listed label (spoofed label)
+        r = la.audit_jobs(jobs, {"timer": {"program_prefix": "/Applications/Good.app/", "triggers": ["StartInterval"]}}, self.CLAUDE)
+        self.assertTrue(any("timer" in x and "outside" in x for x in r))
+        # unreadable triggers without unreadable_ok
+        r = la.audit_jobs(jobs, {"unknown": {"program_prefix": "/x/"}}, self.CLAUDE)
+        self.assertTrue(any("unknown" in x and "undeterminable" in x for x in r))
+        # prefix rule checks the program too
+        spoof = [{"apple": False, "domain": "gui/501", "label": "application.com.anthropic.claudefordesktop.9",
+                  "path": "(submitted by x)", "program": "/tmp/evil", "triggers": None}]
+        self.assertEqual(len(la.audit_jobs(spoof, {}, self.CLAUDE)), 1)
+        # entry expecting no program line
+        nop = [{"apple": False, "domain": "gui/501", "label": "d", "path": "(submitted by smd)", "program": "/x/d", "triggers": None}]
+        self.assertEqual(len(la.audit_jobs(nop, {"d": {"program_prefix": None, "unreadable_ok": True}}, {})), 1)
+
+    def test_real_launchctl_formats(self):
+        self.assertEqual(la.parse_service(LAUNCHCTL_JOB_REAL)["path"], "/Users/rt/Library/LaunchAgents/com.google.GoogleUpdater.wake.plist")
+        self.assertTrue(la.parse_service(LAUNCHCTL_JOB_REAL)["program"].endswith("/MacOS/GoogleUpdater"))
+        sub = la.parse_service(LAUNCHCTL_SUBMITTED_REAL)
+        self.assertEqual(sub, {"path": "(submitted by smd.412)", "program": None})
+        labels = la.domain_labels("gui/501", lambda cmd: (0, LAUNCHCTL_DOMAIN_REAL))
+        self.assertEqual(labels, ["com.apple.syncdefaultsd", "com.google.GoogleUpdater.wake", "com.microsoft.EdgeUpdater.wake"])
+
+    def test_extensions_fail_closed(self):
+        self.assertEqual(len(la.extensions(lambda cmd: (0, PLUGINKIT_REAL))), 1)
+        for bad in ("", " (0 plug-ins)\n", PLUGINKIT_REAL.replace("(1 plug-ins)", "(2 plug-ins)"),
+                    "garbage line\n (1 plug-ins)\n"):
+            with self.assertRaises(RuntimeError):
+                la.extensions(lambda cmd: (0, bad))
+
+    def test_crontab_fail_closed(self):
+        self.assertEqual(la.user_crontab(lambda cmd: (1, "crontab: no crontab for rt\n")), "")
+        with self.assertRaises(RuntimeError):
+            la.user_crontab(lambda cmd: (1, "crontab: permission denied\n"))
 
     def test_extensions(self):
         out = ("     com.apple.x(1.0)\tA\t2026\t/System/Library/X.appex\n"
                "+    net.whatsapp.WhatsApp.ServiceExtension(26)\tB\t2026\t/Applications/WhatsApp.app/Contents/PlugIns/S.appex\n"
-               " (435 plug-ins)\n")
+               " (2 plug-ins)\n")
         rows = la.extensions(lambda cmd: (0, out))
         self.assertEqual([r["id"] for r in rows], ["com.apple.x", "net.whatsapp.WhatsApp.ServiceExtension"])
         self.assertEqual(len(la.audit_extensions(rows, [], lambda p: True)), 1)
@@ -182,7 +277,8 @@ class QuiesceRestore(unittest.TestCase):
         self.assertFalse(self.app.exists())
         self.assertTrue(Path(str(self.app) + la.PARK_SUFFIX).exists())
         self.assertEqual(la.pending(self.root), [str(self.camp / "logs" / la.MANIFEST)])
-        self.assertEqual(len(manifest["manual_restore"]), 3)
+        self.assertEqual(len(manifest["manual_restore"]), 4)  # 2 bootstraps, 1 mv, the restore command
+        self.assertTrue((self.camp / "logs" / "quiesce-inventory.json").exists())
         ok, result = la.restore(self.camp, self.fake)
         self.assertTrue(ok, result)
         self.assertEqual(set(self.fake.jobs), {"keep", "g.wake", "e.wake"})
@@ -244,6 +340,42 @@ class QuiesceRestore(unittest.TestCase):
         self.assertEqual(seen["manifest"]["jobs"][0]["intent"], "bootout")
         self.assertEqual(la.pending(self.root), [str(self.camp / "logs" / la.MANIFEST)])
 
+    def test_parked_path_preexisting_is_left_alone(self):
+        Path(str(self.app) + la.PARK_SUFFIX).mkdir()
+        ok, manifest = self.quiesce()
+        self.assertFalse(ok)
+        self.assertTrue(self.app.exists())
+        ok, result = la.restore(self.camp, self.fake)  # nothing was renamed: nothing to undo
+        self.assertTrue(ok, result)
+        self.assertTrue(self.app.exists() and Path(str(self.app) + la.PARK_SUFFIX).exists())
+        self.assertEqual(la.pending(self.root), [])
+
+    def test_corrupt_result_or_manifest_keeps_pending(self):
+        self.quiesce()
+        (self.camp / "logs" / la.RESULT).write_text("{not json")
+        self.assertEqual(len(la.pending(self.root)), 1)
+        (self.camp / "logs" / la.MANIFEST).write_text("")
+        ok, result = la.restore(self.camp, self.fake)
+        self.assertFalse(ok)
+        self.assertIn("manual procedure", result["error"])
+        self.assertEqual(len(la.pending(self.root)), 1)
+
+    def test_extension_still_resolving_after_park_fails(self):
+        out = (f"     x.ext(1)\tA\t2026\t{self.app}/Contents/PlugIns/S.appex\n (1 plug-ins)\n")
+        def runner(cmd):
+            return (0, out) if cmd[0] == "pluginkit" else self.fake(cmd)
+        ok, manifest = la.quiesce(self.camp, self.conf, runner, uid=501, root=self.root,
+                                  take_inventory=lambda: {}, exists=lambda p: True)
+        self.assertFalse(ok)
+        self.assertTrue(manifest["extensions_after_park"])
+
+    def test_manual_commands_are_quoted(self):
+        m = {"jobs": [{"intent": "bootout", "domain": "gui/501", "plist": "/a b/it's.plist"}],
+             "apps": [{"intent": "rename", "path": "/A/W.app", "parked_path": "/A/W.app.parked-qualification"}]}
+        cmds = la.manual_commands(m)
+        self.assertIn("launchctl bootstrap gui/501 '/a b/it'\"'\"'s.plist'", cmds)
+        self.assertTrue(cmds[1].startswith("mv -n "))
+
     def test_no_manifest_restore_is_ok(self):
         empty = self.root / "empty"
         (empty / "logs").mkdir(parents=True)
@@ -282,16 +414,42 @@ class Chain(unittest.TestCase):
         self.assertIn('gated != {"soak": 1}', soak)
         self.assertIn("SOAK CONFORMING", soak)
 
+    def test_argument_validation_before_any_action(self):
+        chain = str(RQ / "run_final_chain.sh")
+        sha = "e" * 40
+        for args in (["/e/x-soak1", sha, "1", "t"], ["/e/x-a1-attempt1", "-", "1", "t", "--soak"],
+                     ["/e/x-soak1", "-", "1", "t", "--soak", "extra"], ["/e/x-a1-attempt1", sha, "1", "t", "--soakx"],
+                     ["/e/x-a1-attempt1", "abc", "1", "t"], ["/e/x"]):
+            proc = subprocess.run(["sh", chain] + args, capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 2, args)
+        head = self.text[:self.text.index("B=$CAMP/src")]
+        self.assertNotIn("launcher_audit", head.split("set -u", 1)[1].split("CAMP=$1")[0])
+
+    def test_finish_ignores_second_signal_and_reports_restore(self):
+        finish = self.text[self.text.index("finish() {"):self.text.index("trap finish EXIT")]
+        self.assertIn("trap '' INT TERM HUP", finish)
+        self.assertIn("stamp RESTORE", finish)
+        self.assertIn("exit 21", finish)
+
     def test_relaunch_refused_after_quiesce(self):
         self.assertIn('"$L/quiesce-restore.json"; do', self.text)
 
     def test_prepare_series_and_soak(self):
         prep = (RQ / "prepare_campaign.sh").read_text()
         self.assertIn('CAMP=$CAMP-$SERIES-attempt$ATTEMPT', prep)
+        for needle in ("FREEZE-A1.json", "attempts_cap", "SOAK CONFORMING", "check_restored.sh"):
+            self.assertIn(needle, prep)
+        self.assertLess(prep.index("check_restored.sh"), prep.index('mkdir -p "$CAMP/logs"'))
         soak = (RQ / "prepare_soak.sh").read_text()
         self.assertNotIn("cargo", soak)
         self.assertNotIn("rm -rf", soak)
-        self.assertLess(soak.index("max_soaks"), soak.index("mkdir"))
+        for needle in ("max_soaks", "FREEZE-A1.json", "check_restored.sh", "[1-9]) ;;"):
+            self.assertLess(soak.index(needle), soak.index("mkdir"), needle)
+
+    def test_prepare_soak_refuses_bad_number(self):
+        for n in ("0", "1a", "10"):
+            proc = subprocess.run(["sh", str(RQ / "prepare_soak.sh"), "deadbeef", n, "a1"], capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 3, n)
 
 
 class MatrixAmendment(unittest.TestCase):
@@ -313,9 +471,10 @@ class MatrixAmendment(unittest.TestCase):
         self.assertEqual(q["park_apps"], ["/Applications/WhatsApp.app"])
         self.assertEqual(q["allow_extensions"], [])
         self.assertFalse(set(q["launchd"]) & set(q["allow_jobs"]))
-        for label in q["allow_jobs"]:
-            self.assertTrue(label in q["allow_jobs_reasons"] or any(
-                k.endswith("*") and label.startswith(k[:-1]) for k in q["allow_jobs_reasons"]), label)
+        for label, entry in list(q["allow_jobs"].items()) + list(q["allow_jobs_prefix"].items()):
+            self.assertTrue(entry.get("reason"), label)
+            self.assertIn("program_prefix", entry, label)
+            self.assertLessEqual(set(entry.get("triggers", [])), {"RunAtLoad"}, label)
         soak = json.loads((RQ / "MATRIX.json").read_text())["conformance"]["soak"]
         self.assertEqual((soak["duration_s"], soak["max_soaks"]), (4800, 2))
 

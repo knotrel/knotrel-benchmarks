@@ -26,6 +26,7 @@ import json
 import os
 import plistlib
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -49,8 +50,9 @@ Runner = Callable[[Sequence[str]], Tuple[int, str]]
 
 
 def run(cmd: Sequence[str]) -> Tuple[int, str]:
+    """(exit code, stdout); on failure stderr is appended so callers can read the reason."""
     proc = subprocess.run(list(cmd), capture_output=True, text=True, env=cm.C_ENV)
-    return proc.returncode, proc.stdout
+    return proc.returncode, proc.stdout if proc.returncode == 0 else proc.stdout + proc.stderr
 
 
 def utc() -> str:
@@ -125,14 +127,46 @@ def describe_job(domain: str, label: str, runner: Runner = run,
     return info
 
 
-def audit_jobs(jobs: List[Dict[str, object]], allow: Sequence[str], allow_prefix: Sequence[str]) -> List[str]:
-    """A2 rule 1: third-party, not allowed, autonomous or unknown triggers."""
+def allow_entry(label: str, allow: Dict[str, Dict[str, object]],
+                allow_prefix: Dict[str, Dict[str, object]]) -> Optional[Dict[str, object]]:
+    if label in allow:
+        return allow[label]
+    for prefix, entry in allow_prefix.items():
+        if label.startswith(prefix):
+            return entry
+    return None
+
+
+def allowed(job: Dict[str, object], entry: Dict[str, object]) -> Optional[str]:
+    """None if the job matches its allow-list entry, else why not. An entry names the program
+    prefix the job must run (None: the job must have no program line), the autonomous triggers
+    it may declare, and whether undeterminable triggers are acceptable."""
+    prog, prefix = job.get("program"), entry.get("program_prefix")
+    if prefix is None:
+        if prog is not None:
+            return f"program {prog!r} present, entry expects none"
+    elif not (isinstance(prog, str) and prog.startswith(str(prefix))):
+        return f"program {prog!r} outside {prefix!r}"
+    trig = job.get("triggers")
+    if trig is None:
+        return None if entry.get("unreadable_ok") else "triggers undeterminable"
+    extra = sorted(set(trig) - set(entry.get("triggers", [])))  # type: ignore[arg-type]
+    return f"triggers {extra} not permitted by its entry" if extra else None
+
+
+def audit_jobs(jobs: List[Dict[str, object]], allow: Dict[str, Dict[str, object]],
+               allow_prefix: Dict[str, Dict[str, object]]) -> List[str]:
+    """A2 rule 1: third-party, not matching an allow-list entry, autonomous or unknown triggers."""
     reasons = []
     for job in jobs:
         if job["apple"]:
             continue
         label = str(job["label"])
-        if label in allow or any(label.startswith(p) for p in allow_prefix):
+        entry = allow_entry(label, allow, allow_prefix)
+        if entry is not None:
+            why = allowed(job, entry)
+            if why:
+                reasons.append(f"{job['domain']}/{label}: allow-listed but {why}")
             continue
         trig = job["triggers"]
         if trig is None:
@@ -151,11 +185,21 @@ def extensions(runner: Runner = run) -> List[Dict[str, object]]:
     if rc != 0:
         raise RuntimeError(f"pluginkit failed ({rc})")
     rows = []
+    footer = None
     for line in out.splitlines():
+        m = re.match(r"^\s*\((\d+) plug-ins?\)\s*$", line)
+        if m:
+            footer = int(m.group(1))
+            continue
+        if not line.strip():
+            continue
         parts = line.strip().split("\t")
-        if len(parts) >= 4 and parts[-1].startswith("/"):
-            ident = re.sub(r"\(.*\)$", "", parts[0]).lstrip("+-=! ").strip()
-            rows.append({"id": ident, "path": parts[-1]})
+        if len(parts) < 4 or not parts[-1].startswith("/"):
+            raise RuntimeError(f"pluginkit: unparsable line {line!r}")
+        ident = re.sub(r"\(.*\)$", "", parts[0]).lstrip("+-=! ").strip()
+        rows.append({"id": ident, "path": parts[-1]})
+    if footer is None or footer != len(rows) or not rows:
+        raise RuntimeError(f"pluginkit: parsed {len(rows)} extensions, footer {footer}")
     return rows
 
 
@@ -169,7 +213,11 @@ def audit_extensions(rows: List[Dict[str, object]], allow: Sequence[str],
 
 def user_crontab(runner: Runner = run) -> str:
     rc, out = runner(["crontab", "-l"])
-    return out if rc == 0 else ""
+    if rc == 0:
+        return out
+    if "no crontab for" in out:
+        return ""
+    raise RuntimeError(f"crontab -l failed ({rc}): {out.strip()!r}")
 
 
 # --- inventory and audit ---------------------------------------------------------------
@@ -199,8 +247,8 @@ def inventory(runner: Runner = run, uid: Optional[int] = None) -> Dict[str, obje
 
 def audit(inv: Dict[str, object], quiesce: Dict[str, object],
           exists: Callable[[str], bool] = os.path.exists) -> List[str]:
-    reasons = audit_jobs(inv["jobs"], quiesce.get("allow_jobs", []),  # type: ignore[arg-type]
-                         quiesce.get("allow_jobs_prefix", []))  # type: ignore[arg-type]
+    reasons = audit_jobs(inv["jobs"], quiesce.get("allow_jobs", {}),  # type: ignore[arg-type]
+                         quiesce.get("allow_jobs_prefix", {}))  # type: ignore[arg-type]
     reasons += audit_extensions(inv["extensions"], quiesce.get("allow_extensions", []), exists)  # type: ignore[arg-type]
     cron = str(inv.get("user_crontab", ""))
     if any(line.strip() and not line.lstrip().startswith("#") for line in cron.splitlines()):
@@ -211,17 +259,31 @@ def audit(inv: Dict[str, object], quiesce: Dict[str, object],
 # --- quiesce and restore ---------------------------------------------------------------
 
 def _write(path: Path, data: Dict[str, object]) -> None:
-    cm.write_atomic(path, data)
+    """Atomic and durable: write, fsync, rename, fsync the directory."""
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "w") as fh:
+        json.dump(data, fh, indent=1)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+    fd = os.open(str(path.parent), os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def manual_commands(manifest: Dict[str, object]) -> List[str]:
+    """Commands for every action that was started (intent recorded), quoted for sh."""
     cmds = []
     for job in manifest.get("jobs", []):  # type: ignore[union-attr]
-        if job.get("booted_out"):
-            cmds.append(f"launchctl bootstrap {job['domain']} '{job['plist']}'")
+        if job.get("intent") == "bootout":
+            cmds.append(f"launchctl bootstrap {job['domain']} {shlex.quote(str(job['plist']))}")
     for app in manifest.get("apps", []):  # type: ignore[union-attr]
-        if app.get("parked"):
-            cmds.append(f"mv '{app['parked_path']}' '{app['path']}'")
+        if app.get("intent") == "rename":
+            cmds.append(f"mv -n {shlex.quote(str(app['parked_path']))} {shlex.quote(str(app['path']))}")
+    if cmds:
+        cmds.append("python3 scripts/launcher_audit.py restore --camp <CAMP>  # records the restore and clears 'pending'")
     return cmds
 
 
@@ -246,98 +308,128 @@ def job_loaded(domain: str, label: str, runner: Runner = run) -> bool:
 
 
 def quiesce(camp: Path, conf: Dict[str, object], runner: Runner = run,
-            uid: Optional[int] = None, root: Path = EVIDENCE_ROOT) -> Tuple[bool, Dict[str, object]]:
-    """A1. The manifest is written before every action and updated after it."""
+            uid: Optional[int] = None, root: Path = EVIDENCE_ROOT,
+            take_inventory: Optional[Callable[[], Dict[str, object]]] = None,
+            exists: Callable[[str], bool] = os.path.exists) -> Tuple[bool, Dict[str, object]]:
+    """A1. Inventory first; the manifest records each action's intent (and its manual inverse)
+    before the action and its outcome after it."""
     uid = os.getuid() if uid is None else uid
     logs = camp / "logs"
     stale = pending(root)
     if stale:
         return False, {"refused": "unrestored quiesce manifest(s)", "manifests": stale}
+    take_inventory = take_inventory or (lambda: inventory(runner, uid))
+    try:
+        _write(logs / "quiesce-inventory.json", take_inventory())
+    except RuntimeError as error:
+        return False, {"refused": f"inventory failed: {error}"}
     domain = f"gui/{uid}"
-    manifest: Dict[str, object] = {"utc": utc(), "camp": str(camp), "jobs": [], "apps": [], "errors": []}
+    manifest: Dict[str, object] = {"utc": utc(), "camp": str(camp), "jobs": [], "apps": [], "errors": [],
+                                   "manual_restore": []}
     path = logs / MANIFEST
     _write(path, manifest)
     ok = True
+
+    def record() -> None:
+        manifest["manual_restore"] = manual_commands(manifest)
+        _write(path, manifest)
+
     for label in conf.get("launchd", []):  # type: ignore[union-attr]
         job: Dict[str, object] = {"domain": domain, "label": label, "booted_out": False}
+        manifest["jobs"].append(job)  # type: ignore[union-attr]
         rc, out = runner(["launchctl", "print", f"{domain}/{label}"])
         if rc != 0:
             job["loaded_before"] = False
-            manifest["jobs"].append(job)  # type: ignore[union-attr]
-            _write(path, manifest)
+            record()
             continue
         info = parse_service(out)
-        job.update({"loaded_before": True, "plist": info["path"], "intent": "bootout"})
-        manifest["jobs"].append(job)  # type: ignore[union-attr]
-        manifest["manual_restore"] = manual_commands(manifest) + [
-            f"launchctl bootstrap {domain} '{info['path']}'"]
-        _write(path, manifest)
+        job.update({"loaded_before": True, "plist": info["path"]})
         if not (isinstance(info["path"], str) and info["path"].startswith("/")):
             manifest["errors"].append(f"{label}: no plist to restore from; not booted out")  # type: ignore[union-attr]
             ok = False
-            _write(path, manifest)
+            record()
             continue
+        job["intent"] = "bootout"
+        record()
         runner(["launchctl", "bootout", f"{domain}/{label}"])
         gone = not job_loaded(domain, label, runner)
         job["booted_out"] = gone
         if not gone:
             manifest["errors"].append(f"{label}: still loaded after bootout")  # type: ignore[union-attr]
             ok = False
-        manifest["manual_restore"] = manual_commands(manifest)
-        _write(path, manifest)
+        record()
     for app_path in conf.get("park_apps", []):  # type: ignore[union-attr]
         parked = app_path + PARK_SUFFIX
         app: Dict[str, object] = {"path": app_path, "parked_path": parked, "parked": False}
         manifest["apps"].append(app)  # type: ignore[union-attr]
         if not os.path.exists(app_path):
             app["present_before"] = False
-            _write(path, manifest)
+            record()
             continue
         app["present_before"] = True
         if os.path.exists(parked):
             manifest["errors"].append(f"{parked} already exists; not parked")  # type: ignore[union-attr]
             ok = False
-            _write(path, manifest)
+            record()
             continue
         app["intent"] = "rename"
-        _write(path, manifest)
+        record()
         try:
             os.rename(app_path, parked)
             app["parked"] = True
         except OSError as error:
             manifest["errors"].append(f"{app_path}: rename failed: {error}")  # type: ignore[union-attr]
             ok = False
-        manifest["manual_restore"] = manual_commands(manifest)
-        _write(path, manifest)
+        record()
+    # Parked bundles must no longer resolve for any extension pluginkit knows.
+    try:
+        rows = extensions(runner)
+        prefixes = tuple(str(a["path"]).rstrip("/") + "/" for a in manifest["apps"] if a.get("parked"))  # type: ignore[union-attr]
+        still = [r for r in rows if prefixes and str(r["path"]).startswith(prefixes) and exists(str(r["path"]))]
+        manifest["extensions_after_park"] = still
+        if still:
+            manifest["errors"].append(f"extensions still resolve after parking: {still}")  # type: ignore[union-attr]
+            ok = False
+    except RuntimeError as error:
+        manifest["errors"].append(f"pluginkit check after parking failed: {error}")  # type: ignore[union-attr]
+        ok = False
     manifest["quiesce_ok"] = ok
     manifest["finished_utc"] = utc()
-    _write(path, manifest)
+    record()
     return ok, manifest
 
 
 def restore(camp: Path, runner: Runner = run) -> Tuple[bool, Dict[str, object]]:
-    """Inverse of every recorded action, verified; never overwrites an occupied path."""
+    """Inverse of every action whose intent was recorded, verified; never overwrites an
+    occupied path. Actions never started (no intent) are not touched."""
     path = camp / "logs" / MANIFEST
     if not path.exists():
         return True, {"utc": utc(), "ok": True, "note": "no manifest"}
-    manifest = json.loads(path.read_text())
+    try:
+        manifest = json.loads(path.read_text())
+    except ValueError as error:
+        result = {"utc": utc(), "ok": False, "error": f"manifest unreadable ({error}); use the manual procedure "
+                  "in PROTOCOL.md section 8.5, then re-run restore after replacing the manifest"}
+        _write(camp / "logs" / RESULT, result)
+        return False, result
     actions: List[Dict[str, object]] = []
     ok = True
     for job in manifest.get("jobs", []):
-        if not job.get("loaded_before") or not job.get("plist"):
+        plist = job.get("plist")
+        if job.get("intent") != "bootout" or not (isinstance(plist, str) and plist.startswith("/")):
             continue
         domain, label = job["domain"], job["label"]
         row: Dict[str, object] = {"label": label}
         if job_loaded(domain, label, runner):
             row["result"] = "already loaded"
         else:
-            rc, _ = runner(["launchctl", "bootstrap", domain, job["plist"]])
+            rc, _ = runner(["launchctl", "bootstrap", domain, plist])
             row["bootstrap_rc"] = rc
             row["result"] = "restored" if job_loaded(domain, label, runner) else "FAILED"
         ok &= row["result"] != "FAILED"
         actions.append(row)
     for app in manifest.get("apps", []):
-        if not app.get("present_before"):
+        if app.get("intent") != "rename":
             continue
         orig, parked = app["path"], app["parked_path"]
         row = {"path": orig}
