@@ -17,6 +17,7 @@ SCRIPTS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS))
 
 import conformance_monitor as cm  # noqa: E402
+import launcher_audit as la  # noqa: E402
 
 REPO = SCRIPTS.parent
 RQ = REPO / "results/v0.7.0-requalification"
@@ -539,6 +540,75 @@ elif sys.argv[1] == "check" and os.environ["STUB_CHECK"] == "fail":
 else:
     print("{}")
 """
+
+
+APPLE_PRINT = """gui/501/{label} = {{
+\tpath = /System/Library/LaunchAgents/com.apple.mdworker.shared.plist
+\ttype = LaunchAgent
+\tprogram = /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+}}
+"""
+
+
+def domain_text(labels):
+    return "x = {\n\tservices = {\n" + "".join(f"\t\t       0      - \t{l}\n" for l in labels) + "\t}\n}\n"
+
+
+class InventoryRace(unittest.TestCase):
+    """A job that exits between the domain listing and its print (amendment 2, PROTOCOL §9.10)."""
+
+    def make_runner(self, listings, prints):
+        calls = {"list": 0}
+        def runner(cmd):
+            target = cmd[-1]
+            if cmd[:2] == ["launchctl", "print"] and target.count("/") <= 1:
+                if target != "gui/501":
+                    return 0, domain_text([])
+                n = calls["list"]
+                calls["list"] += 1
+                seq = listings[target]
+                return 0, domain_text(seq[min(n, len(seq) - 1)])
+            if cmd[:2] == ["launchctl", "print"]:
+                label = target.split("/", 2)[2]
+                queue = prints.get(label, [])
+                rc = queue.pop(0) if queue else 113
+                return (0, APPLE_PRINT.format(label=label)) if rc == 0 else (113, "Could not find service")
+            if cmd[:2] == ["pluginkit", "-mAvvv"] or cmd[0] == "pluginkit":
+                return 0, "\n(0 plug-ins)\n"
+            if cmd[0] == "crontab":
+                return 1, "crontab: no crontab for rt\n"
+            return 1, ""
+        return runner
+
+    def inv(self, listings, prints):
+        r = self.make_runner(listings, prints)
+        orig_ext, orig_cron = la.extensions, la.user_crontab
+        la.extensions = lambda runner=None: []
+        la.user_crontab = lambda runner=None: ""
+        try:
+            return la.inventory(r, uid=501)
+        finally:
+            la.extensions, la.user_crontab = orig_ext, orig_cron
+
+    def test_exited_job_is_recorded_not_audited(self):
+        lab = "com.apple.mdworker.shared.07000000-0000-0000-0000-000000000000"
+        inv = self.inv({"gui/501": [[lab, "com.apple.ok"], ["com.apple.ok"]]}, {lab: [113], "com.apple.ok": [0]})
+        self.assertEqual([j["label"] for j in inv["jobs"]], ["com.apple.ok"])
+        self.assertEqual([e["label"] for e in inv["exited_during_inventory"]], [lab])
+        self.assertEqual(la.audit(inv, {}), [])
+
+    def test_still_listed_is_retried_once(self):
+        lab = "com.apple.mdworker.shared.1"
+        inv = self.inv({"gui/501": [[lab]]}, {lab: [113, 0]})
+        self.assertTrue(inv["jobs"][0]["apple"])
+        self.assertTrue(inv["jobs"][0]["print_retried"])
+        self.assertEqual(la.audit(inv, {}), [])
+
+    def test_second_failure_fails_closed(self):
+        lab = "com.example.thing"
+        inv = self.inv({"gui/501": [[lab]]}, {lab: [113, 113]})
+        self.assertFalse(inv["jobs"][0]["apple"])
+        self.assertTrue(la.audit(inv, {}))
 
 
 if __name__ == "__main__":

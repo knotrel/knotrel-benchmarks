@@ -884,3 +884,34 @@ findings. Two minor findings, both fixed:
 | M-a possible secrets in `prelaunch-host.txt` | values whose names contain TOKEN, SECRET, PASSWORD or KEY are redacted |
 | M-b the python3-directory check used a fixed tool list | `PATH` starts with `CAMP/bin`, which holds only a `python3` symlink. The python.org directory on this host holds about 50 other tools, so an allow-list was not workable |
 
+### 9.10 Audit race (freeze revision 2)
+
+**Decision (2026-11-18):** "Fix and refreeze".
+
+**Why.** Spotlight starts and ends `com.apple.mdworker.shared.<id>` instances
+in the gui and user domains all the time.
+- An instance that exits between the domain listing and its own
+  `launchctl print` could not be read.
+- The audit then failed closed, and the launch was NOT STARTED.
+- §8.2 already disclosed this as a NOT STARTED cause. With one soak left and
+  every directory counted, it would exhaust the soaks.
+- It was seen in a live audit on 2026-11-18, while Spotlight was indexing.
+
+**Change (`launcher_audit.py inventory`).** When printing a job in a gated
+domain fails, the audit lists the domain again:
+- **Label gone:** a job no longer loaded can't fire. It is recorded in
+  `exited_during_inventory` and not audited.
+- **Label still there:** the job is printed once more. A second failure is
+  still third-party with unknown triggers, so the audit fails closed.
+
+Nothing else in the audit changes. The tests cover the exited, retried and
+second-failure cases.
+
+**Freeze.** `FREEZE-A2.json` revision 2 supersedes freeze `e57106bc`.
+- The soak directory prepared from `e57106bc` was never launched and holds no
+  data. It is kept, renamed
+  `v0.7.0-requalification-a2-soak2.unlaunched-e57106bc`, and is outside the
+  soak budget.
+- `a2-soak2` is prepared again from revision 2. The soak budget is unchanged:
+  one soak left.
+
