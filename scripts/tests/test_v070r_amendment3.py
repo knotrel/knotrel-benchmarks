@@ -124,6 +124,97 @@ class ChainAndPrepare(unittest.TestCase):
         self.assertIn("amendment 3 has no soaks", soak)
 
 
+CHAIN_PY = ("conformance_monitor.py", "conformance_gate.py", "launcher_audit.py", "run_v070r_collect.py",
+            "run_p0_aa.py", "run_lifecycle_qualification.py", "run_v060_qualification.py",
+            "analyze_bc_qualification.py", "prepare_bc_qualification.py")
+CALLS = {"run", "runner", "check_output", "check_call", "call", "Popen", "command", "optional_command"}
+
+
+def bare_name_calls():
+    """Programs run by bare name in the chain's Python code: {name: [file:line]}."""
+    import ast
+    found = {}
+    for name in CHAIN_PY:
+        tree = ast.parse((SCRIPTS / name).read_text())
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not node.args:
+                continue
+            func = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+            first = node.args[0]
+            if func in CALLS and isinstance(first, (ast.List, ast.Tuple)) and first.elts \
+                    and isinstance(first.elts[0], ast.Constant) and isinstance(first.elts[0].value, str) \
+                    and "/" not in first.elts[0].value:
+                found.setdefault(first.elts[0].value, []).append(f"{name}:{node.lineno}")
+    return found
+
+
+class LaunchEnvironment(unittest.TestCase):
+    """Amendment 3, revision 2 (PROTOCOL.md 10.7): a3-2 failed at B/C on a missing rustc."""
+    tools = {l.strip() for l in (RQ / "launch_tools.txt").read_text().splitlines() if l.strip() and not l.startswith("#")}
+    check = RQ / "launch_env_check.sh"
+
+    def test_launch_tools_cover_every_bare_name_call(self):
+        calls = bare_name_calls()
+        self.assertIn("rustc", calls)  # the a3-2 cause (run_lifecycle_qualification provenance)
+        self.assertIn("git", calls)
+        self.assertEqual(set(calls), self.tools, calls)
+
+    def test_system_tools_resolve_without_camp_bin(self):
+        for tool in self.tools - {"rustc"}:
+            r = subprocess.run(["/bin/sh", "-c", f"command -v {tool}"], capture_output=True, text=True,
+                               env={"PATH": "/usr/bin:/bin:/usr/sbin:/sbin"})
+            self.assertEqual(r.returncode, 0, tool)
+
+    def test_prepare_links_rustc_and_runs_the_check_before_the_launch_command(self):
+        prep = (RQ / "prepare_campaign.sh").read_text()
+        link, check, launch = (prep.index('ln -s "$(command -v rustc)" "$CAMP/bin/rustc"'),
+                               prep.index("launch_env_check.sh"), prep.index("launch_command.sh\""))
+        self.assertLess(link, check)
+        self.assertLess(check, launch)
+        self.assertIn('env -i HOME="$HOME"', prep)
+        self.assertIn('PATH="$CAMP/bin:/usr/bin:/bin:/usr/sbin:/sbin" /bin/sh', prep)
+
+    def test_precheck_runs_the_check_before_ok(self):
+        pre = (RQ / "precheck_terminal.sh").read_text()
+        self.assertLess(pre.index("launch_env_check.sh"), pre.index('echo "PRECHECK OK'))
+        self.assertIn('"$L/precheck-launch-env.txt"', pre)
+
+    def test_check_runs_every_collector_dry_run_with_the_chain_arguments(self):
+        text = self.check.read_text()
+        chain = (RQ / "run_final_chain.sh").read_text()
+        for step in ("a", "bc", "r", "rmem", "mdesc", "mreg"):
+            self.assertIn(f"scripts/run_v070r_collect.py {step} ", text, step)
+        self.assertEqual(text.count("--dry-run"), 6)
+        # B/C: the same arguments as the chain, apart from --out.
+        bc_chain = chain[chain.index("run_v070r_collect.py bc"):].split("\n")[0]
+        bc_args = bc_chain[bc_chain.index("--profile"):bc_chain.index(" >")]
+        self.assertIn(bc_args, text)
+        self.assertIn("unset KNOTREL_GATE_DIR", text)
+        self.assertIn("rustc +1.100.0 -Vv", text)
+
+    def _run(self, path, bin_entries):
+        with tempfile.TemporaryDirectory() as d:
+            camp = Path(d)
+            (camp / "bin").mkdir()
+            for e in bin_entries:
+                (camp / "bin" / e).symlink_to("/usr/bin/true")
+            (camp / "src/cand/knotrel-benchmarks").mkdir(parents=True)
+            out = camp / "report.txt"
+            r = subprocess.run(["/bin/sh", str(self.check), str(camp), str(out)], capture_output=True, text=True,
+                               env={"PATH": path.replace("CAMP", str(camp)), "HOME": os.environ["HOME"]})
+            return r, out.read_text() if out.exists() else ""
+
+    def test_check_refuses_another_path(self):
+        r, report = self._run("CAMP/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin", ["python3", "rustc"])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("LAUNCH-ENV FAILED: PATH is", report)
+
+    def test_check_refuses_camp_bin_without_rustc(self):
+        r, report = self._run("CAMP/bin:/usr/bin:/bin:/usr/sbin:/sbin", ["python3"])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("CAMP/bin must hold exactly python3 and rustc", report)
+
+
 class MatrixAmendment3(unittest.TestCase):
     def test_only_declared_keys_change_from_amendment_2(self):
         frozen = json.loads(subprocess.run(["git", "-C", str(REPO), "show", f"{FREEZE_A2}:results/v0.7.0-requalification/MATRIX.json"],

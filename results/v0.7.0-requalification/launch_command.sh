@@ -3,7 +3,7 @@
 # (zsh) with Claude quit. Used by prepare_soak.sh and prepare_campaign.sh (CAMP/LAUNCH-COMMAND.txt).
 #
 # Usage: launch_command.sh CAMP CAND [--soak]
-# The command: pins PATH to CAMP/bin (only python3, linked by the prepare script) plus the
+# The command: pins PATH to CAMP/bin (python3 and rustc, linked by the prepare script) plus the
 # system directories;
 # runs precheck_terminal.sh (read-only) and only if it passes the chain, both as
 # /usr/bin/caffeinate -dimsu /bin/sh ... (the lineage the policy requires) with stdin from
@@ -13,8 +13,8 @@ CAMP=${1%/}
 CAND=$2
 EXTRA=${3:-}
 case "$CAMP" in *[!A-Za-z0-9_./-]*) echo "unsupported character in $CAMP" >&2; exit 3;; esac
-# PATH starts with CAMP/bin, which the prepare script fills with one entry: a python3 symlink to
-# the python3 it used. No other tool comes ahead of /usr/bin.
+# PATH starts with CAMP/bin, which the prepare script fills with two links (PROTOCOL.md 10.7): python3 to
+# the python3 it used, rustc to its rustup proxy. No other tool comes ahead of /usr/bin.
 PYDIR=$CAMP/bin
 R=$CAMP/src/cand/knotrel-benchmarks/results/v0.7.0-requalification
 LOG=$CAMP/chain-launch.log
