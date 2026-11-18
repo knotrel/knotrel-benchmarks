@@ -1086,3 +1086,18 @@ An independent reviewer read the draft (`c35c1929`). It found no blockers.
 | M2 `background_allowed` output undeclared | declared in `amendment_3.cli_differences` |
 | M3 series a2 refused for the wrong reason | explicit refusal: series a2 is closed |
 
+**Re-verification (`c35c1929..dfbee540`).** All seven findings are fixed,
+with no blockers and no should-fix findings. Three minor points are
+disclosed and not changed:
+- **A false positive is possible, but no worse than before.** An unresolved
+  `com.apple.appkit.xpc.VersionsUIHelper`, cut to `(com.apple.appkit)`,
+  matches a deny name by prefix and is forbidden. It runs only when someone
+  opens the Versions UI, and before amendment 3 it was forbidden in that
+  state anyway.
+- **The command-line scan fails open.** If `ps -Ao pid=,args=` fails, no
+  Claude PID is found. The scan is supplementary: Claude by path or name is
+  still forbidden, and the precheck refuses while any Claude process runs.
+- **The report marking gets its own review.** The marking code for the 25%
+  limit is written after the freeze. It is reviewed independently before the
+  analysis, against the limit fixed here.
+
