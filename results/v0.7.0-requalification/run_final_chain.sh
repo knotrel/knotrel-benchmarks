@@ -7,6 +7,7 @@
 # the prepare script: precheck_terminal.sh, then this chain) in the only window of Terminal.app,
 # with Claude (desktop app and Claude Code CLI) quit completely:
 #   /usr/bin/caffeinate -dimsu /bin/sh run_final_chain.sh CAMP CAND_SHA [--soak] < /dev/null
+# (caffeinate execs the chain in its own PID and asserts from a caffeinate child: PROTOCOL.md 9.11)
 #   CAMP            campaign directory made by prepare_campaign.sh (prepare_soak.sh for --soak)
 #   CAND_SHA        knotrel candidate commit ("-" with --soak)
 #   --soak          amendment 1, A3: run everything except the experiments; one gated campaign

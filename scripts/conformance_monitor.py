@@ -62,8 +62,7 @@ the chain is launched from Terminal.app with no Claude process running. The
 controller is then the Terminal.app process. Changes to the rules above:
 - rule 2 applies to Terminal's descendants (another window or tab is forbidden);
 - the controller and the chain's ancestors below it, which must be exactly
-  ``/usr/bin/login``, ``/bin/zsh`` and ``/usr/bin/caffeinate``
-  (``TERMINAL_LINEAGE``), are ``baseline`` right after rule 2, before the
+  ``/usr/bin/login`` and ``/bin/zsh`` (``TERMINAL_LINEAGE``), are ``baseline`` right after rule 2, before the
   deny-list (``login`` is deny-listed), only while each PID still runs the
   executable the policy recorded for it (``Policy.controller_paths``); a
   reused PID falls through to the other rules;
@@ -75,7 +74,9 @@ controller is then the Terminal.app process. Changes to the rules above:
   named ``claude``) is ``forbidden``, wherever it lives.
 The policy refuses the launch if Terminal.app is not the chain's topmost
 ancestor below launchd, if the ancestors in between are not exactly
-``TERMINAL_LINEAGE``, if Terminal has any other live descendant, if another
+``TERMINAL_LINEAGE``, if the chain has no ``/usr/bin/caffeinate`` child
+(``caffeinate UTILITY`` gives its PID to the utility and asserts from a child
+it forks; PROTOCOL §9.11), if Terminal has any other live descendant, if another
 Terminal process exists, or if any Claude process is running (``is_claude``,
 or a command line naming claude-code, for example a node-based CLI).
 
@@ -130,7 +131,10 @@ TERMINAL_EXE = TERMINAL_APP + "Contents/MacOS/Terminal"
 ALLOWED_FOREGROUND_TERMINAL: Tuple[str, ...] = ("/System/Library/CoreServices/Finder.app/", TERMINAL_APP)
 KINDS = ("claude-cli", "terminal")
 # Amendment 2: the only accepted ancestors between Terminal.app and the chain, from the top.
-TERMINAL_LINEAGE: Tuple[str, ...] = ("/usr/bin/login", "/bin/zsh", "/usr/bin/caffeinate")
+TERMINAL_LINEAGE: Tuple[str, ...] = ("/usr/bin/login", "/bin/zsh")
+# ``/usr/bin/caffeinate -dimsu /bin/sh CHAIN`` execs the chain in caffeinate's PID and forks a
+# caffeinate child that holds the assertions (observed on this host, PROTOCOL §9.11).
+CAFFEINATE = "/usr/bin/caffeinate"
 CLAUDE_NATIVE = re.compile(r"/\.local/share/claude/versions/[^/]+$")
 CLAUDE_CMDLINE = re.compile(r"claude-code|@anthropic-ai/claude|/\.local/share/claude/")
 DENY_BASENAMES: Set[str] = {
@@ -360,7 +364,8 @@ def build_policy_terminal(procs: List[Proc], chain_pid: int, baseline_paths: Ite
     """Validated policy for a chain launched from Terminal.app with Claude quit (amendment 2).
 
     Terminal.app must be the chain's topmost ancestor below launchd, the
-    ancestors in between must be exactly ``TERMINAL_LINEAGE``, Terminal must
+    ancestors in between must be exactly ``TERMINAL_LINEAGE``, the chain must
+    have a live ``/usr/bin/caffeinate`` child, Terminal must
     have no other live descendant, no other Terminal process may exist, and no
     Claude process may be running (``is_claude`` or a ``cmdlines`` entry).
     """
@@ -382,6 +387,8 @@ def build_policy_terminal(procs: List[Proc], chain_pid: int, baseline_paths: Ite
     found = tuple(by_pid[pid].path or "" for pid in reversed(between))
     if found != TERMINAL_LINEAGE:
         raise PolicyError(f"the chain's ancestors below Terminal must be exactly {list(TERMINAL_LINEAGE)}, found {list(found)}")
+    if not any(p.ppid == chain_pid and p.path == CAFFEINATE and not p.zombie for p in procs):
+        raise PolicyError(f"the chain {chain_pid} has no {CAFFEINATE} child (launch it as /usr/bin/caffeinate -dimsu /bin/sh ...)")
     others = descendants(procs, top.pid) - descendants(procs, chain_pid) - set(between) - {top.pid}
     others = {pid for pid in others if not by_pid[pid].zombie}
     if others:
