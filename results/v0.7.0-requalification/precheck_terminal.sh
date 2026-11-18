@@ -1,6 +1,7 @@
 #!/bin/sh
 # Amendment 2: read-only check run from Terminal.app just before run_final_chain.sh, by the same
-# LAUNCH-COMMAND.txt, with the same ancestry (/usr/bin/caffeinate -dimsu /bin/sh ...).
+# LAUNCH-COMMAND.txt, launched the same way (/usr/bin/caffeinate -dimsu /bin/sh ...: Terminal, login,
+# zsh above it, a caffeinate child below it).
 # It changes nothing on the host and nothing in the campaign directory except
 # logs/precheck-*.{json,txt}. If it fails, the chain is not launched, so the campaign directory
 # stays usable (a refusal inside the chain would use up the directory: PROTOCOL.md section 9.7).

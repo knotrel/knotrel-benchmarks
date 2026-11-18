@@ -33,9 +33,9 @@ def P(pid, ppid, path, comm=None, stat="S"):
 
 
 def terminal_tree(extra=()):
-    """launchd -> Terminal -> login -> -zsh -> caffeinate -> sh (chain) -> python3 (campaign)."""
+    """launchd -> Terminal -> login -> -zsh -> sh (chain, caffeinate's former PID) -> caffeinate, python3 (campaign)."""
     return [P(1, 0, "/sbin/launchd"), P(100, 1, TERM), P(101, 100, "/usr/bin/login", "login"),
-            P(102, 101, "/bin/zsh", "-zsh"), P(103, 102, "/usr/bin/caffeinate"), P(104, 103, "/bin/sh"),
+            P(102, 101, "/bin/zsh", "-zsh"), P(104, 102, "/bin/sh"), P(103, 104, "/usr/bin/caffeinate"),
             P(105, 104, "/usr/bin/python3"), P(200, 1, "/usr/libexec/logd"),
             P(201, 1, "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder")] + list(extra)
 
@@ -43,7 +43,7 @@ def terminal_tree(extra=()):
 class TerminalPolicy(unittest.TestCase):
     def test_valid(self):
         pol = cm.build_policy_terminal(terminal_tree(), 104, ["/x/helper"])
-        self.assertEqual((pol.controller_pid, pol.controller_children, pol.controller_kind), (100, {101, 102, 103}, "terminal"))
+        self.assertEqual((pol.controller_pid, pol.controller_children, pol.controller_kind), (100, {101, 102}, "terminal"))
         self.assertEqual(pol.baseline_paths, {"/x/helper"})
 
     def refused(self, procs, chain=104, needle=""):
@@ -89,20 +89,27 @@ class TerminalPolicy(unittest.TestCase):
 
     def test_lineage_must_be_exact(self):
         base = terminal_tree()
-        for idx, path in ((3, "/usr/bin/osascript"), (3, "/usr/bin/sudo"), (4, "/usr/bin/open"), (4, "/usr/bin/script"),
-                          (3, "/bin/bash"), (2, "/usr/bin/sudo")):
+        for idx, path in ((3, "/usr/bin/osascript"), (3, "/usr/bin/sudo"), (3, "/bin/bash"), (2, "/usr/bin/sudo"),
+                          (2, "/usr/bin/script")):
             procs = list(base)
             procs[idx] = P(procs[idx].pid, procs[idx].ppid, path)
             self.refused(procs, needle="must be exactly")
-        # deny-listed or sudo ancestor inserted between caffeinate and the chain
-        procs = list(base)
-        procs[5] = P(104, 106, "/bin/sh")
-        procs.append(P(106, 103, "/usr/bin/sudo"))
-        self.refused(procs, needle="must be exactly")
-        # without caffeinate
-        procs = [p for p in base if p.pid != 103]
-        procs[[p.pid for p in procs].index(104)] = P(104, 102, "/bin/sh")
-        self.refused(procs, needle="must be exactly")
+        # an ancestor inserted between the login shell and the chain (sudo, open, or caffeinate as a parent)
+        for path in ("/usr/bin/sudo", "/usr/bin/open", "/usr/bin/caffeinate", "/usr/bin/script"):
+            procs = list(base)
+            procs[4] = P(104, 106, "/bin/sh")
+            procs.append(P(106, 102, path))
+            self.refused(procs, needle="must be exactly")
+
+    def test_caffeinate_child_required(self):
+        base = terminal_tree()
+        self.refused([p for p in base if p.pid != 103], needle="caffeinate")
+        zombie = [p for p in base if p.pid != 103] + [P(103, 104, "/usr/bin/caffeinate", stat="Z")]
+        self.refused(zombie, needle="caffeinate")
+        grandchild = [p for p in base if p.pid != 103] + [P(103, 105, "/usr/bin/caffeinate")]
+        self.refused(grandchild, needle="caffeinate")
+        fake = [p for p in base if p.pid != 103] + [P(103, 104, "/tmp/caffeinate")]
+        self.refused(fake, needle="caffeinate")
 
     def test_claude_cli_installs_detected(self):
         self.refused(terminal_tree([P(300, 1, "/Users/rt/.local/share/claude/versions/2.0.65", "2.0.65")]), needle="Claude")
@@ -113,7 +120,7 @@ class TerminalPolicy(unittest.TestCase):
 
     def test_policy_records_paths(self):
         pol = cm.build_policy_terminal(terminal_tree(), 104, [])
-        self.assertEqual(pol.controller_paths, {100: TERM, 101: "/usr/bin/login", 102: "/bin/zsh", 103: "/usr/bin/caffeinate"})
+        self.assertEqual(pol.controller_paths, {100: TERM, 101: "/usr/bin/login", 102: "/bin/zsh"})
 
     def test_chain_without_ancestors_refused(self):
         self.refused([P(1, 0, "/sbin/launchd"), P(104, 1, "/bin/sh")], needle="")
@@ -127,8 +134,8 @@ class TerminalClassify(unittest.TestCase):
 
     def test_lineage_is_baseline_before_deny_list(self):
         c = self.classes()
-        self.assertEqual([c[i] for i in (100, 101, 102, 103)], ["baseline"] * 4)
-        self.assertEqual((c[104], c[105]), ("campaign", "campaign"))
+        self.assertEqual([c[i] for i in (100, 101, 102)], ["baseline"] * 3)
+        self.assertEqual((c[103], c[104], c[105]), ("campaign", "campaign", "campaign"))
         self.assertEqual(c[200], "system")
 
     def test_new_terminal_descendant_forbidden(self):
@@ -149,20 +156,19 @@ class TerminalClassify(unittest.TestCase):
     def test_reused_lineage_pid_not_baseline(self):
         procs = terminal_tree()
         pol = cm.build_policy_terminal(procs, 104, [])
-        later = [p for p in procs if p.pid not in (103,)] + [P(103, 1, "/usr/bin/git"), P(101, 1, CLAUDE_APP)]
-        later = [p for p in later if not (p.pid == 101 and p.path == "/usr/bin/login")]
+        later = [p for p in procs if p.pid not in (101, 102, 104)] + [P(104, 1, "/bin/sh"), P(102, 1, "/usr/bin/git"), P(101, 1, CLAUDE_APP)]
         c = {p.pid: cls for p, cls in cm.classify(later, pol, {101: CLAUDE_APP})}
-        self.assertEqual((c[103], c[101]), ("forbidden", "forbidden"))
+        self.assertEqual((c[102], c[101]), ("forbidden", "forbidden"))
 
     def test_reused_lineage_pid_not_ancestor(self):
         procs = terminal_tree()
         pol = cm.build_policy_terminal(procs, 104, [])
-        # caffeinate (103) died: the chain is reparented to launchd; PID 103 is reused by a new
-        # /usr/bin/caffeinate in a new Terminal tab, with the same recorded path.
-        later = [p for p in procs if p.pid not in (103, 104, 105)] + [P(104, 1, "/bin/sh"), P(105, 104, "/usr/bin/python3"),
-                                                                      P(110, 100, "/usr/bin/login", "login"), P(103, 110, "/usr/bin/caffeinate")]
+        # the login shell (102) died: the chain is reparented to launchd; PID 102 is reused by a new
+        # /bin/zsh in a new Terminal tab, with the same recorded path.
+        later = [p for p in procs if p.pid not in (102, 104)] + [P(104, 1, "/bin/sh"), P(110, 100, "/usr/bin/login", "login"),
+                                                                 P(102, 110, "/bin/zsh", "-zsh")]
         c = {p.pid: cls for p, cls in cm.classify(later, pol, {})}
-        self.assertEqual(c[103], "forbidden")
+        self.assertEqual(c[102], "forbidden")
         self.assertEqual(c[110], "forbidden")
 
     def test_deny_list_and_baseline_unchanged(self):
@@ -628,6 +634,17 @@ class InventoryRace(unittest.TestCase):
         inv = self.inv({"gui/501": [[lab]]}, {lab: [113, 113]})
         self.assertFalse(inv["jobs"][0]["apple"])
         self.assertTrue(la.audit(inv, {}))
+
+
+@unittest.skipUnless(sys.platform == "darwin", "macOS caffeinate behaviour")
+class CaffeinateLive(unittest.TestCase):
+    """caffeinate UTILITY gives its PID to the utility and asserts from a caffeinate child (PROTOCOL §9.11)."""
+
+    def test_utility_parent_is_caller_and_caffeinate_is_child(self):
+        script = 'sleep 1; echo "$PPID"; ps -Ao pid=,ppid=,comm= | awk -v p=$$ \'$2==p && $3=="/usr/bin/caffeinate" {print "child"}\''
+        out = subprocess.run(["/usr/bin/caffeinate", "-i", "/bin/sh", "-c", script], capture_output=True, text=True, timeout=30).stdout.split()
+        self.assertEqual(out[0], str(os.getpid()))
+        self.assertIn("child", out)
 
 
 if __name__ == "__main__":
