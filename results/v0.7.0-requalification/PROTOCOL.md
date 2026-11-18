@@ -3,8 +3,10 @@
 **Status:** sections 1–7 were frozen in `FREEZE.json` (2026-11-17) and are
 exhausted (3 NONCONFORMING attempts). Amendment 1 (§8) was frozen in
 `FREEZE-A1.json`. Its series a1 is closed with zero attempts after soak a1-1
-ended SOAK NONCONFORMING. **Amendment 2 (§9) is a DRAFT until
-`FREEZE-A2.json` exists in this directory.**
+ended SOAK NONCONFORMING. Amendment 2 (§9) was frozen in
+`FREEZE-A2.json` (revision 3). Its series a2 is closed with zero attempts after
+soak a2-2 ended SOAK NONCONFORMING. **Amendment 3 (§10) is a DRAFT until
+`FREEZE-A3.json` exists in this directory.**
 - The machine-readable definition is [`MATRIX.json`](MATRIX.json); this file
   explains it.
 - It implements [`RERUN-PROPOSAL.md`](RERUN-PROPOSAL.md), approved by the
@@ -965,4 +967,85 @@ assumption. On this host, `caffeinate UTILITY` behaves differently:
 - `a2-soak2` is prepared again. The soak budget is unchanged: one soak left.
 - Earlier statements in this section that the lineage including `caffeinate`
   had been observed were wrong and are corrected above.
+
+## 10. Amendment 3 (background processes allowed)
+
+**Maintainer decision (2026-11-18).**
+- The maintainer asked: "Non possiamo solo accettare che altri processi
+  possano essere running? E' un laptop non un server dedicato".
+- The maintainer then delegated the choices: "Scegli tu quello che ci aiuta
+  a portare risultati sensati ma anche a non restare bloccati per giorni".
+- The choices below were made by the controller under that delegation and
+  are recorded in MATRIX `conformance.amendment_3`.
+
+**Why.** Every run so far stopped on a short-lived background process:
+| Run | Process |
+|---|---|
+| attempt 2 | WhatsApp's extension |
+| attempt 3 | GoogleUpdater |
+| soak a1-1 | the Claude Code CLI's `git` |
+| soak a2-2 | Safari's `CacheDeleteExtension`, caught at startup with no resolvable path (rule 8) |
+
+Soak a2-2 shows that the host preparation and the Terminal controller hold.
+What fails is the rule that forbids every unknown process. On a laptop,
+macOS starts background processes on its own, and over hours of 0.2 s
+samples one is always caught.
+
+### 10.1 Classes
+
+`conformance.background_allowed` is true, so the policy sets
+`background_allowed` (terminal kind only):
+- **Rules 8 and 11 give `background`.** A live process whose executable can't
+  be resolved, or that falls in no other class, is allowed. Its CPU time is
+  recorded under `background`.
+- **Rules 1–7 are unchanged.** These stay forbidden:
+  - any new descendant of Terminal;
+  - deny-listed executables (`git`, `cargo`, `rustc`, `ssh`, installers and
+    so on);
+  - foreground apps other than Finder and Terminal;
+  - any Claude executable.
+- **Still checked:**
+  - HID input;
+  - the Git state;
+  - `~/.claude/projects`;
+  - monitor liveness and the per-child gate;
+  - the controller check, the precheck and the caffeinate child.
+
+### 10.2 Launcher audit and quiesce
+
+- **The audit is recorded, not a precondition** (`conformance.launcher_audit`
+  is `record`). Findings go to `logs/launcher-audit*.{json,txt}` and to a
+  `chain-steps.txt` line, and the launch continues.
+- **The quiesce and restore of the updaters and WhatsApp are unchanged.** They
+  reduce background noise. A failed quiesce, or an unrestored earlier quiesce,
+  still stops the launch.
+
+### 10.3 Interference: disclosure only
+
+- **Recording.** Each gate child record already has `cpu_seconds_by_class`,
+  which now includes `background`.
+- **Reporting.** For each cell, the comparison report shows background and
+  baseline CPU as a share of one core over the child's duration. It marks
+  cells above 25% of one core "read with caution".
+- **No invalidation.** The paired, interleaved design carries background
+  noise into both versions. A threshold that invalidated would bring back the
+  blocking this amendment removes.
+
+### 10.4 Accounting
+
+- **Series a2.** Closed with zero attempts, recorded and reported.
+- **Series a3.**
+  - Cap: 3 (`amendment_3.attempts_cap`).
+  - No soak.
+  - The first CONFORMING attempt is final.
+  - Every directory counts (`series_budget.sh`).
+- **Prepare scripts.** `prepare_campaign.sh` takes series a3 under a
+  `FREEZE-A3.json` freeze. `prepare_soak.sh` refuses an amendment-3 freeze.
+- **No retroactivity.** Every earlier attempt and soak stays as recorded and
+  is reported.
+
+### 10.5 Launch
+
+The same as §9.6: the prepare script writes `CAMP/LAUNCH-COMMAND.txt`, and the
+maintainer runs it from the only Terminal window with Claude quit.
 

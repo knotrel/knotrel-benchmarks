@@ -219,7 +219,7 @@ class ClaudeCliModeUnchanged(unittest.TestCase):
         old = _frozen_monitor()
         procs = [P(1, 0, "/sbin/launchd"), P(10, 1, CLAUDE_CLI), P(11, 10, "/bin/zsh"), P(12, 11, "/usr/bin/caffeinate"), P(13, 12, "/bin/sh")]
         oprocs = [old.Proc(p.pid, p.ppid, 0.0, p.comm, p.path, 0.0, p.stat) for p in procs]
-        drop = {"controller_kind": None, "controller_paths": None}
+        drop = {"controller_kind": None, "controller_paths": None, "background_allowed": None}
         self.assertEqual(cm.build_policy(procs, 13, 10, []).to_json() | drop, old.build_policy(oprocs, 13, 10, []).to_json() | drop)
 
     def test_old_policy_file_loads_as_claude_cli(self):
@@ -420,7 +420,8 @@ class MatrixAmendment2(unittest.TestCase):
         self.assertEqual({k for k in new if new[k] != frozen[k]}, {"status", "conformance"})
         fc, nc = frozen["conformance"], new["conformance"]
         self.assertEqual({k for k in set(fc) | set(nc) if fc.get(k) != nc.get(k)},
-                         {"outcome", "quiesce", "controller_kind", "amendment_2"})
+                         {"outcome", "quiesce", "controller_kind", "amendment_2",
+                          "background_allowed", "launcher_audit", "amendment_3"})  # amendment 3 keys: test_v070r_amendment3.py
         self.assertTrue(nc["outcome"].startswith(fc["outcome"]))
         fq, nq = fc["quiesce"], nc["quiesce"]
         self.assertEqual({k for k in set(fq) | set(nq) if fq.get(k) != nq.get(k)}, {"allow_jobs_prefix"})
