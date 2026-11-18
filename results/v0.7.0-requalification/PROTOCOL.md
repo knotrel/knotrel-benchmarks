@@ -1101,3 +1101,41 @@ disclosed and not changed:
   limit is written after the freeze. It is reviewed independently before the
   analysis, against the limit fixed here.
 
+
+### 10.7 Launch environment (freeze revision 2)
+
+**Cause.** Attempt a3-2 (`v0.7.0-requalification-e75ff6a-a3-attempt2`)
+ended `FAILED: BC (no verdict; conformance not established)`, chain exit 7.
+- Grace, quiet period, A main and A extension completed. The gate recorded
+  zero violations and zero HID resets.
+- B/C stopped at its first line: `run_lifecycle_qualification.py` records
+  `rustc +1.100.0 -Vv` in its provenance, by bare name. The launch PATH of
+  §9.4 (`CAMP/bin` with `python3` only, then the system directories) has no
+  `rustc`, so Python raised `FileNotFoundError`.
+- The defect came in with §9.4 (amendment 2). It was never exercised: soaks
+  stop before B/C, and the prepare script ran its dry runs with its own PATH.
+
+**Change.** No rule, threshold, collector or gate changes.
+- `CAMP/bin` holds exactly two links: `python3` and `rustc` (to the rustup
+  proxy that the prepare script used; it selects `+1.100.0`, as before).
+- `launch_tools.txt` lists every program the chain's Python code runs by bare
+  name. A test requires the list to cover every such call in the chain's
+  scripts.
+- `launch_env_check.sh CAMP OUT` checks, with the launch PATH:
+  - that PATH is exactly the launch PATH;
+  - that every listed program resolves, and `rustc +1.100.0 -Vv` succeeds;
+  - the dry run of every collector (A, B/C, R, Rmem, M_desc, M_reg) with the
+    chain's arguments. `KNOTREL_GATE_DIR` is unset, so no gated child can run.
+- `prepare_campaign.sh` runs the check under `env -i` with the launch PATH
+  (`logs/launch-env-check.txt`). A failure stops the prepare, so no launch
+  command is written.
+- `precheck_terminal.sh` runs it again in the real launch environment
+  (`logs/precheck-launch-env.txt`). A failure is a refusal: nothing starts and
+  the directory stays usable (§9.7).
+- The dry runs run `git` (rev-parse, status) and `rustc -Vv` before the chain
+  starts. They change no Git state and run before the Git snapshot.
+
+**Accounting.** Unchanged. Attempt a3-2 counts (every directory counts,
+§10.4), so 2 of 3 attempts in series a3 are used. Not counting a3-2, or
+raising the cap, would be an explicit maintainer decision; none was taken.
+A3-2's A outputs are not used: the attempt has no verdict.

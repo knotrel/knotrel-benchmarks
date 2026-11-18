@@ -10,7 +10,8 @@
 # Checks: the campaign was never launched (no gate/ directory, no CONFORMANCE.txt); AC power;
 # MATRIX conformance.controller_kind is terminal; the controller policy (Terminal lineage, one
 # window and tab, no Claude process); no forbidden process now (the read-only check with that
-# policy); ~/.claude/projects readable; no unrestored quiesce.
+# policy); ~/.claude/projects readable; no unrestored quiesce; the launch environment
+# (launch_env_check.sh: every tool on PATH and every collector dry run; amendment 3 revision 2).
 set -u
 [ $# -eq 1 ] || { echo "usage: precheck_terminal.sh CAMP" >&2; exit 2; }
 CAMP=${1%/}
@@ -29,4 +30,6 @@ python3 scripts/conformance_monitor.py check --policy "$L/precheck-policy.json" 
   || fail "forbidden processes running (quit them first): $(cut -c1-300 "$L/precheck-check.txt")"
 S=$(python3 scripts/conformance_monitor.py tree-state "$HOME/.claude/projects" 2>/dev/null) && [ -n "$S" ] || fail "~/.claude/projects unreadable"
 sh "$B/results/v0.7.0-requalification/check_restored.sh" 2> "$L/precheck-restored.txt" || fail "unrestored quiesce: $(cat "$L/precheck-restored.txt")"
+# Amendment 3, revision 2 (PROTOCOL.md 10.7): every tool and collector dry run in this very environment.
+/bin/sh "$B/results/v0.7.0-requalification/launch_env_check.sh" "$CAMP" "$L/precheck-launch-env.txt" > /dev/null || fail "$(tail -1 "$L/precheck-launch-env.txt")"
 echo "PRECHECK OK: launching the chain now. Leave the Mac; do not reopen Claude until this window prints the result."
