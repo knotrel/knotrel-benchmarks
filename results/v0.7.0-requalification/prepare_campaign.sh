@@ -148,7 +148,6 @@ for X in cand-server/release/knotrel-server ref-server/release/knotrel-server ca
   fi
 done > "$L/text-section-compare.txt"
 if [ -n "$LAUNCH" ]; then
-  R=$B/results/v0.7.0-requalification
-  echo "caffeinate -dimsu sh $R/run_final_chain.sh $CAMP $CAND > $CAMP/chain-launch.log 2>&1; echo \"chain exit=\$?\" >> $CAMP/chain-launch.log; tail -4 $CAMP/chain-launch.log" > "$CAMP/LAUNCH-COMMAND.txt"
+  sh "$(dirname "$0")/launch_command.sh" "$CAMP" "$CAND" > "$CAMP/LAUNCH-COMMAND.txt"
 fi
 echo "PREPARED $CAMP"

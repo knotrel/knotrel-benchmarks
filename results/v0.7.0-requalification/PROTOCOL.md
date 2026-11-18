@@ -632,7 +632,7 @@ audit.
   - The manual command `restore --camp <CAMP>` must be run from the tooling
     clone (§8.5).
 
-## 9. Amendment 2 (approved 2026-11-18, "Option A")
+## 9. Amendment 2 (option A approved 2026-11-18, "Option A")
 
 **Why.** Soak a1-1 (`evidence/v0.7.0-requalification-a1-soak1`) ended
 `SOAK NONCONFORMING` (exit 13).
@@ -644,60 +644,100 @@ audit.
 - The options are in [`AMENDMENT-2-OPTIONS.md`](AMENDMENT-2-OPTIONS.md). The
   maintainer chose option A.
 
-**What changes.** Only the controller.
-- The maintainer launches the chain from Terminal.app, with Claude quit
-  completely.
-- MATRIX `conformance.controller_kind` is `terminal`. The details are in
-  `conformance.amendment_2`.
-- Unchanged: the rule, the deny-list, HID, liveness, granularity,
-  experiments, seeds, statistics, thresholds and analyzers. The quiesce, the
-  audit and the soak of §8 are also unchanged, except the one allow-list entry
-  below.
+**Approved and pending.**
+- **Approved:** option A only.
+- **Pending maintainer decisions (options §3, items 3–5):**
+  - the soak budget (§9.7);
+  - the series a2 and closing series a1 (§9.7);
+  - the review path (§9.9).
+- The tooling implements the proposals. The matrix marks them as pending, and
+  nothing is frozen before the decisions are recorded.
+
+**What changes.** Only the controller and how the chain is launched.
+- The maintainer launches the chain from Terminal.app with Claude quit
+  completely. MATRIX `conformance.controller_kind` is `terminal`, and the
+  details are in `conformance.amendment_2`. The keys it supersedes are listed
+  in `amendment_2.superseded_keys`.
+- Unchanged:
+  - the rule, the deny-list, HID, liveness and granularity;
+  - experiments, seeds, statistics, thresholds and analyzers;
+  - the quiesce, the audit and the soak of §8, except one allow-list entry
+    (§9.5).
 
 ### 9.1 Controller check
 
-`conformance_monitor.py policy --controller-kind terminal` runs twice: before
-the quiesce (`logs/policy-prequiesce.json`) and after the grace period (the
-policy). It refuses the launch (NOT STARTED, no attempt consumed) unless:
-- Terminal.app (`/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal`)
-  is the chain's topmost ancestor below launchd;
-- every ancestor in between is at an Apple location. Observed on this host:
-  `login`, `-zsh`, then `caffeinate`;
-- Terminal has no other live descendant: one window, one tab;
-- there is no other Terminal process;
-- no Claude process runs: the desktop app, the Claude Code CLI, or any
-  process named `claude`.
+`conformance_monitor.py policy --controller-kind terminal` refuses the launch
+unless:
+- **Terminal is the top.** Terminal.app
+  (`/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal`) is
+  the chain's topmost ancestor, with launchd as its parent.
+- **Exact lineage.** The ancestors in between are exactly `/usr/bin/login`,
+  `/bin/zsh`, `/usr/bin/caffeinate` (`TERMINAL_LINEAGE`), as observed on this
+  host. Anything else is refused, for example `sudo`, `osascript`, `open`,
+  `script`, another shell, or no `caffeinate`.
+- **One window, one tab.** Terminal has no other live descendant.
+- **One Terminal.** There is no other Terminal process.
+- **No Claude process.** None of these runs:
+  - the desktop app;
+  - the Claude Code CLI, inside the app or as a native install under
+    `~/.local/share/claude/versions/`;
+  - a process named `claude`;
+  - a process whose command line names claude-code, such as a node-based CLI.
+
+The check runs three times:
+1. in `precheck_terminal.sh`, before the chain (§9.6). A refusal starts
+   nothing;
+2. at chain start, before the quiesce (`logs/policy-prequiesce.json`). A
+   refusal is NOT STARTED;
+3. for the policy, after the grace period. A refusal is NOT STARTED.
 
 ### 9.2 Classes (controller kind `terminal`)
 
 Changes to §3.2:
-- **Rule 2** applies to Terminal's descendants. A new window, a new tab or a
-  command typed in the window is forbidden.
+- **Rule 2** applies to Terminal's descendants. A new window or tab, or any
+  process started beside the chain, is forbidden.
 - **Ancestors are baseline.** Terminal and the chain's ancestors below it are
-  `baseline` right after rule 2, before the deny-list. `login` is
-  deny-listed.
+  `baseline` right after rule 2, before the deny-list, because `login` is
+  deny-listed. This holds only while each PID still runs the executable the
+  policy recorded for it (`controller_paths`). A reused PID falls through to
+  the other rules, so for example `git` is forbidden.
 - **Foreground apps.** The allowed foreground apps are Finder and
   Terminal.app.
 - **Claude is forbidden.** The Claude desktop app is no longer baseline. Any
-  Claude executable is `forbidden`, wherever it lives.
+  Claude executable is `forbidden`, wherever it lives. A Claude CLI that is
+  not recognized by name is forbidden by rule 11.
 - **Scope.** This changes the controller's baseline class, which
   `soak.allowed_changes_after_a_soak` does not cover. The maintainer approved
   it as option A.
   - Net effect: Claude leaves the baseline.
-  - Terminal, `login`, the login shell and `caffeinate` enter the baseline
-    only as the chain's own ancestors.
+  - The four Apple executables above enter it only as the chain's own
+    ancestors.
 
 ### 9.3 Claude state (replaces the transcript check)
 
 The size and mtime of every file under `~/.claude/projects` are taken twice:
-- after the grace period, then again `session_stable_s` later. A difference
-  is NOT STARTED;
-- at every gate check and at chain end, compared with that state. A
-  difference is NONCONFORMING (exit 16).
+- after the grace period, then again `session_stable_s` later. If unreadable
+  or different, the launch is NOT STARTED;
+- at every gate check and at chain end, compared with that state. If
+  unreadable or different, the attempt is NONCONFORMING (exit 16).
 
-With Claude quit, nothing writes there.
+The check fails closed: an unreadable tree never compares equal. With Claude
+quit, nothing writes there. Other Claude files (`history.jsonl`, `sessions/`,
+and so on) are not compared, but any Claude process is forbidden.
 
-### 9.4 Allow-list
+### 9.4 Environment
+
+The chain inherits the environment of the Terminal login shell instead of
+the Claude Code CLI's. This is a declared difference. The launch command:
+- pins `PATH` to the python3 directory the prepare script used, then
+  `/usr/bin:/bin:/usr/sbin:/sbin`;
+- uses absolute `/usr/bin/caffeinate` and `/bin/sh`;
+- gives stdin from `/dev/null`.
+
+`prelaunch-host.txt` records python3's path and version, `PATH` and the names
+of the environment variables.
+
+### 9.5 Allow-list
 
 In `quiesce.allow_jobs_prefix`:
 - **Removed:** `application.com.anthropic.claudefordesktop.`, the Claude app,
@@ -708,26 +748,36 @@ In `quiesce.allow_jobs_prefix`:
 - With Terminal open, the live audit (2026-11-18) failed on this job only,
   besides the jobs the quiesce handles.
 
-### 9.5 Sequence for the maintainer
+### 9.6 Sequence for the maintainer
 
 1. **Preparation.** The controller (Claude) runs `prepare_soak.sh` or
-   `prepare_campaign.sh`. The prepare script writes the exact command to
-   `CAMP/LAUNCH-COMMAND.txt`, and the controller shows it to the maintainer.
+   `prepare_campaign.sh`. It writes `CAMP/LAUNCH-COMMAND.txt`
+   (`launch_command.sh`), and the controller shows it to the maintainer.
 2. **Host.** §4 and §8 apply: AC power, every application quit, external
    input devices off.
 3. **Quit Claude.** Quit the Claude desktop app completely (Cmd-Q).
-4. **Open one Terminal window and run the command.** The output goes to
-   `CAMP/chain-launch.log`. The window shows its last lines when the chain
-   ends.
-5. **Leave the Mac** for the whole run. Do not reopen Claude, open a new
-   tab or type anything in the window.
-6. **After the result.** When the window prints the result, reopen Claude
-   and tell the controller. It reads the logs and reports.
+4. **Open one Terminal window and paste the command.**
+   - It first runs `precheck_terminal.sh`, which is read-only.
+     - It refuses if the directory was already launched, if the Mac is not on
+       AC power, or if the controller check (§9.1) fails.
+     - It also refuses if `~/.claude/projects` is unreadable or a quiesce is
+       unrestored.
+     - On refusal it prints why and starts nothing. Fix the cause and paste
+       the same command again.
+   - On success it starts the chain. Its output is appended to
+     `CAMP/chain-launch.log`, which is never overwritten.
+5. **Leave the Mac** for the whole run. Do not reopen Claude, open a window
+   or tab, or type. Typing is caught as HID input, and its text never reaches
+   the chain, whose stdin is `/dev/null`.
+6. **After the result.** When the window prints the log's last lines, reopen
+   Claude and tell the controller. It reads the logs and reports.
 
 A `RESTORE FAILED` line means §8.5 applies.
 
-### 9.6 Accounting
+### 9.7 Accounting
 
+- **Pending decisions:** the series and the soak budget (options §3, items 3
+  and 4).
 - **Series a1.** Closed with zero attempts, recorded and reported.
 - **Series a2.**
   - Cap: 3 (`amendment_2.attempts_cap`).
@@ -738,26 +788,58 @@ A `RESTORE FAILED` line means §8.5 applies.
     `v0.7.0-requalification-a2-soak2`.
   - A SOAK CONFORMING soak from the amendment-2 freeze is required before
     attempt 1. `prepare_campaign.sh` enforces this.
-- **Directories.** Attempts go in `…-e75ff6a-a2-attemptN`.
-- **NOT STARTED consumes nothing.** This was already the rule
-  (`grace_period`). `series_budget.sh` now enforces it in both prepare
-  scripts, which is a difference from amendment 1, where the prepare scripts
-  capped the directory number. No NOT STARTED occurred under amendment 1.
-  - Directory numbers are never reused or skipped.
-  - A soak or attempt whose `CONFORMANCE.txt` starts with `NOT STARTED`
-    consumes nothing. FAILED and NONCONFORMING consume.
-  - A directory that was prepared but never launched blocks the next one.
-  - No attempt is prepared after a CONFORMING one.
-- **Prepare scripts.** Both refuse series a1 and amendment-1 freezes.
+- **Budget (`series_budget.sh`, both prepare scripts).** Every directory
+  counts, whatever its result. This is the amendment-1 rule: soak N at most
+  `max_soaks`, attempt N at most `attempts_cap`. The following are stricter
+  than amendment 1:
+  - numbers are never reused or skipped;
+  - a directory without `logs/CONFORMANCE.txt` blocks the next one (never
+    launched, or killed without its trap);
+  - no attempt is prepared after a CONFORMING one.
+- **A refusal inside the chain uses up its directory.** That is why
+  `precheck_terminal.sh` runs first.
+- **Directories.** Attempts go in `…-e75ff6a-a2-attemptN`. The prepare
+  scripts refuse series a1 and amendment-1 freezes.
 
-### 9.7 Limits (disclosed)
+### 9.8 Limits and other differences (disclosed)
 
-- **Transcript limit replaced.** A Claude process that starts and exits
+- **Short-lived Claude processes.** A Claude process that starts and exits
   between two 0.2 s samples, and writes nothing under `~/.claude/projects`, is
-  not detected. The policy refuses a launch while any Claude process runs.
-- **Typing is not attributed.** Typing in the Terminal window after launch
-  shows up as HID input. Commands run from it show up under rule 2.
-- **Monitor log content.** Tests and the live check confirm that the frozen
-  `claude-cli` mode is unchanged. Policies written before this amendment have
-  no `controller_kind` and load as `claude-cli`.
+  not detected.
+- **claude-cli mode is unchanged in classification.** A parity test checks
+  it against the amendment-1 monitor over more than 2,000 synthetic process
+  tables. Its outputs differ in three ways:
+  - `policy.json` and the monitor's start record gain `controller_kind` and
+    `controller_paths`;
+  - a policy call without `--controller` exits 1 instead of 2;
+  - policies written before this amendment load as `claude-cli`.
+- **Live check not done.** The Terminal lineage was observed live
+  (Terminal → `login` → `-zsh`). A full policy check from a real Terminal
+  window could not be run while Claude is open, because the policy refuses
+  then. `precheck_terminal.sh` is that check at launch time, and it starts
+  nothing on refusal.
 
+### 9.9 Tooling review (amendment 2)
+
+**Pending decision (options §3, item 5):** the review path.
+
+An independent reviewer read the first draft (`3795f144`) with read-only
+access.
+
+| Finding | Disposition |
+|---|---|
+| B1 options §3.3–3.5 recorded as approved | marked pending in MATRIX and §9; decisions requested before the freeze |
+| B2 NOT STARTED accounting more permissive than amendment 1 | withdrawn: every directory counts (the amendment-1 rule), with stricter numbering checks; `precheck_terminal.sh` added so that refusable launches start nothing |
+| S1 any Apple-location ancestor accepted, placed before the deny-list | exact lineage `login`, `zsh`, `caffeinate`; tested with `sudo`, `osascript`, `open`, `script`, `bash` and no `caffeinate` |
+| S2 PID reuse more permissive | the policy records each ancestor's path; baseline only while PID and path match; tested |
+| S3 tree-state fails open | fails closed (`TREE-STATE-FAILED`); NOT STARTED before the monitor, NONCONFORMING after |
+| S4 native-install and node-based CLI not detected | `~/.local/share/claude/versions/` pattern and command-line scan; tested |
+| S5 launch environment undeclared | §9.4: `PATH` pinned, absolute paths, environment recorded |
+| S6 log overwritten, tty stdin | the log is appended, stdin is `/dev/null`, typing text corrected |
+| S7 superseded keys unstated | `amendment_2.superseded_keys`; the allow-list change named in `changes`; the module docstring updated |
+| M1 grace message lost in the log | written to `/dev/tty` |
+| M2 refusal burns a directory | stated (§9.7); prevented by `precheck_terminal.sh` |
+| M3 message for a killed chain | corrected |
+| M4 CLI-level differences | declared (§9.8) |
+| M5 exit status through `caffeinate` | verified: `caffeinate` returns the child's status |
+| M6 other Claude files not compared | declared (§9.3) |

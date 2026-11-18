@@ -3,9 +3,10 @@
 # then A (main, extension if required), B/C, R, Rmem, M_desc, M_reg. Every measured child is
 # gated (scripts/conformance_gate.py) by the allow-list monitor (scripts/conformance_monitor.py).
 #
-# Amendment 2 (PROTOCOL.md section 9): the maintainer runs it from the only window of
-# Terminal.app, with Claude (desktop app and Claude Code CLI) quit completely:
-#   caffeinate -dimsu sh run_final_chain.sh CAMP CAND_SHA [--soak]
+# Amendment 2 (PROTOCOL.md section 9): the maintainer runs CAMP/LAUNCH-COMMAND.txt (written by
+# the prepare script: precheck_terminal.sh, then this chain) in the only window of Terminal.app,
+# with Claude (desktop app and Claude Code CLI) quit completely:
+#   /usr/bin/caffeinate -dimsu /bin/sh run_final_chain.sh CAMP CAND_SHA [--soak] < /dev/null
 #   CAMP            campaign directory made by prepare_campaign.sh (prepare_soak.sh for --soak)
 #   CAND_SHA        knotrel candidate commit ("-" with --soak)
 #   --soak          amendment 1, A3: run everything except the experiments; one gated campaign
@@ -60,7 +61,9 @@ mkdir -p "$G"
 stamp() { echo "$1 $(date -u +%Y-%m-%dT%H:%M:%SZ) $2" >> "$L/chain-steps.txt"; }
 conf() { python3 -c "import json;print(json.load(open('$MATRIX'))['conformance']['$1'])"; }
 CLAUDE_STATE_DIR=$HOME/.claude/projects
-session_state() { python3 scripts/conformance_monitor.py tree-state "$CLAUDE_STATE_DIR"; }
+# Fails closed: an unreadable tree gives TREE-STATE-FAILED, never an empty (always equal) state.
+session_state() { _S=$(python3 scripts/conformance_monitor.py tree-state "$CLAUDE_STATE_DIR" 2>/dev/null) && [ -n "$_S" ] && echo "$_S" || echo "TREE-STATE-FAILED"; }
+tty_note() { { echo "$1"; } > /dev/tty 2>/dev/null || true; }
 policy() { python3 scripts/conformance_monitor.py policy --chain $$ --controller-kind terminal --matrix "$MATRIX" --out "$1"; }
 
 MON=""
@@ -96,14 +99,15 @@ notstarted() { RESULT="${P}NOT STARTED: $1"; stamp NOT-STARTED "$1"; exit 4; }
 SESSION_BEFORE=""
 gate_check() {
   if [ -e "$G/gate-stop.json" ]; then nonconforming "gate stop after $1" 13; fi
-  if [ -n "$SESSION_BEFORE" ] && [ "$(session_state)" != "$SESSION_BEFORE" ]; then
+  if [ "$(session_state)" != "$SESSION_BEFORE" ]; then  # SESSION_BEFORE is a validated state when the monitor runs
     session_state > "$L/session-after.json"
     nonconforming "Claude session files changed under ~/.claude/projects (after $1)" 16
   fi
 }
 
 # --- Prelaunch: host state, grace period, policy, allow-list check, Git state ---
-{ date -u +%Y-%m-%dT%H:%M:%SZ; pmset -g batt | head -2; pmset -g therm; uptime; } > "$L/prelaunch-host.txt"
+{ date -u +%Y-%m-%dT%H:%M:%SZ; pmset -g batt | head -2; pmset -g therm; uptime
+  echo "python3: $(command -v python3) $(python3 -V 2>&1)"; echo "PATH=$PATH"; echo "environment names: $(env | cut -d= -f1 | sort | tr '\n' ' ')"; } > "$L/prelaunch-host.txt"
 case "$(pmset -g batt | head -1)" in *"AC Power"*) ;; *) RESULT="${P}NOT STARTED: not on AC power"; exit 4;; esac
 # Amendment 2: the controller is Terminal.app; check it (and that Claude is quit) before anything changes on the host.
 [ "$(conf controller_kind)" = terminal ] || { RESULT="${P}NOT STARTED: MATRIX conformance.controller_kind is not terminal"; exit 4; }
@@ -115,9 +119,10 @@ GRACE=$(conf grace_period_s)
 STABLE=$(conf session_stable_s)
 MIN_IDLE=$(conf min_hid_idle_at_policy_s)
 stamp GRACE "start ${GRACE}s (operator leaves the Mac; Claude is quit)"
-echo "Grace period ${GRACE}s: leave the Mac now. Do not reopen Claude until this window prints the result."
+tty_note "Grace period ${GRACE}s: leave the Mac now. Do not reopen Claude until this window prints the result."
 sleep "$GRACE"
 S1=$(session_state); sleep "$STABLE"; S2=$(session_state)
+[ "$S1" != TREE-STATE-FAILED ] || { RESULT="${P}NOT STARTED: ~/.claude/projects unreadable"; exit 4; }
 [ "$S1" = "$S2" ] || { RESULT="${P}NOT STARTED: Claude session files still changing after the grace period"; exit 4; }
 IDLE=$(python3 scripts/conformance_monitor.py hid-idle) || { RESULT="${P}NOT STARTED: HID idle time unreadable"; exit 4; }
 python3 -c "import sys; sys.exit(0 if float('$IDLE') >= float('$MIN_IDLE') else 1)" || { RESULT="${P}NOT STARTED: user input ${IDLE}s ago (minimum ${MIN_IDLE}s)"; exit 4; }
