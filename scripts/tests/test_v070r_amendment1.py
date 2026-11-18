@@ -419,7 +419,8 @@ class Chain(unittest.TestCase):
         sha = "e" * 40
         for args in (["/e/x-soak1", sha, "1", "t"], ["/e/x-a1-attempt1", "-", "1", "t", "--soak"],
                      ["/e/x-soak1", "-", "1", "t", "--soak", "extra"], ["/e/x-a1-attempt1", sha, "1", "t", "--soakx"],
-                     ["/e/x-a1-attempt1", "abc", "1", "t"], ["/e/x"]):
+                     ["/e/x-a1-attempt1", "abc", "1", "t"], ["/e/x"],
+                     ["/e/v-1111111-a1-attempt1", "2" * 40, "1", "t"]):
             proc = subprocess.run(["sh", chain] + args, capture_output=True, text=True)
             self.assertEqual(proc.returncode, 2, args)
         head = self.text[:self.text.index("B=$CAMP/src")]
@@ -447,9 +448,9 @@ class Chain(unittest.TestCase):
             self.assertLess(soak.index(needle), soak.index("mkdir"), needle)
 
     def test_prepare_soak_refuses_bad_number(self):
-        for n in ("0", "1a", "10"):
-            proc = subprocess.run(["sh", str(RQ / "prepare_soak.sh"), "deadbeef", n, "a1"], capture_output=True, text=True)
-            self.assertEqual(proc.returncode, 3, n)
+        for n, series in (("0", "a1"), ("1a", "a1"), ("10", "a1"), ("1", "a2")):
+            proc = subprocess.run(["sh", str(RQ / "prepare_soak.sh"), "deadbeef", n, series], capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 3, (n, series))
 
 
 class MatrixAmendment(unittest.TestCase):
@@ -477,6 +478,100 @@ class MatrixAmendment(unittest.TestCase):
             self.assertLessEqual(set(entry.get("triggers", [])), {"RunAtLoad"}, label)
         soak = json.loads((RQ / "MATRIX.json").read_text())["conformance"]["soak"]
         self.assertEqual((soak["duration_s"], soak["max_soaks"]), (4800, 2))
+
+
+STUB_AUDIT = r"""
+import json, os, sys, time
+order = os.environ["STUB_ORDER"]
+def note(x):
+    open(order, "a").write(x + "\n")
+cmd = sys.argv[1]
+args = dict(zip(sys.argv[2::2], sys.argv[3::2]))
+if cmd == "quiesce":
+    camp = args["--camp"]
+    json.dump({"jobs": []}, open(os.path.join(camp, "logs", "quiesce-restore.json"), "w"))
+    note("quiesce")
+    sys.exit(0)
+if cmd == "audit":
+    note("audit")
+    sys.exit(1)
+if cmd == "restore":
+    camp = args["--camp"]
+    logs = os.path.join(camp, "logs")
+    note("restore-start conformance=%s checksums=%s" % (os.path.exists(os.path.join(logs, "CONFORMANCE.txt")),
+                                                       os.path.exists(os.path.join(logs, "outputs-sha256.txt"))))
+    mode = os.environ.get("STUB_RESTORE", "ok")
+    if mode == "slow":
+        open(os.environ["STUB_READY"], "w").write("x")
+        time.sleep(2)
+    note("restore-end")
+    sys.exit(1 if mode == "fail" else 0)
+sys.exit(3)
+"""
+STUB_MONITOR = r"""
+import os, sys
+open(os.environ["STUB_ORDER"], "a").write(sys.argv[1] + "\n")
+print("{}")
+"""
+
+
+def _ac_power():
+    out = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True).stdout
+    return "AC Power" in out.splitlines()[0] if out else False
+
+
+@unittest.skipUnless(_ac_power(), "the chain checks AC power before the quiesce")
+class FinishExecuted(unittest.TestCase):
+    """Runs the real chain against a stub tooling clone; the audit stub fails, so the chain
+    ends NOT STARTED through finish. Nothing real is quiesced or restored."""
+
+    def run_chain(self, mode, signal_during_restore=False):
+        import signal, time
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        camp = Path(tmp.name) / "v0.7.0-requalification-a1-soak1"
+        b = camp / "src/cand/knotrel-benchmarks"
+        (b / "scripts").mkdir(parents=True)
+        (b / "results/v0.7.0-requalification").mkdir(parents=True)
+        (camp / "logs").mkdir()
+        (b / "scripts/launcher_audit.py").write_text(STUB_AUDIT)
+        (b / "scripts/conformance_monitor.py").write_text(STUB_MONITOR)
+        (b / "results/v0.7.0-requalification/MATRIX.json").write_text("{}")
+        order = Path(tmp.name) / "order.txt"
+        ready = Path(tmp.name) / "ready"
+        env = {**os.environ, "STUB_ORDER": str(order), "STUB_RESTORE": mode, "STUB_READY": str(ready)}
+        proc = subprocess.Popen(["sh", str(RQ / "run_final_chain.sh"), str(camp), "-", "1", "t", "--soak"],
+                                env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if signal_during_restore:
+            deadline = time.time() + 20
+            while not ready.exists() and time.time() < deadline:
+                time.sleep(0.05)
+            proc.send_signal(signal.SIGTERM)
+            proc.send_signal(signal.SIGHUP)
+        out, _ = proc.communicate(timeout=60)
+        return proc.returncode, out, order.read_text().splitlines(), camp
+
+    def test_restore_after_records_on_not_started(self):
+        rc, out, order, camp = self.run_chain("ok")
+        self.assertEqual(rc, 4, out)
+        self.assertEqual(order[:2], ["quiesce", "audit"])
+        self.assertIn("git-snapshot", order)
+        self.assertLess(order.index("git-snapshot"), order.index("restore-start conformance=True checksums=True"))
+        self.assertTrue((camp / "logs/CONFORMANCE.txt").read_text().startswith("SOAK NOT STARTED: launcher audit failed"))
+        self.assertIn("RESTORE OK", out)
+        self.assertRegex((camp / "logs/chain-steps.txt").read_text(), r"RESTORE \S+ ok")
+
+    def test_failed_restore_exits_21(self):
+        rc, out, order, camp = self.run_chain("fail")
+        self.assertEqual(rc, 21, out)
+        self.assertIn("RESTORE FAILED", out)
+        self.assertTrue((camp / "logs/CONFORMANCE.txt").read_text().startswith("SOAK NOT STARTED"))
+
+    def test_signals_during_finish_do_not_skip_restore(self):
+        rc, out, order, camp = self.run_chain("slow", signal_during_restore=True)
+        self.assertIn("restore-end", order)
+        self.assertEqual(rc, 4, out)
+        self.assertIn("RESTORE OK", out)
 
 
 if __name__ == "__main__":
