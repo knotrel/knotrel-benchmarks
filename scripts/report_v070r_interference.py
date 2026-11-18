@@ -27,8 +27,11 @@ Cells:
   runs the cells in run-log order, one gated child each); the label's program
   and arguments must match the record's ``argv``;
 - ``r``, ``mreg``: the label without its repetition suffix
-  (``-[warmup-]NN-ref|cand``); ``rmem``: the label without ``-ref|-cand``;
-  ``mdesc``: the label.
+  (``-warmup|analyzed-NN-ref|cand``, the frozen analyzer's cell form); warmup
+  children count toward their cell (conservative); ``rmem``: the label without
+  ``-ref|-cand``; ``mdesc``: the label.
+- ``A`` cells pool the main and extension observations, as the final A decision
+  analysis does.
 
 Quantisation (disclosed, not corrected): ``cpu_seconds_by_class`` comes from
 ``ps`` CPU times with 0.01 s resolution, so a child shorter than 0.04 s with
@@ -54,7 +57,7 @@ LIMIT = 0.25
 TICK = 0.01
 SLACK_S = 0.002
 EXPERIMENTS = ("A", "BC", "r", "rmem", "mdesc", "mreg")
-REP_SUFFIX = re.compile(r"-(?:warmup-)?\d+-(?:ref|cand)$")
+REP_SUFFIX = re.compile(r"-(?:warmup|analyzed)-\d{2}-(?:ref|cand)$")  # analyze_v060_qualification.py:28
 ARM_SUFFIX = re.compile(r"-(?:ref|cand)$")
 
 
@@ -99,10 +102,13 @@ def assign_cells(camp: Path, children: List[Dict[str, Any]]) -> List[str]:
             if bc_seen >= len(bc_log):
                 raise ValueError("more BC children than run-log records")
             record = bc_log[bc_seen]
-            bc_seen += 1
             argv = " ".join(str(a) for a in record["argv"])
-            if not argv.startswith(rest) and not rest.startswith(argv[:len(rest)]):
-                raise ValueError(f"BC child {bc_seen} does not match run-log record {record['id']}")
+            # Labels are cut to 200 characters: the label must be a non-empty prefix of argv, the
+            # records must be in position order, and the child no longer than the recorded cell.
+            if (not rest or not argv.startswith(rest) or record.get("position", bc_seen) != bc_seen
+                    or child["end"] - child["start"] > float(record.get("seconds", float("inf"))) + SLACK_S):
+                raise ValueError(f"BC child {bc_seen + 1} does not match run-log record {record['id']}")
+            bc_seen += 1
             cells.append(record["id"])
         elif experiment in ("r", "mreg"):
             cells.append(REP_SUFFIX.sub("", rest))
@@ -120,23 +126,29 @@ def assign_cells(camp: Path, children: List[Dict[str, Any]]) -> List[str]:
 
 
 def child_measures(child: Dict[str, Any], times: List[float], values: List[float]) -> Dict[str, Any]:
-    duration = child["end"] - child["start"]
-    cpu = child.get("cpu_seconds_by_class") or {}
+    # Gate times are epoch seconds rounded to the millisecond: round the duration likewise, so a
+    # 0.040 s child with one 0.01 s tick is exactly 25 %, not 25.00002 %.
+    duration = round(child["end"] - child["start"], 3)
+    cpu = child.get("cpu_seconds_by_class")
+    if not isinstance(cpu, dict) or "background" not in cpu or "baseline" not in cpu:
+        raise ValueError(f"child {child['label']!r} has no background/baseline cpu_seconds_by_class")
     if duration <= 0:
         raise ValueError(f"child {child['label']!r} has duration {duration}")
     i, j = bisect.bisect_left(times, child["start"]), bisect.bisect_right(times, child["end"])
     samples = values[i:j]
     m = {
         "duration_s": round(duration, 3),
-        "background_share": cpu.get("background", 0.0) / duration,
-        "baseline_share": cpu.get("baseline", 0.0) / duration,
+        "background_share": cpu["background"] / duration,
+        "baseline_share": cpu["baseline"] / duration,
         "background_pcpu_mean": (sum(samples) / len(samples) / 100.0) if samples else None,
         "top_samples": len(samples),
     }
     over = [k for k in ("background_share", "baseline_share", "background_pcpu_mean") if m[k] is not None and m[k] > LIMIT]
     m["over"] = over
+    # Over only through ps tick resolution: every measure over is a share measure (not the sampled
+    # %CPU) whose class CPU is at most two ticks.
     m["below_resolution"] = bool(over) and all(
-        k == "background_pcpu_mean" or cpu.get(k.split("_")[0], 0.0) <= 2 * TICK + 1e-9 for k in over)
+        k != "background_pcpu_mean" and cpu[k.split("_")[0]] <= 2 * TICK + 1e-9 for k in over)
     return m
 
 
@@ -168,6 +180,9 @@ def report(camp: Path) -> Dict[str, Any]:
         "camp": str(camp), "limit_share_of_one_core": LIMIT, "rule": "PROTOCOL.md section 10.3 (disclosure only)",
         "children": len(children), "cells": len(rows),
         "cells_read_with_caution": sum(c["read_with_caution"] for c in rows),
+        "children_without_top_sample": sum(c["children_without_top_sample"] for c in rows),
+        "top_samples": len(times),
+        "top_samples_with_background_cpu": sum(v > 0 for v in values),
         "rows": rows,
     }
 
@@ -175,6 +190,9 @@ def report(camp: Path) -> Dict[str, Any]:
 def markdown(rep: Dict[str, Any]) -> str:
     lines = [f"Interference marking (PROTOCOL.md 10.3): {rep['cells_read_with_caution']} of {rep['cells']} cells "
              f"read with caution ({rep['children']} gated children, limit {rep['limit_share_of_one_core']:.0%} of one core).",
+             "", f"Monitor samples: {rep['top_samples']}, of which {rep['top_samples_with_background_cpu']} show background CPU; "
+             f"{rep['children_without_top_sample']} children are shorter than the sampling interval and have no sample "
+             "(their mean background %CPU is n/a).",
              "", "| Experiment | Cell | Children over / all | Over only by ps resolution | Max background | Max baseline | Max background %CPU mean |",
              "|---|---|---|---|---|---|---|"]
     pct = lambda v: "n/a" if v is None else f"{v:.1%}"
