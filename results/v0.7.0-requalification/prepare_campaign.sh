@@ -148,6 +148,7 @@ for X in cand-server/release/knotrel-server ref-server/release/knotrel-server ca
   fi
 done > "$L/text-section-compare.txt"
 if [ -n "$LAUNCH" ]; then
+  mkdir -p "$CAMP/bin" && ln -s "$(command -v python3)" "$CAMP/bin/python3"
   sh "$(dirname "$0")/launch_command.sh" "$CAMP" "$CAND" > "$CAMP/LAUNCH-COMMAND.txt"
 fi
 echo "PREPARED $CAMP"

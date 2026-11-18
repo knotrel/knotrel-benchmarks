@@ -728,8 +728,9 @@ and so on) are not compared, but any Claude process is forbidden.
 
 The chain inherits the environment of the Terminal login shell instead of
 the Claude Code CLI's. This is a declared difference. The launch command:
-- pins `PATH` to the python3 directory the prepare script used, then
-  `/usr/bin:/bin:/usr/sbin:/sbin`;
+- sets `PATH` to `CAMP/bin`, then `/usr/bin:/bin:/usr/sbin:/sbin`.
+  `CAMP/bin` holds one entry, a `python3` symlink that the prepare script
+  makes to the python3 it used. No other tool comes ahead of `/usr/bin`;
 - uses absolute `/usr/bin/caffeinate` and `/bin/sh`;
 - gives stdin from `/dev/null`.
 
@@ -738,10 +739,8 @@ the Claude Code CLI's. This is a declared difference. The launch command:
 - `PATH`;
 - the names of the environment variables;
 - the values of the `PYTHON*`, `DYLD_*`, `RUST*`, `CARGO*`, `LANG` and `LC_*`
-  variables.
-
-`launch_command.sh` refuses a python3 directory that also contains `git`,
-`cargo`, `rustc`, `rustup`, `curl`, `ssh`, `open`, `osascript` or `xcrun`.
+  variables. Names containing `TOKEN`, `SECRET`, `PASSWORD` or `KEY` are
+  redacted.
 
 ### 9.5 Allow-list
 
@@ -870,10 +869,18 @@ freeze. The follow-up fixes:
 | N1 a refusal inside the chain spends the last soak | the precheck runs the read-only process check; the budget consequence is stated (§9.7) |
 | N2 a lingering Claude helper | stated (§9.6 step 3); the precheck refuses, which is correct |
 | N3 zsh `NO_CLOBBER` | not set on this host; with it set, the chain does not start, which is safe |
-| N4 PATH could bring other tools | `launch_command.sh` refuses such a python3 directory |
+| N4 PATH could bring other tools | `PATH` starts with `CAMP/bin`, which holds only a `python3` symlink (see M-b) |
 | N5 precheck refusal tests | precheck policy and process-check refusals tested, files written pinned, one-liner parsed with `zsh -n` |
 | S2 residue: a reused PID that is no longer an ancestor | the lineage baseline also requires the PID to be an ancestor of the chain in that sample; in terminal mode, rule 2 exempts a recorded PID only under the same condition (found by the new test: a reused PID had fallen through to `system`) |
 | S3 cosmetic: wrong message when only S2 fails | a failure in either reading is reported as "unreadable" |
 | S5 residue: other variables inherited | the values of `PYTHON*`, `DYLD_*`, `RUST*`, `CARGO*`, `LANG` and `LC_*` are recorded |
 | S7 residue: the "no attempt consumed" phrase | `superseded_keys.grace_period` says it is now stricter |
+
+**Re-verification (`39e4cba1..2dc157ab`).** No blockers and no should-fix
+findings. Two minor findings, both fixed:
+
+| Finding | Disposition |
+|---|---|
+| M-a possible secrets in `prelaunch-host.txt` | values whose names contain TOKEN, SECRET, PASSWORD or KEY are redacted |
+| M-b the python3-directory check used a fixed tool list | `PATH` starts with `CAMP/bin`, which holds only a `python3` symlink. The python.org directory on this host holds about 50 other tools, so an allow-list was not workable |
 
