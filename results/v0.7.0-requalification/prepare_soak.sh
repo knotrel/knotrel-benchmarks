@@ -5,8 +5,7 @@
 # Usage: prepare_soak.sh FREEZE_SHA N SERIES
 #   FREEZE_SHA knotrel-benchmarks commit containing the amendment-2 freeze record (FREEZE-A2.json)
 #   N          soak number, counted across amendments: the number of existing soak directories
-#              plus one (series_budget.sh: a NOT STARTED soak consumes nothing, consumed soaks
-#              stay below conformance.soak.max_soaks)
+#              plus one, at most conformance.soak.max_soaks (series_budget.sh)
 #   SERIES     attempt series of the amendment (a2; series a1 is closed)
 # Writes CAMP/LAUNCH-COMMAND.txt: the command the maintainer runs in Terminal.app with Claude quit.
 #
@@ -30,6 +29,5 @@ mkdir -p "$CAMP/logs" "$CAMP/src/cand"
 git clone --quiet "$BREPO" "$CAMP/src/cand/knotrel-benchmarks"
 git -C "$CAMP/src/cand/knotrel-benchmarks" checkout --quiet --detach "$FREEZE"
 test "$(git -C "$CAMP/src/cand/knotrel-benchmarks" rev-parse HEAD)" = "$FREEZE"
-R=$CAMP/src/cand/knotrel-benchmarks/results/v0.7.0-requalification
-echo "caffeinate -dimsu sh $R/run_final_chain.sh $CAMP - --soak > $CAMP/chain-launch.log 2>&1; echo \"chain exit=\$?\" >> $CAMP/chain-launch.log; tail -4 $CAMP/chain-launch.log" > "$CAMP/LAUNCH-COMMAND.txt"
+sh "$(dirname "$0")/launch_command.sh" "$CAMP" - --soak > "$CAMP/LAUNCH-COMMAND.txt"
 echo "PREPARED $CAMP"
