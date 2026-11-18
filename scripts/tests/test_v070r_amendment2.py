@@ -153,6 +153,17 @@ class TerminalClassify(unittest.TestCase):
         c = {p.pid: cls for p, cls in cm.classify(later, pol, {101: CLAUDE_APP})}
         self.assertEqual((c[103], c[101]), ("forbidden", "forbidden"))
 
+    def test_reused_lineage_pid_not_ancestor(self):
+        procs = terminal_tree()
+        pol = cm.build_policy_terminal(procs, 104, [])
+        # caffeinate (103) died: the chain is reparented to launchd; PID 103 is reused by a new
+        # /usr/bin/caffeinate in a new Terminal tab, with the same recorded path.
+        later = [p for p in procs if p.pid not in (103, 104, 105)] + [P(104, 1, "/bin/sh"), P(105, 104, "/usr/bin/python3"),
+                                                                      P(110, 100, "/usr/bin/login", "login"), P(103, 110, "/usr/bin/caffeinate")]
+        c = {p.pid: cls for p, cls in cm.classify(later, pol, {})}
+        self.assertEqual(c[103], "forbidden")
+        self.assertEqual(c[110], "forbidden")
+
     def test_deny_list_and_baseline_unchanged(self):
         c = self.classes([P(400, 1, "/usr/bin/git"), P(401, 1, "/x/helper"), P(402, 1, "/Applications/Other.app/x")])
         self.assertEqual((c[400], c[401], c[402]), ("forbidden", "baseline", "forbidden"))
@@ -278,7 +289,7 @@ class Chain(unittest.TestCase):
     def test_tree_state_fails_closed(self):
         t = self.text
         self.assertIn('&& [ -n "$_S" ] && echo "$_S" || echo "TREE-STATE-FAILED"', t)
-        self.assertIn('[ "$S1" != TREE-STATE-FAILED ] ||', t)
+        self.assertIn('[ "$S1" != TREE-STATE-FAILED ] && [ "$S2" != TREE-STATE-FAILED ] ||', t)
         gate = t[t.index("gate_check() {"):t.index("# --- Prelaunch")]
         self.assertNotIn('[ -n "$SESSION_BEFORE" ]', gate)
 
@@ -372,6 +383,22 @@ class Prepare(unittest.TestCase):
         r = subprocess.run(["sh", str(RQ / "precheck_terminal.sh"), "/nonexistent/x"], capture_output=True, text=True)
         self.assertEqual(r.returncode, 1)
 
+    def test_launch_command_parses_in_zsh(self):
+        for args in (["/e/v0.7.0-requalification-a2-soak2", "-", "--soak"], ["/e/v0.7.0-requalification-e75ff6a-a2-attempt1", "e" * 40]):
+            out = subprocess.run(["sh", str(RQ / "launch_command.sh"), *args], capture_output=True, text=True, check=True).stdout
+            self.assertEqual(subprocess.run(["/bin/zsh", "-n", "-c", out]).returncode, 0, out)
+
+    def test_launch_command_refuses_tool_rich_python_dir(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name in ("python3", "git"):
+                f = Path(d) / name
+                f.write_text("#!/bin/sh\n")
+                f.chmod(0o755)
+            env = {**os.environ, "PATH": d + ":/usr/bin:/bin"}
+            r = subprocess.run(["/bin/sh", str(RQ / "launch_command.sh"), "/e/x-a2-soak2", "-", "--soak"], env=env, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 3)
+            self.assertIn("also contains git", r.stderr)
+
     def test_precheck_runs_policy_read_only(self):
         t = (RQ / "precheck_terminal.sh").read_text()
         self.assertIn("policy --chain $$ --controller-kind terminal", t)
@@ -450,6 +477,70 @@ class PrequiesceRefusalExecuted(unittest.TestCase):
             self.assertNotIn("restore", calls)
             self.assertTrue((camp / "logs/CONFORMANCE.txt").read_text().startswith("SOAK NOT STARTED: controller check refused"))
             self.assertFalse((camp / "logs/quiesce-restore.json").exists())
+
+
+@unittest.skipUnless(_ac_power(), "the precheck checks AC power first")
+class PrecheckRefusalsExecuted(unittest.TestCase):
+    """precheck_terminal.sh against a stub tooling clone: refusals start nothing and write only logs/precheck-*."""
+
+    def run_precheck(self, policy="ok", check="ok"):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        camp = Path(tmp.name) / "v0.7.0-requalification-a2-soak2"
+        b = camp / "src/cand/knotrel-benchmarks"
+        (b / "scripts").mkdir(parents=True)
+        (b / "results/v0.7.0-requalification").mkdir(parents=True)
+        (camp / "logs").mkdir()
+        (b / "scripts/conformance_monitor.py").write_text(STUB_PRECHECK_MONITOR)
+        (b / "results/v0.7.0-requalification/MATRIX.json").write_text('{"conformance": {"controller_kind": "terminal"}}')
+        (b / "results/v0.7.0-requalification/check_restored.sh").write_text("exit 0\n")
+        order = Path(tmp.name) / "order.txt"
+        env = {**os.environ, "STUB_ORDER": str(order), "STUB_POLICY": policy, "STUB_CHECK": check}
+        r = subprocess.run(["sh", str(RQ / "precheck_terminal.sh"), str(camp)], env=env, capture_output=True, text=True, timeout=60)
+        written = sorted(p.name for p in (camp / "logs").iterdir())
+        others = sorted(str(p.relative_to(camp)) for p in camp.rglob("*") if p.is_file() and "logs" not in p.parts and "src" not in p.parts)
+        return r, order.read_text().splitlines() if order.exists() else [], written, others
+
+    def test_policy_refusal(self):
+        r, calls, written, others = self.run_precheck(policy="fail")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("PRECHECK REFUSED: policy refused", r.stdout)
+        self.assertEqual(calls, ["policy"])
+        self.assertTrue(set(written) <= {"precheck-policy.json", "precheck-policy-error.txt"}, written)
+        self.assertEqual(others, [])
+
+    def test_check_refusal(self):
+        r, calls, written, others = self.run_precheck(check="fail")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("forbidden processes running", r.stdout)
+        self.assertEqual(calls, ["policy", "check"])
+        self.assertTrue(all(w.startswith("precheck-") for w in written), written)
+        self.assertEqual(others, [])
+
+    def test_ok(self):
+        r, calls, written, others = self.run_precheck()
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("PRECHECK OK", r.stdout)
+        self.assertEqual(calls, ["policy", "check", "tree-state"])
+        self.assertTrue(all(w.startswith("precheck-") for w in written), written)
+        self.assertEqual(others, [])
+
+
+STUB_PRECHECK_MONITOR = r"""
+import os, sys
+open(os.environ["STUB_ORDER"], "a").write(sys.argv[1] + "\n")
+args = dict(zip(sys.argv[2::2], sys.argv[3::2]))
+if sys.argv[1] == "policy":
+    if os.environ["STUB_POLICY"] == "fail":
+        print("policy refused: Claude processes are running", file=sys.stderr)
+        sys.exit(1)
+    open(args["--out"], "w").write("{}")
+elif sys.argv[1] == "check" and os.environ["STUB_CHECK"] == "fail":
+    print('{"pid": 7, "path": "/Applications/Docker.app/x"}')
+    sys.exit(1)
+else:
+    print("{}")
+"""
 
 
 if __name__ == "__main__":

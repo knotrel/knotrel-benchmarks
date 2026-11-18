@@ -15,6 +15,10 @@ case "$CAMP" in *[!A-Za-z0-9_./-]*) echo "unsupported character in $CAMP" >&2; e
 PY=$(command -v python3)
 PYDIR=$(dirname "$PY")
 case "$PYDIR" in *[!A-Za-z0-9_./-]*) echo "unsupported character in $PYDIR" >&2; exit 3;; esac
+# The pinned PATH puts PYDIR first: it must not bring other tools ahead of /usr/bin.
+for T in git cargo rustc rustup curl ssh open osascript xcrun; do
+  if [ -e "$PYDIR/$T" ] && [ "$PYDIR" != /usr/bin ]; then echo "$PYDIR also contains $T: use a dedicated python3 directory" >&2; exit 3; fi
+done
 R=$CAMP/src/cand/knotrel-benchmarks/results/v0.7.0-requalification
 LOG=$CAMP/chain-launch.log
 echo "export PATH=$PYDIR:/usr/bin:/bin:/usr/sbin:/sbin; cd /; if /usr/bin/caffeinate -dimsu /bin/sh $R/precheck_terminal.sh $CAMP < /dev/null; then /usr/bin/caffeinate -dimsu /bin/sh $R/run_final_chain.sh $CAMP $CAND $EXTRA < /dev/null >> $LOG 2>&1; echo \"chain exit=\$?\" >> $LOG; tail -4 $LOG; fi"
