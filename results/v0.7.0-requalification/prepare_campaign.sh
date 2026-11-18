@@ -160,6 +160,11 @@ for X in cand-server/release/knotrel-server ref-server/release/knotrel-server ca
 done > "$L/text-section-compare.txt"
 if [ -n "$LAUNCH" ]; then
   mkdir -p "$CAMP/bin" && ln -s "$(command -v python3)" "$CAMP/bin/python3"
+  # Amendment 3, revision 2 (PROTOCOL.md 10.7): the B/C provenance call needs rustc on the launch PATH.
+  ln -s "$(command -v rustc)" "$CAMP/bin/rustc"
+  # Every tool and every collector dry run, in a clean environment with the launch PATH.
+  env -i HOME="$HOME" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${TMPDIR:-/tmp}" LANG=C.UTF-8 \
+    PATH="$CAMP/bin:/usr/bin:/bin:/usr/sbin:/sbin" /bin/sh "$B/results/v0.7.0-requalification/launch_env_check.sh" "$CAMP" "$L/launch-env-check.txt"
   sh "$(dirname "$0")/launch_command.sh" "$CAMP" "$CAND" > "$CAMP/LAUNCH-COMMAND.txt"
 fi
 echo "PREPARED $CAMP"

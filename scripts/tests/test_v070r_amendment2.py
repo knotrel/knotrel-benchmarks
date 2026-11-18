@@ -489,7 +489,7 @@ class PrequiesceRefusalExecuted(unittest.TestCase):
 class PrecheckRefusalsExecuted(unittest.TestCase):
     """precheck_terminal.sh against a stub tooling clone: refusals start nothing and write only logs/precheck-*."""
 
-    def run_precheck(self, policy="ok", check="ok"):
+    def run_precheck(self, policy="ok", check="ok", launch_env="ok"):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         camp = Path(tmp.name) / "v0.7.0-requalification-a2-soak2"
@@ -500,8 +500,13 @@ class PrecheckRefusalsExecuted(unittest.TestCase):
         (b / "scripts/conformance_monitor.py").write_text(STUB_PRECHECK_MONITOR)
         (b / "results/v0.7.0-requalification/MATRIX.json").write_text('{"conformance": {"controller_kind": "terminal"}}')
         (b / "results/v0.7.0-requalification/check_restored.sh").write_text("exit 0\n")
+        # Amendment 3 revision 2: stub launch-environment check (records its call, writes its report).
+        (b / "results/v0.7.0-requalification/launch_env_check.sh").write_text(
+            'echo launch-env >> "$STUB_ORDER"\n'
+            'if [ "$STUB_LAUNCH_ENV" = fail ]; then echo "LAUNCH-ENV FAILED: rustc not found on the launch PATH" > "$2"; exit 1; fi\n'
+            'echo "LAUNCH-ENV OK" > "$2"\n')
         order = Path(tmp.name) / "order.txt"
-        env = {**os.environ, "STUB_ORDER": str(order), "STUB_POLICY": policy, "STUB_CHECK": check}
+        env = {**os.environ, "STUB_ORDER": str(order), "STUB_POLICY": policy, "STUB_CHECK": check, "STUB_LAUNCH_ENV": launch_env}
         r = subprocess.run(["sh", str(RQ / "precheck_terminal.sh"), str(camp)], env=env, capture_output=True, text=True, timeout=60)
         written = sorted(p.name for p in (camp / "logs").iterdir())
         others = sorted(str(p.relative_to(camp)) for p in camp.rglob("*") if p.is_file() and "logs" not in p.parts and "src" not in p.parts)
@@ -527,7 +532,16 @@ class PrecheckRefusalsExecuted(unittest.TestCase):
         r, calls, written, others = self.run_precheck()
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertIn("PRECHECK OK", r.stdout)
-        self.assertEqual(calls, ["policy", "check", "tree-state"])
+        self.assertEqual(calls, ["policy", "check", "tree-state", "launch-env"])
+        self.assertTrue(all(w.startswith("precheck-") for w in written), written)
+        self.assertEqual(others, [])
+
+    def test_launch_env_refusal(self):
+        r, calls, written, others = self.run_precheck(launch_env="fail")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("PRECHECK REFUSED: LAUNCH-ENV FAILED: rustc not found", r.stdout)
+        self.assertNotIn("PRECHECK OK", r.stdout)
+        self.assertIn("precheck-launch-env.txt", written)
         self.assertTrue(all(w.startswith("precheck-") for w in written), written)
         self.assertEqual(others, [])
 

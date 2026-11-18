@@ -2826,7 +2826,20 @@
    "soak": "none required under amendment 3 (its purpose was to show that no unknown process runs, which amendment 3 no longer requires)",
    "retroactivity": "none: every earlier attempt and soak stays as recorded and is reported",
    "review": "independent review of the delta before the freeze (controller's choice under the delegation)",
-   "cli_differences": "policy.json and the monitor start record gain background_allowed; the monitor's top records gain background_pcpu_sum; the monitor runs ps -Ao pid=,args= at most once a second (claude_pids_cached)"
+   "cli_differences": "policy.json and the monitor start record gain background_allowed; the monitor's top records gain background_pcpu_sum; the monitor runs ps -Ao pid=,args= at most once a second (claude_pids_cached)",
+   "revision_2": {
+    "cause": "attempt a3-2 FAILED at B/C (exit 7): rustc (B/C provenance, bare name) missing from the amendment-2 launch PATH; gate clean (0 violations, 0 HID resets) through A main and A extension",
+    "changes": [
+     "CAMP/bin holds exactly python3 and rustc (link to the rustup proxy)",
+     "launch_tools.txt: every bare-name program of the chain's Python code, test-enforced",
+     "launch_env_check.sh: launch PATH, every tool resolves, rustc +1.100.0 -Vv, dry run of every collector with the chain's arguments",
+     "prepare_campaign.sh runs the check under env -i with the launch PATH; precheck_terminal.sh runs it in the launch environment (a failure is a refusal)"
+    ],
+    "unchanged": "rules, thresholds, collectors, gate, monitor classes, accounting",
+    "accounting": "a3-2 counts: 2 of 3 attempts used; no maintainer decision to exclude it or raise the cap",
+    "decision": "maintainer: 'Fix and refreeze' (2026-11-18)",
+    "protocol": "PROTOCOL.md 10.7"
+   }
   }
  },
  "analysis": "A: analyze_bc_qualification.py --rules v0.4.0; B/C: analyze_lifecycle_qualification.py; R/Rmem/M_desc/M_reg: analyze_v070r_qualification.py (the first campaign's analyzers bound to this matrix); conformance: the gate log, CONFORMANCE.txt and analyze_v070_conformance.py-style cross-check of the monitor log"
