@@ -125,6 +125,9 @@ class Cells(unittest.TestCase):
         camp = Camp([child("BC:/t/core-lifecycle ops", 1.0, 20.0)], bc=[("B4", ["/t/core-lifecycle", "ops"], 9)])  # too long
         with self.assertRaises(ValueError):
             ri.report(camp.path)
+        camp = Camp([child("r:R-churn-fresh-sparse-100k-13-cand", 1.0, 2.0)])  # not the analyzer's cell form
+        with self.assertRaises(ValueError):
+            ri.report(camp.path)
         camp = Camp([], bc=[("B4", ["/t/core-lifecycle", "ops"], 9)])
         with self.assertRaises(ValueError):
             ri.report(camp.path)
