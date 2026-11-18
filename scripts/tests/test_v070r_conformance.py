@@ -513,6 +513,7 @@ ALLOWED_MATRIX_CHANGES = (
     "/experiments/R/order_seed", "/experiments/M_reg/order_seed", "/experiments/M_desc/server_processes",
     "/host_conditions/", "/conformance/", "/invalidation/conformance", "/budget/final_estimate_minutes/",
     "/budget/basis", "/budget/attempts_cap", "/analysis",
+    "/status",  # amendment 1 (checked against the frozen matrix in test_v070r_amendment1.py)
 )
 
 
@@ -540,7 +541,8 @@ class Matrix(unittest.TestCase):
         new = (REPO / "results/v0.7.0-requalification/prepare_campaign.sh").read_text().splitlines()
         removed = [line for line in old if line not in new]
         self.assertTrue(all(("130700" in line or "Prepares the frozen" in line or "Usage:" in line
-                             or "v0.7.0-qualification-$C8" in line or "Creates /Users" in line) for line in removed), removed)
+                             or "v0.7.0-qualification-$C8" in line or "Creates /Users" in line
+                             or "FREEZE_SHA knotrel-benchmarks commit" in line) for line in removed), removed)
         added = "\n".join(line for line in new if line not in old)
         for needle in ("--source-manifest", "130720 130721 130722", "attempt", "otool -s __TEXT __text"):
             self.assertIn(needle, added)
