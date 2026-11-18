@@ -13,8 +13,10 @@
 #   2. every program in launch_tools.txt resolves by name, CAMP/bin holds exactly python3 and rustc,
 #      and `rustc +1.100.0 -Vv` succeeds (the B/C provenance call);
 #   3. the dry run of every collector of the chain, with the chain's own arguments (A main, B/C,
-#      R, Rmem, M_desc, M_reg). A dry run measures nothing, writes nothing in CAMP outside OUT, and
-#      runs no gated child (KNOTREL_GATE_DIR stays unset, so a gated call would refuse).
+#      R, Rmem, M_desc, M_reg). A dry run measures nothing, writes no output and changes no Git ref,
+#      and runs no gated child (KNOTREL_GATE_DIR stays unset, so a gated call would refuse). It may
+#      refresh the Git index of the campaign clones (git status) and the Python bytecode cache of
+#      the tooling clone; both happen before the chain's Git snapshot.
 # Exit 1 on the first failure, with the reason on stdout and in OUT.
 set -u
 [ $# -eq 2 ] || { echo "usage: launch_env_check.sh CAMP OUT" >&2; exit 2; }
@@ -39,7 +41,8 @@ V=$(rustc +1.100.0 -Vv 2>&1) || bad "rustc +1.100.0 -Vv failed: $V"
 say "rustc $(echo "$V" | head -1)"
 unset KNOTREL_GATE_DIR
 export LIFECYCLE_QUALIFICATION_ROOTS=/Users/rt/workspace/knotrel/evidence
-D=$CAMP/logs/launch-env-dryrun-$$  # never created: the B/C dry run returns before writing --out
+D=${OUT%.txt}-dryrun  # never created (the dry runs return before writing --out); named after OUT, so
+                      # the precheck's paths stay logs/precheck-*
 run() {  # name command...
   NAME=$1; shift
   if "$@" >> "$OUT" 2>&1; then say "dry-run $NAME ok"; else bad "dry run $NAME failed (see $OUT)"; fi

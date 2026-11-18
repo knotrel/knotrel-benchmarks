@@ -1132,10 +1132,36 @@ ended `FAILED: BC (no verdict; conformance not established)`, chain exit 7.
 - `precheck_terminal.sh` runs it again in the real launch environment
   (`logs/precheck-launch-env.txt`). A failure is a refusal: nothing starts and
   the directory stays usable (§9.7).
-- The dry runs run `git` (rev-parse, status) and `rustc -Vv` before the chain
-  starts. They change no Git state and run before the Git snapshot.
+- The dry runs run `git` (rev-parse, status, diff) and `rustc -Vv` before the
+  chain starts. They write no output and change no Git ref. They may refresh
+  the Git index of the campaign clones and the Python bytecode cache of the
+  tooling clone; both happen before the chain's Git snapshot.
+- **Limits (disclosed).**
+  - `launch_tools.txt` covers the chain's own Python code: literal argument
+    lists, including the collectors' local helpers. It does not cover
+    imported helpers, which run only `git` today, the shell chain's tools
+    (all in `/usr/bin` or `/bin`), or bare-name calls inside measured Rust
+    binaries. For example, the core harness records `git` output and stores
+    null if it fails, so nothing crashes. The precheck's dry runs exercise
+    the imported helpers that run in a dry run.
+  - The A extension (`prepare_bc_qualification.py`,
+    `analyze_bc_qualification.py`) has no dry run: its plan exists only at
+    run time. Neither script starts a subprocess.
+  - `env -i` in the prepare script sets `LANG=C.UTF-8`, the value recorded
+    in the launch environment of a3-2 (`prelaunch-host.txt`).
 
 **Accounting.** Unchanged. Attempt a3-2 counts (every directory counts,
 §10.4), so 2 of 3 attempts in series a3 are used. Not counting a3-2, or
 raising the cap, would be an explicit maintainer decision; none was taken.
 A3-2's A outputs are not used: the attempt has no verdict.
+
+**Review (`162348c4..e0ae6559`).** An independent reviewer found no blockers
+and no should-fix findings. Five minor points:
+
+| Finding | Disposition |
+|---|---|
+| M1 the side-effect claims were too strong (index refresh, bytecode cache) | wording corrected here and in `launch_env_check.sh` |
+| M2 the test compared only the B/C arguments with the chain | it now compares A, B/C, R, Rmem, M_desc and M_reg |
+| M3 the scanner does not cover imported helpers, shell tools or Rust binaries | disclosed above (Limits) |
+| M4 the dry-run `--out` paths were not `precheck-*` in the precheck | named after the report file (`logs/precheck-launch-env-dryrun-*`, never created) |
+| M5 `LANG=C.UTF-8` under `env -i` | kept: the value recorded in a3-2's launch environment; disclosed above |
