@@ -26,8 +26,8 @@ def policy(background=True):
     return pol
 
 
-def classes(extra=(), fg=None, background=True):
-    return {p.pid: c for p, c in cm.classify(terminal_tree(extra), policy(background), fg or {})}
+def classes(extra=(), fg=None, background=True, claude_pids=frozenset()):
+    return {p.pid: c for p, c in cm.classify(terminal_tree(extra), policy(background), fg or {}, set(claude_pids))}
 
 
 class BackgroundClass(unittest.TestCase):
@@ -45,6 +45,35 @@ class BackgroundClass(unittest.TestCase):
                      P(606, 102, "/bin/ls"), P(607, 1, "/usr/bin/ssh")], fg)
         for pid in (600, 601, 602, 603, 604, 605, 606, 607):
             self.assertEqual(c[pid], "forbidden", pid)
+
+    def test_unresolved_or_parenthesised_names_stay_forbidden(self):
+        c = classes([P(800, 1, None, "(git)"), P(801, 1, None, "(claude)"), P(802, 1, None, "Claude Helper"),
+                     P(803, 1, None, "(diskimages-help)"), P(804, 1, None, "(cargo)"), P(805, 1, None, "(ssh)"),
+                     P(806, 1, None, "(CacheDeleteExten)")])
+        self.assertEqual([c[i] for i in (800, 801, 802, 803, 804, 805)], ["forbidden"] * 6)
+        self.assertEqual(c[806], "background")
+
+    def test_interpreters_and_cmdline_claude_forbidden(self):
+        py = "/Library/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python"
+        node = "/Users/rt/.nvm/versions/node/v20.19.3/bin/node"
+        c = classes([P(900, 1, py), P(901, 1, node), P(902, 1, "/opt/x/runner")], claude_pids={902})
+        self.assertEqual((c[900], c[901], c[902]), ("forbidden", "forbidden", "forbidden"))
+        # campaign interpreters are unaffected
+        c = classes([P(903, 104, py)])
+        self.assertEqual(c[903], "campaign")
+
+    def test_claude_pids_cache(self):
+        orig = cm.claude_cmdlines
+        calls = []
+        cm.claude_cmdlines = lambda: calls.append(1) or [(42, "node claude-code")]
+        cm._CLAUDE_PIDS["t"] = 0.0
+        try:
+            self.assertEqual(cm.claude_pids_cached(), {42})
+            self.assertEqual(cm.claude_pids_cached(), {42})
+            self.assertEqual(len(calls), 1)
+        finally:
+            cm.claude_cmdlines = orig
+            cm._CLAUDE_PIDS["t"] = 0.0
 
     def test_system_baseline_campaign_unchanged(self):
         c = classes([P(700, 1, "/usr/libexec/x"), P(701, 1, "/x/helper")])

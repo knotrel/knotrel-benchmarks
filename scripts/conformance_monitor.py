@@ -143,6 +143,11 @@ TERMINAL_LINEAGE: Tuple[str, ...] = ("/usr/bin/login", "/bin/zsh")
 # ``/usr/bin/caffeinate -dimsu /bin/sh CHAIN`` execs the chain in caffeinate's PID and forks a
 # caffeinate child that holds the assertions (observed on this host, PROTOCOL §9.11).
 CAFFEINATE = "/usr/bin/caffeinate"
+# Amendment 3: extra names forbidden in terminal mode (non-campaign interpreters), and the
+# command-line scan for a Claude CLI not recognised by path, cached for one second.
+TERMINAL_EXTRA_DENY: Set[str] = {"Python", "node"}
+COMM_MAX = 16  # ps shows a starting or exiting process as "(name)", cut to 16 characters
+_CLAUDE_PIDS: Dict[str, object] = {"t": 0.0, "pids": set()}
 CLAUDE_NATIVE = re.compile(r"/\.local/share/claude/versions/[^/]+$")
 CLAUDE_CMDLINE = re.compile(r"claude-code|@anthropic-ai/claude|/\.local/share/claude/")
 DENY_BASENAMES: Set[str] = {
@@ -411,18 +416,42 @@ def build_policy_terminal(procs: List[Proc], chain_pid: int, baseline_paths: Ite
     return Policy(chain_pid, top.pid, set(between), set(baseline_paths), "terminal", paths)
 
 
+def _bare(name: str) -> str:
+    """``ps`` comm without the parentheses of a starting or exiting process."""
+    return name[1:-1] if len(name) >= 2 and name.startswith("(") and name.endswith(")") else name
+
+
+def _denied_terminal(name: str) -> bool:
+    """Amendment 3 deny test: parentheses stripped, a name cut to COMM_MAX matches by prefix."""
+    bare = _bare(name)
+    names = DENY_BASENAMES | TERMINAL_EXTRA_DENY
+    if bare in names or bare.startswith(DENY_BASENAME_PREFIXES):
+        return True
+    return len(bare) >= COMM_MAX - 2 and any(n.startswith(bare) for n in names)
+
+
+def claude_pids_cached(max_age_s: float = 1.0) -> Set[int]:
+    """PIDs whose command line names the Claude Code CLI, refreshed at most once per second."""
+    now = time.monotonic()
+    if now - float(_CLAUDE_PIDS["t"]) >= max_age_s:  # type: ignore[arg-type]
+        _CLAUDE_PIDS["pids"] = {pid for pid, _ in claude_cmdlines()}
+        _CLAUDE_PIDS["t"] = now
+    return _CLAUDE_PIDS["pids"]  # type: ignore[return-value]
+
+
 def _denied(name: str) -> bool:
     return name in DENY_BASENAMES or name.startswith(DENY_BASENAME_PREFIXES)
 
 
 def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree: Set[int],
                  foreground: Dict[int, str], by_pid: Dict[int, Proc], depth: int = 0,
-                 lineage: Optional[Set[int]] = None) -> str:
+                 lineage: Optional[Set[int]] = None, claude_pids: Optional[Set[int]] = None) -> str:
     """Class of one process (module docstring, rules 1-11)."""
     if proc.pid in campaign:
         return "campaign"
     terminal = policy.controller_kind == "terminal"
     lineage = lineage or set()
+    claude_pids = claude_pids or set()
     # Amendment 2: a recorded lineage PID counts as the controller's only while it runs the
     # recorded executable and is still an ancestor of the chain in this sample.
     is_lineage = (terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children)
@@ -437,7 +466,7 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
         parent = by_pid.get(proc.ppid)
         if parent is None or parent.pid <= 1:
             return "system"
-        return classify_one(parent, policy, campaign, controller_tree, foreground, by_pid, depth + 1, lineage)
+        return classify_one(parent, policy, campaign, controller_tree, foreground, by_pid, depth + 1, lineage, claude_pids)
     if proc.pid == 0:
         return "system"
     path = proc.path
@@ -451,6 +480,13 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
     if not terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children):
         return "baseline"
     background = terminal and policy.background_allowed
+    if background:
+        # Amendment 3: what stays forbidden must not slip into background through an unresolved
+        # path, a "(name)" comm, an interpreter path, or a Claude CLI known only by its command line.
+        name = _bare(os.path.basename(path)) if path else _bare(proc.comm)
+        if (_denied_terminal(os.path.basename(path) if path else proc.comm) or name.lower().startswith("claude")
+                or proc.pid in claude_pids):
+            return "forbidden"
     if path is None:
         return "background" if background else "forbidden"
     if path.startswith(CONTROLLER_APP) and not terminal:
@@ -462,14 +498,17 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
     return "background" if background else "forbidden"
 
 
-def classify(procs: List[Proc], policy: Policy, foreground: Optional[Dict[int, str]] = None) -> List[Tuple[Proc, str]]:
+def classify(procs: List[Proc], policy: Policy, foreground: Optional[Dict[int, str]] = None,
+             claude_pids: Optional[Set[int]] = None) -> List[Tuple[Proc, str]]:
     campaign = descendants(procs, policy.chain_pid)
     tree = descendants(procs, policy.controller_pid)
     by_pid = {p.pid: p for p in procs}
     fg = foreground or {}
     # Amendment 2: lineage baseline only for PIDs that are still the chain's ancestors in this sample.
     lineage = set(ancestors(procs, policy.chain_pid)) if policy.controller_kind == "terminal" else set()
-    return [(p, classify_one(p, policy, campaign, tree, fg, by_pid, 0, lineage)) for p in procs]
+    if claude_pids is None:
+        claude_pids = claude_pids_cached() if (policy.controller_kind == "terminal" and policy.background_allowed) else set()
+    return [(p, classify_one(p, policy, campaign, tree, fg, by_pid, 0, lineage, claude_pids)) for p in procs]
 
 
 def forbidden(procs: List[Proc], policy: Policy, alive: Callable[[int], bool] = lambda pid: True,
@@ -581,7 +620,8 @@ def run_monitor(policy_path: Path, out: Path, status: Path, interval: float) -> 
                 last_top = t
                 rows = [(p, c) for p, c in classify(procs, policy, foreground) if c != "campaign"]
                 rows.sort(key=lambda pc: -pc[0].pcpu)
-                handle.write(json.dumps({"k": "top", "t": round(t, 3), "processes": [
+                bg_pcpu = round(sum(p.pcpu for p, c in rows if c == "background"), 1)
+                handle.write(json.dumps({"k": "top", "t": round(t, 3), "background_pcpu_sum": bg_pcpu, "processes": [
                     {"pid": p.pid, "pcpu": p.pcpu, "class": c, "path": (p.path or p.comm)[:160]}
                     for p, c in rows[:5]]}) + "\n")
             write_atomic(status, {"pid": os.getpid(), "t": t, "seq": seq, "violations_total": violations_total,
