@@ -606,6 +606,26 @@ audit.
 | Minor: `required_before_first_attempt` not enforced; old-series naming | enforced in `prepare_campaign.sh` (§8.1) |
 | Test gaps | real-format `launchctl` and `pluginkit` fixtures, prefix rule, pre-existing parked path, corrupt result or manifest, argument checks added |
 
-**Still open:** `finish` is not run with stubs. The restore ordering, signal
-handling and exit code are covered by structural tests of the script, plus
-the round trip in §8.4 item 6.
+**Verification pass** (same reviewer, read-only, live audit):
+- **All findings above confirmed fixed:** B1, B2 and S1–S7.
+  - All 10 allow-list entries match the live host.
+  - The `pluginkit` footer matches the parsed count (435).
+  - Nine bad argument sets are refused before anything runs.
+- **New minor findings, all fixed:**
+  - A prior `SOAK CONFORMING` now counts only if its tooling clone is at the
+    same FREEZE commit.
+  - `prepare_soak.sh` accepts only the series `a1`.
+  - The chain refuses a CAND that does not match the campaign directory, and
+    strips a trailing `/` from CAMP.
+  - `run()` documents that callers parse output only on exit code 0.
+  - `finish` is now executed by tests (`FinishExecuted`): the real chain runs
+    against a stub tooling clone. The tests show that:
+    - the restore runs after the Git state, `CONFORMANCE.txt` and the
+      checksums are written;
+    - a failed restore exits 21;
+    - a TERM and a HUP during the restore do not skip it.
+- **Disclosed:**
+  - `prepare_campaign.sh` runs `check_restored.sh` from the directory it is
+    invoked from (the worktree at the freeze commit), not from a clone.
+  - The manual command `restore --camp <CAMP>` must be run from the tooling
+    clone (§8.5).
