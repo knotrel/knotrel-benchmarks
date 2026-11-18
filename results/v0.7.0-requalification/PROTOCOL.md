@@ -697,8 +697,9 @@ Changes to §3.2:
 - **Ancestors are baseline.** Terminal and the chain's ancestors below it are
   `baseline` right after rule 2, before the deny-list, because `login` is
   deny-listed. This holds only while each PID still runs the executable the
-  policy recorded for it (`controller_paths`). A reused PID falls through to
-  the other rules, so for example `git` is forbidden.
+  policy recorded for it (`controller_paths`) and is still an ancestor of the
+  chain in that sample. A reused PID falls through to the other rules, so for
+  example `git` is forbidden.
 - **Foreground apps.** The allowed foreground apps are Finder and
   Terminal.app.
 - **Claude is forbidden.** The Claude desktop app is no longer baseline. Any
@@ -732,8 +733,15 @@ the Claude Code CLI's. This is a declared difference. The launch command:
 - uses absolute `/usr/bin/caffeinate` and `/bin/sh`;
 - gives stdin from `/dev/null`.
 
-`prelaunch-host.txt` records python3's path and version, `PATH` and the names
-of the environment variables.
+`prelaunch-host.txt` records:
+- python3's path and version;
+- `PATH`;
+- the names of the environment variables;
+- the values of the `PYTHON*`, `DYLD_*`, `RUST*`, `CARGO*`, `LANG` and `LC_*`
+  variables.
+
+`launch_command.sh` refuses a python3 directory that also contains `git`,
+`cargo`, `rustc`, `rustup`, `curl`, `ssh`, `open`, `osascript` or `xcrun`.
 
 ### 9.5 Allow-list
 
@@ -753,11 +761,16 @@ In `quiesce.allow_jobs_prefix`:
    (`launch_command.sh`), and the controller shows it to the maintainer.
 2. **Host.** §4 and §8 apply: AC power, every application quit, external
    input devices off.
-3. **Quit Claude.** Quit the Claude desktop app completely (Cmd-Q).
+3. **Quit Claude.** Quit the Claude desktop app completely (Cmd-Q). If a
+   Claude helper outlives it (for example `chrome_crashpad_handler`), the
+   precheck lists it and refuses. End it, or restart the Mac, before running
+   the command again.
 4. **Open one Terminal window and paste the command.**
    - It first runs `precheck_terminal.sh`, which is read-only.
      - It refuses if the directory was already launched, if the Mac is not on
        AC power, or if the controller check (§9.1) fails.
+     - It also refuses if a forbidden process runs now. This is the read-only
+       `check`, with its own policy.
      - It also refuses if `~/.claude/projects` is unreadable or a quiesce is
        unrestored.
      - On refusal it prints why and starts nothing. Fix the cause and paste
@@ -795,6 +808,12 @@ A `RESTORE FAILED` line means §8.5 applies.
   - no attempt is prepared after a CONFORMING one.
 - **A refusal inside the chain uses up its directory.** That is why
   `precheck_terminal.sh` runs first.
+  - With no soak reset, a NOT STARTED a2-soak2 exhausts the soak budget, and
+    the maintainer decides.
+  - Refusals the precheck cannot prevent: HID input in the last 60 s before
+    the policy, the launcher audit after the quiesce, `~/.claude/projects`
+    still changing, or a process that starts between the precheck and the
+    prelaunch check.
 - **Directories.** Attempts go in `…-e75ff6a-a2-attemptN`. The prepare
   scripts refuse series a1 and amendment-1 freezes.
 
@@ -841,3 +860,20 @@ access.
 | M4 CLI-level differences | declared (§9.8) |
 | M5 exit status through `caffeinate` | verified: `caffeinate` returns the child's status |
 | M6 other Claude files not compared | declared (§9.3) |
+
+**Verification pass (`3795f144..39e4cba1`).** All earlier findings are
+fixed, declared or reduced to a small residue, and nothing blocks the
+freeze. The follow-up fixes:
+
+| Finding | Disposition |
+|---|---|
+| N1 a refusal inside the chain spends the last soak | the precheck runs the read-only process check; the budget consequence is stated (§9.7) |
+| N2 a lingering Claude helper | stated (§9.6 step 3); the precheck refuses, which is correct |
+| N3 zsh `NO_CLOBBER` | not set on this host; with it set, the chain does not start, which is safe |
+| N4 PATH could bring other tools | `launch_command.sh` refuses such a python3 directory |
+| N5 precheck refusal tests | precheck policy and process-check refusals tested, files written pinned, one-liner parsed with `zsh -n` |
+| S2 residue: a reused PID that is no longer an ancestor | the lineage baseline also requires the PID to be an ancestor of the chain in that sample |
+| S3 cosmetic: wrong message when only S2 fails | a failure in either reading is reported as "unreadable" |
+| S5 residue: other variables inherited | the values of `PYTHON*`, `DYLD_*`, `RUST*`, `CARGO*`, `LANG` and `LC_*` are recorded |
+| S7 residue: the "no attempt consumed" phrase | `superseded_keys.grace_period` says it is now stricter |
+
