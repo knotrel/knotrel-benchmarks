@@ -466,7 +466,8 @@ class MatrixAmendment(unittest.TestCase):
         fc, nc = frozen["conformance"], new["conformance"]
         changed = {k for k in set(fc) | set(nc) if fc.get(k) != nc.get(k)}
         # amendment 2 adds controller_kind and amendment_2 (checked in test_v070r_amendment2.py)
-        self.assertEqual(changed, {"outcome", "amendment_1", "quiesce", "soak", "input_devices", "controller_kind", "amendment_2"})
+        self.assertEqual(changed, {"outcome", "amendment_1", "quiesce", "soak", "input_devices", "controller_kind", "amendment_2",
+                                   "background_allowed", "launcher_audit", "amendment_3"})  # amendments 2 and 3
         self.assertTrue(nc["outcome"].startswith(fc["outcome"]))
 
     def test_quiesce_lists(self):

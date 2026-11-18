@@ -19,6 +19,7 @@ case "$N" in [1-9]) ;; *) echo "soak number must be 1-9" >&2; exit 3;; esac
 case "$SERIES" in a2) ;; a1) echo "series a1 is closed (amendment 2)" >&2; exit 3;; *) echo "series must be a2 (amendment 2)" >&2; exit 3;; esac
 CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-$SERIES-soak$N
 if [ -e "$CAMP" ]; then echo "refusing to reuse $CAMP" >&2; exit 3; fi
+if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A3.json" 2>/dev/null; then echo "amendment 3 has no soaks" >&2; exit 3; fi
 git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A2.json" || { echo "FREEZE-A2.json is not in $FREEZE: the amendment is not frozen" >&2; exit 3; }
 
 sh "$(dirname "$0")/check_restored.sh" || exit 3
