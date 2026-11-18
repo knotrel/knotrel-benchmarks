@@ -105,15 +105,16 @@ def assign_cells(camp: Path, children: List[Dict[str, Any]]) -> List[str]:
             argv = " ".join(str(a) for a in record["argv"])
             # Labels are cut to 200 characters: the label must be a non-empty prefix of argv, the
             # records must be in position order, and the child no longer than the recorded cell.
-            if (not rest or not argv.startswith(rest) or record.get("position", bc_seen) != bc_seen
-                    or child["end"] - child["start"] > float(record.get("seconds", float("inf"))) + SLACK_S):
+            if (not rest or not argv.startswith(rest) or record.get("position") != bc_seen
+                    or "seconds" not in record or child["end"] - child["start"] > float(record["seconds"]) + SLACK_S):
                 raise ValueError(f"BC child {bc_seen + 1} does not match run-log record {record['id']}")
             bc_seen += 1
             cells.append(record["id"])
-        elif experiment in ("r", "mreg"):
-            cells.append(REP_SUFFIX.sub("", rest))
-        elif experiment == "rmem":
-            cells.append(ARM_SUFFIX.sub("", rest))
+        elif experiment in ("r", "mreg") or experiment == "rmem":
+            pattern = ARM_SUFFIX if experiment == "rmem" else REP_SUFFIX
+            if not pattern.search(rest):
+                raise ValueError(f"{experiment} label {rest!r} is not in the cell form")
+            cells.append(pattern.sub("", rest))
         elif experiment == "mdesc":
             cells.append(rest)
         else:
