@@ -978,18 +978,21 @@ assumption. On this host, `caffeinate UTILITY` behaves differently:
 - The choices below were made by the controller under that delegation and
   are recorded in MATRIX `conformance.amendment_3`.
 
-**Why.** Every run so far stopped on a short-lived background process:
-| Run | Process |
-|---|---|
-| attempt 2 | WhatsApp's extension |
-| attempt 3 | GoogleUpdater |
-| soak a1-1 | the Claude Code CLI's `git` |
-| soak a2-2 | Safari's `CacheDeleteExtension`, caught at startup with no resolvable path (rule 8) |
+**Why.** No run so far was conforming:
+| Run | Cause | Monitor violations |
+|---|---|---|
+| attempt 1 | user input during the quiet period (HID reset) | — |
+| attempt 2 | WhatsApp's notification extension | 57 |
+| attempt 3 | GoogleUpdater | 74 |
+| soak a1-1 | `git`, spawned by the Claude Code CLI | 1 |
+| soak a2-2 | Safari's `CacheDeleteExtension`, caught at startup with no resolvable path (rule 8) | 1 |
 
-Soak a2-2 shows that the host preparation and the Terminal controller hold.
-What fails is the rule that forbids every unknown process. On a laptop,
-macOS starts background processes on its own, and over hours of 0.2 s
-samples one is always caught.
+- Amendments 1 and 2 removed the persistent causes: host preparation, the
+  quiesce, and the Terminal controller with Claude quit.
+- The last two failures were single samples of harmless processes.
+- On a laptop, macOS starts background processes on its own, and over hours
+  of 0.2 s samples one is always caught. A rule that forbids every unknown
+  process is not workable there.
 
 ### 10.1 Classes
 
@@ -998,12 +1001,19 @@ samples one is always caught.
 - **Rules 8 and 11 give `background`.** A live process whose executable can't
   be resolved, or that falls in no other class, is allowed. Its CPU time is
   recorded under `background`.
-- **Rules 1–7 are unchanged.** These stay forbidden:
+- **Rules 1–7 are unchanged.** These stay forbidden, including when the path
+  is unresolved or `ps` shows the process as `(name)`:
   - any new descendant of Terminal;
   - deny-listed executables (`git`, `cargo`, `rustc`, `ssh`, installers and
-    so on);
+    so on). Parentheses are stripped, and a name cut to 16 characters
+    matches by prefix;
+  - outside the campaign, the interpreters `Python` (the python.org
+    framework executable) and `node`;
   - foreground apps other than Finder and Terminal;
-  - any Claude executable.
+  - any Claude executable: its path, a name starting with `claude`, or a
+    command line naming claude-code. The monitor scans command lines once a
+    second, which replaces §9.2's reliance on rule 11 for a CLI not
+    recognized by name.
 - **Still checked:**
   - HID input;
   - the Git state;
@@ -1022,11 +1032,23 @@ samples one is always caught.
 
 ### 10.3 Interference: disclosure only
 
-- **Recording.** Each gate child record already has `cpu_seconds_by_class`,
-  which now includes `background`.
-- **Reporting.** For each cell, the comparison report shows background and
-  baseline CPU as a share of one core over the child's duration. It marks
-  cells above 25% of one core "read with caution".
+- **Recording.**
+  - Each gate child record has `cpu_seconds_by_class`, which now includes
+    `background`. It is the difference of `ps` CPU totals before and after
+    the child, so a process that starts and exits within the child is not
+    counted. This under-count is disclosed.
+  - The monitor's per-second `top` record adds `background_pcpu_sum`, the
+    sum of `ps` %CPU of the background processes in that sample. It does see
+    short-lived processes that are alive at a sample.
+- **Reporting.** This is specified now and implemented in the comparison
+  report before the analysis. It is not part of the frozen tooling. For each
+  cell, the report shows:
+  - background and baseline CPU as a share of one core over the child's
+    duration;
+  - the mean `background_pcpu_sum` over the child.
+
+  It marks cells above 25% of one core on either measure "read with
+  caution".
 - **No invalidation.** The paired, interleaved design carries background
   noise into both versions. A threshold that invalidated would bring back the
   blocking this amendment removes.
@@ -1040,7 +1062,8 @@ samples one is always caught.
   - The first CONFORMING attempt is final.
   - Every directory counts (`series_budget.sh`).
 - **Prepare scripts.** `prepare_campaign.sh` takes series a3 under a
-  `FREEZE-A3.json` freeze. `prepare_soak.sh` refuses an amendment-3 freeze.
+  `FREEZE-A3.json` freeze, and refuses series a2 and amendment-2 freezes.
+  `prepare_soak.sh` refuses an amendment-3 freeze.
 - **No retroactivity.** Every earlier attempt and soak stays as recorded and
   is reported.
 
@@ -1048,4 +1071,18 @@ samples one is always caught.
 
 The same as §9.6: the prepare script writes `CAMP/LAUNCH-COMMAND.txt`, and the
 maintainer runs it from the only Terminal window with Claude quit.
+
+### 10.6 Review (amendment 3)
+
+An independent reviewer read the draft (`c35c1929`). It found no blockers.
+
+| Finding | Disposition |
+|---|---|
+| S1 a deny-listed or Claude process with an unresolved path or a `(name)` comm became background | parentheses stripped, prefix match for cut names, `claude*` names forbidden; tested |
+| S2 a Claude CLI not recognized by name became background | command-line scan in the monitor, once a second; tested |
+| S3 interference reporting described as existing; under-count | reporting specified as to-be-implemented in the comparison report; under-count disclosed; `background_pcpu_sum` added to the monitor log |
+| S4 cause table incomplete | all five runs listed with their causes and violation counts |
+| M1 interpreters became background | `Python` and `node` forbidden outside the campaign (stricter) |
+| M2 `background_allowed` output undeclared | declared in `amendment_3.cli_differences` |
+| M3 series a2 refused for the wrong reason | explicit refusal: series a2 is closed |
 

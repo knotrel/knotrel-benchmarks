@@ -42,7 +42,8 @@ if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A3
   sh "$(dirname "$0")/check_restored.sh" || exit 3
   CAMP=$CAMP-$SERIES-attempt$ATTEMPT
 elif git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A2.json" 2>/dev/null; then
-  # Amendment 2 (PROTOCOL.md section 9): series a2, cap from the frozen matrix, a conforming
+  echo "FREEZE $FREEZE is amendment 2: series a2 is closed (amendment 3)" >&2; exit 3
+  # Amendment 2 (kept for the record) (PROTOCOL.md section 9): series a2, cap from the frozen matrix, a conforming
   # soak from this freeze first, no unrestored quiesce anywhere.
   [ "$SERIES" = a2 ] || { echo "FREEZE $FREEZE is amendment 2: pass ATTEMPT and series a2" >&2; exit 3; }
   LAUNCH=1
