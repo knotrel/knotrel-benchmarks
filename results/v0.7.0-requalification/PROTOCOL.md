@@ -371,23 +371,42 @@ the experiments, seeds, statistics, thresholds and analyzers.
 1. **Preparation.**
    - **Soak:** `prepare_soak.sh FREEZE_A1 N a1` creates
      `evidence/v0.7.0-requalification-a1-soakN`. It clones the frozen tooling
-     only: no build and no candidate.
+     only: no build and no candidate. It refuses before creating anything
+     when:
+     - `FREEZE-A1.json` is not in FREEZE_A1;
+     - N is not 1–9 or exceeds `max_soaks`;
+     - any quiesce is unrestored (`check_restored.sh`).
    - **Attempt:** `prepare_campaign.sh CAND FREEZE_A1 N a1` creates
-     `…-<cand8>-a1-attemptN`.
+     `…-<cand8>-a1-attemptN`. When FREEZE_A1 is an amendment-1 freeze, it
+     refuses before creating anything when:
+     - the series is not `a1`;
+     - N exceeds `attempts_cap`;
+     - no soak has ended `SOAK CONFORMING`;
+     - any quiesce is unrestored.
 2. **Host preparation (§4)**, with one added item (A4): external keyboards,
    mice and trackpads are off or unplugged, and nothing rests on the built-in
    keyboard or trackpad.
 3. **Launch.** `caffeinate -dimsu sh run_final_chain.sh CAMP CAND CONTROLLER_PID TRANSCRIPT [--soak]`.
    For a soak, CAND is `-`.
+   0. **Argument check, before anything runs (exit 2):**
+      - `--soak` needs CAND `-` and a `*-soakN` directory;
+      - an attempt needs a full SHA and a directory that is not a soak
+        directory;
+      - any other argument is refused.
    1. **AC power check.**
    2. **Quiesce (A1):** `launcher_audit.py quiesce`.
       - It refuses (NOT STARTED) while any `evidence/*/logs/quiesce-restore.json`
         has no successful restore result.
+      - It writes `logs/quiesce-inventory.json` first, from the same collector
+        as the audit.
       - It boots out `conformance.quiesce.launchd` from `gui/<uid>`.
       - It renames each bundle in `conformance.quiesce.park_apps` to
         `<name>.parked-qualification`.
-      - The manifest is written before each action and updated after it. Each
-        action is verified.
+      - The manifest is written before each action and updated after it,
+        durably (fsync). It holds each action's intent and its quoted manual
+        inverse. Each action is verified.
+      - After parking, it confirms with `pluginkit` that no extension still
+        resolves inside a parked bundle.
    3. **Audit (A2)**, before the grace period: `launcher_audit.py audit`. A
       failure is NOT STARTED.
    4. **Grace period.** Then, as in §5: transcript validation, stability check
@@ -400,7 +419,8 @@ the experiments, seeds, statistics, thresholds and analyzers.
       `conformance.soak.duration_s` = 4800 s). The end checks then require
       exactly one gated `soak` child and no measurement output. The result
       prefix is `SOAK`.
-4. **`finish`, on every exit path.**
+4. **`finish`, on every exit path.** Further INT, TERM and HUP signals are
+   ignored from here on.
    1. Stop the monitor.
    2. Write the Git state, `CONFORMANCE.txt`, the monitor log copy and the
       checksums.
@@ -408,9 +428,12 @@ the experiments, seeds, statistics, thresholds and analyzers.
       - bootstrap every job that was booted out;
       - rename each parked bundle back;
       - never overwrite an occupied path;
-      - write `logs/quiesce-restore-result.json` and print `RESTORE OK` or
+      - write `logs/quiesce-restore-result.json`;
+      - add a `RESTORE` line to `chain-steps.txt` and print `RESTORE OK` or
         `RESTORE FAILED`.
-   4. A failed restore is reported to the maintainer. It is never retried
+      - Only actions whose intent was recorded are undone.
+   4. A failed restore exits 21. RESULT and `CONFORMANCE.txt` are not
+      changed. The failure is reported to the maintainer and never retried
       silently.
 
 ### 8.2 The audit (A2)
@@ -438,12 +461,30 @@ program are in Apple locations:
 would be needed to act on them. The resident ones are in `host_baseline`, and
 anything they spawn is still forbidden.
 
-**`allow_jobs`.** The reasons are in MATRIX `conformance.quiesce.allow_jobs_reasons`:
+**`allow_jobs` and `allow_jobs_prefix`.** An entry is verified against
+the job, not trusted from its label. A matching job must:
+- run a program under the entry's `program_prefix` (`null` means the job has
+  no program line);
+- declare only the triggers the entry lists;
+- have readable triggers, unless the entry sets `unreadable_ok`.
+
+Otherwise the audit fails. Entries, each with its reason in MATRIX
+`conformance.quiesce`:
 - `com.docker.helper` (SMAppService, no plist);
 - three ShipIt updaters, which run on demand from apps that are quit;
-- `com.jetbrains.toolbox` (`RunAtLoad` only);
+- `com.jetbrains.toolbox` (triggers limited to `RunAtLoad`);
 - four CoreSimulator XPC services;
 - the Claude desktop app's job, by prefix.
+
+**Triggers come from the plist on disk at audit time.** A plist edited after
+it was loaded is read as edited. This is disclosed.
+
+**Operational note.** The audit fails closed, so the following stop a launch
+as NOT STARTED, consistent with §4 item 2 (quit every application):
+- an open application other than the Claude desktop app. Its runningboard job
+  (`application.<bundle-id>…`, "submitted") is third-party and unknown, and
+  this applies to Apple applications too;
+- a job that exits between the domain listing and its own print.
 
 ### 8.3 Attempt accounting (A5)
 
@@ -463,6 +504,15 @@ anything they spawn is still forbidden.
   Those outputs have no verdict and are not reused.
 
 ### 8.4 Differences from the proposal (declared before freezing)
+
+The tooling review (§8.6) found differences in the first tooling commit. They
+are now implemented as proposed:
+- the inventory before quiesce;
+- the `pluginkit` check after parking;
+- `prepare` refusing after an unrestored manifest;
+- allow-list entries checked for triggers.
+
+What remains different is listed below.
 
 1. **Tool layout.**
    - A2, quiesce and restore are one script, `scripts/launcher_audit.py`. The
@@ -491,3 +541,71 @@ anything they spawn is still forbidden.
      on the Q jobs and the two WhatsApp extensions;
    - restoring the MAU agent started Microsoft Update Assistant, as
      disclosed.
+   - That round trip ran the first tooling commit. The final quiesce and
+     restore code differs (intent-based restore, inventory, `pluginkit`
+     check). The bootout and bootstrap calls themselves are unchanged.
+7. **Allow-list format.** The allow-list is a set of verified entries, each
+   with a program prefix, permitted triggers and a reason, instead of a list
+   of labels. This is stricter.
+8. **Prepare enforcement.** `prepare_campaign.sh` also enforces the series
+   name, the attempt cap and a prior `SOAK CONFORMING`.
+
+### 8.5 Manual recovery
+
+Use this if `RESTORE FAILED` was printed, or if the chain was killed with no
+trap (SIGKILL or power loss). The next quiesce and both prepare scripts
+refuse while this is unresolved.
+1. **Read the manifest.** Open `CAMP/logs/quiesce-restore.json`. Its
+   `manual_restore` array lists, quoted for `sh`, the inverse of every action
+   that was started:
+   - `launchctl bootstrap gui/501 '<plist>'` for each job booted out;
+   - `mv -n '<app>.parked-qualification' '<app>'` for each parked bundle.
+     `-n` never overwrites. If the original path is occupied, for example
+     after a reinstall, the maintainer decides which copy to keep.
+2. **Run them.** Then check:
+   - `launchctl print gui/501/<label>` succeeds for each job;
+   - each bundle is back at its path.
+3. **Record the restore.** Run
+   `python3 scripts/launcher_audit.py restore --camp CAMP` from the campaign's
+   tooling clone. It finds everything in place and writes
+   `quiesce-restore-result.json` with `ok: true`, which clears the block.
+4. **If the manifest is unreadable** (empty after a power loss), use
+   `logs/quiesce-inventory.json` and MATRIX `conformance.quiesce`:
+   - bootstrap each Q job from the plist path the inventory records;
+   - rename each parked bundle back.
+
+   Then write a correct manifest and run step 3. This case is reported to the
+   maintainer.
+
+### 8.6 Tooling review (amendment 1)
+
+An independent reviewer read the first tooling commit against the approved
+proposal and the frozen protocol, with read-only access and a live read-only
+audit.
+- **Checked and found correct:**
+  - the restore ordering;
+  - crash safety and idempotence;
+  - the soak prerequisites;
+  - the classification of `caffeinate` and `launchctl`;
+  - the frozen material unchanged except as declared;
+  - no rule, threshold, seed, analyzer or granularity change.
+
+| Finding | Disposition |
+|---|---|
+| B1 no manual recovery in §8 | §8.5 |
+| B2 undeclared differences (inventory, post-park check, prepare refusal, allow-list triggers) | implemented (§8.1, §8.2); remaining differences in §8.4 |
+| S1 restore could fail when nothing was changed | restore keyed on recorded intent; tested |
+| S2 allow-list trusted labels and skipped triggers | verified entries (program prefix, permitted triggers, `unreadable_ok`); tested including spoofing |
+| S3 second signal skipped the restore | `finish` ignores INT/TERM/HUP |
+| S4 failed restore invisible | `RESTORE` line in `chain-steps.txt`, exit 21 |
+| S5 soak flag not tied to the directory | argument check before anything runs (exit 2); tested |
+| S6 `prepare_soak.sh` gaps | FREEZE-A1 required, N validated, unrestored check; tested |
+| S7 fail-open parsing | the `pluginkit` footer count must match; `crontab` accepts only "no crontab for"; tested |
+| Minor: crash window, quoting, fsync | intent and manual command recorded before each action; `shlex.quote`, `mv -n`; fsync of file and directory |
+| Minor: triggers read from disk; application jobs | disclosed (§8.2) |
+| Minor: `required_before_first_attempt` not enforced; old-series naming | enforced in `prepare_campaign.sh` (§8.1) |
+| Test gaps | real-format `launchctl` and `pluginkit` fixtures, prefix rule, pre-existing parked path, corrupt result or manifest, argument checks added |
+
+**Still open:** `finish` is not run with stubs. The restore ordering, signal
+handling and exit code are covered by structural tests of the script, plus
+the round trip in §8.4 item 6.
