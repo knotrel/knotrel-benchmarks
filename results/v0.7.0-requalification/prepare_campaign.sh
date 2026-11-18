@@ -31,7 +31,17 @@ BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 C8=$(echo "$CAND" | cut -c1-7)
 CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-$C8
 LAUNCH=""
-if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A2.json" 2>/dev/null; then
+if git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A3.json" 2>/dev/null; then
+  # Amendment 3 (PROTOCOL.md section 10): series a3, cap from the frozen matrix, no soak required,
+  # no unrestored quiesce anywhere.
+  [ "$SERIES" = a3 ] || { echo "FREEZE $FREEZE is amendment 3: pass ATTEMPT and series a3" >&2; exit 3; }
+  LAUNCH=1
+  CAP=$(git -C "$BREPO" show "$FREEZE:results/v0.7.0-requalification/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['amendment_3']['attempts_cap'])")
+  case "$ATTEMPT" in [1-9]) ;; *) echo "attempt must be 1-9" >&2; exit 3;; esac
+  sh "$(dirname "$0")/series_budget.sh" attempt "$ATTEMPT" "$CAP" "$CAMP-$SERIES"-attempt[1-9] || exit 3
+  sh "$(dirname "$0")/check_restored.sh" || exit 3
+  CAMP=$CAMP-$SERIES-attempt$ATTEMPT
+elif git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-requalification/FREEZE-A2.json" 2>/dev/null; then
   # Amendment 2 (PROTOCOL.md section 9): series a2, cap from the frozen matrix, a conforming
   # soak from this freeze first, no unrestored quiesce anywhere.
   [ "$SERIES" = a2 ] || { echo "FREEZE $FREEZE is amendment 2: pass ATTEMPT and series a2" >&2; exit 3; }

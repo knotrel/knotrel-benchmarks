@@ -80,6 +80,14 @@ it forks; PROTOCOL §9.11), if Terminal has any other live descendant, if anothe
 Terminal process exists, or if any Claude process is running (``is_claude``,
 or a command line naming claude-code, for example a node-based CLI).
 
+Amendment 3 (PROTOCOL §10), ``Policy.background_allowed`` (MATRIX
+``conformance.background_allowed``, terminal kind only): rules 8 and 11 give
+``background`` instead of ``forbidden``. A live process whose executable cannot
+be resolved, or that is in no other class, is allowed and its CPU time is
+recorded. Rules 1-7 are unchanged: new controller descendants, deny-listed
+executables, foreground apps other than Finder and Terminal, and any Claude
+executable stay ``forbidden``.
+
 Limits (PROTOCOL §3.6): a process that starts and exits between two samples
 can be missed. With controller kind ``claude-cli``, tool calls that start no
 process are covered only by the controller transcript check in the chain;
@@ -264,6 +272,7 @@ class Policy:
     baseline_paths: Set[str] = field(default_factory=set)
     controller_kind: str = "claude-cli"
     controller_paths: Dict[int, str] = field(default_factory=dict)
+    background_allowed: bool = False
 
     @staticmethod
     def load(path: Path) -> "Policy":
@@ -272,14 +281,18 @@ class Policy:
         if kind not in KINDS:
             raise ValueError(f"unknown controller_kind {kind!r}")
         paths = {int(k): v for k, v in data.get("controller_paths", {}).items()}
+        background = bool(data.get("background_allowed", False))
+        if background and kind != "terminal":
+            raise ValueError("background_allowed needs controller_kind terminal")
         return Policy(int(data["chain_pid"]), data.get("controller_pid"),
-                      set(data.get("controller_children", [])), set(data.get("baseline_paths", [])), kind, paths)
+                      set(data.get("controller_children", [])), set(data.get("baseline_paths", [])), kind, paths, background)
 
     def to_json(self) -> Dict[str, object]:
         return {"chain_pid": self.chain_pid, "controller_pid": self.controller_pid,
                 "controller_children": sorted(self.controller_children),
                 "baseline_paths": sorted(self.baseline_paths), "controller_kind": self.controller_kind,
-                "controller_paths": {str(k): v for k, v in sorted(self.controller_paths.items())}}
+                "controller_paths": {str(k): v for k, v in sorted(self.controller_paths.items())},
+                "background_allowed": self.background_allowed}
 
 
 class PolicyError(Exception):
@@ -437,15 +450,16 @@ def classify_one(proc: Proc, policy: Policy, campaign: Set[int], controller_tree
         return "forbidden"
     if not terminal and (proc.pid == policy.controller_pid or proc.pid in policy.controller_children):
         return "baseline"
+    background = terminal and policy.background_allowed
     if path is None:
-        return "forbidden"
+        return "background" if background else "forbidden"
     if path.startswith(CONTROLLER_APP) and not terminal:
         return "baseline"
     if path.startswith(SYSTEM_PREFIXES) or SYSTEM_APPEX.match(path):
         return "system"
     if path in policy.baseline_paths:
         return "baseline"
-    return "forbidden"
+    return "background" if background else "forbidden"
 
 
 def classify(procs: List[Proc], policy: Policy, foreground: Optional[Dict[int, str]] = None) -> List[Tuple[Proc, str]]:
@@ -702,6 +716,7 @@ def main() -> int:
                 if args.controller is not None:
                     raise PolicyError("--controller is not used with --controller-kind terminal (Terminal.app is found from the chain)")
                 policy = build_policy_terminal(snapshot(), args.chain, baseline, claude_cmdlines())
+                policy.background_allowed = bool(json.loads(args.matrix.read_text())["conformance"].get("background_allowed", False))
             else:
                 if args.controller is None:
                     raise PolicyError("--controller is required with --controller-kind claude-cli")

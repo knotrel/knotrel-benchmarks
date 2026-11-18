@@ -61,6 +61,9 @@ done
 mkdir -p "$G"
 stamp() { echo "$1 $(date -u +%Y-%m-%dT%H:%M:%SZ) $2" >> "$L/chain-steps.txt"; }
 conf() { python3 -c "import json;print(json.load(open('$MATRIX'))['conformance']['$1'])"; }
+# Amendment 3: the launcher audit is recorded, not a precondition, when conformance.launcher_audit is "record".
+AUDIT_MODE=$(python3 -c "import json;print(json.load(open('$MATRIX'))['conformance'].get('launcher_audit','gate'))" 2>/dev/null)
+audit_failed() { if [ "$AUDIT_MODE" = record ]; then stamp AUDIT "findings recorded, not a precondition (amendment 3): $1"; else notstarted "$2"; fi; }
 CLAUDE_STATE_DIR=$HOME/.claude/projects
 # Fails closed: an unreadable tree gives TREE-STATE-FAILED, never an empty (always equal) state.
 session_state() { _S=$(python3 scripts/conformance_monitor.py tree-state "$CLAUDE_STATE_DIR" 2>/dev/null) && [ -n "$_S" ] && echo "$_S" || echo "TREE-STATE-FAILED"; }
@@ -115,7 +118,7 @@ case "$(pmset -g batt | head -1)" in *"AC Power"*) ;; *) RESULT="${P}NOT STARTED
 policy "$L/policy-prequiesce.json" 2> "$L/policy-error.txt" || { RESULT="${P}NOT STARTED: controller check refused ($(cat "$L/policy-error.txt"))"; exit 4; }
 # Amendment 1, A1/A2: quiesce (refuses while any earlier manifest is unrestored), then audit.
 python3 scripts/launcher_audit.py quiesce --matrix "$MATRIX" --camp "$CAMP" > "$L/quiesce.log" 2>&1 || notstarted "launcher quiesce failed (logs/quiesce.log)"
-python3 scripts/launcher_audit.py audit --matrix "$MATRIX" --out "$L/launcher-audit-pregrace.json" 2> "$L/launcher-audit-pregrace.txt" || notstarted "launcher audit failed before the grace period (logs/launcher-audit-pregrace.txt)"
+python3 scripts/launcher_audit.py audit --matrix "$MATRIX" --out "$L/launcher-audit-pregrace.json" 2> "$L/launcher-audit-pregrace.txt" || audit_failed "logs/launcher-audit-pregrace.txt" "launcher audit failed before the grace period (logs/launcher-audit-pregrace.txt)"
 GRACE=$(conf grace_period_s)
 STABLE=$(conf session_stable_s)
 MIN_IDLE=$(conf min_hid_idle_at_policy_s)
@@ -127,7 +130,7 @@ S1=$(session_state); sleep "$STABLE"; S2=$(session_state)
 [ "$S1" = "$S2" ] || { RESULT="${P}NOT STARTED: Claude session files still changing after the grace period"; exit 4; }
 IDLE=$(python3 scripts/conformance_monitor.py hid-idle) || { RESULT="${P}NOT STARTED: HID idle time unreadable"; exit 4; }
 python3 -c "import sys; sys.exit(0 if float('$IDLE') >= float('$MIN_IDLE') else 1)" || { RESULT="${P}NOT STARTED: user input ${IDLE}s ago (minimum ${MIN_IDLE}s)"; exit 4; }
-python3 scripts/launcher_audit.py audit --matrix "$MATRIX" --out "$L/launcher-audit.json" 2> "$L/launcher-audit.txt" || notstarted "launcher audit failed (logs/launcher-audit.txt)"
+python3 scripts/launcher_audit.py audit --matrix "$MATRIX" --out "$L/launcher-audit.json" 2> "$L/launcher-audit.txt" || audit_failed "logs/launcher-audit.txt" "launcher audit failed (logs/launcher-audit.txt)"
 if ! policy "$G/policy.json" 2> "$L/policy-error.txt"; then
   RESULT="${P}NOT STARTED: policy refused ($(cat "$L/policy-error.txt"))"; exit 4
 fi
