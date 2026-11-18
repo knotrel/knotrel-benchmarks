@@ -1,5 +1,5 @@
 {
- "frozen_utc": "2026-11-18T13:48:29Z",
+ "frozen_utc": "2026-11-18T13:59:36Z",
  "amendment": 2,
  "amends": {
   "freeze": "FREEZE-A1.json (tooling dae30690, freeze 8b931e1f)",
@@ -17,8 +17,8 @@
  },
  "tooling": {
   "repository": "knotrel-benchmarks",
-  "commit": "ef7ebe43055ed8977c151e077ef0de2896e386ea",
-  "note": "amendment 2 tooling after the independent review, its verification pass, a re-verification and the review of the audit-race delta; the freeze commit adds only FREEZE-A2.json"
+  "commit": "b106e09433d5cdd19fc48ce81ba7f0bb54f914b4",
+  "note": "amendment 2 tooling after the independent review, its verification pass, a re-verification, the audit-race delta review and the lineage-correction delta review; the freeze commit adds only FREEZE-A2.json"
  },
  "controller_kind": "terminal",
  "attempt_series": "a2",
@@ -43,19 +43,20 @@
   "review": "'Verification pass'",
   "freeze": "approved with the review path: verification pass, then freeze and prepare a2-soak2",
   "date": "2026-11-18",
-  "audit_race": "'Fix and refreeze'"
+  "audit_race": "'Fix and refreeze'",
+  "lineage_correction": "'Fix and refreeze'"
  },
  "file_sha256": {
-  "results/v0.7.0-requalification/MATRIX.json": "09dcd7bef6d73e5496942f126aff45939f2f729b828e965df303fa4d7b19a14c",
-  "results/v0.7.0-requalification/PROTOCOL.md": "38b5abe41b8047a2893f7994650795f2011b6581d93e8a99e8737af4ee14c536",
+  "results/v0.7.0-requalification/MATRIX.json": "e1a420062b57cab2b94d2afbb9552c0375b4c39c840eae66095a12d0eb3ffc43",
+  "results/v0.7.0-requalification/PROTOCOL.md": "c2b1288d05fdccb5d09d9f121e2c364756504a38ee7686cf43cc9f10fa79f63e",
   "results/v0.7.0-requalification/AMENDMENT-1-PROPOSAL.md": "38ac93bbda8e93df1b8c4a814f4062ba34f707722922b93a14c29350231860ec",
   "results/v0.7.0-requalification/EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256": "839efa75ce3ab56588cdd8c42f432909bd86a6bec507f982f6adcd55917722d1",
-  "results/v0.7.0-requalification/run_final_chain.sh": "42de1b1a2700d1f48e2af807ad25bf43598dde66aabfc048be2996e2f73e2bd6",
+  "results/v0.7.0-requalification/run_final_chain.sh": "dde935070d7e308a722a4e18598b6dfdcd845d343a041f803f35584059a84fc5",
   "results/v0.7.0-requalification/prepare_campaign.sh": "7fd69617779d387ccc6361429a8aa071b3148b30182b16b28d7edd07f7f5519b",
   "results/v0.7.0-requalification/prepare_soak.sh": "8a7f582d8168a257d80577385531ceb1633cad3144fd4ed525397534b6e39544",
   "results/v0.7.0-requalification/check_restored.sh": "2a10048c075c85ae0d1c49bdf5e88222a9f670312956802b2ec36eff5cac8451",
   "scripts/launcher_audit.py": "93962886ce03cddf597d9ec3902f51899e990e1d78545ade566360cee4127ffe",
-  "scripts/conformance_monitor.py": "80c7268d540517c22f128cb0ef2a4fadcb707cfac9dfe93b5ec5ee065272d38d",
+  "scripts/conformance_monitor.py": "7defb2a6e5c33356ef5bb6e402712680ad3011ac98e45b7aa8a105ae545a7b93",
   "scripts/conformance_gate.py": "8bad092c9d52dc0d82005263f5e6d33b09ca79d81d02f3b2234f7e2cba2941c5",
   "scripts/run_v070r_collect.py": "29c84947f848cf1328292cb7d73f3313d3eddce3d5e98167ef78ef91b11604ad",
   "scripts/analyze_v070r_qualification.py": "06efd9d731544faea1753767341b2204ee1da2295ba9baab2ec4e4613f4d43e5",
@@ -70,10 +71,10 @@
   "scripts/analyze_v060_m_supplement.py": "52bf2ad10497e8e3b642addc584575e52d01bd659375cfe62cc091fa757580b5",
   "results/v0.7.0-requalification/FREEZE-A1.json": "0e8f178ad2d7618f61dece21dce9af81a8d8dfbdc9be072a03c7bb0501c2a090",
   "results/v0.7.0-requalification/AMENDMENT-2-OPTIONS.md": "bbde3ca0b465ec0c4a315d0fdfdbc44823f4d3e65ad25e120a8f25e937b784ef",
-  "results/v0.7.0-requalification/precheck_terminal.sh": "3fb45d1ccd0a70b4b10859c15c66e63cb370f3902959026c7aa2f81f4637866f",
+  "results/v0.7.0-requalification/precheck_terminal.sh": "a63ef9bddec948fe50f0516a66f315b2444323e2b2e3d513c414fa3e39a9d701",
   "results/v0.7.0-requalification/launch_command.sh": "17874694f55cc7da352262da7271899bf52c4adbb044d640e2d2763043a85423",
   "results/v0.7.0-requalification/series_budget.sh": "185b91956ec5fc9f960b54309e68b6cf2ec157043b242619a6b8222730b6e977",
-  "scripts/tests/test_v070r_amendment2.py": "f40f9930626e8f8ff4f58251a15f9430fd9503abd5bc2cd726ac2491a4e20cc5"
+  "scripts/tests/test_v070r_amendment2.py": "fd25e243e6c38c9fa1b7213d135637cfc66b630b16b6565523036223208f4bb9"
  },
  "changed_since_freeze_a1": [
   "results/v0.7.0-requalification/MATRIX.json",
@@ -85,11 +86,18 @@
   "scripts/conformance_monitor.py"
  ],
  "unchanged": "rule, deny-list, HID, liveness, granularity, experiments, seeds, statistics, thresholds, analyzers (MATRIX diff vs FREEZE-A1 limited to status, outcome, quiesce.allow_jobs_prefix, controller_kind, amendment_2; checked by test_v070r_amendment2.py)",
- "tests": "631 passed, 2 skipped at the tooling commit",
- "revision": 2,
- "supersedes": {
-  "freeze": "e57106bc9b3dafd3fc01425ffc0aa73a43250d05",
-  "tooling": "5eea0b4ced9417ccb2df6d8d9f5001e03ad725d0",
-  "reason": "audit race fix (PROTOCOL \u00a79.10), approved 2026-11-18 'Fix and refreeze'; the directory prepared from it was never launched and is kept as v0.7.0-requalification-a2-soak2.unlaunched-e57106bc"
- }
+ "tests": "633 passed, 2 skipped at the tooling commit",
+ "revision": 3,
+ "superseded": [
+  {
+   "freeze": "e57106bc9b3dafd3fc01425ffc0aa73a43250d05",
+   "tooling": "5eea0b4ced9417ccb2df6d8d9f5001e03ad725d0",
+   "reason": "audit race fix (PROTOCOL \u00a79.10), approved 2026-11-18 'Fix and refreeze'; the directory prepared from it was never launched and is kept as v0.7.0-requalification-a2-soak2.unlaunched-e57106bc"
+  },
+  {
+   "freeze": "58ed921a681ef53c4182cc080d0636fe795b7a14",
+   "tooling": "ef7ebe43055ed8977c151e077ef0de2896e386ea",
+   "reason": "lineage correction (PROTOCOL \u00a79.11), approved 2026-11-18 'Fix and refreeze'; the precheck refused the first launch (nothing started); the directory is kept as v0.7.0-requalification-a2-soak2.unlaunched-58ed921a"
+  }
+ ]
 }
