@@ -47,18 +47,20 @@ model behind that rule:
   nocount's two runs differ by about 7 points (+5.81% against −1.21%). Each
   variant's pooled interval of 200 pairs mixes two runs whose medians
   differ, so the interval understates the variability between runs.
-- **What dominates are run-level effects** (process start, memory layout,
-  host state), not the instrumentation. The paired within-run design does
-  not remove them.
+- **The likely, but not shown, explanation is run-level effects** (process
+  start, memory layout, host state) rather than the instrumentation. The
+  paired within-run design would not remove them. The data show the
+  inconsistency, not its cause.
 
 **Conclusion (no verdict).**
 - The 6% budget question is still **not resolved**.
 - On the same-binary control, the released overhead measured +5.41% [+4.54,
   +5.82] on this host. That is not a qualification result.
 
-**Departure from the plan.** The declared follow-up (a same-observability
-variant for each claimed component, candidate inclusion only without
-overlap) was **not run**.
+**Departure from the plan, awaiting the maintainer's acceptance.** The
+declared follow-up (a same-observability variant for each claimed component,
+candidate inclusion only without overlap) was **not run**. That decision was
+taken after seeing the data.
 - **Why:** the claimed shares are contradicted by the data's own internal
   consistency. A follow-up measured with the same protocol would carry the
   same run-level effects. It could pass the non-overlap rule spuriously and

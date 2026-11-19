@@ -639,6 +639,10 @@ struct Arm {
     /// Candidate arms of equivalent scenarios: the response bodies, kept
     /// (reference-counted, no copy) for the per-operation outcome check.
     responses: Option<Vec<Bytes>>,
+    /// Equivalent ops references: the plain operations planned in the window,
+    /// and those the prebuilt requests carry (they must be equal).
+    window_legacy: Option<Vec<Op>>,
+    prepared_legacy: Option<Vec<Op>>,
 }
 
 async fn send(call: &Call) -> (StatusCode, Bytes) {
@@ -651,6 +655,13 @@ async fn send(call: &Call) -> (StatusCode, Bytes) {
 
 async fn run_window(arm: &mut Arm) -> u128 {
     let steps = arm.plan_steps.take();
+    // Bookkeeping for the post-window checks is allocated before the clock
+    // starts; inside the window it only moves values (no copy).
+    let mut window_chunks: Vec<Vec<Op>> =
+        Vec::with_capacity(steps.as_ref().map_or(0, |s| s.1.len()));
+    if let Some(responses) = arm.responses.as_mut() {
+        responses.reserve(arm.calls.len());
+    }
     let start = Instant::now();
     if let Some((mut planner, steps)) = steps {
         let mut next = 0;
@@ -667,9 +678,12 @@ async fn run_window(arm: &mut Arm) -> u128 {
                 expected.push(outcome);
                 planner.plan(op, &mut legacy);
             }
-            std::hint::black_box(&legacy);
+            window_chunks.push(legacy);
             for call in &arm.calls[next..next + count] {
-                send(call).await;
+                let (_, body) = send(call).await;
+                if let Some(responses) = arm.responses.as_mut() {
+                    responses.push(body);
+                }
             }
             next += count;
         }
@@ -678,6 +692,7 @@ async fn run_window(arm: &mut Arm) -> u128 {
         arm.expected = Some(expected);
         arm.planned = Some(planner);
         arm.removed = Some(removed);
+        arm.window_legacy = Some(window_chunks.into_iter().flatten().collect());
         return elapsed;
     }
     for call in &arm.calls {
@@ -778,39 +793,100 @@ async fn answers(arm: &Arm, pairs: &[(u64, u64)]) -> Vec<Value> {
 /// (qualification 3), run sequentially with no request in flight (no
 /// concurrent mutation): connectivity agreement alone does not show
 /// equivalence.
+/// - **Plan:** the plain operations planned in the window equal those the
+///   prebuilt requests carried.
 /// - **Per operation (ops, ops-query):** every outcome the reference computed
-///   in its window equals the candidate's per-item result (`connected` answers
-///   forwarded to the plain server are compared by the connectivity check).
+///   in its window equals the candidate's per-item result, and every
+///   `connected` the application forwarded is answered by the plain server as
+///   by the candidate.
 /// - **Final state:** the candidate's `/v1/stats` registered nodes and edges,
 ///   active nodes, enabled and effective edges equal the application
 ///   catalog's, and the plain server's edge count equals the effective edges.
 async fn equivalence_check(candidate: &Arm, reference: &mut Arm) -> Result<(), String> {
-    if let (Some(responses), Some(expected)) = (&candidate.responses, &reference.expected) {
+    // The plain operations planned in the window are those the requests carried.
+    // (`Op` has no `PartialEq` in the frozen library; compare wire encodings.)
+    let encode =
+        |ops: &Option<Vec<Op>>| ops.as_ref().map(|v| v.iter().map(wire).collect::<Vec<_>>());
+    if encode(&reference.window_legacy) != encode(&reference.prepared_legacy) {
+        return Err("plain operations planned in the window differ from the requests sent".into());
+    }
+    let items_of = |bodies: &Vec<Bytes>| -> Result<Vec<Value>, String> {
         let mut items = Vec::new();
-        for body in responses {
+        for body in bodies {
             let value: Value =
-                serde_json::from_slice(body).map_err(|e| format!("candidate response: {e}"))?;
+                serde_json::from_slice(body).map_err(|e| format!("response: {e}"))?;
             items.extend(
                 value["results"]
                     .as_array()
                     .cloned()
-                    .ok_or("candidate response without results")?,
+                    .ok_or("response without results")?,
             );
         }
-        if items.len() != expected.len() {
-            return Err(format!(
-                "{} candidate results for {} reference outcomes",
-                items.len(),
-                expected.len()
-            ));
-        }
-        for (i, (expect, item)) in expected.iter().zip(&items).enumerate() {
-            if !expect.matches(item) {
+        Ok(items)
+    };
+    match (&candidate.responses, &reference.expected) {
+        (Some(responses), Some(expected)) => {
+            let items = items_of(responses)?;
+            if items.len() != expected.len() {
                 return Err(format!(
-                    "operation {i}: reference outcome {expect:?}, candidate result {item}"
+                    "{} candidate results for {} reference outcomes",
+                    items.len(),
+                    expected.len()
                 ));
             }
+            for (i, (expect, item)) in expected.iter().zip(&items).enumerate() {
+                if !expect.matches(item) {
+                    return Err(format!(
+                        "operation {i}: reference outcome {expect:?}, candidate result {item}"
+                    ));
+                }
+            }
+            // Forwarded `connected` answers: the k-th forwarded query is the k-th
+            // `connected` among the plain operations, whose result is at the same
+            // position in the plain responses.
+            let plain_items = items_of(
+                reference
+                    .responses
+                    .as_ref()
+                    .ok_or("plain responses not kept")?,
+            )?;
+            let legacy = reference
+                .window_legacy
+                .as_ref()
+                .ok_or("plain operations not kept")?;
+            if plain_items.len() != legacy.len() {
+                return Err(format!(
+                    "{} plain results for {} plain operations",
+                    plain_items.len(),
+                    legacy.len()
+                ));
+            }
+            let mut forwarded = legacy
+                .iter()
+                .zip(&plain_items)
+                .filter(|(op, _)| matches!(op, Op::Connected(..)))
+                .map(|(_, item)| item);
+            for (i, (expect, item)) in expected.iter().zip(&items).enumerate() {
+                if *expect == Expect::Connected(None) {
+                    let plain = forwarded
+                        .next()
+                        .ok_or("fewer forwarded queries than expected")?;
+                    if plain["connected"] != item["connected"] {
+                        return Err(format!(
+                            "operation {i}: plain answer {plain}, candidate {item}"
+                        ));
+                    }
+                }
+            }
+            if forwarded.next().is_some() {
+                return Err("more forwarded queries than expected".into());
+            }
         }
+        // The lifecycle feeder (events) reports no per-event results.
+        (None, Some(_)) if reference.feeder.is_none() => {
+            return Err("candidate per-operation results were not kept".into());
+        }
+        _ => {}
     }
     let (catalog, entries) = match (&reference.planned, &reference.built_equivalent) {
         (Some(planner), _) => (planner.counts(), planner.nodes.clone()),
@@ -1070,6 +1146,8 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 removed: None,
                 feeder: None,
                 responses: None,
+                window_legacy: None,
+                prepared_legacy: None,
             })
         }
         "ops" | "ops-query" | "events" | "metrics-ops" => {
@@ -1087,8 +1165,9 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     router_with_config(config(engine, candidate, ServerMode::SourceManaged, false));
                 let mut feeder = Feeder::start(&app, n, edges).await;
                 let mut planner = (!candidate).then(|| Planner::new(n, edges));
-                let pristine = planner.clone().filter(|_| equivalent);
+                let pristine = if equivalent { planner.clone() } else { None };
                 let mut steps = Vec::new();
+                let mut prepared = Vec::new();
                 let mut bodies = Vec::new();
                 for chunk in ops.chunks(128) {
                     match planner.as_mut() {
@@ -1102,7 +1181,10 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                             for part in legacy.chunks(BATCH) {
                                 bodies.push(feeder.events(part));
                             }
-                            steps.push((chunk.to_vec(), bodies.len() - before));
+                            if equivalent {
+                                steps.push((chunk.to_vec(), bodies.len() - before));
+                                prepared.extend_from_slice(&legacy);
+                            }
                         }
                     }
                 }
@@ -1122,6 +1204,8 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     removed: None,
                     feeder: kept_feeder,
                     responses: None,
+                    window_legacy: None,
+                    prepared_legacy: equivalent.then_some(prepared),
                 });
             }
             let (lifecycle, metrics) = if scenario == "metrics-ops" {
@@ -1146,11 +1230,14 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     removed: None,
                     feeder: None,
                     responses: (candidate && equivalent_scenario).then(Vec::new),
+                    window_legacy: None,
+                    prepared_legacy: None,
                 });
             }
             let mut planner = Planner::new(n, edges);
             let pristine = equivalent.then(|| planner.clone());
             let mut steps = Vec::new();
+            let mut prepared = Vec::new();
             let mut bodies = Vec::new();
             for chunk in ops.chunks(256) {
                 let mut legacy = Vec::new();
@@ -1161,7 +1248,10 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 for part in legacy.chunks(BATCH) {
                     bodies.push(batch_body(part));
                 }
-                steps.push((chunk.to_vec(), bodies.len() - before));
+                if equivalent {
+                    steps.push((chunk.to_vec(), bodies.len() - before));
+                    prepared.extend_from_slice(&legacy);
+                }
             }
             Ok(Arm {
                 calls: calls(&app, "/v1/batch", None, bodies),
@@ -1176,7 +1266,10 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 planned: None,
                 removed: None,
                 feeder: None,
-                responses: None,
+                // The plain responses, kept (no copy) to compare forwarded `connected` answers.
+                responses: equivalent.then(Vec::new),
+                window_legacy: None,
+                prepared_legacy: equivalent.then_some(prepared),
             })
         }
         "import" | "import-optin" => {
@@ -1270,6 +1363,8 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                         sequence: 0,
                     }),
                     responses: None,
+                    window_legacy: None,
+                    prepared_legacy: None,
                 });
             }
             let flag_store = (!candidate && flagged).then(|| FlagStore {
@@ -1293,6 +1388,8 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 removed: None,
                 feeder: None,
                 responses: None,
+                window_legacy: None,
+                prepared_legacy: None,
             })
         }
         _ => Err("unknown --scenario".into()),

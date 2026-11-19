@@ -141,6 +141,10 @@ type Headers = Vec<(String, String)>;
 struct Conn {
     reader: BufReader<TcpStream>,
     writer: TcpStream,
+    /// Revision 4: set when a timed-out refresh could not replace this
+    /// connection; a late reply may still be queued on it, so every further
+    /// request fails (the caller then reconnects) instead of reading that reply.
+    poisoned: bool,
 }
 
 impl Conn {
@@ -159,13 +163,16 @@ impl Conn {
         Ok(Self {
             reader: BufReader::new(stream.try_clone()?),
             writer: stream,
+            poisoned: false,
         })
     }
 
-    /// Sets the read timeout of the underlying socket (shared by reader and writer).
+    /// Sets the read and write timeouts of the underlying socket (shared by reader
+    /// and writer). A read timeout bounds each `read`, not a whole response.
     fn set_read_timeout(&self, timeout: Duration) -> std::io::Result<()> {
-        self.writer
-            .set_read_timeout(Some(timeout.max(Duration::from_millis(1))))
+        let timeout = Some(timeout.max(Duration::from_millis(1)));
+        self.writer.set_write_timeout(timeout)?;
+        self.writer.set_read_timeout(timeout)
     }
 
     /// Sends one request and reads the whole response; returns status,
@@ -177,6 +184,11 @@ impl Conn {
         headers: &[(&str, &str)],
         body: &[u8],
     ) -> std::io::Result<(u16, Headers, Vec<u8>)> {
+        if self.poisoned {
+            return Err(std::io::Error::other(
+                "connection poisoned by a timed-out refresh",
+            ));
+        }
         let mut head = format!("{method} {path} HTTP/1.1\r\nhost: knotrel\r\n");
         for (name, value) in headers {
             head.push_str(&format!("{name}: {value}\r\n"));
@@ -518,6 +530,10 @@ const REFRESH_BUDGET: Duration = Duration::from_millis(1_000);
 /// Read timeout outside a refresh (as set by [`Conn::connect`]).
 const READ_TIMEOUT: Duration = Duration::from_secs(60);
 
+/// Connect timeout used to replace a connection after a refresh I/O error once
+/// the budget is spent (revision 4).
+const RECONNECT_FLOOR: Duration = Duration::from_millis(200);
+
 /// Backoff before refresh attempt `attempt + 1` (revision 3): 10 ms doubling to 160 ms.
 fn refresh_backoff(attempt: u32) -> Duration {
     Duration::from_millis(10u64 << attempt.min(4))
@@ -581,16 +597,19 @@ fn refresh_etag(conn: &mut Conn, address: SocketAddr, budget: Duration) -> Refre
             }
             Err(_) => {
                 out.io_errors += 1;
+                // Always replace the connection: a late reply may be queued on it.
+                // When the budget is spent, reconnect with a short fixed timeout; if
+                // that fails too, poison it so no later request reads the late reply.
                 let left = deadline.saturating_duration_since(Instant::now());
-                if !left.is_zero()
-                    && let Ok(fresh) = Conn::connect_within(address, left)
-                {
-                    *conn = fresh;
+                match Conn::connect_within(address, left.max(RECONNECT_FLOOR)) {
+                    Ok(fresh) => *conn = fresh,
+                    Err(_) => conn.poisoned = true,
                 }
             }
         }
     }
     let _ = conn.set_read_timeout(READ_TIMEOUT);
+    let _ = conn.writer.set_write_timeout(None);
     out.latency_ns = start.elapsed().as_nanos() as u64;
     out
 }
@@ -1667,6 +1686,61 @@ mod tests {
             (None, Some("deadline"))
         );
         assert!(refresh.io_errors >= 1);
+    }
+
+    #[test]
+    fn a_late_reply_is_never_read_as_the_next_answer() {
+        // First connection: answers /v1/stats only after the budget. Second
+        // connection (the replacement): answers 201 to the next request.
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        thread::spawn(move || {
+            let (first, _) = listener.accept().unwrap();
+            let late = thread::spawn(move || {
+                let mut reader = BufReader::new(first.try_clone().unwrap());
+                let mut writer = first;
+                let mut line = String::new();
+                loop {
+                    line.clear();
+                    if reader.read_line(&mut line).unwrap_or(0) == 0 || line.trim_end().is_empty() {
+                        break;
+                    }
+                }
+                thread::sleep(Duration::from_millis(500));
+                let _ = write!(
+                    writer,
+                    "HTTP/1.1 200 OK\r\netag: \"late\"\r\ncontent-length: 2\r\n\r\n{{}}"
+                );
+                thread::sleep(Duration::from_millis(500));
+            });
+            let (second, _) = listener.accept().unwrap();
+            let mut reader = BufReader::new(second.try_clone().unwrap());
+            let mut writer = second;
+            let mut header = String::new();
+            loop {
+                header.clear();
+                if reader.read_line(&mut header).unwrap_or(0) == 0 || header.trim_end().is_empty() {
+                    break;
+                }
+            }
+            let mut body = [0u8; 2];
+            let _ = reader.read_exact(&mut body);
+            let _ = write!(
+                writer,
+                "HTTP/1.1 201 Created\r\ncontent-length: 2\r\n\r\n{{}}"
+            );
+            late.join().unwrap();
+        });
+        let mut conn = Conn::connect(address).unwrap();
+        let refresh = refresh_etag(&mut conn, address, Duration::from_millis(150));
+        assert_eq!(
+            (refresh.etag.clone(), refresh.exhausted),
+            (None, Some("deadline"))
+        );
+        let (status, _, _) = conn
+            .request("POST", "/v1/feeder/import", &[], b"{}")
+            .unwrap();
+        assert_eq!(status, 201, "the next request read the late refresh reply");
     }
 
     #[test]

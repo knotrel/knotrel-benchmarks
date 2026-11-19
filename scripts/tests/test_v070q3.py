@@ -157,6 +157,15 @@ class Report(unittest.TestCase):
         self.assertEqual(roles["B1-ops-compact-bfs-sparse-1000-query"], "deciding")
         with self.assertRaises(SystemExit):
             report.label({"timing": timing[1:]}, MATRIX)
+        full = {"timing": timing,
+                "memory": [{"id": "B5-memory-x", "status": "FAIL"}],
+                "sustained": [{"id": "C-heap-x", "C1": "PASS", "C3": "FAIL"}, {"id": "C-rss-x", "C4": "EXCEEDS_BUDGET"}]}
+        bad = {r["id"] for r in report.non_pass(report.label(full, MATRIX))}
+        self.assertIn("B5-memory-x", bad)
+        self.assertIn("C-heap-x:C3", bad)
+        self.assertNotIn("C-rss-x:C4", bad)  # disclosure category
+        self.assertIn("B1-ops-compact-bfs-sparse-1000-query", bad)
+        self.assertFalse(any(eq_id in bad for eq_id in eq["descriptive"]))
 
 
 class PreFreezeReviewBlockers(unittest.TestCase):

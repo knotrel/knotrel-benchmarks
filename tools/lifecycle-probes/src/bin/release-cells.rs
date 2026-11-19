@@ -134,8 +134,9 @@ fn core_import(args: &Args) -> Result<Value, String> {
     let mut counts = None;
     for rep in 0..warmup + reps {
         let start = Instant::now();
-        let graph = LifecycleGraph::try_from_topology(engine, GraphLimits::default(), &nodes, &specs)
-            .map_err(|e| e.to_string())?;
+        let graph =
+            LifecycleGraph::try_from_topology(engine, GraphLimits::default(), &nodes, &specs)
+                .map_err(|e| e.to_string())?;
         let elapsed = start.elapsed().as_nanos() as u64;
         let observed = [
             graph.node_count(),
@@ -153,8 +154,10 @@ fn core_import(args: &Args) -> Result<Value, String> {
         }
     }
     let observation = median(&mut times.clone());
-    Ok(json!({"kind":"core-import","observation_ns":observation,"times_ns":times,
-              "counts":counts,"rss_bytes":rss_bytes()}))
+    Ok(
+        json!({"kind":"core-import","observation_ns":observation,"times_ns":times,
+              "counts":counts,"rss_bytes":rss_bytes()}),
+    )
 }
 
 fn import_body(instance: &str, input: &Flagged) -> Bytes {
@@ -262,8 +265,13 @@ async fn http_import(args: &Args) -> Result<Value, String> {
             ));
         }
         let reply: Value = serde_json::from_slice(&reply).map_err(|e| e.to_string())?;
-        let counts = json!([reply["node_count"], reply["edge_count"], reply["active_node_count"],
-                            reply["enabled_edge_count"], reply["effective_edge_count"]]);
+        let counts = json!([
+            reply["node_count"],
+            reply["edge_count"],
+            reply["active_node_count"],
+            reply["enabled_edge_count"],
+            reply["effective_edge_count"]
+        ]);
         if *reply_counts.get_or_insert_with(|| counts.clone()) != counts {
             return Err("import counts differ between requests".into());
         }
@@ -273,8 +281,10 @@ async fn http_import(args: &Args) -> Result<Value, String> {
         }
     }
     let observation = median(&mut times.clone());
-    Ok(json!({"kind":"http-import","observation_ns":observation,"times_ns":times,
-              "body_bytes":body_bytes,"counts":reply_counts,"rss_bytes":rss_bytes()}))
+    Ok(
+        json!({"kind":"http-import","observation_ns":observation,"times_ns":times,
+              "body_bytes":body_bytes,"counts":reply_counts,"rss_bytes":rss_bytes()}),
+    )
 }
 
 fn churn(args: &Args) -> Result<Value, String> {
@@ -318,10 +328,12 @@ fn churn(args: &Args) -> Result<Value, String> {
             return Err(format!("logical counts diverge at cycle {}", index + 1));
         }
     }
-    Ok(json!({"kind":"churn","observation_ns":total,"cycle_ns":cycle_ns,"slowest_op_ns":slowest,
+    Ok(
+        json!({"kind":"churn","observation_ns":total,"cycle_ns":cycle_ns,"slowest_op_ns":slowest,
               "operations":operations,"compactions":compactions,
               "engine_vertices":graph.engine_vertex_count(),"nodes":graph.node_count(),
-              "rss_bytes":rss_bytes()}))
+              "rss_bytes":rss_bytes()}),
+    )
 }
 
 fn main() -> ExitCode {
