@@ -1,6 +1,6 @@
 # knotrel v0.7.0: qualification 3 protocol (draft until FREEZE.json is written)
 
-**Status: DRAFT (review pending).** This protocol is frozen by `FREEZE.json` after its
+**Status: reviewed; frozen by `FREEZE.json`.** This protocol is frozen by `FREEZE.json` after its
 independent review and before any collection. Collection is launched by the
 maintainer, as before.
 
@@ -65,7 +65,7 @@ commits on the branch are documentation.
   - rebuilds shorter than compactions;
   - tests pass;
   - B1 fresh-churn unchanged within ±0.5%;
-  - the product reproduces the diagnostic byte for byte.
+  - the product reproduces the diagnostic, identical at every checkpoint (net heap and counts).
 
 No metrics change (D4c unresolved) and no `ETag`-on-412 change (evaluation
 only, no API change) are included.
@@ -117,6 +117,10 @@ frozen counterpart:
   additional cost: L/E for import, L/P for the planner families. They carry
   no release verdict.
 - Every other B/C cell decides as before.
+- Each equivalent cell runs immediately after its frozen counterpart (§3).
+  That fixed position offset does not affect within-cell paired verdicts.
+  Comparisons across the deciding and the descriptive cell of a family carry
+  it.
 
 ### 4.2 Why the import reference is equivalent
 
@@ -321,7 +325,7 @@ What changes:
 | Candidate | e75ff6a | e75ff6a plus the declared product changes (§2.1) |
 | B/C cells | 127 | 140: the 13 equivalent cells added (§4.1); frozen cells in a3-3's order, each equivalent cell right after its counterpart (§3) |
 | Deciding B4 cells for import, ops, ops-query, events | frozen references (lean store, untimed planner) | capability-equivalent references; frozen cells descriptive |
-| Window multipliers | `lifecycle-qualification-v0.5.0/window-multipliers-dcd8ccc.json` | `window-multipliers-q3.json`: the same 61 factors, plus each equivalent cell with its frozen counterpart's factor. The candidate arm is unchanged and the reference arm only slower, so the faster arm's window stays at least 2 ms. |
+| Window multipliers | `lifecycle-qualification-v0.5.0/window-multipliers-dcd8ccc.json` | `window-multipliers-q3.json`: the same 61 factors, plus each equivalent cell with its frozen counterpart's factor. The candidate arm differs only by keeping its response bodies (§4.2, a reference-count push per request), and the reference arm is only slower, so the faster arm's window stays at least 2 ms. |
 | `http-lifecycle` | frozen scenarios | `*-equivalent` scenarios added; frozen scenarios unchanged |
 | Contention probe | revision 2 | revision 4 (§6); FREEZE-A4's revision 3 superseded |
 | M validity rule | frozen supplement rule | plus amendment 4 (`analyze_v070r_a4.py`), installed only by the analysis command |
@@ -353,6 +357,28 @@ D2c in detail:
   22.8–72.3 ms with T1, of which 72.3 is a single outlier; frozen maxima
   were 19.7–27.3 ms;
 - B1 fresh-churn ±0.5%, with T1 rebuilding about once per lifecycle window;
-- the product reproduces the diagnostic byte for byte, from clean checkouts
+- the product reproduces the diagnostic, identical at every checkpoint (net heap and counts), from clean checkouts
   of the candidate and the tooling (D2c `summary-product-clean.txt`);
 - ring drift bounded.
+
+## 12. Reviews before the freeze
+
+1. **Independent review of `c9ae8cc6..1e71d6c0` and knotrel `f34af87d`.** It
+   found four blockers:
+   - the recorder needs `FREEZE.json`;
+   - the B/C analyzer expected 127 cells;
+   - the frozen B/C order changed;
+   - free disk space.
+
+   It also found seven should-fix items and minors. All were addressed
+   (`7dd1fdb7`, `840ab95d`, `19ce66d3`, `704b2595`; knotrel `fa5f3a9`), except:
+   - disk space, an environment item: about 5.6 GiB is free;
+   - the D4c follow-up, which awaits the maintainer's acceptance.
+2. **Delta review of `1e71d6c0..704b2595` and knotrel `fa5f3a9`.**
+   - Every earlier finding resolved, except disk space (environment) and the
+     D4c acceptance, which is recorded as pending.
+   - No new blocker or should-fix item.
+   - Five minors, addressed before the freeze: §4.1 and §10 wording, the
+     probe's reconnection of a poisoned connection before the next import,
+     the usage line, and "identical at every checkpoint" in place of "byte
+     for byte".
