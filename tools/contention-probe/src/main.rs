@@ -512,7 +512,10 @@ fn refresh_etag(conn: &mut Conn, address: SocketAddr) -> Refresh {
         out.attempts += 1;
         match conn.request("GET", "/v1/stats", &[], b"") {
             Ok((200, headers, _)) => {
-                out.etag = headers.iter().find(|(k, _)| k == "etag").map(|(_, v)| v.clone());
+                out.etag = headers
+                    .iter()
+                    .find(|(k, _)| k == "etag")
+                    .map(|(_, v)| v.clone());
                 if out.etag.is_none() {
                     out.other += 1;
                 }
@@ -1283,22 +1286,41 @@ mod tests {
                 }
                 let mut body = vec![0; length];
                 reader.read_exact(&mut body).unwrap();
-                log.lock().unwrap().push(format!("{} {} {if_match}", target[0], target[1]));
-                let reply = if status == 201 { r#"{"generation":2}"# } else { "{}" };
+                log.lock()
+                    .unwrap()
+                    .push(format!("{} {} {if_match}", target[0], target[1]));
+                let reply = if status == 201 {
+                    r#"{"generation":2}"#
+                } else {
+                    "{}"
+                };
                 let etag = etag.map(|t| format!("etag: {t}\r\n")).unwrap_or_default();
-                write!(writer, "HTTP/1.1 {status} X\r\n{etag}content-length: {}\r\n\r\n{reply}", reply.len()).unwrap();
+                write!(
+                    writer,
+                    "HTTP/1.1 {status} X\r\n{etag}content-length: {}\r\n\r\n{reply}",
+                    reply.len()
+                )
+                .unwrap();
             }
         });
         (address, seen)
     }
 
     fn feeder() -> Feeder {
-        Feeder { instance: "i".into(), generation: 1, etag: "\"stale\"".into(), sequence: 0, position: "p".into() }
+        Feeder {
+            instance: "i".into(),
+            generation: 1,
+            etag: "\"stale\"".into(),
+            sequence: 0,
+            position: "p".into(),
+        }
     }
 
     #[test]
     fn backoff_doubles_to_160_ms() {
-        let waits: Vec<u64> = (0..6).map(|a| refresh_backoff(a).as_millis() as u64).collect();
+        let waits: Vec<u64> = (0..6)
+            .map(|a| refresh_backoff(a).as_millis() as u64)
+            .collect();
         assert_eq!(waits, [10, 20, 40, 80, 160, 160]);
     }
 
@@ -1319,7 +1341,10 @@ mod tests {
         let mut conn = Conn::connect(address).unwrap();
         let refresh = refresh_etag(&mut conn, address);
         assert_eq!(refresh.etag, None);
-        assert_eq!((refresh.attempts, refresh.refused_503), (REFRESH_ATTEMPTS, REFRESH_ATTEMPTS));
+        assert_eq!(
+            (refresh.attempts, refresh.refused_503),
+            (REFRESH_ATTEMPTS, REFRESH_ATTEMPTS)
+        );
         let mut imports = ImportStats::default();
         assert_eq!(imports.record(refresh), Err("refresh-exhausted"));
         assert_eq!(imports.refresh_exhausted, 1);
@@ -1329,17 +1354,45 @@ mod tests {
 
     #[test]
     fn a_412_refreshes_and_the_retry_succeeds() {
-        let (address, seen) = stub(vec![(412, None), (503, None), (200, Some("\"live\"")), (201, Some("\"next\""))]);
+        let (address, seen) = stub(vec![
+            (412, None),
+            (503, None),
+            (200, Some("\"live\"")),
+            (201, Some("\"next\"")),
+        ]);
         let mut conn = Conn::connect(address).unwrap();
-        let (mut feeder, mut imports, mut kinds) = (feeder(), ImportStats::default(), BTreeMap::new());
-        let result = import_with_refresh(&mut conn, address, &mut feeder, b"{}", &mut imports, &mut kinds);
+        let (mut feeder, mut imports, mut kinds) =
+            (feeder(), ImportStats::default(), BTreeMap::new());
+        let result = import_with_refresh(
+            &mut conn,
+            address,
+            &mut feeder,
+            b"{}",
+            &mut imports,
+            &mut kinds,
+        );
         assert!(matches!(result, Ok((201, _, _))));
         assert_eq!(
             *seen.lock().unwrap(),
-            ["POST /v1/feeder/import \"stale\"", "GET /v1/stats -", "GET /v1/stats -", "POST /v1/feeder/import \"live\""]
+            [
+                "POST /v1/feeder/import \"stale\"",
+                "GET /v1/stats -",
+                "GET /v1/stats -",
+                "POST /v1/feeder/import \"live\""
+            ]
         );
-        assert_eq!((imports.attempted, imports.precondition_412, imports.retries), (1, 1, 1));
-        assert_eq!((imports.stats_attempts, imports.stats_refused_503, imports.precondition_after_refresh), (2, 1, 0));
+        assert_eq!(
+            (imports.attempted, imports.precondition_412, imports.retries),
+            (1, 1, 1)
+        );
+        assert_eq!(
+            (
+                imports.stats_attempts,
+                imports.stats_refused_503,
+                imports.precondition_after_refresh
+            ),
+            (2, 1, 0)
+        );
         assert!(!imports.starved(1));
         assert!(kinds.is_empty());
     }
@@ -1348,10 +1401,21 @@ mod tests {
     fn a_412_after_refresh_is_a_recorded_failure() {
         let (address, _) = stub(vec![(412, None), (200, Some("\"live\"")), (412, None)]);
         let mut conn = Conn::connect(address).unwrap();
-        let (mut feeder, mut imports, mut kinds) = (feeder(), ImportStats::default(), BTreeMap::new());
-        let result = import_with_refresh(&mut conn, address, &mut feeder, b"{}", &mut imports, &mut kinds);
+        let (mut feeder, mut imports, mut kinds) =
+            (feeder(), ImportStats::default(), BTreeMap::new());
+        let result = import_with_refresh(
+            &mut conn,
+            address,
+            &mut feeder,
+            b"{}",
+            &mut imports,
+            &mut kinds,
+        );
         assert!(matches!(result, Ok((412, _, _))));
-        assert_eq!((imports.precondition_412, imports.precondition_after_refresh), (2, 1));
+        assert_eq!(
+            (imports.precondition_412, imports.precondition_after_refresh),
+            (2, 1)
+        );
         assert!(imports.starved(0));
     }
 
@@ -1361,12 +1425,27 @@ mod tests {
         script.extend(vec![(503, None); REFRESH_ATTEMPTS as usize]);
         let (address, seen) = stub(script);
         let mut conn = Conn::connect(address).unwrap();
-        let (mut feeder, mut imports, mut kinds) = (feeder(), ImportStats::default(), BTreeMap::new());
-        let result = import_with_refresh(&mut conn, address, &mut feeder, b"{}", &mut imports, &mut kinds);
+        let (mut feeder, mut imports, mut kinds) =
+            (feeder(), ImportStats::default(), BTreeMap::new());
+        let result = import_with_refresh(
+            &mut conn,
+            address,
+            &mut feeder,
+            b"{}",
+            &mut imports,
+            &mut kinds,
+        );
         assert!(matches!(result, Ok((412, _, _))));
         assert_eq!(imports.retries, 0);
         assert_eq!(kinds.get("refresh-exhausted"), Some(&1));
-        assert_eq!(seen.lock().unwrap().iter().filter(|r| r.starts_with("POST")).count(), 1);
+        assert_eq!(
+            seen.lock()
+                .unwrap()
+                .iter()
+                .filter(|r| r.starts_with("POST"))
+                .count(),
+            1
+        );
         assert!(imports.starved(0));
     }
 
@@ -1375,11 +1454,21 @@ mod tests {
         let (address, seen) = stub(vec![(500, None)]);
         let mut conn = Conn::connect(address).unwrap();
         let refresh = refresh_etag(&mut conn, address);
-        assert_eq!((refresh.attempts, refresh.other, refresh.etag.clone()), (1, 1, None));
+        assert_eq!(
+            (refresh.attempts, refresh.other, refresh.etag.clone()),
+            (1, 1, None)
+        );
         assert_eq!(seen.lock().unwrap().len(), 1);
         let mut imports = ImportStats::default();
         assert_eq!(imports.record(refresh), Err("refresh-failed-status"));
-        assert_eq!((imports.refresh_failed_status, imports.refresh_exhausted, imports.stats_other), (1, 0, 1));
+        assert_eq!(
+            (
+                imports.refresh_failed_status,
+                imports.refresh_exhausted,
+                imports.stats_other
+            ),
+            (1, 0, 1)
+        );
         assert!(imports.starved(0));
         let summary = imports.summary(0);
         assert_eq!(summary["refresh_failed_status"], 1);
@@ -1391,7 +1480,10 @@ mod tests {
         let (address, _) = stub(vec![(200, None)]);
         let mut conn = Conn::connect(address).unwrap();
         let mut imports = ImportStats::default();
-        assert_eq!(imports.record(refresh_etag(&mut conn, address)), Err("refresh-failed-status"));
+        assert_eq!(
+            imports.record(refresh_etag(&mut conn, address)),
+            Err("refresh-failed-status")
+        );
         assert!(imports.starved(0));
     }
 
@@ -1403,7 +1495,9 @@ mod tests {
         thread::spawn(move || {
             let (first, _) = listener.accept().unwrap();
             let mut line = String::new();
-            BufReader::new(first.try_clone().unwrap()).read_line(&mut line).unwrap();
+            BufReader::new(first.try_clone().unwrap())
+                .read_line(&mut line)
+                .unwrap();
             drop(first);
             let (second, _) = listener.accept().unwrap();
             let mut reader = BufReader::new(second.try_clone().unwrap());
@@ -1418,7 +1512,11 @@ mod tests {
                     break;
                 }
             }
-            write!(writer, "HTTP/1.1 200 OK\r\netag: \"live\"\r\ncontent-length: 2\r\n\r\n{{}}").unwrap();
+            write!(
+                writer,
+                "HTTP/1.1 200 OK\r\netag: \"live\"\r\ncontent-length: 2\r\n\r\n{{}}"
+            )
+            .unwrap();
         });
         let mut conn = Conn::connect(address).unwrap();
         let refresh = refresh_etag(&mut conn, address);
@@ -1428,7 +1526,10 @@ mod tests {
 
     #[test]
     fn fewer_completed_than_attempted_is_starved() {
-        let imports = ImportStats { attempted: 5, ..ImportStats::default() };
+        let imports = ImportStats {
+            attempted: 5,
+            ..ImportStats::default()
+        };
         assert!(imports.starved(4));
         assert!(!imports.starved(5));
     }
