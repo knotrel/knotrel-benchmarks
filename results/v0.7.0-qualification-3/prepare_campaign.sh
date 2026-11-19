@@ -6,7 +6,7 @@
 # a3-3's, 130720-130722), the qualification-3 launch environment check, and the informational __TEXT,__text
 # comparison against the builds of re-qualification attempt a3-3.
 #
-# Usage: prepare_campaign.sh CAND_SHA FREEZE_SHA [ATTEMPT [SERIES]]
+# Usage: prepare_campaign.sh CAND_SHA FREEZE_SHA ATTEMPT SERIES
 #   CAND_SHA   knotrel candidate commit (full SHA)
 #   FREEZE_SHA knotrel-benchmarks commit containing MATRIX.json, PROTOCOL.md and the freeze record
 #   ATTEMPT    attempt number (1-9)

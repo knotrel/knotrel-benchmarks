@@ -14,4 +14,4 @@ for prod, diag in pairs:
     exp = all(x["counts"]["logical"] == x["expected"] for x in a)
     ok &= heap and counts and exp
     print(f"{prod:32s} vs {diag:28s} checkpoints {len(a)}/{len(b)} net_heap identical {heap} counts identical {counts} model {exp}")
-print("A3:", "REPRODUCED (byte for byte)" if ok else "NOT REPRODUCED")
+print("A3:", "REPRODUCED (net heap and counts identical at every checkpoint)" if ok else "NOT REPRODUCED")

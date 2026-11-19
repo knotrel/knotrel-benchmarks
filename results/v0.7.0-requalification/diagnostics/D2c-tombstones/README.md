@@ -19,7 +19,7 @@ qualification. The a3-3 C3 FAILs stand.
 - **Outputs:** in `raw/`, with binaries in `raw/binary-sha256.txt` and runs
   in `raw/runs.txt`. The summary is `summary.txt`, from `summarize.py`.
 - **Fidelity.** With the frozen policy, the count build reproduces D2's
-  30-cycle series byte for byte in all three topologies.
+  30-cycle net-heap series identically in all three topologies.
   - The first build differed by +192 B from cycle 20 on. That was the
     diagnostic event log, allocated at the first compaction.
   - The log is now pre-allocated before the baseline. The superseded runs
@@ -100,7 +100,7 @@ cells.
   - knotrel `fa5f3a9` and tooling `7dd1fdb7`, cloned fresh;
   - build records `knotrel_dirty: false` and `probes_dirty: false`;
   - binary hash in `raw/product-clean/binary-sha256.txt`;
-  - result: byte for byte, for all 8 series.
+  - result: identical at every checkpoint (net heap, catalog and engine counts, model), for all 8 series.
 - **First check** (`summary-product.txt`, `raw/product/`): built from the
   working tree before the commit (dirty records), the same result. It was
   kept and superseded after the review asked for clean provenance.
@@ -108,7 +108,7 @@ cells.
   count-alloc against the candidate with the product T1 and no diagnostic
   code (knotrel `f34af87d`, binary in `raw/product/binary-sha256.txt`).
 - Result: the same `net_heap_bytes`, catalog and engine counts at every
-  checkpoint as the diagnostic T1, **byte for byte**. That holds for 30
+  checkpoint as the diagnostic T1 (net heap and counts identical). That holds for 30
   cycles (3 topologies), 6,000 cycles (3 topologies) and B5 (sparse, hub),
   and logical counts equal the model.
 
@@ -175,8 +175,8 @@ than 25% by median in either B1 cell. It is met: +0.4% and −0.3%.
 - **Its cost is small and bounded.** One O(V) table rebuild about every 6
   cycles: median 0.7 ms, max 6.5 ms. Throughput in the B1 fresh-churn cells
   is unchanged within ±0.5%.
-- **It is the measured behaviour.** Byte-for-byte reproduction shows the
-  product code behaves as the diagnostic variant did.
+- **It is the measured behaviour.** Identical net heap and counts at every
+  checkpoint show the product code behaves as the diagnostic variant did.
 
 **Residual uncertainty**, disclosed:
 - **Compaction tails.** In the T1 timing runs the engine-compaction tails
