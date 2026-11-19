@@ -39,3 +39,24 @@ text. Each read the sources and evidence itself; none edited anything.
 - Re-verification of `86c8ef12..d3718c4c`: all fixed, no new blocker or
   should-fix; one trivial minor (a3-1 "no measurement outputs") fixed in the
   next commit.
+
+## 3. Diagnostics (`diagnostics/`, ordered 2026-11-19)
+
+- Reviewed `73db6711`: numbers re-run from raw (D2 `summarize.py`, D3/D4
+  `phases.py`, D1 summary, D5 logs); all reproduce.
+- Blockers: none.
+- Should-fix (fixed in `12391bcc`):
+  - D4 outside-handler share (15–40%, not 30–40%) and verdict-leaning
+    wording;
+  - D1 arm F builds different structures from L (the lifecycle engine holds
+    only effective edges), and the volume share depends on the method
+    (82–93%);
+  - D3 overclaim and B1 context;
+  - unlabelled departures in D2, D3, D4;
+  - D5 rests on a synthetic reproduction (and its stale-token source differs
+    from a3-3's);
+  - summary claims about departures and run counts.
+- Re-verification: all fixed, no new findings except trivial minors.
+  - The D1 sentence was rephrased.
+  - The superseded commit subject of `bead50c2` ("overhead entirely in core
+    lifecycle apply") is history; D3's README is authoritative.

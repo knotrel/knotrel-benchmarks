@@ -69,9 +69,8 @@ Paired ratios over the 12 pairs (median, min–max):
 
 - The existing B4 reference imports only the effective graph, so it does not
   hold the capability L provides.
-- Parsing and building the full registered volume in a plain server costs
-  about as much as most of L's overhead: 82–93% of it, depending on the
-  method. That indicates volume is the main driver. It does not show that
+- Parsing and building the full registered volume in a plain server corresponds
+  to 82–93% of L's excess over E, depending on the method. That indicates volume is the main driver. It does not show that
   L's own catalog-plus-engine build has the same cost structure.
 - **L against F is +13.7%.** This diagnostic does not show that it is
   unavoidable. Candidates to examine are the flagged wire format (larger
