@@ -49,8 +49,11 @@
 //! - `ops-equivalent`, `ops-query-equivalent`, `events-equivalent`: the
 //!   planner's planning of each lifecycle chunk (256, or 128 for events) runs
 //!   inside the reference window, right before that chunk's requests, from a
-//!   planner in the state it had when the window began. Request bodies stay
-//!   prebuilt and untimed in both arms, as before.
+//!   planner in the state it had when the window began. For each operation
+//!   the application first computes the outcome the lifecycle server reports
+//!   per operation (changed or not, or the error code), then updates its
+//!   catalog and plans the plain operations; the plain request publishes them.
+//!   Request bodies stay prebuilt and untimed in both arms, as before.
 //! - `import-equivalent`: per import call, inside the reference window, the
 //!   application builds an [`EquivalentStore`] from its source records
 //!   (validated as the lifecycle import validates: conflicting repeated node or
@@ -58,6 +61,15 @@
 //!   and adopts the new store only when the server answers 201.
 //!   With `--inactive-percent 60 --disabled-percent 30` it is the
 //!   equivalent of `import-high`.
+//!
+//! After both windows of an equivalent pair, [`equivalence_check`] compares
+//! every per-operation outcome with the candidate's per-item results (ops,
+//! ops-query; the lifecycle feeder reports no per-event results), the final
+//! counts with the candidate's `/v1/stats`, and the registered content (every
+//! node ID and flag, every edge, its flag and effectiveness, through
+//! `node_state`/`edge_state`), and the plain server's content (every node of
+//! catalog ∪ removed present, read-only; every effective edge present and no
+//! other, by cutting them after the windows); a mismatch stops the probe.
 
 use axum::{
     Router,
@@ -163,6 +175,28 @@ fn batch_body(ops: &[Op]) -> Bytes {
     Bytes::from(json!({"operations": ops.iter().map(wire).collect::<Vec<_>>()}).to_string())
 }
 
+/// The per-operation outcome a lifecycle server reports (equivalent references):
+/// `changed`, an error code, or a `connected` answer (`None`: forwarded to the plain
+/// server, compared by the connectivity check instead).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Expect {
+    Changed(bool),
+    Error(&'static str),
+    Connected(Option<bool>),
+}
+
+impl Expect {
+    /// Whether the lifecycle server's per-item `result` matches.
+    fn matches(&self, item: &Value) -> bool {
+        match *self {
+            Self::Changed(c) => item["result"] == "changed" && item["changed"] == c,
+            Self::Error(code) => item["result"] == "error" && item["code"] == code,
+            Self::Connected(Some(v)) => item["result"] == "connected" && item["connected"] == v,
+            Self::Connected(None) => item["result"] == "connected",
+        }
+    }
+}
+
 /// Application-side planner: keeps registered topology and flags and emits
 /// the legacy operations that make a plain server's graph equal the
 /// effective graph. Removed nodes stay registered in the plain server.
@@ -186,6 +220,62 @@ impl Planner {
 
     fn active(&self, v: u64) -> bool {
         self.nodes.get(&v).is_some_and(|node| node.0)
+    }
+
+    /// The outcome the lifecycle server reports for `op` in this planner
+    /// state (qualification 3, equivalent references): what an application
+    /// offering the same service computes for its caller before planning.
+    fn expect(&self, op: Op) -> Expect {
+        let edge = |a: u64, b: u64| self.nodes.get(&a).and_then(|n| n.1.get(&b).copied());
+        match op {
+            Op::AddNode(v) => Expect::Changed(!self.nodes.contains_key(&v)),
+            Op::Link(a, b) | Op::Cut(a, b) | Op::SetEdge(a, b, _) if a == b => {
+                Expect::Error("self_loop")
+            }
+            Op::Link(a, b) => Expect::Changed(edge(a, b).is_none()),
+            Op::Cut(a, b) => Expect::Changed(edge(a, b).is_some()),
+            Op::SetNode(v, active) => match self.nodes.get(&v) {
+                None => Expect::Error("unknown_node"),
+                Some(node) => Expect::Changed(node.0 != active),
+            },
+            Op::SetEdge(a, b, enabled) => {
+                if !self.nodes.contains_key(&a) || !self.nodes.contains_key(&b) {
+                    Expect::Error("unknown_node")
+                } else {
+                    match edge(a, b) {
+                        None => Expect::Error("unknown_edge"),
+                        Some(current) => Expect::Changed(current != enabled),
+                    }
+                }
+            }
+            Op::Remove(v) => Expect::Changed(self.nodes.contains_key(&v)),
+            Op::Connected(a, b) => {
+                if !self.nodes.contains_key(&a) || !self.nodes.contains_key(&b) {
+                    Expect::Error("unknown_node")
+                } else if !self.active(a) || !self.active(b) {
+                    Expect::Connected(Some(false))
+                } else {
+                    Expect::Connected(None)
+                }
+            }
+        }
+    }
+
+    /// Registered nodes, registered edges, active nodes, enabled edges,
+    /// effective edges.
+    fn counts(&self) -> [usize; 5] {
+        let mut out = [self.nodes.len(), 0, 0, 0, 0];
+        for (&v, (active, incident)) in &self.nodes {
+            out[2] += usize::from(*active);
+            for (&w, &enabled) in incident {
+                if v < w {
+                    out[1] += 1;
+                    out[3] += usize::from(enabled);
+                    out[4] += usize::from(enabled && *active && self.active(w));
+                }
+            }
+        }
+        out
     }
 
     /// Appends the legacy operations equivalent to `op`. `connected` is
@@ -535,14 +625,28 @@ struct Arm {
     /// and the store adopted after the last successful import.
     equivalent_source: Option<EquivalentSource>,
     built_equivalent: Option<EquivalentStore>,
+    /// Equivalent ops references: the outcomes computed in the window, and
+    /// the planner state at the window's end (for the final-state check).
+    expected: Option<Vec<Expect>>,
+    planned: Option<Planner>,
+    /// Equivalent ops references: IDs removed in the window. The plain server
+    /// keeps a removed node as an isolated vertex (it has no node removal).
+    removed: Option<Vec<u64>>,
+    /// Source-managed equivalent references (events, import): the feeder state
+    /// after the window, for the post-window plain edge check (direct
+    /// mutations are disabled in source-managed mode).
+    feeder: Option<Feeder>,
+    /// Candidate arms of equivalent scenarios: the response bodies, kept
+    /// (reference-counted, no copy) for the per-operation outcome check.
+    responses: Option<Vec<Bytes>>,
 }
 
-async fn send(call: &Call) -> StatusCode {
+async fn send(call: &Call) -> (StatusCode, Bytes) {
     let response = call.app.clone().oneshot(call.request()).await.unwrap();
     let status = response.status();
-    let _ = to_bytes(response.into_body(), 64 << 20).await.unwrap();
+    let body = to_bytes(response.into_body(), 64 << 20).await.unwrap();
     assert!(status.is_success(), "{status}");
-    status
+    (status, body)
 }
 
 async fn run_window(arm: &mut Arm) -> u128 {
@@ -550,9 +654,17 @@ async fn run_window(arm: &mut Arm) -> u128 {
     let start = Instant::now();
     if let Some((mut planner, steps)) = steps {
         let mut next = 0;
+        let mut expected = Vec::new();
+        let mut removed = Vec::new();
         for (ops, count) in &steps {
             let mut legacy = Vec::new();
             for &op in ops {
+                // Outcome for the caller, then catalog update and plain operations.
+                let outcome = planner.expect(op);
+                if let (Op::Remove(v), Expect::Changed(true)) = (op, outcome) {
+                    removed.push(v);
+                }
+                expected.push(outcome);
                 planner.plan(op, &mut legacy);
             }
             std::hint::black_box(&legacy);
@@ -563,6 +675,9 @@ async fn run_window(arm: &mut Arm) -> u128 {
         }
         let elapsed = start.elapsed().as_nanos();
         assert_eq!(next, arm.calls.len(), "planned chunks cover every call");
+        arm.expected = Some(expected);
+        arm.planned = Some(planner);
+        arm.removed = Some(removed);
         return elapsed;
     }
     for call in &arm.calls {
@@ -570,7 +685,10 @@ async fn run_window(arm: &mut Arm) -> u128 {
             arm.built_store = Some(store.build());
         }
         let pending = arm.equivalent_source.as_ref().map(EquivalentSource::build);
-        let status = send(call).await;
+        let (status, body) = send(call).await;
+        if let Some(responses) = arm.responses.as_mut() {
+            responses.push(body);
+        }
         if let Some(pending) = pending {
             let store = pending.expect("the equivalent store validates the source records");
             if status == StatusCode::CREATED {
@@ -656,6 +774,216 @@ async fn answers(arm: &Arm, pairs: &[(u64, u64)]) -> Vec<Value> {
     out
 }
 
+/// Equivalence checks after both windows of an `*-equivalent` pair
+/// (qualification 3), run sequentially with no request in flight (no
+/// concurrent mutation): connectivity agreement alone does not show
+/// equivalence.
+/// - **Per operation (ops, ops-query):** every outcome the reference computed
+///   in its window equals the candidate's per-item result (`connected` answers
+///   forwarded to the plain server are compared by the connectivity check).
+/// - **Final state:** the candidate's `/v1/stats` registered nodes and edges,
+///   active nodes, enabled and effective edges equal the application
+///   catalog's, and the plain server's edge count equals the effective edges.
+async fn equivalence_check(candidate: &Arm, reference: &mut Arm) -> Result<(), String> {
+    if let (Some(responses), Some(expected)) = (&candidate.responses, &reference.expected) {
+        let mut items = Vec::new();
+        for body in responses {
+            let value: Value =
+                serde_json::from_slice(body).map_err(|e| format!("candidate response: {e}"))?;
+            items.extend(
+                value["results"]
+                    .as_array()
+                    .cloned()
+                    .ok_or("candidate response without results")?,
+            );
+        }
+        if items.len() != expected.len() {
+            return Err(format!(
+                "{} candidate results for {} reference outcomes",
+                items.len(),
+                expected.len()
+            ));
+        }
+        for (i, (expect, item)) in expected.iter().zip(&items).enumerate() {
+            if !expect.matches(item) {
+                return Err(format!(
+                    "operation {i}: reference outcome {expect:?}, candidate result {item}"
+                ));
+            }
+        }
+    }
+    let (catalog, entries) = match (&reference.planned, &reference.built_equivalent) {
+        (Some(planner), _) => (planner.counts(), planner.nodes.clone()),
+        (None, Some(store)) => (store.counts(), store.nodes.clone()),
+        (None, None) => return Err("equivalent reference without an application catalog".into()),
+    };
+    let entries = &entries;
+    let stats = get(&candidate.check, "/v1/stats").await;
+    let field = |v: &Value, k: &str| v[k].as_u64().map(|x| x as usize);
+    let lifecycle = [
+        field(&stats, "node_count"),
+        field(&stats, "edge_count"),
+        field(&stats, "active_node_count"),
+        field(&stats, "enabled_edge_count"),
+        field(&stats, "effective_edge_count"),
+    ];
+    if lifecycle != catalog.map(Some) {
+        return Err(format!(
+            "candidate lifecycle counts {lifecycle:?} differ from the application catalog {catalog:?}"
+        ));
+    }
+    let plain = get(&reference.check, "/v1/stats").await;
+    if field(&plain, "edge_count") != Some(catalog[4]) {
+        return Err(format!(
+            "plain server edge count {:?} differs from the effective edges {}",
+            plain["edge_count"], catalog[4]
+        ));
+    }
+    // Plain nodes: the catalog's, plus removed IDs kept as isolated vertices, nothing else.
+    let mut expected_nodes: std::collections::HashSet<u64> = entries.keys().copied().collect();
+    expected_nodes.extend(reference.removed.iter().flatten().copied());
+    if field(&plain, "node_count") != Some(expected_nodes.len()) {
+        return Err(format!(
+            "plain server node count {:?}, expected {} (catalog plus removed)",
+            plain["node_count"],
+            expected_nodes.len()
+        ));
+    }
+    registered_content_check(candidate, reference, entries, &expected_nodes).await
+}
+
+/// Content of the registered topology (qualification 3): every node of the
+/// application catalog has the same ID and `active` flag in the candidate
+/// (`node_state`), and every registered edge the same endpoints, `enabled`
+/// flag and effectiveness (`edge_state`); with the counts equal (checked
+/// before), the candidate has no other entry. Every effective edge is present
+/// in the plain server (`edge_state`: registered). Queries run after the
+/// windows, untimed, in batches of [`BATCH`].
+async fn registered_content_check(
+    candidate: &Arm,
+    reference: &mut Arm,
+    entries: &FxHashMap<u64, (bool, FxHashMap<u64, bool>)>,
+    plain_nodes: &std::collections::HashSet<u64>,
+) -> Result<(), String> {
+    let active = |v: u64| entries.get(&v).is_some_and(|n| n.0);
+    let mut queries: Vec<(Value, Value)> = Vec::new();
+    let mut effective: Vec<(u64, u64)> = Vec::new();
+    for (&v, (is_active, incident)) in entries {
+        queries.push((
+            json!({"op":"node_state","node":v.to_string()}),
+            json!({"result":"node_state","registered":true,"active":is_active}),
+        ));
+        for (&w, &enabled) in incident {
+            if v < w {
+                let eff = enabled && *is_active && active(w);
+                queries.push((
+                    json!({"op":"edge_state","source":v.to_string(),"target":w.to_string()}),
+                    json!({"result":"edge_state","registered":true,"enabled":enabled,"effective":eff}),
+                ));
+                if eff {
+                    effective.push((v, w));
+                }
+            }
+        }
+    }
+    for chunk in queries.chunks(BATCH) {
+        let ops: Vec<&Value> = chunk.iter().map(|(q, _)| q).collect();
+        let (status, reply) = post(
+            &candidate.check,
+            "/v1/batch",
+            None,
+            json!({"operations": ops}).to_string(),
+        )
+        .await;
+        let results = reply["results"]
+            .as_array()
+            .ok_or_else(|| format!("candidate state query {status}: {reply}"))?;
+        for ((query, want), got) in chunk.iter().zip(results) {
+            if got != want {
+                return Err(format!(
+                    "registered content: {query} expected {want}, candidate {got}"
+                ));
+            }
+        }
+    }
+    // Plain server, after the candidate checks. The plain API has no read-only
+    // node or edge state query (`node_state`/`edge_state` need lifecycle
+    // support), so:
+    // - every node of catalog ∪ removed is checked one by one with the
+    //   read-only `connected(v, v)` (true only for an existing vertex); with the
+    //   node count equal to |catalog ∪ removed| it holds no other node. (Unlike
+    //   the lifecycle server, the plain server has no node removal: a removed
+    //   node stays as an isolated vertex.)
+    // - every effective edge is cut, one by one, and must report `changed`;
+    //   the edge count must then be 0, so the plain edge set was exactly the
+    //   effective set. This mutates only this pair's plain server, after both
+    //   windows and the connectivity check, with no request in flight; the
+    //   server is discarded afterwards.
+    let nodes: Vec<u64> = plain_nodes.iter().copied().collect();
+    for chunk in nodes.chunks(BATCH) {
+        let ops: Vec<Value> = chunk.iter().map(|v| wire(&Op::Connected(*v, *v))).collect();
+        let (status, reply) = post(
+            &reference.check,
+            "/v1/batch",
+            None,
+            json!({"operations": ops}).to_string(),
+        )
+        .await;
+        let results = reply["results"]
+            .as_array()
+            .ok_or_else(|| format!("plain node query {status}: {reply}"))?;
+        for (v, got) in chunk.iter().zip(results) {
+            if got["result"] != "connected" || got["connected"] != true {
+                return Err(format!(
+                    "plain server: expected node {v} (catalog or removed) missing ({got})"
+                ));
+            }
+        }
+    }
+    for chunk in effective.chunks(BATCH) {
+        let cuts: Vec<Op> = chunk.iter().map(|&(a, b)| Op::Cut(a, b)).collect();
+        if let Some(feeder) = reference.feeder.as_mut() {
+            // Source-managed: cut events. The feeder reports no per-event result;
+            // the edge count before (equal to the effective edges) and after (0)
+            // still proves the exact edge set.
+            let body = String::from_utf8(feeder.events(&cuts).to_vec()).unwrap();
+            let instance = feeder.instance.clone();
+            let (status, reply) =
+                post(&reference.check, "/v1/feeder/events", Some(&instance), body).await;
+            if status != StatusCode::OK {
+                return Err(format!("plain edge check events {status}: {reply}"));
+            }
+            continue;
+        }
+        let ops: Vec<Value> = cuts.iter().map(wire).collect();
+        let (status, reply) = post(
+            &reference.check,
+            "/v1/batch",
+            None,
+            json!({"operations": ops}).to_string(),
+        )
+        .await;
+        let results = reply["results"]
+            .as_array()
+            .ok_or_else(|| format!("plain edge check {status}: {reply}"))?;
+        for ((a, b), got) in chunk.iter().zip(results) {
+            if got["result"] != "changed" || got["changed"] != true {
+                return Err(format!(
+                    "plain server: effective edge {a}-{b} missing ({got})"
+                ));
+            }
+        }
+    }
+    let after = get(&reference.check, "/v1/stats").await;
+    if after["edge_count"] != 0 {
+        return Err(format!(
+            "plain server holds {} edges beyond the effective set",
+            after["edge_count"]
+        ));
+    }
+    Ok(())
+}
+
 struct Plan {
     engine: knotrel_core::EngineConfig,
     n: u64,
@@ -699,6 +1027,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
         Some(_) => return Err("unknown --scenario".into()),
         None => (scenario, false),
     };
+    let equivalent_scenario = equivalent;
     let equivalent = equivalent && !candidate;
     match scenario {
         "optin-mutation" | "optin-query" | "metrics-legacy" => {
@@ -736,6 +1065,11 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 plan_steps: None,
                 equivalent_source: None,
                 built_equivalent: None,
+                expected: None,
+                planned: None,
+                removed: None,
+                feeder: None,
+                responses: None,
             })
         }
         "ops" | "ops-query" | "events" | "metrics-ops" => {
@@ -773,6 +1107,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     }
                 }
                 let instance = feeder.instance.clone();
+                let kept_feeder = equivalent.then_some(feeder);
                 return Ok(Arm {
                     calls: calls(&app, "/v1/feeder/events", Some(&instance), bodies),
                     check: app,
@@ -782,6 +1117,11 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     plan_steps: pristine.map(|p| (p, steps)),
                     equivalent_source: None,
                     built_equivalent: None,
+                    expected: None,
+                    planned: None,
+                    removed: None,
+                    feeder: kept_feeder,
+                    responses: None,
                 });
             }
             let (lifecycle, metrics) = if scenario == "metrics-ops" {
@@ -801,6 +1141,11 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     plan_steps: None,
                     equivalent_source: None,
                     built_equivalent: None,
+                    expected: None,
+                    planned: None,
+                    removed: None,
+                    feeder: None,
+                    responses: (candidate && equivalent_scenario).then(Vec::new),
                 });
             }
             let mut planner = Planner::new(n, edges);
@@ -827,6 +1172,11 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 plan_steps: pristine.map(|p| (p, steps)),
                 equivalent_source: None,
                 built_equivalent: None,
+                expected: None,
+                planned: None,
+                removed: None,
+                feeder: None,
+                responses: None,
             })
         }
         "import" | "import-optin" => {
@@ -841,11 +1191,13 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 .collect();
             let mut all = Vec::new();
             let mut check = None;
+            let mut last_instance = String::new();
             let mut sent_effective = Vec::new();
             for _ in 0..requests.max(1) {
                 let app =
                     router_with_config(config(engine, candidate, ServerMode::SourceManaged, false));
                 let instance = Feeder::session(&app).await;
+                last_instance = instance.clone();
                 let (nodes, wire_edges) = if candidate || !flagged {
                     let nodes: Vec<Value> = (0..n)
                         .map(|v| {
@@ -910,6 +1262,14 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                         sent_effective: imported_effective,
                     }),
                     built_equivalent: None,
+                    expected: None,
+                    planned: None,
+                    removed: None,
+                    feeder: Some(Feeder {
+                        instance: last_instance,
+                        sequence: 0,
+                    }),
+                    responses: None,
                 });
             }
             let flag_store = (!candidate && flagged).then(|| FlagStore {
@@ -928,6 +1288,11 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 plan_steps: None,
                 equivalent_source: None,
                 built_equivalent: None,
+                expected: None,
+                planned: None,
+                removed: None,
+                feeder: None,
+                responses: None,
             })
         }
         _ => Err("unknown --scenario".into()),
@@ -1005,6 +1370,11 @@ async fn main_async() -> Result<(), String> {
             return Err(format!(
                 "connectivity answers differ between arms in pair {index}"
             ));
+        }
+        if scenario.ends_with("-equivalent") {
+            equivalence_check(&candidate, &mut reference)
+                .await
+                .map_err(|e| format!("equivalence check failed in pair {index}: {e}"))?;
         }
         let pair = index as i64 - warmup as i64;
         println!(
