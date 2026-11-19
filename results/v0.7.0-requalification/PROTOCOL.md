@@ -1204,8 +1204,9 @@ starvation; then a new freeze for future collections.
 - **Imports refused with 503** are not retried within the second (unchanged:
   one import per second, start to start). Under the starvation rule below,
   a single 503-refused import makes its configuration starved and invalid.
-  No import 503 appears in archived revision-2 evidence: 133 import rows,
-  all `refused_503: 0`.
+  No import 503 appears in the archived evidence: a scan of the `*.stdout`
+  files under `evidence/` found 110 background-import rows, all with
+  `refused_503: 0`. The reviewer's own scan counted 133, also all 0.
 - **Accounting:** `background.imports` per import configuration:
   - stats attempts, 503 refusals, I/O errors and other statuses;
   - refreshes, exhausted and status-failed refreshes, and refresh latency
