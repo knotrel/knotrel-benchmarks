@@ -66,6 +66,33 @@ def apply_multipliers(cells: List[Dict[str, Any]], multipliers: Dict[str, int]) 
 ALL_LIFECYCLE_ENGINES = ",".join(ENGINES)
 
 
+def run_order(cells: List[Dict[str, Any]], seed: int) -> List[int]:
+    """Indices of ``cells`` in run order.
+
+    Without capability-equivalent cells: the frozen rule, a ``random.Random(seed)``
+    shuffle of all indices. With them (qualification 3), the frozen cells keep exactly
+    the order the frozen rule gives them on their own, and each ``*-equivalent`` cell
+    runs right after its frozen counterpart, so the frozen sequence is unchanged.
+    """
+    frozen = [i for i, c in enumerate(cells) if "-equivalent-" not in c["id"]]
+    shuffled = list(range(len(frozen)))
+    random.Random(seed).shuffle(shuffled)
+    if len(frozen) == len(cells):
+        return shuffled
+    twin = {c["id"].replace("-equivalent-", "-"): i for i, c in enumerate(cells) if "-equivalent-" in c["id"]}
+    if len(twin) != len(cells) - len(frozen):
+        raise SystemExit("duplicate equivalent cells")
+    order: List[int] = []
+    for k in shuffled:
+        index = frozen[k]
+        order.append(index)
+        if cells[index]["id"] in twin:
+            order.append(twin.pop(cells[index]["id"]))
+    if twin:
+        raise SystemExit(f"equivalent cells without a frozen counterpart: {sorted(twin)}")
+    return order
+
+
 def in_lifecycle_scope(cell: Dict[str, Any], lifecycle_engines: str) -> bool:
     """Whether ``cell`` belongs to a qualification restricted to ``lifecycle_engines``.
 
@@ -256,8 +283,7 @@ def main() -> int:
     if args.only:
         wanted = set(args.only.split(","))
         cells = [cell for cell in cells if cell["experiment"] in wanted]
-    order = list(range(len(cells)))
-    random.Random(args.order_seed).shuffle(order)
+    order = run_order(cells, args.order_seed)
     provenance = {
         "profile": args.profile, "order_seed": args.order_seed, "seed": SEED,
         "only": args.only, "cells": len(cells), "lifecycle_engines": args.lifecycle_engines,

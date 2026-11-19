@@ -2,14 +2,14 @@
 # Prepares the frozen v0.7.0 qualification 3 campaign (no measurement).
 # Identical to results/v0.7.0-requalification/prepare_campaign.sh (amendment 3, revision 2) except:
 # the campaign directory name (v0.7.0-qualification-3-<cand7>-q3-attemptN), the freeze record
-# (FREEZE-Q3.json) and series q3 only, the A plan checkpoint name (the A session seeds are
+# (FREEZE.json) and series q3 only, the A plan checkpoint name (the A session seeds are
 # a3-3's, 130720-130722), the qualification-3 launch environment check, and the informational __TEXT,__text
 # comparison against the builds of re-qualification attempt a3-3.
 #
 # Usage: prepare_campaign.sh CAND_SHA FREEZE_SHA [ATTEMPT [SERIES]]
 #   CAND_SHA   knotrel candidate commit (full SHA)
 #   FREEZE_SHA knotrel-benchmarks commit containing MATRIX.json, PROTOCOL.md and the freeze record
-#   ATTEMPT    attempt number (default 1); attempt N >= 2 uses the suffix -attemptN
+#   ATTEMPT    attempt number (1-9)
 #   SERIES     q3 (required); the suffix is -q3-attemptN for every N, including 1
 # It writes CAMP/LAUNCH-COMMAND.txt: the command the maintainer runs in Terminal.app with Claude
 # quit.
@@ -31,10 +31,10 @@ BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 C8=$(echo "$CAND" | cut -c1-7)
 CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-qualification-3-$C8
 LAUNCH=1
-# Qualification 3 (PROTOCOL.md sections 7 and 9): FREEZE-Q3, series q3, cap from the frozen matrix,
+# Qualification 3 (PROTOCOL.md sections 7 and 9): FREEZE.json in the q3 directory, series q3, cap from the frozen matrix,
 # no soak, no unrestored quiesce anywhere.
-git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-qualification-3/FREEZE-Q3.json" 2>/dev/null \
-  || { echo "FREEZE $FREEZE has no results/v0.7.0-qualification-3/FREEZE-Q3.json" >&2; exit 3; }
+git -C "$BREPO" cat-file -e "$FREEZE:results/v0.7.0-qualification-3/FREEZE.json" 2>/dev/null \
+  || { echo "FREEZE $FREEZE has no results/v0.7.0-qualification-3/FREEZE.json" >&2; exit 3; }
 [ "$SERIES" = q3 ] || { echo "qualification 3: pass ATTEMPT and series q3" >&2; exit 3; }
 CAP=$(git -C "$BREPO" show "$FREEZE:results/v0.7.0-qualification-3/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['qualification_3']['attempts_cap'])")
 case "$ATTEMPT" in [1-9]) ;; *) echo "attempt must be 1-9" >&2; exit 3;; esac

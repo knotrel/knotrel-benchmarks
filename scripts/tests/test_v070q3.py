@@ -54,7 +54,7 @@ class Paths(unittest.TestCase):
         self.assertIn("R=$CAMP/src/cand/knotrel-benchmarks/results/v0.7.0-qualification-3", LAUNCH)
 
     def test_prepare_requires_freeze_q3_and_series_q3(self):
-        self.assertIn("results/v0.7.0-qualification-3/FREEZE-Q3.json", PREPARE)
+        self.assertIn("results/v0.7.0-qualification-3/FREEZE.json", PREPARE)
         self.assertIn('[ "$SERIES" = q3 ]', PREPARE)
         self.assertIn("['conformance']['qualification_3']['attempts_cap']", PREPARE)
         self.assertIn("CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-qualification-3-$C8", PREPARE)
@@ -157,3 +157,51 @@ class Report(unittest.TestCase):
         self.assertEqual(roles["B1-ops-compact-bfs-sparse-1000-query"], "deciding")
         with self.assertRaises(SystemExit):
             report.label({"timing": timing[1:]}, MATRIX)
+
+
+class PreFreezeReviewBlockers(unittest.TestCase):
+    """B1-B3 of the pre-freeze review."""
+
+    def test_b1_recorder_freeze_file_is_the_q3_freeze_record(self):
+        import run_v060_qualification as recorder
+        source = (ROOT / "scripts" / "run_v060_qualification.py").read_text()
+        self.assertIn('freeze = MATRIX.parent / "FREEZE.json"', source)
+        self.assertIn("results/v0.7.0-qualification-3/FREEZE.json", PREPARE)
+        self.assertIn('[ -f "$R/FREEZE.json" ]', ENV)
+        self.assertTrue(recorder)  # importable
+
+    def test_b2_analyzer_expects_equivalent_cells(self):
+        import tempfile
+        import analyze_lifecycle_qualification as analyzer
+        cells = {c["id"]: c for c in lifecycle.matrix("final", "compact-bfs", True)}
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            for flag, expect, ok in ((True, True, True), (False, True, False), (True, False, False)):
+                (run / "provenance.json").write_text(json.dumps(
+                    {"profile": "final", "only": "", "lifecycle_engines": "compact-bfs",
+                     "equivalent_references": flag, "window_multipliers_sha256": "x"}))
+                (run / "run-log.jsonl").write_text("")
+                try:
+                    analyzer.validate(run, cells, "rev", "x", "compact-bfs", expect)
+                    reached = True
+                except analyzer.Invalid as error:
+                    reached = "missing or failed run" in str(error)  # past the matrix checks
+                self.assertEqual(reached, ok, (flag, expect))
+
+    def test_b3_frozen_order_unchanged(self):
+        import random
+        frozen = lifecycle.matrix("final", "compact-bfs")
+        q3 = lifecycle.matrix("final", "compact-bfs", True)
+        expected = list(range(len(frozen)))
+        random.Random(50720).shuffle(expected)
+        frozen_order = [frozen[i]["id"] for i in expected]
+        self.assertEqual([frozen[i]["id"] for i in lifecycle.run_order(frozen, 50720)], frozen_order)
+        q3_order = [q3[i]["id"] for i in lifecycle.run_order(q3, 50720)]
+        self.assertEqual(len(q3_order), 140)
+        self.assertEqual([x for x in q3_order if "-equivalent-" not in x], frozen_order)
+        for k, cell_id in enumerate(q3_order):
+            if "-equivalent-" in cell_id:
+                self.assertEqual(q3_order[k - 1], cell_id.replace("-equivalent-", "-"))
+        a33 = Path("/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/BC/plan/order.json")
+        if a33.exists():
+            self.assertEqual(json.loads(a33.read_text()), frozen_order)
