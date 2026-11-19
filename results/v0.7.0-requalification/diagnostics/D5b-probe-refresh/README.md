@@ -92,6 +92,10 @@ The validity rule for future collections is in `scripts/analyze_v070r_a4.py`.
     fixes (failure kinds, `stats_other`, `refresh_failed_status`). Same
     outcome: 6/6 everywhere; forced runs needed 1–2 stats attempts.
   - Both sets were repeated with the final source, as tabled above.
+- **Formatting after the runs.** After the final runs, `cargo fmt` reformatted
+  the source (trailing commas and line breaks in the test module only). The
+  non-test code is token-identical to the source of the tabled binaries.
+  `forced-copy.diff` is taken against the formatted source.
 - **The race did not recur.** As in D5, the fixed probe's initial refresh
   got 200 at its first attempt in every run.
 - **When the refresh ran is not recorded.** A refresh at the start of a
