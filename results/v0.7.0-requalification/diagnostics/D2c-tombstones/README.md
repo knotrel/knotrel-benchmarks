@@ -89,8 +89,21 @@ binary, runs in the order frozen, T1, T1, frozen, 24 pairs per policy):
 | sparse 1k | 1,960.8 µs | 1,968.7 µs (+0.4%) | 0.614 → 0.618 |
 | sparse 10k | 12,017.3 µs | 11,981.8 µs (−0.3%) | 0.984 → 0.982 |
 
-**The product change reproduces the diagnostic** (addendum 1, A3,
-`summary-product.txt`).
+**T1 is exercised in these cells** (deterministic event counts from the
+diagnostic probe's `pairs` mode, `raw/b1-events/`): 15 catalog rebuilds per
+run with T1 (about one per lifecycle window), against 0 when frozen, in both
+cells.
+
+**The product change reproduces the diagnostic** (addendum 1, A3).
+- **Final check, from clean checkouts** (`summary-product-clean.txt`,
+  `raw/product-clean/`):
+  - knotrel `fa5f3a9` and tooling `7dd1fdb7`, cloned fresh;
+  - build records `knotrel_dirty: false` and `probes_dirty: false`;
+  - binary hash in `raw/product-clean/binary-sha256.txt`;
+  - result: byte for byte, for all 8 series.
+- **First check** (`summary-product.txt`, `raw/product/`): built from the
+  working tree before the commit (dirty records), the same result. It was
+  kept and superseded after the review asked for clean provenance.
 - Setup: the frozen `core-lifecycle` (unmodified, `stats_alloc`) built
   count-alloc against the candidate with the product T1 and no diagnostic
   code (knotrel `f34af87d`, binary in `raw/product/binary-sha256.txt`).
