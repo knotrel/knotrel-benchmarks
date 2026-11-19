@@ -1,0 +1,176 @@
+tool crontab /usr/bin/crontab
+tool git /usr/bin/git
+tool ioreg /usr/sbin/ioreg
+tool launchctl /bin/launchctl
+tool lsappinfo /usr/bin/lsappinfo
+tool pgrep /usr/bin/pgrep
+tool pluginkit /usr/bin/pluginkit
+tool pmset /usr/bin/pmset
+tool ps /bin/ps
+tool rustc /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/bin/rustc
+tool sysctl /usr/sbin/sysctl
+rustc rustc 1.100.0 (0ef1bc386 2026-11-09)
+================================================================================
+KNOTREL v0.3.0: BASELINE/CANDIDATE (B/C) COLLECTOR (DRY-RUN VALIDATION)
+================================================================================
+Manifest Path:      /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/A/plan/manifest.json
+Schedule Path:      /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/A/plan/schedule.json
+
+--- 1. Validation and Provenance Checks ---
+✓ Schema & Counts:    9 total cells (4 Core, 5 HTTP)
+✓ Schedule Balance:   108 total pairs across 3 sessions (36 pairs/session)
+✓ Label Symmetry:     Exactly 2/2 B-then-C and C-then-B per cell in every session
+✓ Approved Design:    knotrel-v0.3.0-closure-plan-5.3, phase main
+✓ Measured Launches:  216 direct child executions
+✓ Total Processes:    360 process launches
+✓ Label B knotrel_benchmarks 75f211da0baddfc20628c21d15d06740b19363355ab00db7aead5a6e8a3a4390  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/A-B-harness/release/knotrel-benchmarks
+✓ Label B knotrel_server     feb0f70341772477a27751be601da62f76cf701866cdaea96c5b49894c25f90b  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/ref-server/release/knotrel-server
+✓ Label B benchmarks_source  df635a1e872fd9e2d556b166ac23f342ee45d675  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/A/sources/knotrel-benchmarks
+✓ Label B knotrel_source     5db9ec4738a7f90bf06a83ea12f35c0dab9ab538  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/A/sources/B/knotrel
+✓ Label C knotrel_benchmarks 170750f0d3054da4b4783dcbd4627485ca9d628f61f086c4c628dfb3c9555b74  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/A-C-harness/release/knotrel-benchmarks
+✓ Label C knotrel_server     ea895dfe36eb2bb1ef39b2b4968aa23a24232cec14347f4efc2bb2aae4c74e30  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-server/release/knotrel-server
+✓ Label C benchmarks_source  df635a1e872fd9e2d556b166ac23f342ee45d675  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/A/sources/knotrel-benchmarks
+✓ Label C knotrel_source     e75ff6a26ec245aefcadfff254e0ac2dd6efc4fc  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/A/sources/C/knotrel
+✓ Shared measure_e2e         e21d2c413c5a9169a48e71973c0445ff997ff19645035bcb828ee466d868edae  /Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-server/release/examples/measure_e2e
+✓ Derived harness lockfiles differ at most in the knotrel-core version line
+
+--- 2. Resource Ceilings and Limitations ---
+- Per-Process Timeout:    15.0s
+- Overall Deadline:       2700.0s (45 minutes, monotonic)
+- Pre-Session Quiet:      60.0s per session
+- Inter-Session Cooldown: 300.0s between sessions
+- Peak RSS Ceiling:       512 MiB (retrospective post-termination check)
+- Disk Ceiling:           50 MiB (session boundary check)
+- HTTP Driver Metrics:    measure_e2e.v1 (time_to_ready, query latency min/mean/p50/p95/p99/max, sampled RSS exported; exact peak RSS unavailable)
+- HTTP Driver Metrics:    measure_e2e.batch.v1 (window_duration, batch latency min/mean/p50/p95/p99/max, sampled RSS exported; exact peak RSS unavailable)
+
+--- 3. Host Precondition Checks ---
+Platform:      macOS-26.5.2-arm64-arm-64bit
+Power Source:  Now drawing from 'AC Power'
+ -InternalBattery-0 (id=27852899)	100%; charged; 0:00 remaining present: true
+Thermal State: Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded
+Thermal Mode:  darwin_arm64_categorical_advisory
+Active Builds: 0 competing processes
+✓ All Host Preconditions: MET (AC Power, clean thermal boundaries, no competing builds)
+
+================================================================================
+DRY-RUN COMPLETE: Configuration and provenance are 100% valid.
+No benchmarks were run, no output files written, and no quiet waits incurred.
+To execute the pilot, provide an explicit destination and pass --execute.
+================================================================================
+dry-run A ok
+{
+ "cells": 127,
+ "provenance": {
+  "profile": "final",
+  "order_seed": 50720,
+  "seed": 5000001,
+  "only": "",
+  "cells": 127,
+  "lifecycle_engines": "compact-bfs",
+  "knotrel": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/src/cand/knotrel",
+   "head": "e75ff6a26ec245aefcadfff254e0ac2dd6efc4fc",
+   "dirty": ""
+  },
+  "benchmarks": {
+   "head": "f73c2bd524e7dd6323ed5ee49017fb9e6840be6c",
+   "dirty": ""
+  },
+  "binaries": {
+   "core": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-probes/release/core-lifecycle",
+    "sha256": "c21e20813f08377d8a9fbe139319b37111155e408f1cd1ee6045e33a985cf630"
+   },
+   "core-count": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-probes-count/release/core-lifecycle",
+    "sha256": "caf59ffd5a8aeda6a0364d67239cf10d52faad20dbe5388bad2018a6662423a5"
+   },
+   "http": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-probes/release/http-lifecycle",
+    "sha256": "1912237bc6764e36792d100033d6430845419ee302db23162ea62e7f6a1c5c16"
+   }
+  },
+  "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)\nbinary: rustc\ncommit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a\ncommit-date: 2026-11-09\nhost: aarch64-apple-darwin\nrelease: 1.100.0\nLLVM version: 23.1.5\n",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "window_multipliers": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/src/cand/knotrel-benchmarks/results/lifecycle-qualification-v0.5.0/window-multipliers-dcd8ccc.json",
+  "window_multipliers_sha256": "130c35bbac5ee7909e787610bcdd7922aef91aa81879448f0cfc7916587d2630"
+ }
+}
+dry-run BC ok
+{
+ "experiment": "r",
+ "pilot": false,
+ "matrix_sha256": "0e1abe2ff4ecc8ec09cd068575f70f0befd750abf8aa1d02f7f1797ea155ec8f",
+ "freeze_sha256": "3d5cb9d41e7f5525085fad45f1526c2cc19a581e42878652d3abc41d0a2383d0",
+ "binaries": {
+  "ref": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/ref-probes/release/release-cells",
+   "sha256": "581c5af4e60b2d99c6be63395eae0c4deb836361338a22f7886519d453723cd1"
+  },
+  "cand": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-probes/release/release-cells",
+   "sha256": "e4fc059b0c1fa396792f5fc49f988f868955b41253bcf512f25f16905e3f3e4d"
+  }
+ }
+}
+dry-run R ok
+{
+ "experiment": "rmem",
+ "pilot": false,
+ "matrix_sha256": "0e1abe2ff4ecc8ec09cd068575f70f0befd750abf8aa1d02f7f1797ea155ec8f",
+ "freeze_sha256": "3d5cb9d41e7f5525085fad45f1526c2cc19a581e42878652d3abc41d0a2383d0",
+ "binaries": {
+  "ref": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/ref-probes-peak/release/memory-peak",
+   "sha256": "19217e5da07913c3ccef056e0486ecf02f73baaa9d088eeca14e9a97c55fd701"
+  },
+  "cand": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-probes-peak/release/memory-peak",
+   "sha256": "5767dfcbbe1c5b39229f438c3d158a1e5b993aeee2f55377763f2e68277a8e97"
+  }
+ }
+}
+dry-run Rmem ok
+{
+ "experiment": "mdesc",
+ "pilot": false,
+ "matrix_sha256": "0e1abe2ff4ecc8ec09cd068575f70f0befd750abf8aa1d02f7f1797ea155ec8f",
+ "freeze_sha256": "3d5cb9d41e7f5525085fad45f1526c2cc19a581e42878652d3abc41d0a2383d0",
+ "binaries": {
+  "probe": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/contention/release/contention-probe",
+   "sha256": "e7d0b4b6757b5941eef156eed9f3073d3581879dff9ab78c2aadee8a8058a34d"
+  },
+  "server": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-server/release/knotrel-server",
+   "sha256": "ea895dfe36eb2bb1ef39b2b4968aa23a24232cec14347f4efc2bb2aae4c74e30"
+  }
+ }
+}
+dry-run Mdesc ok
+{
+ "experiment": "mreg",
+ "pilot": false,
+ "matrix_sha256": "0e1abe2ff4ecc8ec09cd068575f70f0befd750abf8aa1d02f7f1797ea155ec8f",
+ "freeze_sha256": "3d5cb9d41e7f5525085fad45f1526c2cc19a581e42878652d3abc41d0a2383d0",
+ "binaries": {
+  "ref": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/ref-server/release/knotrel-server",
+   "sha256": "feb0f70341772477a27751be601da62f76cf701866cdaea96c5b49894c25f90b"
+  },
+  "cand": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/cand-server/release/knotrel-server",
+   "sha256": "ea895dfe36eb2bb1ef39b2b4968aa23a24232cec14347f4efc2bb2aae4c74e30"
+  },
+  "probe": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/targets/contention/release/contention-probe",
+   "sha256": "e7d0b4b6757b5941eef156eed9f3073d3581879dff9ab78c2aadee8a8058a34d"
+  }
+ }
+}
+dry-run Mreg ok
+LAUNCH-ENV OK
