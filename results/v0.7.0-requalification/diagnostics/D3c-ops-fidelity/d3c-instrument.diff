@@ -1,0 +1,74 @@
+diff --git a/crates/knotrel-server/src/lib.rs b/crates/knotrel-server/src/lib.rs
+index 774f50f..81ecfe0 100644
+--- a/crates/knotrel-server/src/lib.rs
++++ b/crates/knotrel-server/src/lib.rs
+@@ -53,6 +53,28 @@
+ //! use the corresponding release tag when consulting a published version.
+ 
+ mod api;
++/// D3c diagnostic counters (not a product API): nanoseconds and counts summed over every
++/// mutating batch since the last [`d3c::reset`].
++#[doc(hidden)]
++pub mod d3c {
++    use std::sync::atomic::{AtomicU64, Ordering};
++    /// Counter names, in index order.
++    pub const NAMES: [&str; 4] = ["apply_ns", "in_call_ns", "operations", "batches"];
++    static C: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
++    /// Zeroes every counter.
++    pub fn reset() {
++        for c in &C {
++            c.store(0, Ordering::Relaxed);
++        }
++    }
++    /// Current values, in [`NAMES`] order.
++    pub fn snapshot() -> [u64; 4] {
++        std::array::from_fn(|i| C[i].load(Ordering::Relaxed))
++    }
++    pub(crate) fn add(index: usize, value: u64) {
++        C[index].fetch_add(value, Ordering::Relaxed);
++    }
++}
+ mod configuration;
+ mod graph;
+ mod lifecycle;
+diff --git a/crates/knotrel-server/src/service.rs b/crates/knotrel-server/src/service.rs
+index e2d0657..24bb5ea 100644
+--- a/crates/knotrel-server/src/service.rs
++++ b/crates/knotrel-server/src/service.rs
+@@ -2610,18 +2610,35 @@ impl Service {
+             }
+             // Each operation is counted once when it returns, so a panic keeps
+             // earlier counts and invents no outcome for the interrupted one.
++            // D3c: apply-phase and in-call time (one clock pair per `state.apply`).
++            let d3c_apply = std::time::Instant::now();
++            let mut d3c_in_call = 0u64;
++            let mut d3c_ops = 0u64;
+             let outcomes = operations
+                 .into_iter()
+                 .map(|operation| match telemetry.as_deref() {
+-                    None => state.apply(operation),
++                    None => {
++                        let t = std::time::Instant::now();
++                        let outcome = state.apply(operation);
++                        d3c_in_call += t.elapsed().as_nanos() as u64;
++                        d3c_ops += 1;
++                        outcome
++                    }
+                     Some(telemetry) => {
+                         let op = GraphOp::of(&operation);
++                        let t = std::time::Instant::now();
+                         let outcome = state.apply(operation);
++                        d3c_in_call += t.elapsed().as_nanos() as u64;
++                        d3c_ops += 1;
+                         telemetry.count_operation(op, &outcome);
+                         outcome
+                     }
+                 })
+                 .collect();
++            crate::d3c::add(0, d3c_apply.elapsed().as_nanos() as u64);
++            crate::d3c::add(1, d3c_in_call);
++            crate::d3c::add(2, d3c_ops);
++            crate::d3c::add(3, 1);
+             let metadata = state.response_metadata(mode, &instance_id);
+             ExecutionResult { outcomes, metadata }
+         })

@@ -1,0 +1,13 @@
+pairs 24; ops: lifecycle 9464, plain 13057; requests 37 / 37
+L   window    3989.2 us | apply   2205.7 | in-call   1989.4 | handling (apply - in-call)    215.6 | ops/window 9464
+P   window    3093.7 us | apply   1053.0 | in-call    739.1 | handling (apply - in-call)    313.0 | ops/window 13057
+PP  window    5056.1 us | apply   1818.6 | in-call   1516.2 | handling (apply - in-call)    302.1 | ops/window 13057, planning 1163.7
+core-L per-call 1506.7 us; core-P per-call 512.0 us
+Fidelity check 1 (core per-call within +-10% of server in-call, medians):
+  core-L 1506.7 vs L in-call 1989.4 us: -24.3% -> OUTSIDE
+  core-P 512.0 vs P in-call 739.1 us: -30.7% -> OUTSIDE
+Fidelity check 2: apply difference +1152.7 us = in-call +1250.2 + handling -97.3; residual -0.2 us (-0.0% of the apply difference) -> within 10%
+FIDELITY: NOT RESTORED
+L/P  (frozen reference, planning untimed): median +30.08% [r(7) +23.13%, r(18) +36.56%] (pair min +7.99%, max +81.71%)
+L/PP (planner in the window):              median -21.25% [r(7) -27.22%, r(18) -14.53%] (pair min -42.14%, max +7.97%)
+Descriptive only: no verdict; the future cell is evaluated only in qualification 3.
