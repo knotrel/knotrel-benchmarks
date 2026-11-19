@@ -22,7 +22,7 @@ class Camp:
         self.path = Path(self.tmp.name)
         (self.path / "gate").mkdir()
         (self.path / "gate/gate-log.jsonl").write_text(
-            "\n".join(json.dumps(c) for c in [{"kind": "child", "label": "quiet-period", "start": 0, "end": 1}, *children]) + "\n")
+            "\n".join(json.dumps(c) for c in [{"kind": "child", "label": "quiet-period", "start": 0, "end": 1, "conforming": True, "reasons": []}, *children]) + "\n")
         (self.path / "gate/activity-monitor.jsonl").write_text("\n".join(
             [json.dumps({"k": "hb", "t": 0, "seq": 1, "v": 0})] +
             [json.dumps({"k": "top", "t": t, "background_pcpu_sum": v, "processes": []}) for t, v in tops]) + "\n")
