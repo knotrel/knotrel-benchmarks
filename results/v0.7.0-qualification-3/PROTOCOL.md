@@ -183,6 +183,13 @@ the following from the planner in its state at the window's start:
    server's graph equal to the effective graph. The requests are the frozen
    ones, prebuilt and untimed in both arms.
 
+**Residual limit: atomicity.** A lifecycle batch is one indivisible unit.
+When a chunk expands into more than 1,024 plain operations, the frozen
+planner splits it into two plain requests. That happens on `hub`: 39
+requests against 37 for ops, 76 against 74 for events. Those chunks are then
+not atomic on the plain side. The equivalent reference is kept as the frozen
+planner sends it; the limit is disclosed, not corrected.
+
 **Server-level evidence only.** D3c's declared fidelity check failed: the
 core replay is 24–31% below the server's in-call time. The core-level
 attributions of D3b are therefore not part of this argument. The
