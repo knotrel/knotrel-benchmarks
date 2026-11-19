@@ -1,0 +1,17 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index ed298e0..7a71f5f 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -420,6 +420,12 @@ impl Subject for LifecycleGraph {
+         // matrix gives the lifecycle arm no other engine.
+         let mut graph =
+             LifecycleGraph::new(engine).expect("lifecycle cells use a supported engine");
++        // D2b diagnostic: KNOTREL_D2B="catalog,ids,headers" pre-sizing factors of n.
++        if let Ok(spec) = std::env::var("KNOTREL_D2B") {
++            let f: Vec<f64> = spec.split(',').map(|x| x.parse().expect("KNOTREL_D2B factor")).collect();
++            knotrel_core::diag_d2b::set(f[0], f[1], f[2]);
++            graph.presize_diagnostic(n as usize);
++        }
+         for v in 0..n {
+             graph.add_node(v).unwrap();
+         }

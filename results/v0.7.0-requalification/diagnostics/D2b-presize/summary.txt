@@ -1,0 +1,11 @@
+variant    | C3 sparse            | C3 ring              | C3 hub               | B5 sparse (<=3x)     | B5 hub (<=3x)        | peak300 sparse/ring/hub MiB | last100 mean s/r/h MiB
+frozen     | 0.927 +0.103 FAIL    | 0.950 +0.172 FAIL    | 0.927 +0.119 FAIL    | 23.0MiB 2.453 PASS   | 22.5MiB 2.442 PASS   | 33.52/30.15/33.22           | 30.35/28.06/30.35
+cat        | 0.927 -0.017 PASS    | 0.950 +0.030 PASS    | 0.927 -0.005 PASS    | 28.1MiB 3.000 PASS   | 27.6MiB 3.000 PASS   | 33.52/30.15/33.22           | 30.35/28.06/30.35
+ids        | 0.927 +0.091 PASS    | 0.950 +0.157 FAIL    | 0.927 +0.106 FAIL    | 25.1MiB 2.680 PASS   | 24.6MiB 2.674 PASS   | 33.52/30.15/33.22           | 30.66/28.37/30.66
+hdr-1.25   | 0.934 +0.099 PASS    | 0.959 +0.168 FAIL    | 0.935 +0.114 FAIL    | 22.9MiB 2.439 PASS   | 22.3MiB 2.427 PASS   | 33.27/29.88/32.94           | 30.35/28.06/30.35
+hdr-1.5    | 1.003 +0.123 FAIL    | 1.039 +0.198 FAIL    | 1.005 +0.139 FAIL    | 23.4MiB 2.500 PASS   | 22.9MiB 2.490 PASS   | 34.27/31.02/34.06           | 30.35/28.06/30.35
+hdr-2      | 0.967 +0.072 PASS    | 0.998 +0.135 FAIL    | 0.969 +0.086 PASS    | 24.6MiB 2.622 PASS   | 24.0MiB 2.614 PASS   | 32.13/28.86/31.80           | 30.35/28.06/30.35
+eng        | 0.967 +0.060 PASS    | 0.998 +0.121 FAIL    | 0.969 +0.074 PASS    | 26.7MiB 2.848 PASS   | 26.2MiB 2.845 PASS   | 32.13/28.86/31.80           | 30.66/28.37/30.66
+full       | 0.967 -0.055 PASS    | 0.998 -0.014 PASS    | 0.969 -0.044 PASS    | 31.8MiB 3.395 FAIL   | 31.3MiB 3.403 FAIL   | 32.13/28.86/31.80           | 30.66/28.37/30.66
+C3 cell: late/early, 30-cycle growth (rule <= 1.25 and <= 0.10). B5 cell: lifecycle net heap after construction, lifecycle/plain.
+plain/reference net heap: sparse plain 9.38 reference 26.96 MiB, hub plain 9.19 reference 27.57 MiB
