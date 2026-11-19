@@ -1,0 +1,32 @@
+{
+ "utc": "2026-11-18T21:22:19.948508Z",
+ "ok": true,
+ "actions": [
+  {
+   "label": "com.google.GoogleUpdater.wake",
+   "bootstrap_rc": 0,
+   "result": "restored"
+  },
+  {
+   "label": "com.microsoft.EdgeUpdater.wake",
+   "bootstrap_rc": 0,
+   "result": "restored"
+  },
+  {
+   "label": "com.microsoft.update.agent",
+   "bootstrap_rc": 0,
+   "result": "restored"
+  },
+  {
+   "path": "/Applications/WhatsApp.app",
+   "result": "restored"
+  }
+ ],
+ "manual_restore": [
+  "launchctl bootstrap gui/501 /Users/rt/Library/LaunchAgents/com.google.GoogleUpdater.wake.plist",
+  "launchctl bootstrap gui/501 /Users/rt/Library/LaunchAgents/com.microsoft.EdgeUpdater.wake.plist",
+  "launchctl bootstrap gui/501 /Library/LaunchAgents/com.microsoft.update.agent.plist",
+  "mv -n /Applications/WhatsApp.app.parked-qualification /Applications/WhatsApp.app",
+  "python3 scripts/launcher_audit.py restore --camp <CAMP>  # records the restore and clears 'pending'"
+ ]
+}
