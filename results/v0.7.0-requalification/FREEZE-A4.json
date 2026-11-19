@@ -1,0 +1,56 @@
+{
+ "frozen_utc": "2026-11-19T20:05:59Z",
+ "amendment": 4,
+ "kind": "tooling freeze for future collections",
+ "scope": "contention-probe revision 3 (bounded ETag refresh, one retry after 412, background.imports accounting, import_starved) and the amendment 4 validity rule (scripts/analyze_v070r_a4.py); PROTOCOL section 11",
+ "does_not_apply_to": "attempt a3-3, which stays under FREEZE-A3.json revision 2 (freeze f73c2bd5) with its results as measured; its M_desc row read100-b8-c64-import stays INVALID",
+ "not_wired": "prepare_campaign.sh and the chain still reference FREEZE-A3.json; series a3 is closed. A future campaign (candidate, matrix, freeze, series) needs the maintainer's approval and its own freeze, which would include this tooling",
+ "candidate": null,
+ "candidate_note": "set when the maintainer approves a campaign",
+ "tooling": {
+  "repository": "knotrel-benchmarks",
+  "commit": "a172f600746d48545b713c1fcaf9cc374b906cfb",
+  "note": "amendment 4 tooling after its independent review (findings addressed in 88682823, 75179388, a172f600); the freeze commit adds only FREEZE-A4.json"
+ },
+ "parameters": {
+  "probe_revision": 3,
+  "refresh_attempts": 12,
+  "backoff_ms": [
+   10,
+   20,
+   40,
+   80,
+   160
+  ],
+  "backoff_total_ms": 1270,
+  "per_attempt_bound": "connection read timeout 60 s; no overall refresh deadline",
+  "retries_after_412": 1
+ },
+ "open_decisions": [
+  "retry bound: in one D5b forced run under 64 query clients the refresh used 11 of 12 attempts (10 refused, 1.2 s); whether to raise it before a campaign is the maintainer's decision; it was not changed after seeing that run",
+  "stats admission option (STATS-ADMISSION-PROPOSAL.md); no product change made"
+ ],
+ "maintainer_decisions": {
+  "request": "'Sonda: correggi la gestione di 503 e 412 con retry limitati e backoff, registrando tentativi, rifiuti, completamenti e latenza complessiva. Verifica che il retry non nasconda starvation. Nuovo freeze per le raccolte future.'",
+  "date": "2026-11-19"
+ },
+ "verification": {
+  "rust_tests": 10,
+  "python_tests_amendment4": 15,
+  "python_suite": "683 passed, 2 skipped",
+  "live": "diagnostics/D5b-probe-refresh: 3 fixed and 3 forced runs on the a3-3 candidate server, all imports attempted completed, none starved"
+ },
+ "review": "independent review of aa2698a0..bb7b4915: no blockers; should-fix and minor findings addressed",
+ "file_sha256": {
+  "tools/contention-probe/src/main.rs": "5a0302973238ac8174a5d28550208af73d44709a5faedb9d784461a11a136632",
+  "tools/contention-probe/Cargo.toml": "c688ba6c57c979f3b7cae9465b71c11e0bf037e54c72520adc560b1a5180db8c",
+  "tools/contention-probe/Cargo.lock": "d174e1053c51c8029993fc3bb27dec136e97badc5972bc5c7834479240061106",
+  "scripts/analyze_v070r_a4.py": "4db2697af1427ad118d7a44127c7a3a1471f53459b41884e6700f936fae6bbb8",
+  "scripts/analyze_v070r_qualification.py": "06efd9d731544faea1753767341b2204ee1da2295ba9baab2ec4e4613f4d43e5",
+  "scripts/analyze_v070_qualification.py": "b459e45f7e93b19e3f4d525555def59a21886264944622bdbe01bf774abc7450",
+  "scripts/analyze_v060_m_supplement.py": "52bf2ad10497e8e3b642addc584575e52d01bd659375cfe62cc091fa757580b5",
+  "scripts/analyze_v060_qualification.py": "24fcfda46835c9db7f884a050b976c726eef7cd9fc67741340e25f38d5a97ac9",
+  "scripts/tests/test_v070r_amendment4.py": "2fc4d287bde16cb7a517ccddf87c87dcc2266dd557f6ad284737ef22de72ac2d",
+  "results/v0.7.0-requalification/PROTOCOL.md": "96379d9a6fad8fc37992847cd82d18e6a3abc43d18866914b4f6a5b97da4a8f8"
+ }
+}
