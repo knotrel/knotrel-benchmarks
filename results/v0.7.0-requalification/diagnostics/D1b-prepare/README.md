@@ -43,8 +43,10 @@ therefore larger here: L/E is 6.37 here, against 4.96 in D1.
 | Publish (lock, checks, swap, log, drop) | 16.2 | 14.8 | 8.1 | |
 | **Import total** | **2,080.1** | **1,775.1** | **327.1** | sub-phase coverage 98.3% / 97.8% / 94.8% |
 
-Pair min–max is in `summary.txt`. Ratios: L/F 1.172 (1.052–1.307), F/E 5.40,
-L/E 6.37.
+The per-arm min–max over rounds is in `summary.txt`; pair min–max is given
+for the ratios. Ratios: L/F 1.172 (1.052–1.307), F/E 5.40, L/E 6.37. L/F
+is 1.137 in D1, a different run with different harness timing (D1 also timed
+E's flag store).
 
 Grouped (µs):
 
@@ -59,11 +61,11 @@ Grouped (µs):
 1. **Parse is 45% of L's import and most of L − F.**
    - L − F is about +305 µs. Of that, parse is +226 µs, construction +59 µs,
      and spec conversion and publish about +11 µs.
-   - Parse throughput is the same in all three arms: about 1.05 GB/s (L
-     985 KB in 938 µs, F 744 KB in 711 µs, E 141 KB in 162 µs).
-   - So the extra parse time is proportional to the body bytes added by the
-     flagged wire format: object-shaped inactive nodes, and
-     `"enabled":false`.
+   - Parse throughput is about 1.05 GB/s in L and F (L 985 KB in 938 µs,
+     F 744 KB in 711 µs), and 0.87 GB/s in E (141 KB in 162 µs).
+   - So between L and F the extra parse time is roughly proportional to the
+     body bytes added by the flagged wire format: object-shaped inactive
+     nodes, and `"enabled":false`.
 2. **Construction costs about the same in L and F, but for different work.**
    - L builds a catalog of the 19,991 registered edges plus a
      2,139-edge effective engine: 1,071 µs.
@@ -81,7 +83,7 @@ Grouped (µs):
 
 | Cost | Class | Reasoning |
 |---|---|---|
-| Parse, proportional to bytes | **inherent to the wire format** | Reducing it needs a more compact flag encoding, which is an API/contract change, or a faster decoder (not examined). |
+| Parse, roughly proportional to bytes (L, F) | **inherent to the wire format** | Reducing it needs a more compact flag encoding, which is an API/contract change, or a faster decoder (not examined). |
 | Catalog holding the registered topology | **inherent** in some form (the contract keeps registered entries) | |
 | Incident allocation, one `Vec` per node (198 µs) | **implementation, plausible** | Mechanism: one arena or CSR allocation. It conflicts with per-node mutation in place, so the trade-off is unmeasured. |
 | Sort and dedup (242 µs) | **unclear** | Sorted incident lists serve lookups and duplicate detection. Cheaper alternatives (radix sort, trusting already-sorted input) are hypotheses. |
@@ -89,7 +91,9 @@ Grouped (µs):
 | `finish` walk (82 µs) | **implementation, plausible** | It could be folded into earlier passes. Unmeasured. |
 
 The "implementation, plausible" sites together come to about 490 µs of L's
-2,080 µs. That is an upper bound on what they could save, not an estimate.
+2,080 µs. The sum mixes two absolute costs (198 and 82 µs) with one cost
+relative to E (208 µs). It is an upper bound on what they could save, not an
+estimate.
 Even eliminating all of them would leave L/E far above the 2× tolerance
 (+100%): (2,080 − 490) / 327 ≈ 4.9 against E here. Parse and catalog volume
 dominate.

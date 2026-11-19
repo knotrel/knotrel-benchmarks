@@ -1,4 +1,4 @@
-"""D2b long run (1,500 cycles): declared boundedness on halves and ring-drift criterion on
+"""D2b long run (1,500 cycles; early mean = mean of cycles 1-10): declared boundedness on halves and ring-drift criterion on
 per-compaction-interval maxima (DIAGNOSTICS-PLAN-2.md)."""
 import json, sys
 D = sys.argv[1]; MiB = 1048576
@@ -23,8 +23,9 @@ for T in ("sparse", "ring", "hub"):
         settled = max(imax[-25:]) <= max(imax[25:50]) if k >= 75 else None
         mism = sum(1 for c in cps if c["counts"]["logical"] != c["expected"])
         print(f"{T:6s} {B:6s} compactions {len(comp)} intervals {k} | max31-750 {a} max751-1500 {b} ({b-a:+d} B) slope751-1500 {s*100:+.3f}% -> {'bounded' if bounded else 'NOT bounded'} | interval maxima: first {imax[0]/MiB:.3f}, 2nd {imax[1]/MiB:.4f}, min(2..) {min(imax[1:])/MiB:.4f}, max(2..) {max(imax[1:])/MiB:.4f} MiB; max(26-50) {max(imax[25:50])} max(last25) {max(imax[-25:])} -> drift {'settled' if settled else 'NOT settled'} | peak {max(h.values())/MiB:.2f} MiB @ {max(h, key=h.get)} | mismatches {mism}")
-        if T == "ring" and B == "frozen":
-            print("  ring frozen interval maxima (B):", " ".join(str(x) for x in imax))
+        rest = imax[1:]
+        mean = sum(rest) / len(rest); sd = (sum((x - mean) ** 2 for x in rest) / (len(rest) - 1)) ** 0.5
+        print(f"  {T} {B} interval maxima 2-{k}: range {max(rest) - min(rest)} B, SD {sd:.0f} B; series (B): " + " ".join(str(x) for x in imax))
 print("least-squares slope of per-interval maxima over intervals 2-75 (bytes per interval; per 1,000 cycles)")
 for T in ("sparse", "ring", "hub"):
     cps = [json.loads(l) for l in open(f"{D}/{T}-1500-frozen.jsonl") if '"checkpoint"' in l]

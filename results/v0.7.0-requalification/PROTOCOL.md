@@ -1178,8 +1178,9 @@ starvation; then a new freeze for future collections.
   stays under FREEZE-A3 revision 2 (freeze `f73c2bd5`), with its results as
   measured. Its M_desc row `read100-b8-c64-import` stays **INVALID**: 6/6
   replacement imports got 412 (diagnostics D5 and D5b).
-- No rule, threshold, matrix entry, collector or gate changes. `MATRIX.json`
-  is not modified.
+- No threshold, matrix entry, collector or gate changes; `MATRIX.json` is
+  not modified. The validity rule gains two reasons, for future collections
+  only (below).
 - Series a3 is closed: a3-3 was CONFORMING and final. This amendment is not
   wired into `prepare_campaign.sh`. A future campaign, with its candidate,
   matrix and freeze, needs the maintainer's approval.
@@ -1188,39 +1189,55 @@ starvation; then a new freeze for future collections.
 - **ETag refresh** (`refresh_etag`): `GET /v1/stats`, retried on 503 or an
   I/O error.
   - Backoff is 10, 20, 40, 80, then 160 ms per wait, at most
-    `REFRESH_ATTEMPTS` = 12 attempts: at most 1.27 s of waiting.
-  - Any other status ends the refresh unsuccessfully.
-  - An unsuccessful refresh is a recorded failure (`refresh-exhausted`).
+    `REFRESH_ATTEMPTS` = 12 attempts: at most 1.27 s of backoff. Each
+    attempt is otherwise bounded only by the connection's 60 s read timeout,
+    so the refresh has no overall deadline.
+  - A refresh exhausted by refusals or I/O errors is a recorded failure,
+    `refresh-exhausted`.
+  - Any other status, or a 200 without an `ETag`, ends the refresh at once
+    as a distinct recorded failure, `refresh-failed-status`.
 - **When it runs:** at the start of an import configuration, and after any
   412.
 - **After a 412,** the import is retried once with the fresh token
   (`import_with_refresh`). A second 412 is a recorded failure
   (`precondition-after-refresh`).
 - **Imports refused with 503** are not retried within the second (unchanged:
-  one import per second, start to start).
+  one import per second, start to start). Under the starvation rule below,
+  a single 503-refused import makes its configuration starved and invalid.
+  No import 503 appears in archived revision-2 evidence: 133 import rows,
+  all `refused_503: 0`.
 - **Accounting:** `background.imports` per import configuration:
-  - stats attempts, 503 refusals and I/O errors;
-  - refreshes, exhausted refreshes, and refresh latency (median and max);
+  - stats attempts, 503 refusals, I/O errors and other statuses;
+  - refreshes, exhausted and status-failed refreshes, and refresh latency
+    (median and max);
   - imports attempted and completed;
   - 412s, retries, and failures after refresh.
 
   `background.p50_ns`/`max_ns` already span each whole attempt, including
   refresh and retry.
-- **Starvation:** `import_starved` is true when any refresh is exhausted, any
-  import fails after a refresh, or fewer imports complete than are
-  attempted.
+- **`failures`:** `background.failures` now also counts a failed initial
+  refresh (revision 2 only recorded a failure kind). A failed refresh after
+  a 412 adds its own failure kind next to the 412's, so one import can
+  record two failure kinds but counts one failure.
+- **Starvation:** `import_starved` is true when any refresh fails (either
+  kind), any import fails after a refresh, or fewer imports complete than
+  are attempted.
 
 **Validity rule** (`scripts/analyze_v070r_a4.py`). The frozen rule of
 `analyze_v060_m_supplement.py` applies unchanged, plus:
 - an import configuration without `background.imports` is invalid (probe
   revision below 3, fail closed);
-- an import configuration with `import_starved` not false is invalid.
+- an import configuration showing starvation is invalid: `import_starved`
+  not false, or counters that imply it (a failed refresh of either kind, a
+  412 after a refresh, completed < attempted, or a missing counter).
 
-Everything else is `analyze_v070r_qualification.py` unchanged. a3-3's
-records are not analyzed with this script.
+Everything else is `analyze_v070r_qualification.py` unchanged. The amended
+rule is installed only while the script's command runs. Importing the module
+changes nothing for other users of the frozen supplement. a3-3's records are
+not analyzed with this script.
 
 **Verification.**
-- **Rust unit tests** (`cargo test`, 7 tests) against a scripted stub
+- **Rust unit tests** (`cargo test`, 10 tests) against a scripted stub
   server:
   - the backoff sequence;
   - 503 twice then 200;
@@ -1229,16 +1246,35 @@ records are not analyzed with this script.
   - 412, then 503 and 200 on stats, then 201 on the retry;
   - 412 after a refresh;
   - 412 with an exhausted refresh, which is not retried;
-  - fewer completed than attempted.
-- **Python tests:** `scripts/tests/test_v070r_amendment4.py`.
+  - fewer completed than attempted;
+  - a 500 on stats and a 200 without an `ETag` (`refresh-failed-status`);
+  - a closed connection, which reconnects and succeeds.
+- **Python tests:** `scripts/tests/test_v070r_amendment4.py` (15), including
+  an end-to-end M_desc analysis with the rule installed.
 - **Live runs:** `diagnostics/D5b-probe-refresh`, on the a3-3 candidate
   server with the D5 configurations.
   - 3 runs of revision 3: 6/6 imports, no 412.
   - 3 runs of a forced copy that skips the initial refresh, so the token is
-    stale as in a3-3. Each time, one 412, a refresh (1–2 attempts, one 503
-    refused in two runs), a successful retry, and 6/6 imports.
+    stale as in a3-3. Each time: one 412, a refresh, a successful retry, and
+    every attempted import completed (6, 5, 5).
   - No configuration was starved.
+  - **In one forced run the refresh needed 11 of 12 attempts** (10 refused,
+    1.2 s). The bound is therefore close to the edge under 64 query clients.
+    It was not changed after this run. Raising it before a campaign is a
+    maintainer decision.
 - **The persistent-refusal case is shown at unit level, not live:** the stub
   server, no live server.
 
-**Freeze.** `FREEZE-A4.json` (tooling freeze) after an independent review.
+**Review.** An independent review of `aa2698a0..bb7b4915` found no
+blockers. Its amendment 4 findings are addressed:
+- the status-failed refresh is now distinct and exported;
+- `failures` and the bounds are documented;
+- 503-refused imports are documented as starved;
+- the rule is installed only by the command;
+- starvation is derived from the counters;
+- unit and end-to-end tests were added;
+- this section's scope wording is corrected.
+
+The live runs were repeated with the final source.
+
+**Freeze.** `FREEZE-A4.json` (tooling freeze), after the review.

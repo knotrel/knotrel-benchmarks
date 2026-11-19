@@ -74,17 +74,21 @@
 //! instead of one unretried `GET /v1/stats` (attempt a3-3 kept a stale token
 //! for a whole window after one `503 busy`; diagnostic D5):
 //! - the refresh retries a 503 or an I/O error with backoff 10, 20, 40, 80,
-//!   then 160 ms per wait, at most [`REFRESH_ATTEMPTS`] attempts; an exhausted
-//!   refresh is a recorded failure (`refresh-exhausted`), never hidden;
+//!   then 160 ms per wait, at most [`REFRESH_ATTEMPTS`] attempts (1.27 s of
+//!   backoff; each attempt is further bounded only by the connection's 60 s
+//!   read timeout); an exhausted refresh is a recorded failure
+//!   (`refresh-exhausted`), and one ended by any other status or a 200
+//!   without an `ETag` is a distinct failure (`refresh-failed-status`);
 //! - it runs when an import configuration starts and after any `412`; after a
 //!   `412` the import is retried once with the fresh token, and a second `412`
 //!   is a recorded failure (`precondition-after-refresh`);
 //! - the background summary records stats attempts and refusals, refreshes,
 //!   exhausted refreshes and refresh latency, imports attempted and completed,
 //!   `412`s and retries, and per-import latency including refresh and retry;
-//! - `import_starved` is true when any refresh is exhausted, any import fails
-//!   after a refresh, or fewer imports complete than are attempted, so a
-//!   starving configuration never looks successful.
+//! - `import_starved` is true when any refresh fails, any import fails after
+//!   a refresh, or fewer imports complete than are attempted (including an
+//!   import refused with 503, which is not retried), so a starving
+//!   configuration never looks successful.
 //!
 //! Correctness of answers is not re-verified here (it is covered by the test
 //! suites and the core oracles); the probe measures timing.
@@ -537,8 +541,10 @@ struct ImportStats {
     stats_attempts: u64,
     stats_refused_503: u64,
     stats_io_errors: u64,
+    stats_other: u64,
     refreshes: u64,
     refresh_exhausted: u64,
+    refresh_failed_status: u64,
     refresh_latencies: Vec<u64>,
     attempted: u64,
     precondition_412: u64,
@@ -547,29 +553,44 @@ struct ImportStats {
 }
 
 impl ImportStats {
-    /// Records a refresh; returns its token when it succeeded.
-    fn record(&mut self, refresh: Refresh) -> Option<String> {
+    /// Records a refresh; returns its token, or the failure kind
+    /// (`refresh-exhausted` after [`REFRESH_ATTEMPTS`] refusals or I/O
+    /// errors, `refresh-failed-status` for any other status or a 200 without
+    /// an `ETag`).
+    fn record(&mut self, refresh: Refresh) -> Result<String, &'static str> {
         self.stats_attempts += u64::from(refresh.attempts);
         self.stats_refused_503 += u64::from(refresh.refused_503);
         self.stats_io_errors += u64::from(refresh.io_errors);
+        self.stats_other += u64::from(refresh.other);
         self.refreshes += 1;
         self.refresh_latencies.push(refresh.latency_ns);
-        if refresh.etag.is_none() {
-            self.refresh_exhausted += 1;
+        match refresh.etag {
+            Some(tag) => Ok(tag),
+            None if refresh.other > 0 => {
+                self.refresh_failed_status += 1;
+                Err("refresh-failed-status")
+            }
+            None => {
+                self.refresh_exhausted += 1;
+                Err("refresh-exhausted")
+            }
         }
-        refresh.etag
     }
 
     /// True when the configuration's imports cannot be taken as successful.
     fn starved(&self, completed: u64) -> bool {
-        self.refresh_exhausted > 0 || self.precondition_after_refresh > 0 || completed < self.attempted
+        self.refresh_exhausted > 0
+            || self.refresh_failed_status > 0
+            || self.precondition_after_refresh > 0
+            || completed < self.attempted
     }
 
     fn summary(&mut self, completed: u64) -> Value {
         self.refresh_latencies.sort_unstable();
         json!({"stats_attempts": self.stats_attempts, "stats_refused_503": self.stats_refused_503,
-               "stats_io_errors": self.stats_io_errors, "refreshes": self.refreshes,
-               "refresh_exhausted": self.refresh_exhausted,
+               "stats_io_errors": self.stats_io_errors, "stats_other": self.stats_other,
+               "refreshes": self.refreshes, "refresh_exhausted": self.refresh_exhausted,
+               "refresh_failed_status": self.refresh_failed_status,
                "refresh_latency_p50_ns": percentile(&self.refresh_latencies, 0.5),
                "refresh_latency_max_ns": self.refresh_latencies.last().copied().unwrap_or(0),
                "imports_attempted": self.attempted, "imports_completed": completed,
@@ -597,9 +618,14 @@ fn import_with_refresh(
         return result;
     }
     imports.precondition_412 += 1;
-    let Some(tag) = imports.record(refresh_etag(conn, address)) else {
-        *failure_kinds.entry("refresh-exhausted".into()).or_default() += 1;
-        return result;
+    let tag = match imports.record(refresh_etag(conn, address)) {
+        Ok(tag) => tag,
+        Err(kind) => {
+            // The caller then counts the 412 as this import's failure, so one
+            // import records two failure kinds (PROTOCOL §11).
+            *failure_kinds.entry(kind.into()).or_default() += 1;
+            return result;
+        }
     };
     feeder.etag = tag;
     imports.retries += 1;
@@ -914,11 +940,12 @@ fn run_config(
                 // The stored ETag may be stale (events of an earlier
                 // configuration advance the state version): read it fresh,
                 // with bounded retries (revision 3).
+                // A failed initial refresh counts in `failures` (PROTOCOL §11).
                 match imports.record(refresh_etag(&mut conn, address)) {
-                    Some(tag) => feeder_state.etag = tag,
-                    None => {
+                    Ok(tag) => feeder_state.etag = tag,
+                    Err(kind) => {
                         failures += 1;
-                        *failure_kinds.entry("refresh-exhausted".into()).or_default() += 1;
+                        *failure_kinds.entry(kind.into()).or_default() += 1;
                     }
                 }
             }
@@ -1294,7 +1321,7 @@ mod tests {
         assert_eq!(refresh.etag, None);
         assert_eq!((refresh.attempts, refresh.refused_503), (REFRESH_ATTEMPTS, REFRESH_ATTEMPTS));
         let mut imports = ImportStats::default();
-        assert_eq!(imports.record(refresh), None);
+        assert_eq!(imports.record(refresh), Err("refresh-exhausted"));
         assert_eq!(imports.refresh_exhausted, 1);
         assert!(imports.starved(0));
         assert_eq!(imports.summary(0)["import_starved"], Value::Bool(true));
@@ -1341,6 +1368,62 @@ mod tests {
         assert_eq!(kinds.get("refresh-exhausted"), Some(&1));
         assert_eq!(seen.lock().unwrap().iter().filter(|r| r.starts_with("POST")).count(), 1);
         assert!(imports.starved(0));
+    }
+
+    #[test]
+    fn a_non_503_status_ends_the_refresh_as_a_distinct_failure() {
+        let (address, seen) = stub(vec![(500, None)]);
+        let mut conn = Conn::connect(address).unwrap();
+        let refresh = refresh_etag(&mut conn, address);
+        assert_eq!((refresh.attempts, refresh.other, refresh.etag.clone()), (1, 1, None));
+        assert_eq!(seen.lock().unwrap().len(), 1);
+        let mut imports = ImportStats::default();
+        assert_eq!(imports.record(refresh), Err("refresh-failed-status"));
+        assert_eq!((imports.refresh_failed_status, imports.refresh_exhausted, imports.stats_other), (1, 0, 1));
+        assert!(imports.starved(0));
+        let summary = imports.summary(0);
+        assert_eq!(summary["refresh_failed_status"], 1);
+        assert_eq!(summary["stats_other"], 1);
+    }
+
+    #[test]
+    fn a_200_without_an_etag_is_a_failed_refresh() {
+        let (address, _) = stub(vec![(200, None)]);
+        let mut conn = Conn::connect(address).unwrap();
+        let mut imports = ImportStats::default();
+        assert_eq!(imports.record(refresh_etag(&mut conn, address)), Err("refresh-failed-status"));
+        assert!(imports.starved(0));
+    }
+
+    #[test]
+    fn an_io_error_reconnects_and_retries() {
+        // First connection: closed without a reply. Second: 200 with a token.
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        thread::spawn(move || {
+            let (first, _) = listener.accept().unwrap();
+            let mut line = String::new();
+            BufReader::new(first.try_clone().unwrap()).read_line(&mut line).unwrap();
+            drop(first);
+            let (second, _) = listener.accept().unwrap();
+            let mut reader = BufReader::new(second.try_clone().unwrap());
+            let mut writer = second;
+            // Request line, then headers up to the blank line (a GET has no body).
+            let mut header = String::new();
+            reader.read_line(&mut header).unwrap();
+            loop {
+                header.clear();
+                reader.read_line(&mut header).unwrap();
+                if header.trim_end().is_empty() {
+                    break;
+                }
+            }
+            write!(writer, "HTTP/1.1 200 OK\r\netag: \"live\"\r\ncontent-length: 2\r\n\r\n{{}}").unwrap();
+        });
+        let mut conn = Conn::connect(address).unwrap();
+        let refresh = refresh_etag(&mut conn, address);
+        assert_eq!(refresh.etag.as_deref(), Some("\"live\""));
+        assert_eq!((refresh.attempts, refresh.io_errors), (2, 1));
     }
 
     #[test]

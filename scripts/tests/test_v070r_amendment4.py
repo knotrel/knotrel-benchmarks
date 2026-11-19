@@ -13,24 +13,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "scripts" / "tests"))
+
+import tempfile  # noqa: E402
 
 import analyze_v060_m_supplement as supplement  # noqa: E402
 import analyze_v060_qualification as frozen_v060  # noqa: E402
-
-# Importing the amendment 4 wrapper rebinds module globals (the analyzers'
-# MATRIX and the supplement's validity), as its command line needs. Other test
-# modules share those modules, so they are restored right after the import.
-_first_loaded = "analyze_v070_qualification" in sys.modules
-_saved = (frozen_v060.MATRIX, supplement.validity,
-          sys.modules["analyze_v070_qualification"].MATRIX if _first_loaded else None)
 import analyze_v070r_a4 as a4  # noqa: E402
-INSTALLED_VALIDITY = supplement.validity
-frozen_v060.MATRIX, supplement.validity = _saved[0], _saved[1]
-if _first_loaded:
-    sys.modules["analyze_v070_qualification"].MATRIX = _saved[2]
-else:  # first loaded by the wrapper: restore its own module-level binding
-    import analyze_v070_qualification as _first  # noqa: E402
-    _first.MATRIX = ROOT / "results" / "v0.7.0-qualification" / "MATRIX.json"
+from test_v060_qualification import Collector, config_record  # noqa: E402
 
 PROBE = (ROOT / "tools" / "contention-probe" / "src" / "main.rs").read_text()
 PROTOCOL = (ROOT / "results" / "v0.7.0-requalification" / "PROTOCOL.md").read_text()
@@ -43,8 +33,8 @@ def config(background=None, **extra):
 
 
 def imports(**overrides):
-    base = {"stats_attempts": 1, "stats_refused_503": 0, "stats_io_errors": 0, "refreshes": 1,
-            "refresh_exhausted": 0, "refresh_latency_p50_ns": 400000, "refresh_latency_max_ns": 400000,
+    base = {"stats_attempts": 1, "stats_refused_503": 0, "stats_io_errors": 0, "stats_other": 0, "refreshes": 1,
+            "refresh_exhausted": 0, "refresh_failed_status": 0, "refresh_latency_p50_ns": 400000, "refresh_latency_max_ns": 400000,
             "imports_attempted": 6, "imports_completed": 6, "precondition_412": 0, "retries": 0,
             "precondition_after_refresh": 0, "import_starved": False}
     base.update(overrides)
@@ -65,13 +55,11 @@ class ProbeRevision3(unittest.TestCase):
         self.assertIn("Duration::from_millis(10u64 << attempt.min(4))", PROBE)
 
     def test_initial_refresh_is_bounded_and_recorded(self):
-        start = PROBE.index('if background == "import" {\n                // The stored ETag may be stale')
-        block = PROBE[start:start + 800]
-        self.assertIn("imports.record(refresh_etag(&mut conn, address))", block)
-        self.assertIn('"refresh-exhausted"', block)
-        self.assertIn("failures += 1", block)
-        # The unretried single stats request of revision 2 is gone.
-        self.assertNotIn('match conn.request("GET", "/v1/stats", &[], b"") {\n                    Ok((200, headers, _)) => {\n                        if let Some', PROBE)
+        code = PROBE[:PROBE.index("#[cfg(test)]")]
+        self.assertEqual(code.count("imports.record(refresh_etag(&mut conn, address))"), 1)
+        self.assertEqual(code.count('conn.request("GET", "/v1/stats"'), 1)  # only inside refresh_etag
+        body = code[code.index("fn refresh_etag("):code.index("/// Revision 3 import accounting")]
+        self.assertIn('conn.request("GET", "/v1/stats"', body)
 
     def test_imports_go_through_the_refresh_and_retry_path(self):
         code = PROBE[:PROBE.index("#[cfg(test)]")]
@@ -81,7 +69,8 @@ class ProbeRevision3(unittest.TestCase):
         self.assertIn("imports.precondition_after_refresh += 1", body)
 
     def test_summary_fields(self):
-        for key in ("stats_attempts", "stats_refused_503", "refreshes", "refresh_exhausted",
+        for key in ("stats_attempts", "stats_refused_503", "stats_other", "refreshes", "refresh_exhausted",
+                    "refresh_failed_status",
                     "refresh_latency_p50_ns", "refresh_latency_max_ns", "imports_attempted",
                     "imports_completed", "precondition_412", "retries", "precondition_after_refresh",
                     "import_starved"):
@@ -92,15 +81,20 @@ class ProbeRevision3(unittest.TestCase):
         names = set(re.findall(r"fn (\w+)\(\)", PROBE[PROBE.index("mod tests"):]))
         for name in ("refresh_retries_503_then_reads_the_etag", "persistent_503_exhausts_the_refresh",
                      "a_412_refreshes_and_the_retry_succeeds", "a_412_after_refresh_is_a_recorded_failure",
-                     "a_412_with_an_exhausted_refresh_is_not_retried", "fewer_completed_than_attempted_is_starved"):
+                     "a_412_with_an_exhausted_refresh_is_not_retried", "fewer_completed_than_attempted_is_starved",
+                     "a_non_503_status_ends_the_refresh_as_a_distinct_failure",
+                     "a_200_without_an_etag_is_a_failed_refresh", "an_io_error_reconnects_and_retries"):
             self.assertIn(name, names)
 
 
 class Amendment4Validity(unittest.TestCase):
-    def test_installed_over_the_frozen_rule(self):
-        self.assertIs(INSTALLED_VALIDITY, a4.validity)
-        self.assertIs(a4.FROZEN_VALIDITY, supplement.validity)  # restored for the other test modules
-        self.assertIsNot(a4.FROZEN_VALIDITY, a4.validity)
+    def test_import_changes_nothing_and_install_is_scoped(self):
+        self.assertIs(supplement.validity, a4.FROZEN_VALIDITY)
+        matrix = frozen_v060.MATRIX
+        with a4.installed():
+            self.assertIs(supplement.validity, a4.validity)
+        self.assertIs(supplement.validity, a4.FROZEN_VALIDITY)
+        self.assertEqual(frozen_v060.MATRIX, matrix)
 
     def test_frozen_reasons_still_apply(self):
         record = config(errors=2, background=import_background(failures=1, failure_kinds={"412 x": 1}))
@@ -121,7 +115,7 @@ class Amendment4Validity(unittest.TestCase):
                           {"imports_attempted": 6, "imports_completed": 5}):
             background = import_background(imports=imports(import_starved=True, **overrides))
             reasons = a4.validity(config(background=background))
-            self.assertTrue(any(r.startswith("import_starved") for r in reasons), overrides)
+            self.assertTrue(any(r.startswith("import starvation") for r in reasons), overrides)
 
     def test_missing_or_unknown_starvation_flag_is_invalid(self):
         background = import_background()
@@ -130,7 +124,34 @@ class Amendment4Validity(unittest.TestCase):
         no_flag = imports()
         del no_flag["import_starved"]
         reasons = a4.validity(config(background=import_background(imports=no_flag)))
-        self.assertTrue(any(r.startswith("import_starved") for r in reasons))
+        self.assertTrue(any(r.startswith("import starvation") for r in reasons))
+
+    def test_starvation_is_derived_from_the_counters(self):
+        # An inconsistent record (flag false, counters starved) is still invalid.
+        for overrides in ({"refresh_exhausted": 1}, {"refresh_failed_status": 1},
+                          {"precondition_after_refresh": 1}, {"imports_completed": 5}):
+            background = import_background(imports=imports(**overrides))
+            reasons = a4.validity(config(background=background))
+            self.assertTrue(any(r.startswith("import starvation") for r in reasons), overrides)
+
+    def test_end_to_end_mdesc_with_the_installed_rule(self):
+        def row(cid, background):
+            record = config_record(cid, "read100", 64, 200, 1000, 1e-4, 1000)
+            record.update({"item_errors": {}, "noop_mutations": 0, "background": background})
+            return record
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Collector(tmp)
+            out.child("S-source-on-100k", [
+                row("ok", import_background()),
+                row("starved", import_background(imports=imports(import_starved=True, imports_completed=5),
+                                                 completed=5)),
+            ])
+            out.finish()
+            with a4.installed():
+                amended = supplement.analyze_supplement_mdesc(Path(tmp))
+            frozen = supplement.analyze_supplement_mdesc(Path(tmp))
+        self.assertEqual(amended["invalid_configs"], ["S-source-on-100k/starved"])
+        self.assertEqual(frozen["invalid_configs"], [])  # the frozen rule alone does not see it
 
     def test_a3_3_record_shape_stays_invalid(self):
         # a3-3's c64-import row: probe revision 2, six 412s, stats-503.

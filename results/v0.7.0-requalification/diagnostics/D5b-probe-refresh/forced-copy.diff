@@ -1,9 +1,10 @@
-917,923c917,919
+943,950c943,945
+<                 // A failed initial refresh counts in `failures` (PROTOCOL §11).
 <                 match imports.record(refresh_etag(&mut conn, address)) {
-<                     Some(tag) => feeder_state.etag = tag,
-<                     None => {
+<                     Ok(tag) => feeder_state.etag = tag,
+<                     Err(kind) => {
 <                         failures += 1;
-<                         *failure_kinds.entry("refresh-exhausted".into()).or_default() += 1;
+<                         *failure_kinds.entry(kind.into()).or_default() += 1;
 <                     }
 <                 }
 ---
