@@ -352,3 +352,32 @@ server, documented: the plain server has no node removal, so a node removed
 in the window stays as an isolated vertex there (the frozen planner's design).
 The lifecycle server deletes it from its registered topology. The check
 expects exactly that difference and nothing else.
+
+## Addendum 3: corrections after the pre-freeze independent review (2026-11-19)
+
+These record what was implemented or found differently from the text above.
+None changes a threshold or a declared criterion.
+- **Plain-server checks (addendum 2):** they are not `node_state`/
+  `edge_state`. The plain API refuses those (`topology_lifecycle_disabled`).
+  As implemented and documented in qualification 3's PROTOCOL §4.4:
+  - nodes of catalog ∪ removed are checked one by one with the read-only
+    `connected(v, v)`, with an equal node count;
+  - effective edges are checked by cutting each of them after the windows
+    (feeder events in source-managed mode), then requiring an edge count of
+    0, having required it equal before.
+- **ETag evaluation:** the plan promised a concurrent-events race test. The
+  harness applies the extra event batch sequentially, between the 412 and
+  the retry: it models a change after the lock release, not a concurrent
+  race. The README describes it accurately.
+- **D3c fidelity check 2** (apply = in-call + handling) is an identity and
+  cannot fail. It was mis-designed; check 1 alone decided "not restored".
+- **D4c.** The declared follow-up was not run. That is a departure decided
+  after seeing the inconsistent decomposition, and it awaits the
+  maintainer's acceptance. "Run-level effects" is the likely, not the shown,
+  cause.
+- **A2.** The B1 fresh-churn workloads do exercise T1: 15 catalog rebuilds
+  per run in each cell, about one per lifecycle window, against 0 when
+  frozen (`D2c-tombstones/raw/b1-events/`; `pairs` mode of the diagnostic
+  probe prints the counts).
+- **A3** is repeated from clean checkouts of the candidate (`fa5f3a9`) and of
+  the tooling, with clean build records (`D2c-tombstones/raw/product-clean/`).

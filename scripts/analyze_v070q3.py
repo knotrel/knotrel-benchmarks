@@ -4,7 +4,7 @@
 ``analyze_v070r_a4.py`` (``analyze_v070r_qualification.py`` with the amendment 4
 validity rule, installed only while the command runs), bound to
 ``results/v0.7.0-qualification-3/MATRIX.json``. The two matrices differ in
-seeds, conformance settings and the B/C collector flag, which these analyzers do
+conformance settings and the B/C collector flag, which these analyzers do
 not read.
 
     analyze_v070q3.py r|rmem DIR --ref-rev SHA --cand-rev SHA

@@ -12,7 +12,7 @@ index 0c66694..e0e49a3 100644
  peak-alloc = ["dep:cap"]
  
 diff --git a/src/bin/core-lifecycle.rs b/src/bin/core-lifecycle.rs
-index d6fdb3e..f18e487 100644
+index d6fdb3e..9ea1b46 100644
 --- a/src/bin/core-lifecycle.rs
 +++ b/src/bin/core-lifecycle.rs
 @@ -42,9 +42,10 @@ use lifecycle_probes::{
@@ -61,7 +61,7 @@ index d6fdb3e..f18e487 100644
      Ok(())
  }
  
-@@ -329,6 +336,15 @@ fn resources_command(args: &Args) -> Result<(), String> {
+@@ -329,11 +336,26 @@ fn resources_command(args: &Args) -> Result<(), String> {
  }
  
  fn main() -> ExitCode {
@@ -77,3 +77,15 @@ index d6fdb3e..f18e487 100644
      let mut items = std::env::args().skip(1);
      let command = items.next().unwrap_or_default();
      println!("{}", build_record("core-lifecycle"));
+     let result = Args::parse(items).and_then(|args| match command.as_str() {
+-        "pairs" => pairs_command(&args),
++        "pairs" => pairs_command(&args).map(|()| {
++            // D2c (review S6): catalog rebuilds and compactions over the whole run.
++            let events = knotrel_core::diag_d2c::take();
++            let count = |k: &str| events.iter().filter(|e| e.0 == k).count();
++            println!("{}", json!({"kind":"d2c_event_counts","catalog_rebuild_on_grow":count("catalog_rebuild_on_grow"),
++                "engine_compaction":count("engine_compaction")}));
++        }),
+         "resources" => resources_command(&args),
+         _ => Err("usage: core-lifecycle pairs|resources --flag value ...".into()),
+     });
