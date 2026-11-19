@@ -32,6 +32,9 @@ bad() { say "LAUNCH-ENV FAILED: $1"; echo "LAUNCH-ENV FAILED: $1"; exit 1; }
 WANT_PATH=$CAMP/bin:/usr/bin:/bin:/usr/sbin:/sbin
 [ "$PATH" = "$WANT_PATH" ] || bad "PATH is $PATH, expected $WANT_PATH"
 cd "$B" || bad "no tooling clone in $CAMP"
+# Qualification 3: the R/Rmem/M collectors refuse to measure unless FREEZE.json sits next to the
+# bound matrix (run_v060_qualification.py); a dry run skips that check, so check it here.
+[ -f "$R/FREEZE.json" ] || bad "no $R/FREEZE.json (the R/Rmem/M collectors would refuse to run)"
 [ "$(ls "$CAMP/bin" | tr '\n' ' ')" = "python3 rustc " ] || bad "CAMP/bin must hold exactly python3 and rustc: $(ls "$CAMP/bin" | tr '\n' ' ')"
 for TOOL in $(grep -v '^#' "$R/launch_tools.txt"); do
   P=$(command -v "$TOOL") || bad "$TOOL not found on the launch PATH"

@@ -1,6 +1,6 @@
-# knotrel v0.7.0: qualification 3 protocol (draft until FREEZE-Q3.json is written)
+# knotrel v0.7.0: qualification 3 protocol (draft until FREEZE.json is written)
 
-**Status: DRAFT (review pending).** This protocol is frozen by `FREEZE-Q3.json` after its
+**Status: DRAFT (review pending).** This protocol is frozen by `FREEZE.json` after its
 independent review and before any collection. Collection is launched by the
 maintainer, as before.
 
@@ -41,7 +41,7 @@ decisions:
 
 - **Reference:** knotrel v0.6.0 (signed tag `v0.6.0` =
   `5db9ec4738a7f90bf06a83ea12f35c0dab9ab538`), unchanged.
-- **Candidate:** knotrel 0.7.0 at the commit recorded in `FREEZE-Q3.json`.
+- **Candidate:** knotrel 0.7.0 at the commit recorded in `FREEZE.json`.
   It is e75ff6a plus the product changes that met their declared criteria
   in `DIAGNOSTICS-PLAN-3.md` (§2.1), and nothing else.
 
@@ -269,7 +269,7 @@ What changes:
 ## 9. Sequence
 
 1. The candidate commit is prepared; knotrel tests, Clippy and Rustdoc pass.
-2. Tooling is committed and independently reviewed; then `FREEZE-Q3.json`.
+2. Tooling is committed and independently reviewed; then `FREEZE.json`.
 3. `prepare_campaign.sh CAND FREEZE ATTEMPT q3` builds everything, runs the
    launch-environment check and writes `LAUNCH-COMMAND.txt`.
 4. The maintainer runs it in Terminal.app with Claude quit.

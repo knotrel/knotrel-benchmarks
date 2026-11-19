@@ -176,14 +176,22 @@ def sustained(cell: Dict[str, Any], records: List[Dict[str, Any]], cycles: int) 
 
 
 def validate(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipliers_sha: str,
-             lifecycle_engines: str = "compact-bfs,ett,hdt") -> Dict[str, Any]:
+             lifecycle_engines: str = "compact-bfs,ett,hdt",
+             equivalent_references: bool = False) -> Dict[str, Any]:
     provenance = json.loads((run / "provenance.json").read_text())
     if provenance["profile"] != "final" or provenance.get("only"):
         raise Invalid("not a complete final run")
     # Runs before amendment 4 have no scope field and used every engine.
     if provenance.get("lifecycle_engines", "compact-bfs,ett,hdt") != lifecycle_engines:
         raise Invalid("lifecycle-engine scope differs from the expected scope")
-    expected = {c["id"] for c in _runner().matrix("final", lifecycle_engines)}
+    # v0.7.0 qualification 3: the capability-equivalent B4 cells must be expected
+    # explicitly (--expect-equivalent-references) and recorded by the collector.
+    if provenance.get("equivalent_references", False) != equivalent_references:
+        raise Invalid("equivalent-reference cells differ from the expected matrix")
+    runner = _runner()
+    plan = (runner.matrix("final", lifecycle_engines, True) if equivalent_references
+            else runner.matrix("final", lifecycle_engines))
+    expected = {c["id"] for c in plan}
     if set(cells) != expected:
         raise Invalid(f"plan matrix differs from the {lifecycle_engines} scope "
                       f"(missing {sorted(expected - set(cells))[:3]}, extra {sorted(set(cells) - expected)[:3]})")
@@ -219,6 +227,8 @@ def main() -> int:
                         help="knotrel-benchmarks commit the probes were built from")
     parser.add_argument("--expect-lifecycle-engines", default="compact-bfs,ett,hdt",
                         help="lifecycle-engine scope of the run (amendment 4: compact-bfs)")
+    parser.add_argument("--expect-equivalent-references", action="store_true",
+                        help="the run includes the capability-equivalent B4 cells (v0.7.0 qualification 3)")
     parser.add_argument("--json", type=Path)
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
@@ -228,7 +238,7 @@ def main() -> int:
     cells = {c["id"]: c for c in json.loads((args.run / "plan" / "matrix.json").read_text())}
     try:
         validate(args.run, cells, args.expect_knotrel_rev, args.expect_multipliers_sha256,
-                 args.expect_lifecycle_engines)
+                 args.expect_lifecycle_engines, args.expect_equivalent_references)
         raw = args.run / "raw"
         timing, resources = [], []
         for cell_id, cell in cells.items():
