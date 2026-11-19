@@ -1,0 +1,27 @@
+C3 over 30 cycles (rule: late/early <= 1.25 and 30-cycle growth <= 0.10)
+  sparse frozen              late/early 0.927 growth +0.103 FAIL | cycle0 23.0 MiB, max 33.5 MiB
+  sparse presized-compaction late/early 0.927 growth +0.119 FAIL | cycle0 23.0 MiB, max 33.5 MiB
+  sparse presized-start      late/early 0.967 growth -0.055 PASS | cycle0 31.8 MiB, max 32.1 MiB
+  ring   frozen              late/early 0.950 growth +0.172 FAIL | cycle0 19.4 MiB, max 30.2 MiB
+  ring   presized-compaction late/early 0.950 growth +0.191 FAIL | cycle0 19.4 MiB, max 30.2 MiB
+  ring   presized-start      late/early 0.998 growth -0.014 PASS | cycle0 28.2 MiB, max 28.7 MiB
+  hub    frozen              late/early 0.927 growth +0.119 FAIL | cycle0 22.5 MiB, max 33.2 MiB
+  hub    presized-compaction late/early 0.927 growth +0.135 FAIL | cycle0 22.5 MiB, max 33.2 MiB
+  hub    presized-start      late/early 0.969 growth -0.044 PASS | cycle0 31.3 MiB, max 31.8 MiB
+300 cycles (declared bounded: max(151-300) <= max(31-150) and |slope 151-300| <= 1% of the early mean per 150 cycles)
+  sparse frozen              peak 33.52 MiB @cycle 7 | max31-150 32748808 B, max151-300 32614336 B (-134472) | slope +0.098% | bounded | last 100: mean 30.35, min 27.37, max 31.10 MiB | count mismatches 0
+  sparse presized-compaction peak 33.52 MiB @cycle 7 | max31-150 32748808 B, max151-300 32614336 B (-134472) | slope +0.021% | bounded | last 100: mean 30.66, min 29.49, max 31.10 MiB | count mismatches 0
+  sparse presized-start      peak 32.13 MiB @cycle 4 | max31-150 32748808 B, max151-300 32614336 B (-134472) | slope +0.019% | bounded | last 100: mean 30.66, min 29.49, max 31.10 MiB | count mismatches 0
+  ring   frozen              peak 30.15 MiB @cycle 19 | max31-150 30250928 B, max151-300 30260312 B (+9384) | slope +0.214% | NOT bounded by the declared rule | last 100: mean 28.06, min 25.15, max 28.86 MiB | count mismatches 0
+  ring   presized-compaction peak 30.15 MiB @cycle 19 | max31-150 30250928 B, max151-300 30260312 B (+9384) | slope +0.125% | NOT bounded by the declared rule | last 100: mean 28.37, min 27.27, max 28.86 MiB | count mismatches 0
+  ring   presized-start      peak 28.86 MiB @cycle 279 | max31-150 30250928 B, max151-300 30260312 B (+9384) | slope +0.112% | NOT bounded by the declared rule | last 100: mean 28.37, min 27.27, max 28.86 MiB | count mismatches 0
+  hub    frozen              peak 33.22 MiB @cycle 8 | max31-150 32604480 B, max151-300 32613480 B (+9000) | slope +0.102% | NOT bounded by the declared rule | last 100: mean 30.35, min 27.37, max 31.10 MiB | count mismatches 0
+  hub    presized-compaction peak 33.22 MiB @cycle 8 | max31-150 32604480 B, max151-300 32613480 B (+9000) | slope +0.024% | NOT bounded by the declared rule | last 100: mean 30.66, min 29.49, max 31.10 MiB | count mismatches 0
+  hub    presized-start      peak 31.80 MiB @cycle 8 | max31-150 32604480 B, max151-300 32613480 B (+9000) | slope +0.021% | NOT bounded by the declared rule | last 100: mean 30.66, min 29.49, max 31.10 MiB | count mismatches 0
+B5 memory at 100k (net heap after construction; budget lifecycle/plain <= 3x)
+  sparse frozen              plain 9.4, lifecycle 23.0, reference 27.0 MiB | lifecycle/plain 2.453
+  sparse presized-compaction plain 9.4, lifecycle 23.0, reference 27.0 MiB | lifecycle/plain 2.453
+  sparse presized-start      plain 9.4, lifecycle 31.8, reference 27.0 MiB | lifecycle/plain 3.395
+  hub    frozen              plain 9.2, lifecycle 22.5, reference 27.6 MiB | lifecycle/plain 2.442
+  hub    presized-compaction plain 9.2, lifecycle 22.5, reference 27.6 MiB | lifecycle/plain 2.442
+  hub    presized-start      plain 9.2, lifecycle 31.3, reference 27.6 MiB | lifecycle/plain 3.403
