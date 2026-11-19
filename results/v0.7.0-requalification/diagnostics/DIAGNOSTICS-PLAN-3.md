@@ -321,3 +321,21 @@ before the freeze):
 (130720–130722, 130730–130732), reverting the draft's 2307xx. Every other
 seed and workload is unchanged too. The equivalent cells reuse their frozen
 counterparts' workloads, seeds and request counts.
+
+## Addendum 2 (maintainer, 2026-11-19, before any equivalence smoke run)
+
+"Nei controlli di equivalenza verifica il contenuto della topologia
+registrata, inclusi ID e flag: i soli conteggi di /v1/stats non bastano."
+The final-state check of A4 therefore also verifies content, after the
+windows and untimed:
+- **Nodes:** every node of the application catalog is queried on the
+  candidate with `node_state` (registered, same `active` flag).
+- **Edges:** every registered edge is queried with `edge_state` (registered,
+  same `enabled` flag, same effectiveness).
+- **No extras:** with the counts equal, the candidate holds no other entry.
+- **Plain server:** every effective edge is queried with `edge_state` and
+  must be registered.
+
+For `events-equivalent`, which has no per-event results in the API, this
+complete final-state check is the equivalence check (maintainer: "va bene
+non confrontare risultati per evento se l'API non li espone").
