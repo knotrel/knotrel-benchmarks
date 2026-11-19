@@ -1,0 +1,77 @@
+diff --git a/crates/knotrel-core/src/configuration.rs b/crates/knotrel-core/src/configuration.rs
+index 2571f50..5cb4dff 100644
+--- a/crates/knotrel-core/src/configuration.rs
++++ b/crates/knotrel-core/src/configuration.rs
+@@ -184,6 +184,13 @@ impl ConnectivityGraph {
+ 
+     /// Releases the adjacency storage of an isolated vertex (`compact-bfs`
+     /// only; a no-op for the other engines and for a vertex with edges).
++    /// D2 diagnostic: reserves vertex storage (`compact-bfs` only).
++    pub(crate) fn reserve_vertices_diagnostic(&mut self, additional: usize) {
++        if let Backend::Compact(graph) = &mut self.backend {
++            graph.reserve_vertices_diagnostic(additional);
++        }
++    }
++
+     pub(crate) fn release_isolated_storage(&mut self, node: NodeId) {
+         if let Backend::Compact(graph) = &mut self.backend {
+             graph.release_isolated_storage(node);
+diff --git a/crates/knotrel-core/src/lib.rs b/crates/knotrel-core/src/lib.rs
+index e2f9c8a..bd29724 100644
+--- a/crates/knotrel-core/src/lib.rs
++++ b/crates/knotrel-core/src/lib.rs
+@@ -448,8 +448,12 @@ impl Graph {
+     /// no adjacency vector is reallocated.
+     pub(crate) fn from_sorted_adjacency(ids: Vec<NodeId>, adjacency: Vec<Vec<usize>>) -> Self {
+         assert_eq!(ids.len(), adjacency.len(), "one adjacency list per ID");
++        // D2 diagnostic pre-sizing: room for as many retired slots as registered nodes
++        // (the compaction bound), so the ID map and the adjacency header array never grow.
+         let mut map: IntMap<NodeId, usize> =
+-            IntMap::with_capacity_and_hasher(ids.len(), Default::default());
++            IntMap::with_capacity_and_hasher(ids.len() * 2, Default::default());
++        let mut adjacency = adjacency;
++        adjacency.reserve(ids.len());
+         for (index, &node) in ids.iter().enumerate() {
+             let previous = map.insert(node, index);
+             debug_assert!(previous.is_none(), "distinct IDs");
+@@ -480,6 +484,12 @@ impl Graph {
+     ///
+     /// A no-op for an absent node or one that still has edges. The vertex and
+     /// its index stay registered. `O(1)` expected.
++    /// D2 diagnostic: reserves the ID map and the adjacency header array.
++    pub(crate) fn reserve_vertices_diagnostic(&mut self, additional: usize) {
++        self.ids.reserve(additional);
++        self.adjacency.reserve(additional);
++    }
++
+     pub(crate) fn release_isolated_storage(&mut self, node: NodeId) {
+         if let Some(&index) = self.ids.get(&node) {
+             let list = &mut self.adjacency[index];
+diff --git a/crates/knotrel-core/src/topology.rs b/crates/knotrel-core/src/topology.rs
+index 335333b..3f2b463 100644
+--- a/crates/knotrel-core/src/topology.rs
++++ b/crates/knotrel-core/src/topology.rs
+@@ -336,6 +336,14 @@ impl LifecycleGraph {
+     ///
+     /// [`LifecycleError::UnsupportedEngine`] unless
+     /// [`supports_engine`](Self::supports_engine) holds for `engine`.
++    /// D2 diagnostic (not a product API): reserves catalog room for `nodes`
++    /// registered nodes and engine room for `vertices` vertices.
++    pub fn reserve_diagnostic(&mut self, nodes: usize, vertices: usize) {
++        self.nodes.reserve(nodes);
++        self.engine.reserve_vertices_diagnostic(vertices);
++    }
++
++    /// Creates an empty graph (see the documentation above `reserve_diagnostic`).
+     pub fn new(engine: EngineConfig) -> Result<Self, LifecycleError> {
+         Self::with_limits(engine, GraphLimits::default())
+     }
+@@ -607,6 +615,8 @@ impl LifecycleGraph {
+             active_nodes += usize::from(record.active);
+         }
+         let (engine_graph, effective_edges) = Self::build_engine(engine, &mut catalog, &order);
++        // D2 diagnostic pre-sizing: catalog room for twice the registered nodes.
++        catalog.reserve(catalog.len());
+         Self {
+             nodes: catalog,
+             engine: engine_graph,
