@@ -58,14 +58,14 @@ class Paths(unittest.TestCase):
         self.assertIn('[ "$SERIES" = q3 ]', PREPARE)
         self.assertIn("['conformance']['qualification_3']['attempts_cap']", PREPARE)
         self.assertIn("CAMP=/Users/rt/workspace/knotrel/evidence/v0.7.0-qualification-3-$C8", PREPARE)
-        self.assertIn("--session-seeds 230720 230721 230722", PREPARE)
+        self.assertIn("--session-seeds 130720 130721 130722", PREPARE)
         self.assertIn("results/v0.7.0-qualification-3/launch_env_check.sh", PREPARE)
         self.assertNotIn("FREEZE-A3.json", PREPARE)
 
     def test_chain_extension_seeds(self):
-        self.assertIn("--session-seeds 230730 230731 230732", CHAIN)
-        self.assertEqual(MATRIX["experiments"]["A"]["session_seeds"], [230720, 230721, 230722])
-        self.assertEqual(MATRIX["experiments"]["A"]["extension_seeds"], [230730, 230731, 230732])
+        self.assertIn("--session-seeds 130730 130731 130732", CHAIN)
+        # Addendum 1, A5: a3-3's seeds are kept; the whole A experiment matches the re-qualification.
+        self.assertEqual(MATRIX["experiments"]["A"], RQ_MATRIX["experiments"]["A"])
 
 
 class ChainAndDryRunsAgree(unittest.TestCase):
