@@ -50,13 +50,16 @@ def import_background(**overrides):
 
 class ProbeRevision3(unittest.TestCase):
     def test_revision_and_bounds(self):
-        self.assertIn("const PROBE_REVISION: u32 = 3;", PROBE)
-        self.assertIn("const REFRESH_ATTEMPTS: u32 = 12;", PROBE)
+        # Revision 4 (qualification 3) supersedes revision 3's 12-attempt cap with a
+        # 1 s budget and a 10-attempt cap; FREEZE-A4 pins revision 3's source by hash.
+        self.assertIn("const PROBE_REVISION: u32 = 4;", PROBE)
+        self.assertIn("const REFRESH_ATTEMPTS: u32 = 10;", PROBE)
+        self.assertIn("const REFRESH_BUDGET: Duration = Duration::from_millis(1_000);", PROBE)
         self.assertIn("Duration::from_millis(10u64 << attempt.min(4))", PROBE)
 
     def test_initial_refresh_is_bounded_and_recorded(self):
         code = PROBE[:PROBE.index("#[cfg(test)]")]
-        self.assertEqual(code.count("imports.record(refresh_etag(&mut conn, address))"), 1)
+        self.assertEqual(code.count("imports.record(refresh_etag(&mut conn, address, REFRESH_BUDGET))"), 1)
         self.assertEqual(code.count('conn.request("GET", "/v1/stats"'), 1)  # only inside refresh_etag
         body = code[code.index("fn refresh_etag("):code.index("/// Revision 3 import accounting")]
         self.assertIn('conn.request("GET", "/v1/stats"', body)
@@ -70,6 +73,7 @@ class ProbeRevision3(unittest.TestCase):
 
     def test_summary_fields(self):
         for key in ("stats_attempts", "stats_refused_503", "stats_other", "refreshes", "refresh_exhausted",
+                    "refresh_exhausted_deadline", "refresh_exhausted_attempts", "refresh_budget_ms",
                     "refresh_failed_status",
                     "refresh_latency_p50_ns", "refresh_latency_max_ns", "imports_attempted",
                     "imports_completed", "precondition_412", "retries", "precondition_after_refresh",
@@ -83,7 +87,9 @@ class ProbeRevision3(unittest.TestCase):
                      "a_412_refreshes_and_the_retry_succeeds", "a_412_after_refresh_is_a_recorded_failure",
                      "a_412_with_an_exhausted_refresh_is_not_retried", "fewer_completed_than_attempted_is_starved",
                      "a_non_503_status_ends_the_refresh_as_a_distinct_failure",
-                     "a_200_without_an_etag_is_a_failed_refresh", "an_io_error_reconnects_and_retries"):
+                     "a_200_without_an_etag_is_a_failed_refresh", "an_io_error_reconnects_and_retries",
+                     "slow_refusals_exhaust_the_time_budget", "a_silent_server_is_bounded_by_the_budget",
+                     "budget_and_cap_are_consistent"):
             self.assertIn(name, names)
 
 

@@ -90,6 +90,18 @@
 //!   import refused with 503, which is not retried), so a starving
 //!   configuration never looks successful.
 //!
+//! # Revision 4 (v0.7.0 qualification 3)
+//!
+//! The refresh gets an overall time budget, [`REFRESH_BUDGET`] = 1 s from its
+//! first request: one period of the background import cadence (one import
+//! per second, start to start), so a refresh that cannot finish within one
+//! period counts as a stalled, starved background activity, not a slow
+//! success. Backoff is unchanged, the attempt cap is [`REFRESH_ATTEMPTS`] = 10
+//! (cumulative backoff before the tenth attempt: 950 ms), each request's read
+//! timeout and any reconnect are bounded by the remaining budget, and an
+//! exhausted refresh records its reason (`refresh-exhausted-deadline` or
+//! `refresh-exhausted-attempts`; `refresh_exhausted` keeps the total).
+//!
 //! Correctness of answers is not re-verified here (it is covered by the test
 //! suites and the core oracles); the probe measures timing.
 
@@ -133,13 +145,27 @@ struct Conn {
 
 impl Conn {
     fn connect(address: SocketAddr) -> std::io::Result<Self> {
-        let stream = TcpStream::connect(address)?;
+        Self::from_stream(TcpStream::connect(address)?)
+    }
+
+    /// [`Conn::connect`] with a connect timeout (revision 4 refresh).
+    fn connect_within(address: SocketAddr, timeout: Duration) -> std::io::Result<Self> {
+        Self::from_stream(TcpStream::connect_timeout(&address, timeout)?)
+    }
+
+    fn from_stream(stream: TcpStream) -> std::io::Result<Self> {
         stream.set_nodelay(true)?;
-        stream.set_read_timeout(Some(Duration::from_secs(60)))?;
+        stream.set_read_timeout(Some(READ_TIMEOUT))?;
         Ok(Self {
             reader: BufReader::new(stream.try_clone()?),
             writer: stream,
         })
+    }
+
+    /// Sets the read timeout of the underlying socket (shared by reader and writer).
+    fn set_read_timeout(&self, timeout: Duration) -> std::io::Result<()> {
+        self.writer
+            .set_read_timeout(Some(timeout.max(Duration::from_millis(1))))
     }
 
     /// Sends one request and reads the whole response; returns status,
@@ -214,8 +240,9 @@ impl Conn {
 }
 
 /// Probe revision recorded in every `start` record (1 = frozen v0.6.0 campaign,
-/// 2 = v0.6.0 supplementary run and v0.7.0 campaigns, 3 = amendment 4 refresh).
-const PROBE_REVISION: u32 = 3;
+/// 2 = v0.6.0 supplementary run and v0.7.0 campaigns, 3 = amendment 4 refresh,
+/// 4 = refresh time budget, qualification 3).
+const PROBE_REVISION: u32 = 4;
 
 /// Node-limit headroom above the loaded graph for IDs that toggles and feeder
 /// events register (at most 128 per client plus 128 feeder IDs).
@@ -480,15 +507,23 @@ fn rss_kib(pid: u32) -> Option<u64> {
     String::from_utf8_lossy(&output.stdout).trim().parse().ok()
 }
 
-/// Maximum `GET /v1/stats` attempts per refresh (revision 3).
-const REFRESH_ATTEMPTS: u32 = 12;
+/// Maximum `GET /v1/stats` attempts per refresh (revision 4; 12 in revision 3).
+const REFRESH_ATTEMPTS: u32 = 10;
+
+/// Overall time budget of one refresh, from its first request (revision 4): one period
+/// of the background import cadence (one import per second, start to start). A refresh
+/// that cannot finish within one period has stalled the background activity.
+const REFRESH_BUDGET: Duration = Duration::from_millis(1_000);
+
+/// Read timeout outside a refresh (as set by [`Conn::connect`]).
+const READ_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Backoff before refresh attempt `attempt + 1` (revision 3): 10 ms doubling to 160 ms.
 fn refresh_backoff(attempt: u32) -> Duration {
     Duration::from_millis(10u64 << attempt.min(4))
 }
 
-/// Outcome of one bounded `If-Match` refresh (revision 3).
+/// Outcome of one bounded `If-Match` refresh (revisions 3 and 4).
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Refresh {
     etag: Option<String>,
@@ -497,18 +532,36 @@ struct Refresh {
     io_errors: u32,
     other: u32,
     latency_ns: u64,
+    /// Why an unsuccessful refresh stopped without a definite answer:
+    /// `deadline` (the budget ran out) or `attempts` (the cap was reached).
+    exhausted: Option<&'static str>,
 }
 
 /// Reads the live `ETag` from `GET /v1/stats`, retrying a 503 or an I/O error
-/// with [`refresh_backoff`], at most [`REFRESH_ATTEMPTS`] attempts. Any other
-/// status ends the refresh unsuccessfully. A broken connection is replaced.
-fn refresh_etag(conn: &mut Conn, address: SocketAddr) -> Refresh {
+/// with [`refresh_backoff`], within `budget` from the first request and at most
+/// [`REFRESH_ATTEMPTS`] attempts. Each request's read timeout is the remaining
+/// budget, and a backoff never sleeps past it. Any other status ends the
+/// refresh unsuccessfully. A broken connection is replaced (connect bounded by
+/// the remaining budget). The connection's read timeout is restored on return.
+fn refresh_etag(conn: &mut Conn, address: SocketAddr, budget: Duration) -> Refresh {
     let start = Instant::now();
+    let deadline = start + budget;
     let mut out = Refresh::default();
-    while out.attempts < REFRESH_ATTEMPTS {
-        if out.attempts > 0 {
-            thread::sleep(refresh_backoff(out.attempts - 1));
+    loop {
+        if out.attempts >= REFRESH_ATTEMPTS {
+            out.exhausted = Some("attempts");
+            break;
         }
+        if out.attempts > 0 {
+            let left = deadline.saturating_duration_since(Instant::now());
+            thread::sleep(refresh_backoff(out.attempts - 1).min(left));
+        }
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            out.exhausted = Some("deadline");
+            break;
+        }
+        let _ = conn.set_read_timeout(left);
         out.attempts += 1;
         match conn.request("GET", "/v1/stats", &[], b"") {
             Ok((200, headers, _)) => {
@@ -528,12 +581,16 @@ fn refresh_etag(conn: &mut Conn, address: SocketAddr) -> Refresh {
             }
             Err(_) => {
                 out.io_errors += 1;
-                if let Ok(fresh) = Conn::connect(address) {
+                let left = deadline.saturating_duration_since(Instant::now());
+                if !left.is_zero()
+                    && let Ok(fresh) = Conn::connect_within(address, left)
+                {
                     *conn = fresh;
                 }
             }
         }
     }
+    let _ = conn.set_read_timeout(READ_TIMEOUT);
     out.latency_ns = start.elapsed().as_nanos() as u64;
     out
 }
@@ -547,6 +604,8 @@ struct ImportStats {
     stats_other: u64,
     refreshes: u64,
     refresh_exhausted: u64,
+    refresh_exhausted_deadline: u64,
+    refresh_exhausted_attempts: u64,
     refresh_failed_status: u64,
     refresh_latencies: Vec<u64>,
     attempted: u64,
@@ -557,9 +616,10 @@ struct ImportStats {
 
 impl ImportStats {
     /// Records a refresh; returns its token, or the failure kind
-    /// (`refresh-exhausted` after [`REFRESH_ATTEMPTS`] refusals or I/O
-    /// errors, `refresh-failed-status` for any other status or a 200 without
-    /// an `ETag`).
+    /// (`refresh-exhausted-deadline` or `refresh-exhausted-attempts` when
+    /// refusals or I/O errors used up the budget or the attempt cap,
+    /// `refresh-failed-status` for any other status or a 200 without an
+    /// `ETag`).
     fn record(&mut self, refresh: Refresh) -> Result<String, &'static str> {
         self.stats_attempts += u64::from(refresh.attempts);
         self.stats_refused_503 += u64::from(refresh.refused_503);
@@ -575,7 +635,13 @@ impl ImportStats {
             }
             None => {
                 self.refresh_exhausted += 1;
-                Err("refresh-exhausted")
+                if refresh.exhausted == Some("attempts") {
+                    self.refresh_exhausted_attempts += 1;
+                    Err("refresh-exhausted-attempts")
+                } else {
+                    self.refresh_exhausted_deadline += 1;
+                    Err("refresh-exhausted-deadline")
+                }
             }
         }
     }
@@ -593,6 +659,9 @@ impl ImportStats {
         json!({"stats_attempts": self.stats_attempts, "stats_refused_503": self.stats_refused_503,
                "stats_io_errors": self.stats_io_errors, "stats_other": self.stats_other,
                "refreshes": self.refreshes, "refresh_exhausted": self.refresh_exhausted,
+               "refresh_exhausted_deadline": self.refresh_exhausted_deadline,
+               "refresh_exhausted_attempts": self.refresh_exhausted_attempts,
+               "refresh_budget_ms": REFRESH_BUDGET.as_millis() as u64,
                "refresh_failed_status": self.refresh_failed_status,
                "refresh_latency_p50_ns": percentile(&self.refresh_latencies, 0.5),
                "refresh_latency_max_ns": self.refresh_latencies.last().copied().unwrap_or(0),
@@ -621,7 +690,7 @@ fn import_with_refresh(
         return result;
     }
     imports.precondition_412 += 1;
-    let tag = match imports.record(refresh_etag(conn, address)) {
+    let tag = match imports.record(refresh_etag(conn, address, REFRESH_BUDGET)) {
         Ok(tag) => tag,
         Err(kind) => {
             // The caller then counts the 412 as this import's failure, so one
@@ -944,7 +1013,7 @@ fn run_config(
                 // configuration advance the state version): read it fresh,
                 // with bounded retries (revision 3).
                 // A failed initial refresh counts in `failures` (PROTOCOL §11).
-                match imports.record(refresh_etag(&mut conn, address)) {
+                match imports.record(refresh_etag(&mut conn, address, REFRESH_BUDGET)) {
                     Ok(tag) => feeder_state.etag = tag,
                     Err(kind) => {
                         failures += 1;
@@ -1328,7 +1397,7 @@ mod tests {
     fn refresh_retries_503_then_reads_the_etag() {
         let (address, seen) = stub(vec![(503, None), (503, None), (200, Some("\"live\""))]);
         let mut conn = Conn::connect(address).unwrap();
-        let refresh = refresh_etag(&mut conn, address);
+        let refresh = refresh_etag(&mut conn, address, REFRESH_BUDGET);
         assert_eq!(refresh.etag.as_deref(), Some("\"live\""));
         assert_eq!((refresh.attempts, refresh.refused_503), (3, 2));
         assert!(refresh.latency_ns >= 30_000_000, "10 + 20 ms of backoff");
@@ -1337,16 +1406,20 @@ mod tests {
 
     #[test]
     fn persistent_503_exhausts_the_refresh() {
+        // A generous budget, so the attempt cap binds (with instant refusals and the 1 s
+        // budget, sleep overshoot can end the refresh on the deadline just before the
+        // tenth attempt; both are exhaustion).
         let (address, _) = stub(vec![(503, None); REFRESH_ATTEMPTS as usize]);
         let mut conn = Conn::connect(address).unwrap();
-        let refresh = refresh_etag(&mut conn, address);
+        let refresh = refresh_etag(&mut conn, address, Duration::from_secs(5));
+        assert_eq!(refresh.exhausted, Some("attempts"));
         assert_eq!(refresh.etag, None);
         assert_eq!(
             (refresh.attempts, refresh.refused_503),
             (REFRESH_ATTEMPTS, REFRESH_ATTEMPTS)
         );
         let mut imports = ImportStats::default();
-        assert_eq!(imports.record(refresh), Err("refresh-exhausted"));
+        assert_eq!(imports.record(refresh), Err("refresh-exhausted-attempts"));
         assert_eq!(imports.refresh_exhausted, 1);
         assert!(imports.starved(0));
         assert_eq!(imports.summary(0)["import_starved"], Value::Bool(true));
@@ -1437,7 +1510,15 @@ mod tests {
         );
         assert!(matches!(result, Ok((412, _, _))));
         assert_eq!(imports.retries, 0);
-        assert_eq!(kinds.get("refresh-exhausted"), Some(&1));
+        let exhausted = kinds
+            .get("refresh-exhausted-attempts")
+            .copied()
+            .unwrap_or(0)
+            + kinds
+                .get("refresh-exhausted-deadline")
+                .copied()
+                .unwrap_or(0);
+        assert_eq!(exhausted, 1, "{kinds:?}");
         assert_eq!(
             seen.lock()
                 .unwrap()
@@ -1453,7 +1534,7 @@ mod tests {
     fn a_non_503_status_ends_the_refresh_as_a_distinct_failure() {
         let (address, seen) = stub(vec![(500, None)]);
         let mut conn = Conn::connect(address).unwrap();
-        let refresh = refresh_etag(&mut conn, address);
+        let refresh = refresh_etag(&mut conn, address, REFRESH_BUDGET);
         assert_eq!(
             (refresh.attempts, refresh.other, refresh.etag.clone()),
             (1, 1, None)
@@ -1481,7 +1562,7 @@ mod tests {
         let mut conn = Conn::connect(address).unwrap();
         let mut imports = ImportStats::default();
         assert_eq!(
-            imports.record(refresh_etag(&mut conn, address)),
+            imports.record(refresh_etag(&mut conn, address, REFRESH_BUDGET)),
             Err("refresh-failed-status")
         );
         assert!(imports.starved(0));
@@ -1519,9 +1600,80 @@ mod tests {
             .unwrap();
         });
         let mut conn = Conn::connect(address).unwrap();
-        let refresh = refresh_etag(&mut conn, address);
+        let refresh = refresh_etag(&mut conn, address, REFRESH_BUDGET);
         assert_eq!(refresh.etag.as_deref(), Some("\"live\""));
         assert_eq!((refresh.attempts, refresh.io_errors), (2, 1));
+    }
+
+    #[test]
+    fn slow_refusals_exhaust_the_time_budget() {
+        // Each 503 arrives after 300 ms: the 1 s budget ends before the attempt cap.
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut writer = stream;
+            loop {
+                let mut header = String::new();
+                if reader.read_line(&mut header).unwrap_or(0) == 0 {
+                    return;
+                }
+                if header.trim_end().is_empty() {
+                    thread::sleep(Duration::from_millis(300));
+                    if write!(writer, "HTTP/1.1 503 X\r\ncontent-length: 2\r\n\r\n{{}}").is_err() {
+                        return;
+                    }
+                }
+            }
+        });
+        let mut conn = Conn::connect(address).unwrap();
+        let refresh = refresh_etag(&mut conn, address, REFRESH_BUDGET);
+        assert_eq!(
+            (refresh.etag.clone(), refresh.exhausted),
+            (None, Some("deadline"))
+        );
+        assert!(refresh.attempts < REFRESH_ATTEMPTS, "{refresh:?}");
+        assert!(refresh.latency_ns < 1_400_000_000, "{refresh:?}");
+        let mut imports = ImportStats::default();
+        assert_eq!(imports.record(refresh), Err("refresh-exhausted-deadline"));
+        assert_eq!(
+            (
+                imports.refresh_exhausted,
+                imports.refresh_exhausted_deadline
+            ),
+            (1, 1)
+        );
+        assert!(imports.starved(0));
+    }
+
+    #[test]
+    fn a_silent_server_is_bounded_by_the_budget() {
+        // The server accepts and never answers: the read timeout is the remaining budget.
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        thread::spawn(move || {
+            let mut held = Vec::new();
+            while let Ok((stream, _)) = listener.accept() {
+                held.push(stream);
+            }
+        });
+        let mut conn = Conn::connect(address).unwrap();
+        let start = Instant::now();
+        let refresh = refresh_etag(&mut conn, address, Duration::from_millis(300));
+        assert!(start.elapsed() < Duration::from_millis(800), "{refresh:?}");
+        assert_eq!(
+            (refresh.etag.clone(), refresh.exhausted),
+            (None, Some("deadline"))
+        );
+        assert!(refresh.io_errors >= 1);
+    }
+
+    #[test]
+    fn budget_and_cap_are_consistent() {
+        let backoff_before_last: Duration = (0..REFRESH_ATTEMPTS - 1).map(refresh_backoff).sum();
+        assert_eq!(backoff_before_last, Duration::from_millis(950));
+        assert!(backoff_before_last < REFRESH_BUDGET);
     }
 
     #[test]
