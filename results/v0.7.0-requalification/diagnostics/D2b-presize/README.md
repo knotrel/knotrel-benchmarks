@@ -15,7 +15,10 @@ qualification. The a3-3 C3 FAILs stand, and no threshold changes.
 - **Workload:** the frozen `core-lifecycle resources` workload: count-alloc
   build, lifecycle arm, fresh-ID churn of 5% per cycle, 100k nodes, seed
   5000001.
-- **Outputs:** in `raw/`, with binaries in `raw/binary-sha256.txt`. The
+- **Outputs:** in `raw/`, with binaries in `raw/binary-sha256.txt`.
+- **Build stamp:** `fc56693`, dirty, `probes_rev: unknown`. That is a scratch
+  snapshot whose tree equals e75ff6a's, plus `d2b-core.diff`. The probes are
+  f73c2bd plus `d2b-probe.diff`, in a copy without git history. The
   summaries come from `summarize.py`, `summarize_import.py` and
   `summarize_long.py`.
 - **Fidelity check.** With no policy, this build reproduces D2's frozen
@@ -43,10 +46,16 @@ How to read the table:
 - Import time is the median of 24 pairs, with the pair min–max where shown.
   The import graph is 100k sparse, all active, through `try_from_topology`.
 
-¹ **Disclosed artefact.** On the import path, the header policy uses
-`Vec::reserve`, which grows amortized (it doubles). 1.25n and 1.5n therefore
-become 2n on import. In the probe path the vector starts empty, so the
-partial factors are exact there.
+¹ **Disclosed artefact.** The header policy uses `Vec::reserve`, which
+grows amortized: when the vector is not empty it doubles. Consequences:
+- **On the import path,** 1.25n and 1.5n become 2n.
+- **In the probe path,** the factor is exact at construction, but not later:
+  - when the vertex count passes 1.5n (around cycle 11), the hdr-1.5 header
+    vector doubles to 3n. That makes it worse than frozen in the C3 window;
+  - from the first compaction (cycle 20), the reapplied policy amortizes to
+    2n. hdr-1.5 then equals frozen for cycles 20–30.
+- The partial header factors are therefore exact only up to the first
+  growth or compaction.
 
 ## What this demonstrates
 
@@ -87,11 +96,15 @@ partial factors are exact there.
 
 ## 1,500-cycle run (`summary-long.txt`; frozen and cat)
 
-| | Bounded (halves rule) | Ring-drift criterion (last 25 interval maxima ≤ max of intervals 26–50) | Slope of interval maxima, intervals 2–75 | Peak |
-|---|---|---|---|---|
-| sparse | bounded (−128,144 B) | NOT settled (+15,400 B) | −7.6 KiB per 1,000 cycles | 33.52 MiB, cycle 7 |
-| ring | NOT bounded (+7,128 B) | NOT settled (+8,520 B) | **+12.5 KiB per 1,000 cycles (+0.042%)** | 30.15 MiB, cycle 19 |
-| hub | NOT bounded (+7,184 B) | NOT settled (+15,400 B) | +6.3 KiB per 1,000 cycles | 33.22 MiB, cycle 8 |
+| | Bounded (halves rule: max part / slope part) | Ring-drift criterion (last 25 interval maxima ≤ max of intervals 26–50) | Slope of interval maxima, intervals 2–75 | Interval maxima 2–75: range / SD | Peak |
+|---|---|---|---|---|---|
+| sparse | **bounded** (max −128,144 B / slope +0.058%) | NOT settled (+15,400 B) | −7.6 KiB per 1,000 cycles | 178,000 / 21,992 B | 33.52 MiB, cycle 7 |
+| ring | NOT bounded (max +7,128 B / slope +0.044%) | NOT settled (+8,520 B) | **+12.5 KiB per 1,000 cycles (+0.042%)** | 106,712 / 14,037 B | 30.15 MiB, cycle 19 |
+| hub | NOT bounded (max +7,184 B / slope +0.059%) | NOT settled (+15,400 B) | +6.3 KiB per 1,000 cycles | 55,864 / 12,066 B | 33.22 MiB, cycle 8 |
+
+The slope part is within ±1% of the early mean (the mean of cycles 1–10) in
+every topology. The max part decides. The full per-interval maxima series
+for every topology and variant is in `summary-long.txt`.
 
 "cat" gives the same maxima to the byte. Its slopes differ by at most
 0.004 percentage points.
@@ -105,8 +118,9 @@ partial factors are exact there.
   interval (+12.5 KiB per 1,000 cycles), and its minima trend is similar
   (+228 B per interval). On sparse the trend is negative (−7.6 KiB) and on
   hub +6.3 KiB.
-- **The declared criteria fail by a few kilobytes,** in a band whose
-  interval maxima move by about ±15 KB. The ring drift is **not settled by
+- **Ring and hub fail the declared criteria by a few kilobytes,** while
+  sparse is bounded by the halves rule but fails the drift criterion. The
+  interval maxima have an SD of 12–22 KB. The ring drift is **not settled by
   the declared criterion** within 1,500 cycles. Its trend is +0.04% per
   1,000 cycles. Where it comes from (for example catalog tombstones or
   incident vector capacities) is not demonstrated.
