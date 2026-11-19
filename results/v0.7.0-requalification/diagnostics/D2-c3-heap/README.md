@@ -23,6 +23,16 @@ independent model's.
 builds the graph incrementally (`add_node`, `link`), so only presized-start
 affects the first interval before the first compaction.
 
+**Departures from the plan.**
+- The plan asked for "catalog and incident tables pre-sized … sized from the
+  300-cycle run". The diffs instead pre-size the catalog, the engine ID map
+  and the adjacency header array, with a fixed factor of 2n (the compaction
+  bound). The per-node incident vectors (`incident_capacity`) are not
+  pre-sized.
+- presized-compaction is an extra variant. It came from the first build, in
+  which the hook only applied at compaction because the probe builds
+  incrementally.
+
 ## 1. Bounded over repeated compaction (300 cycles, 10× the qualification)
 
 - A compaction occurs every 20 cycles (15 in 300 cycles). After each one,
@@ -41,9 +51,13 @@ affects the first interval before the first compaction.
   - **ring and hub: NOT bounded by the declared criterion.** Their later
     maximum exceeds the earlier one by 9,384 B and 9,000 B (0.03%);
   - all three meet the slope part: +0.21% (ring), +0.10% (sparse, hub);
-  - the per-interval maxima for ring drift from 28.76 to 28.86 MiB over 13
-    intervals (+0.35%). This diagnostic does not establish whether that drift
-    continues or levels off.
+  - the per-interval maxima for ring drift from 28.764 to 28.854–28.858 MiB
+    over 13 intervals (+0.31–0.33%). This diagnostic does not establish
+    whether that drift continues or levels off.
+  - presized variants (`summary.txt`): sparse is bounded in both; ring and hub
+    are NOT bounded by the declared criterion in either. Their later maxima
+    are the same bytes as the frozen build's, and their slopes are +0.02% to
+    +0.13%.
 
 ## 2. Mitigation: pre-sizing
 
@@ -71,7 +85,7 @@ affects the first interval before the first compaction.
 
 **presized-start**
 - It moves the sawtooth headroom into construction. C3 then passes in all
-  three topologies, and the peak drops by 1.3–1.4 MiB.
+  three topologies, and the peak drops by 1.29–1.42 MiB.
 - The cost: the construction heap rises from 23.0 to 31.8 MiB (sparse) and
   from 22.5 to 31.3 MiB (hub). **B5 would then FAIL** (3.40× against 3×).
 
@@ -79,7 +93,10 @@ affects the first interval before the first compaction.
 
 - **The C3 FAILs** come from the first compaction interval: incremental
   growth of the catalog and engine tables, plus accumulated retired slots,
-  before the first rebuild. They are not unbounded growth.
+  before the first rebuild. Over 300 cycles, no growth beyond that peak was
+  seen. Ring and hub miss the strict-maximum criterion by about 9 KB, and
+  ring's per-interval maxima drift by about 0.3%. Whether growth stays
+  bounded beyond 300 cycles is not established.
 - **Over 300 cycles** the heap oscillates in a band under the first-interval
   peak. Ring and hub miss the declared strict-maximum criterion by about
   9 KB.
