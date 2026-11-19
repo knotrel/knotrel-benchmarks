@@ -42,6 +42,22 @@
 //!   enabled vs disabled.
 //! - `metrics-legacy`: the `optin-mutation` requests on two
 //!   lifecycle-disabled servers, metrics enabled vs disabled.
+//!
+//! Capability-equivalent references (v0.7.0 qualification 3): the suffix
+//! `-equivalent` on `ops`, `ops-query`, `events`, `import` keeps the
+//! candidate arm unchanged and changes only the reference window.
+//! - `ops-equivalent`, `ops-query-equivalent`, `events-equivalent`: the
+//!   planner's planning of each lifecycle chunk (256, or 128 for events) runs
+//!   inside the reference window, right before that chunk's requests, from a
+//!   planner in the state it had when the window began. Request bodies stay
+//!   prebuilt and untimed in both arms, as before.
+//! - `import-equivalent`: per import call, inside the reference window, the
+//!   application builds an [`EquivalentStore`] from its source records
+//!   (validated as the lifecycle import validates: conflicting repeated node or
+//!   edge, self-loop), derives the effective edges, sends the plain import,
+//!   and adopts the new store only when the server answers 201.
+//!   With `--inactive-percent 60 --disabled-percent 30` it is the
+//!   equivalent of `import-high`.
 
 use axum::{
     Router,
@@ -150,7 +166,7 @@ fn batch_body(ops: &[Op]) -> Bytes {
 /// Application-side planner: keeps registered topology and flags and emits
 /// the legacy operations that make a plain server's graph equal the
 /// effective graph. Removed nodes stay registered in the plain server.
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Planner {
     nodes: FxHashMap<u64, (bool, FxHashMap<u64, bool>)>,
 }
@@ -404,6 +420,104 @@ impl FlagStore {
     }
 }
 
+/// The application side of the capability-equivalent import reference
+/// (qualification 3): the registered topology with flags, held so the
+/// application can answer node and edge state and plan later lifecycle
+/// changes, as the lifecycle server can.
+#[derive(Default)]
+struct EquivalentStore {
+    nodes: FxHashMap<u64, (bool, FxHashMap<u64, bool>)>,
+    effective: Vec<(u64, u64)>,
+}
+
+/// The source records the application imports from (node IDs `0..n`).
+struct EquivalentSource {
+    n: u64,
+    edges: Vec<(u64, u64)>,
+    inactive: Vec<bool>,
+    disabled: Vec<bool>,
+    /// Effective edges actually sent in the plain payload (untimed copy).
+    sent_effective: Vec<(u64, u64)>,
+}
+
+impl EquivalentSource {
+    /// Builds and validates a fresh store (timed). Validation is that of
+    /// `LifecycleGraph::try_from_topology`: a repeated node or edge with a
+    /// different flag, or a self-loop, rejects the whole import; identical
+    /// repeats are accepted once; missing edge endpoints are registered
+    /// active. (Graph limits are not configured in these cells.)
+    fn build(&self) -> Result<EquivalentStore, String> {
+        let mut store = EquivalentStore::default();
+        store.nodes.reserve(self.n as usize);
+        for v in 0..self.n {
+            let active = !self.inactive[v as usize];
+            match store.nodes.entry(v) {
+                std::collections::hash_map::Entry::Occupied(entry) => {
+                    if entry.get().0 != active {
+                        return Err(format!("conflicting node {v}"));
+                    }
+                }
+                std::collections::hash_map::Entry::Vacant(entry) => {
+                    entry.insert((active, FxHashMap::default()));
+                }
+            }
+        }
+        for (&(a, b), &off) in self.edges.iter().zip(&self.disabled) {
+            if a == b {
+                return Err(format!("self-loop {a}"));
+            }
+            let enabled = !off;
+            for v in [a, b] {
+                store
+                    .nodes
+                    .entry(v)
+                    .or_insert_with(|| (true, FxHashMap::default()));
+            }
+            if let Some(&existing) = store.nodes[&a].1.get(&b) {
+                if existing != enabled {
+                    return Err(format!("conflicting edge {a}-{b}"));
+                }
+                continue;
+            }
+            store.nodes.get_mut(&a).unwrap().1.insert(b, enabled);
+            store.nodes.get_mut(&b).unwrap().1.insert(a, enabled);
+            if enabled && store.nodes[&a].0 && store.nodes[&b].0 {
+                store.effective.push((a, b));
+            }
+        }
+        Ok(store)
+    }
+}
+
+impl EquivalentStore {
+    fn active(&self, v: u64) -> bool {
+        self.nodes.get(&v).is_some_and(|node| node.0)
+    }
+
+    /// Registered nodes, registered edges, active nodes, enabled edges,
+    /// effective edges.
+    fn counts(&self) -> [usize; 5] {
+        let registered: usize = self.nodes.values().map(|n| n.1.len()).sum::<usize>() / 2;
+        let enabled: usize = self
+            .nodes
+            .values()
+            .map(|n| n.1.values().filter(|&&e| e).count())
+            .sum::<usize>()
+            / 2;
+        [
+            self.nodes.len(),
+            registered,
+            self.nodes.values().filter(|n| n.0).count(),
+            enabled,
+            self.effective.len(),
+        ]
+    }
+}
+
+/// Each lifecycle chunk of an equivalent ops reference, with the number of
+/// requests that follow it.
+type PlanSteps = Vec<(Vec<Op>, usize)>;
+
 /// One prepared arm: its window's calls, and how to check its answers.
 struct Arm {
     calls: Vec<Call>,
@@ -414,18 +528,55 @@ struct Arm {
     /// built inside the window; the last one built answers the check.
     flag_store: Option<FlagStore>,
     built_store: Option<FlagStore>,
+    /// Equivalent ops references: a planner in its state at the window's start,
+    /// and each lifecycle chunk with the number of calls that follow it.
+    plan_steps: Option<(Planner, PlanSteps)>,
+    /// Equivalent import reference: the source of one store per import call,
+    /// and the store adopted after the last successful import.
+    equivalent_source: Option<EquivalentSource>,
+    built_equivalent: Option<EquivalentStore>,
+}
+
+async fn send(call: &Call) -> StatusCode {
+    let response = call.app.clone().oneshot(call.request()).await.unwrap();
+    let status = response.status();
+    let _ = to_bytes(response.into_body(), 64 << 20).await.unwrap();
+    assert!(status.is_success(), "{status}");
+    status
 }
 
 async fn run_window(arm: &mut Arm) -> u128 {
+    let steps = arm.plan_steps.take();
     let start = Instant::now();
+    if let Some((mut planner, steps)) = steps {
+        let mut next = 0;
+        for (ops, count) in &steps {
+            let mut legacy = Vec::new();
+            for &op in ops {
+                planner.plan(op, &mut legacy);
+            }
+            std::hint::black_box(&legacy);
+            for call in &arm.calls[next..next + count] {
+                send(call).await;
+            }
+            next += count;
+        }
+        let elapsed = start.elapsed().as_nanos();
+        assert_eq!(next, arm.calls.len(), "planned chunks cover every call");
+        return elapsed;
+    }
     for call in &arm.calls {
         if let Some(store) = &arm.flag_store {
             arm.built_store = Some(store.build());
         }
-        let response = call.app.clone().oneshot(call.request()).await.unwrap();
-        let status = response.status();
-        let _ = to_bytes(response.into_body(), 64 << 20).await.unwrap();
-        assert!(status.is_success(), "{status}");
+        let pending = arm.equivalent_source.as_ref().map(EquivalentSource::build);
+        let status = send(call).await;
+        if let Some(pending) = pending {
+            let store = pending.expect("the equivalent store validates the source records");
+            if status == StatusCode::CREATED {
+                arm.built_equivalent = Some(store);
+            }
+        }
     }
     start.elapsed().as_nanos()
 }
@@ -440,7 +591,38 @@ async fn answers(arm: &Arm, pairs: &[(u64, u64)]) -> Vec<Value> {
             "flag store inconsistent with the imported effective graph"
         );
     }
+    if let (Some(source), Some(store)) = (&arm.equivalent_source, &arm.built_equivalent) {
+        assert_eq!(
+            store.effective, source.sent_effective,
+            "equivalent store differs from the imported effective graph"
+        );
+        let expected_registered = {
+            let mut seen = std::collections::HashSet::new();
+            source
+                .edges
+                .iter()
+                .filter(|&&(a, b)| seen.insert((a.min(b), a.max(b))))
+                .count()
+        };
+        let counts = store.counts();
+        assert_eq!(counts[0], source.n as usize, "equivalent store node count");
+        assert_eq!(
+            counts[1], expected_registered,
+            "equivalent store registered edges"
+        );
+        assert_eq!(
+            counts[2],
+            source.inactive.iter().filter(|&&off| !off).count(),
+            "equivalent store active nodes"
+        );
+    }
     for &(a, b) in pairs {
+        if let Some(store) = &arm.built_equivalent
+            && (!store.active(a) || !store.active(b))
+        {
+            out.push(json!(false));
+            continue;
+        }
         if let Some(store) = &arm.built_store
             && (!store.active(a) || !store.active(b))
         {
@@ -511,6 +693,13 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
         inactive_percent,
         disabled_percent,
     } = *plan;
+    // Qualification 3: `<base>-equivalent` changes only the reference window.
+    let (scenario, equivalent) = match scenario.strip_suffix("-equivalent") {
+        Some(base @ ("ops" | "ops-query" | "events" | "import")) => (base, true),
+        Some(_) => return Err("unknown --scenario".into()),
+        None => (scenario, false),
+    };
+    let equivalent = equivalent && !candidate;
     match scenario {
         "optin-mutation" | "optin-query" | "metrics-legacy" => {
             let (lifecycle, metrics) = match scenario {
@@ -544,6 +733,9 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 planner: None,
                 flag_store: None,
                 built_store: None,
+                plan_steps: None,
+                equivalent_source: None,
+                built_equivalent: None,
             })
         }
         "ops" | "ops-query" | "events" | "metrics-ops" => {
@@ -561,6 +753,8 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     router_with_config(config(engine, candidate, ServerMode::SourceManaged, false));
                 let mut feeder = Feeder::start(&app, n, edges).await;
                 let mut planner = (!candidate).then(|| Planner::new(n, edges));
+                let pristine = planner.clone().filter(|_| equivalent);
+                let mut steps = Vec::new();
                 let mut bodies = Vec::new();
                 for chunk in ops.chunks(128) {
                     match planner.as_mut() {
@@ -570,9 +764,11 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                             for &op in chunk {
                                 planner.plan(op, &mut legacy);
                             }
+                            let before = bodies.len();
                             for part in legacy.chunks(BATCH) {
                                 bodies.push(feeder.events(part));
                             }
+                            steps.push((chunk.to_vec(), bodies.len() - before));
                         }
                     }
                 }
@@ -583,6 +779,9 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     planner,
                     flag_store: None,
                     built_store: None,
+                    plan_steps: pristine.map(|p| (p, steps)),
+                    equivalent_source: None,
+                    built_equivalent: None,
                 });
             }
             let (lifecycle, metrics) = if scenario == "metrics-ops" {
@@ -599,18 +798,25 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     planner: None,
                     flag_store: None,
                     built_store: None,
+                    plan_steps: None,
+                    equivalent_source: None,
+                    built_equivalent: None,
                 });
             }
             let mut planner = Planner::new(n, edges);
+            let pristine = equivalent.then(|| planner.clone());
+            let mut steps = Vec::new();
             let mut bodies = Vec::new();
             for chunk in ops.chunks(256) {
                 let mut legacy = Vec::new();
                 for &op in chunk {
                     planner.plan(op, &mut legacy);
                 }
+                let before = bodies.len();
                 for part in legacy.chunks(BATCH) {
                     bodies.push(batch_body(part));
                 }
+                steps.push((chunk.to_vec(), bodies.len() - before));
             }
             Ok(Arm {
                 calls: calls(&app, "/v1/batch", None, bodies),
@@ -618,6 +824,9 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 planner: Some(planner),
                 flag_store: None,
                 built_store: None,
+                plan_steps: pristine.map(|p| (p, steps)),
+                equivalent_source: None,
+                built_equivalent: None,
             })
         }
         "import" | "import-optin" => {
@@ -682,6 +891,27 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 check = Some(app);
             }
             let imported_effective = sent_effective;
+            if equivalent {
+                if !flagged {
+                    return Err("import-equivalent needs the flagged import".into());
+                }
+                return Ok(Arm {
+                    calls: all,
+                    check: check.unwrap(),
+                    planner: None,
+                    flag_store: None,
+                    built_store: None,
+                    plan_steps: None,
+                    equivalent_source: Some(EquivalentSource {
+                        n,
+                        edges: edges.clone(),
+                        inactive,
+                        disabled,
+                        sent_effective: imported_effective,
+                    }),
+                    built_equivalent: None,
+                });
+            }
             let flag_store = (!candidate && flagged).then(|| FlagStore {
                 edges: edges.clone(),
                 inactive,
@@ -695,6 +925,9 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 planner: None,
                 flag_store,
                 built_store: None,
+                plan_steps: None,
+                equivalent_source: None,
+                built_equivalent: None,
             })
         }
         _ => Err("unknown --scenario".into()),
