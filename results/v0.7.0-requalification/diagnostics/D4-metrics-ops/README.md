@@ -13,7 +13,7 @@ with `../D3-ops-100k/phases.py`.
 
 ## Variants and results (metrics on vs metrics off, same build)
 
-| Variant | Exports the same metrics as released? | Median window overhead (min–max) | Lock-wait phase difference | Apply phase difference | Outside-handler difference |
+| Variant | Exports the same metrics as released? | Median window overhead (pair min–max, not a confidence interval) | Lock-wait phase difference | Apply phase difference | Outside-handler difference |
 |---|---|---|---|---|---|
 | (b) released (first run, `metrics-ops-instrumented.jsonl`) | yes | +5.2% (−9.9 to +11.0) | +1.5 µs | +110.3 µs | +23.2 µs |
 | (b) released (`metrics-ops-released.jsonl`) | yes | +4.2% (−5.6 to +20.5) | +1.2 µs | +54.9 µs | +41.6 µs |
@@ -31,19 +31,29 @@ with `../D3-ops-100k/phases.py`.
   measurably change the apply-phase difference: 56 µs against 55 µs in (b).
   The two runs of (b) itself differ by a factor of 2 in that phase (55 and
   110 µs).
-- **Request-level metrics.** About 30–40% of the overhead lies outside the
-  handler (+23 to +50 µs): the HTTP middleware's per-request metrics.
+- **Outside the handler.** 15–40% of the overhead lies there (+23 to
+  +50 µs). That phase includes the router, body parse, the request-level
+  middleware and the probe loop. Nothing here isolates the metrics share
+  within it.
 - **Run-to-run noise** on this laptop (pair ranges about ±10%) is larger than
   any difference between variants.
 
 ## Answer to the maintainer's question (no verdict)
 
-- **Can the 6% budget be met without reducing observability?** In every run
-  here, including the released build, the median overhead is below 6%
-  (4.2–5.2%), as it was in a3-3 (5.65%). The non-PASS comes from the width
-  of the interval, not from a median above budget.
-- **No variant that exports the same metrics** showed a reduction beyond
-  noise. Removing lock timing reduces observability and saves about 1%.
-- Narrowing the interval would need a quieter host or more pairs (a declared
-  re-measurement, separate evidence). Reducing the cost would mean looking
-  at the request-level middleware first. Neither is done here.
+- **Can the 6% budget be met without reducing observability?** Not
+  established. No variant that exports the same metrics showed a reduction
+  beyond run-to-run noise. Removing lock timing reduces observability, and
+  its share is about 1% of the metrics overhead, not 1 point of the window.
+  In this run (c) measured +5.1% against (b)'s +4.2%.
+- These medians come from an instrumented build (the D3 counters in every
+  variant) on an ungated laptop. They are not evidence about the qualified
+  result, and they do not bear on its verdict.
+
+**Departures from the plan.**
+- The plan asked for an interval per variant. The table gives pair min–max
+  instead.
+- Variant (d) was built without a profile pointing to it, although the plan
+  made it conditional on one.
+- That (d) exports the same metrics follows from the code (same counters,
+  same totals). It was not checked by scraping.
+- (b) was run twice.
