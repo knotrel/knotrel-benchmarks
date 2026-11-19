@@ -1,0 +1,23 @@
+[package]
+name = "d1b-prepare"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "D1b diagnostic (DIAGNOSTICS-PLAN-2.md): import prepare sub-phase profile."
+
+[workspace]
+
+[dependencies]
+knotrel-core = { path = "/private/tmp/claude-501/-Users-rt-workspace-knotrel/a1cddd20-25d9-47d8-bd37-1419d4f1e1b4/scratchpad/p2/d1b/knotrel/crates/knotrel-core" }
+knotrel-server = { path = "/private/tmp/claude-501/-Users-rt-workspace-knotrel/a1cddd20-25d9-47d8-bd37-1419d4f1e1b4/scratchpad/p2/d1b/knotrel/crates/knotrel-server" }
+lifecycle-probes = { path = "/private/tmp/claude-501/-Users-rt-workspace-knotrel/a1cddd20-25d9-47d8-bd37-1419d4f1e1b4/scratchpad/p2/d1b/knotrel-benchmarks/tools/lifecycle-probes" }
+axum = "0.8.9"
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
+tower = { version = "0.5", features = ["util"] }
+serde_json = "1"
+sonic-rs = "0.5.11"
+mimalloc = { version = "0.1", default-features = false }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
