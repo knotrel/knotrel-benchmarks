@@ -141,3 +141,19 @@ class Bindings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Report(unittest.TestCase):
+    def test_roles(self):
+        import report_v070q3_bc as report
+        eq = MATRIX["experiments"]["B_C"]["equivalent_references"]
+        timing = [{"id": i, "status": "PASS"} for i in eq["deciding"] + eq["descriptive"]]
+        timing.append({"id": "B1-ops-compact-bfs-sparse-1000-query", "status": "INCONCLUSIVE"})
+        timing[len(eq["deciding"])]["status"] = "REGRESSION"  # a descriptive cell
+        rows = report.label({"timing": timing}, MATRIX)
+        roles = {r["id"]: r["role"] for r in rows}
+        self.assertTrue(all(roles[i] == "descriptive" for i in eq["descriptive"]))
+        self.assertTrue(all(roles[i] == "deciding" for i in eq["deciding"]))
+        self.assertEqual(roles["B1-ops-compact-bfs-sparse-1000-query"], "deciding")
+        with self.assertRaises(SystemExit):
+            report.label({"timing": timing[1:]}, MATRIX)
