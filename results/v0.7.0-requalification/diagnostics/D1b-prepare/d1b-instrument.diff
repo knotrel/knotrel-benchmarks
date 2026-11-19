@@ -1,0 +1,223 @@
+diff --git a/crates/knotrel-core/src/lib.rs b/crates/knotrel-core/src/lib.rs
+index e2f9c8a..1c65138 100644
+--- a/crates/knotrel-core/src/lib.rs
++++ b/crates/knotrel-core/src/lib.rs
+@@ -587,3 +587,34 @@ mod tests {
+         assert_eq!(graph.adjacency[3], vec![1, 2]);
+     }
+ }
++
++/// D1b diagnostic (not a product API): process-wide import sub-phase accumulators.
++#[doc(hidden)]
++pub mod diag_d1 {
++    use std::sync::atomic::{AtomicU64, Ordering};
++    use std::time::Instant;
++    /// Sub-phase names, by index.
++    pub const NAMES: [&str; 16] = [
++        "parse", "request_checks", "spec_conversion", "catalog_nodes", "edge_counting",
++        "incident_alloc", "fill", "sort_dedup", "finish_counts_shrink", "engine_ids_index",
++        "engine_adjacency_alloc", "engine_effective_pass", "engine_from_sorted", "plain_add_nodes",
++        "plain_links", "publish",
++    ];
++    static ACC: [AtomicU64; 16] = [const { AtomicU64::new(0) }; 16];
++    /// Adds the time since `*t` to sub-phase `i` and restarts `*t`.
++    pub fn lap(i: usize, t: &mut Instant) {
++        let now = Instant::now();
++        ACC[i].fetch_add((now - *t).as_nanos() as u64, Ordering::Relaxed);
++        *t = now;
++    }
++    /// Resets all accumulators.
++    pub fn reset() {
++        for a in &ACC {
++            a.store(0, Ordering::Relaxed);
++        }
++    }
++    /// Reads all accumulators.
++    pub fn snapshot() -> [u64; 16] {
++        std::array::from_fn(|i| ACC[i].load(Ordering::Relaxed))
++    }
++}
+diff --git a/crates/knotrel-core/src/topology.rs b/crates/knotrel-core/src/topology.rs
+index 335333b..65b2acc 100644
+--- a/crates/knotrel-core/src/topology.rs
++++ b/crates/knotrel-core/src/topology.rs
+@@ -417,6 +417,7 @@ impl LifecycleGraph {
+         if limits.max_edges.is_some_and(|limit| edges.len() > limit) {
+             return None;
+         }
++        let mut d1 = std::time::Instant::now();
+         let mut catalog: FxHashMap<NodeId, NodeRecord> = FxHashMap::default();
+         catalog.reserve(nodes.len());
+         let mut order: Vec<NodeId> = Vec::with_capacity(nodes.len());
+@@ -440,6 +441,7 @@ impl LifecycleGraph {
+                 }
+             }
+         }
++        crate::diag_d1::lap(3, &mut d1);
+         for spec in edges {
+             if spec.source == spec.target {
+                 return None;
+@@ -462,10 +464,12 @@ impl LifecycleGraph {
+                 record.pending = record.pending.saturating_add(1);
+             }
+         }
++        crate::diag_d1::lap(4, &mut d1);
+         for record in catalog.values_mut() {
+             record.incident = Vec::with_capacity(record.pending as usize);
+             record.pending = 0;
+         }
++        crate::diag_d1::lap(5, &mut d1);
+         for spec in edges {
+             for (endpoint, neighbor) in [(spec.source, spec.target), (spec.target, spec.source)] {
+                 catalog
+@@ -478,6 +482,7 @@ impl LifecycleGraph {
+                     });
+             }
+         }
++        crate::diag_d1::lap(6, &mut d1);
+         for record in catalog.values_mut() {
+             record
+                 .incident
+@@ -492,6 +497,7 @@ impl LifecycleGraph {
+                 return None;
+             }
+         }
++        crate::diag_d1::lap(7, &mut d1);
+         Some((catalog, order))
+     }
+ 
+@@ -597,6 +603,7 @@ impl LifecycleGraph {
+         mut catalog: FxHashMap<NodeId, NodeRecord>,
+         order: Vec<NodeId>,
+     ) -> Self {
++        let mut d1 = std::time::Instant::now();
+         let mut active_nodes = 0;
+         let mut registered_edges = 0;
+         let mut enabled_incidences = 0;
+@@ -606,6 +613,7 @@ impl LifecycleGraph {
+             enabled_incidences += record.incident.iter().filter(|i| i.enabled).count();
+             active_nodes += usize::from(record.active);
+         }
++        crate::diag_d1::lap(8, &mut d1);
+         let (engine_graph, effective_edges) = Self::build_engine(engine, &mut catalog, &order);
+         Self {
+             nodes: catalog,
+@@ -652,6 +660,7 @@ impl LifecycleGraph {
+             let keys: Vec<NodeId> = catalog.keys().copied().collect();
+             return Self::build_engine_incremental(engine, catalog, &keys);
+         }
++        let mut d1 = std::time::Instant::now();
+         let mut ids: Vec<NodeId> = catalog.keys().copied().collect();
+         ids.sort_unstable();
+         for (index, node) in ids.iter().enumerate() {
+@@ -660,6 +669,7 @@ impl LifecycleGraph {
+                 .expect("listed node is registered")
+                 .pending = u32::try_from(index).expect("node count checked above");
+         }
++        crate::diag_d1::lap(9, &mut d1);
+         let records: Vec<&NodeRecord> = ids.iter().map(|node| &catalog[node]).collect();
+         let mut adjacency: Vec<Vec<usize>> = records
+             .iter()
+@@ -676,6 +686,7 @@ impl LifecycleGraph {
+         // `adjacency[x]` first receives its smaller neighbors (pushed while
+         // visiting them, in ascending order) and then its larger ones (from
+         // its own sorted incident list): every list ends strictly sorted.
++        crate::diag_d1::lap(10, &mut d1);
+         let mut edges = 0;
+         for (index, record) in records.iter().enumerate() {
+             if !record.active {
+@@ -695,12 +706,15 @@ impl LifecycleGraph {
+                 }
+             }
+         }
++        crate::diag_d1::lap(11, &mut d1);
+         drop(records);
+         for record in catalog.values_mut() {
+             record.pending = 0;
+         }
+         let graph = crate::Graph::from_sorted_adjacency(ids, adjacency);
+-        (ConnectivityGraph::from(graph), edges)
++        let built = ConnectivityGraph::from(graph);
++        crate::diag_d1::lap(12, &mut d1);
++        (built, edges)
+     }
+ 
+     /// Incremental engine construction through
+diff --git a/crates/knotrel-server/src/service.rs b/crates/knotrel-server/src/service.rs
+index e2d0657..45ad1ca 100644
+--- a/crates/knotrel-server/src/service.rs
++++ b/crates/knotrel-server/src/service.rs
+@@ -370,12 +370,14 @@ fn build_import_candidate(
+         {
+             return Err(FeederError::TopologyLifecycleDisabled);
+         }
++        let mut d1 = std::time::Instant::now();
+         let mut candidate = knotrel_core::ConnectivityGraph::with_limits(engine, limits);
+         for node in nodes {
+             candidate
+                 .add_node(node.node.0)
+                 .map_err(|err| limit_error(err, ErrorCode::InvalidNode))?;
+         }
++        knotrel_core::diag_d1::lap(13, &mut d1);
+         for edge in edges {
+             if edge.source.0 == edge.target.0 {
+                 return Err(self_loop());
+@@ -384,8 +386,10 @@ fn build_import_candidate(
+                 .link(edge.source.0, edge.target.0)
+                 .map_err(|err| limit_error(err, ErrorCode::InvalidEdge))?;
+         }
++        knotrel_core::diag_d1::lap(14, &mut d1);
+         return Ok(ServiceGraph::Plain(candidate));
+     }
++    let mut d1 = std::time::Instant::now();
+     let node_specs: Vec<knotrel_core::NodeSpec> = nodes
+         .into_iter()
+         .map(|node| knotrel_core::NodeSpec {
+@@ -401,6 +405,7 @@ fn build_import_candidate(
+             enabled: edge.enabled.unwrap_or(true),
+         })
+         .collect();
++    knotrel_core::diag_d1::lap(2, &mut d1);
+     knotrel_core::LifecycleGraph::try_from_topology(engine, limits, &node_specs, &edge_specs)
+         .map(ServiceGraph::Lifecycle)
+         .map_err(|error| match error {
+@@ -2380,6 +2385,7 @@ impl Service {
+ 
+             lifecycle.check_worker_hook();
+             job.import.observe(ImportObservation::begin_prepare);
++            let mut d1 = std::time::Instant::now();
+ 
+             // 1. Off-lock JSON parsing with a streaming deserializer (see
+             // `parse_import_body`), reading the body in place. The body is
+@@ -2393,6 +2399,7 @@ impl Service {
+                     None => FeederError::MalformedJson,
+                 })?
+             };
++            knotrel_core::diag_d1::lap(0, &mut d1);
+ 
+             if *req.instance_id != *instance_id {
+                 return Err(FeederError::StaleInstanceId(format!(
+@@ -2408,6 +2415,7 @@ impl Service {
+                 )));
+             }
+ 
++            knotrel_core::diag_d1::lap(1, &mut d1);
+             // 2. Off-lock candidate building
+             let engine_config = engine_from_label(engine);
+             let candidate = build_import_candidate(
+@@ -2417,6 +2425,7 @@ impl Service {
+                 limits,
+                 topology_lifecycle,
+             )?;
++            let mut d1 = std::time::Instant::now();
+ 
+             job.import.observe(ImportObservation::begin_publish);
+             let mut state = lock_timed(&graph, clock.as_ref(), &lifecycle);
+@@ -2529,6 +2538,7 @@ impl Service {
+             lifecycle.check_worker_post_lock_hook();
+             // Still inside the worker: job accounting and drain include it.
+             drop(replaced);
++            knotrel_core::diag_d1::lap(15, &mut d1);
+             Ok(response)
+         });
+         let pending = PendingOutcome::arm(self.telemetry_for(JobEffect::MayChangeState));
