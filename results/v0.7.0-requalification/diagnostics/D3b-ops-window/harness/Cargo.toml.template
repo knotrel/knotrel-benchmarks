@@ -1,0 +1,23 @@
+[package]
+name = "d3b-replay"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "D3b diagnostic (DIAGNOSTICS-PLAN-2.md): core-level replay of the B4 ops 100k window."
+
+[workspace]
+
+[features]
+counters = []
+
+[dependencies]
+knotrel-core = { path = "KNOTREL/crates/knotrel-core" }
+lifecycle-probes = { path = "PROBES" }
+rustc-hash = "2.1"
+serde_json = "1"
+mimalloc = { version = "0.1", default-features = false }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+debug = "line-tables-only"

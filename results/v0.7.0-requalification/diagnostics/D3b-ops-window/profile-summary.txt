@@ -1,0 +1,53 @@
+[lifecycle] samples under replay_lifecycle (6 windows): 2393
+     925  38.7%  _platform_memmove
+     436  18.2%  _Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut
+     195   8.1%  _NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled
+     158   6.6%  _NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node
+     149   6.2%  _NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link
+     144   6.0%  _NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active
+      69   2.9%  obesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply
+      37   1.5%  _NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut
+      26   1.1%  _Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link
+      25   1.0%  _mi_theap_realloc_zero
+      24   1.0%  DYLD-STUB$$memmove
+      23   1.0%  mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core
+      23   1.0%  _NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph3cut
+      16   0.7%  mi_malloc_aligned
+      14   0.6%  mi_free
+      12   0.5%  _mi_malloc_generic
+       9   0.4%  _Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index
+       8   0.3%  mach_absolute_time
+       7   0.3%  OUTLINED_FUNCTION_12
+       7   0.3%  _mi_theap_page_reclaim
+       7   0.3%  _core8topology10NodeRecordNtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE6insertBS_
+       6   0.3%  mi_page_queue_find_free_ex
+[plain] samples under replay_plain (6 windows): 2409
+    1004  41.7%  _Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut
+     930  38.6%  _platform_memmove
+     224   9.3%  _Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link
+     117   4.9%  _CscQGJmcOfLHy_16lifecycle_probesNtB5_5PlainNtB5_7Subject5apply
+      29   1.2%  DYLD-STUB$$memmove
+      26   1.1%  _Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index
+      20   0.8%  OsmRR2_10d3b_replay12replay_plain
+      16   0.7%  _NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link
+       6   0.2%  _Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node
+       4   0.2%  mi_free
+       4   0.2%  _NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph8add_node
+       4   0.2%  mi_page_free_list_extend
+       3   0.1%  mi_page_queue_find_free_ex
+       3   0.1%  _mi_theap_realloc_zero
+       3   0.1%  OUTLINED_FUNCTION_50
+       3   0.1%  mi_realloc_aligned
+       3   0.1%  OUTLINED_FUNCTION_12
+       3   0.1%  DYLD-STUB$$memcpy
+       2   0.1%  _mi_malloc_generic
+       1   0.0%  mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core
+       1   0.0%  Cs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core
+       1   0.0%  mi_malloc_aligned
+
+self-time attribution (sum of 6 windows)
+  [lifecycle]   1108  46.3%  engine (Graph::link/cut and callees)
+  [lifecycle]    827  34.6%  lifecycle catalog/dispatch code
+  [lifecycle]    458  19.1%  memmove/alloc under lifecycle catalog code
+  [plain]   2251  93.4%  engine (Graph::link/cut and callees)
+  [plain]    158   6.6%  plain dispatch (Subject::apply, ConnectivityGraph)

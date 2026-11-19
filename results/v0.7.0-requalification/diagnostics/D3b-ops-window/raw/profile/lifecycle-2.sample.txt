@@ -1,0 +1,1053 @@
+Analysis of sampling d3b-replay (pid 87424) every 1 millisecond
+Process:         d3b-replay [87424]
+Path:            /private/tmp/*/d3b-replay
+Load Address:    0x104b0c000
+Identifier:      d3b-replay
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  zsh [87384]
+Target Type:     live task
+
+Date/Time:       2026-11-19 20:19:03.193 +0100
+Launch Time:     2026-11-19 20:19:02.165 +0100
+OS Version:      macOS 26.5.2 (25F84)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         62.6M
+Physical footprint (peak):  96.8M
+Idle exit:                  untracked
+----
+
+Call graph:
+    8456 Thread_60922204   DispatchQueue_1: com.apple.main-thread  (serial)
+      8456 start  (in dyld) + 6992  [0x18890fe00]
+        8456 main  (in d3b-replay) + 52  [0x104b1c9d4]
+          8456 _RNvNtCsi4LIHK2nfKK_3std2rt19lang_start_internal  (in d3b-replay) + 932  [0x104b52338]  rt.rs:171
+            8456 _RNCINvNtCsi4LIHK2nfKK_3std2rt10lang_startuE0CsGD37OsmRR2_10d3b_replay  (in d3b-replay) + 16  [0x104b15710]  rt.rs:206
+              8456 _RINvNtNtCsi4LIHK2nfKK_3std3sys9backtrace28___rust_begin_short_backtraceFEuuECsGD37OsmRR2_10d3b_replay  (in d3b-replay) + 12  [0x104b13a58]  backtrace.rs:166
+                7905 _RNvCsGD37OsmRR2_10d3b_replay4main  (in d3b-replay) + 13284  [0x104b18d40]  main.rs:243
+                + 7329 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5build  (in d3b-replay) + 460  [0x104b2e610]  lib.rs:427
+                + ! 2312 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1212,1596,...  [0x104b26320,0x104b264a0,...]  topology.rs:820
+                + ! 1724 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1960  [0x104b2660c]  topology.rs:820
+                + ! : 302 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 476  [0x104b2201c]  lib.rs:355
+                + ! : | 275 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70a7c]  mod.rs:198
+                + ! : | + 171 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                + ! : | + ! 103 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                + ! : | + ! : 84 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + ! : | 67 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + ! : | + 46 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + ! : | + ! 45 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + ! : | + ! : 43 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + ! : | + ! : | 39 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + ! : | + ! : | + 30 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + ! : | + ! : | + ! 30 mach_absolute_time  (in libsystem_kernel.dylib) + 108,16,...  [0x188c8a10c,0x188c8a0b0,...]
+                + ! : | + ! : | + ! : | + 4 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 12,80  [0x188c8bc04,0x188c8bc48]
+                + ! : | + ! : | + ! : | + 3 DYLD-STUB$$__commpage_gettimeofday  (in libsystem_c.dylib) + 0,8  [0x188bd4f7c,0x188bd4f84]
+                + ! : | + ! : | + ! : | + 2 __commpage_gettimeofday  (in libsystem_kernel.dylib) + 0  [0x188c8bbf0]
+                + ! : | + ! : | + ! : | 3 gettimeofday  (in libsystem_c.dylib) + 16  [0x188b62d98]
+                + ! : | + ! : | + ! : | 1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 164  [0x188c8bc9c]
+                + ! : | + ! : | + ! : 1 _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+                + ! : | + ! : | + ! : | 1 mach_boottime_usec  (in libsystem_kernel.dylib) + 8  [0x188c9e8cc]
+                + ! : | + ! : | + ! : 1 _mach_boottime_usec  (in libsystem_c.dylib) + 48  [0x188b904b8]
+                + ! : | + ! : | + ! 1 clock_gettime  (in libsystem_c.dylib) + 288  [0x188b6ae44]
+                + ! : | + ! : | + 8 _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+                + ! : | + ! : | + ! 7 _mi_arenas_page_abandon  (in d3b-replay) + 64,28,...  [0x104b76e2c,0x104b76e08,...]
+                + ! : | + ! : | + ! 1 _mi_arenas_page_abandon  (in d3b-replay) + 56  [0x104b76e24]
+                + ! : | + ! : | + !   1 OUTLINED_FUNCTION_99  (in d3b-replay) + 4  [0x104b6d808]
+                + ! : | + ! : | + 4 _mi_page_abandon  (in d3b-replay) + 116  [0x104b77958]
+                + ! : | + ! : | + ! 4 mi_page_queue_remove  (in d3b-replay) + 412,60,...  [0x104b66220,0x104b660c0,...]
+                + ! : | + ! : | + 2 _mi_arenas_collect  (in d3b-replay) + 584  [0x104b5d820]
+                + ! : | + ! : | + ! 2 _mi_bitmap_forall_setc_ranges  (in d3b-replay) + 652  [0x104b60b30]
+                + ! : | + ! : | + !   2 mi_arena_try_purge_visitor  (in d3b-replay) + 104  [0x104b6b594]
+                + ! : | + ! : | + !     2 mi_arena_try_purge_range  (in d3b-replay) + 112  [0x104b6b63c]
+                + ! : | + ! : | + !       2 _mi_os_purge_ex  (in d3b-replay) + 332  [0x104b65e5c]
+                + ! : | + ! : | + !         2 mi_os_decommit_ex  (in d3b-replay) + 152  [0x104b65b1c]
+                + ! : | + ! : | + !           2 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + ! : | + 2 _mi_page_abandon  (in d3b-replay) + 124  [0x104b77960]
+                + ! : | + ! : | + ! 2 OUTLINED_FUNCTION_33  (in d3b-replay) + 8  [0x104b6d540]
+                + ! : | + ! : | + 2 _mi_page_abandon  (in d3b-replay) + 20,68  [0x104b778f8,0x104b77928]
+                + ! : | + ! : | + 2 mi_page_queue_remove  (in d3b-replay) + 456  [0x104b6624c]
+                + ! : | + ! : | + 1 _mi_arenas_collect  (in d3b-replay) + 0  [0x104b5d5d8]
+                + ! : | + ! : | 12 mi_page_queue_find_free_ex  (in d3b-replay) + 188,308,...  [0x104b6ca70,0x104b6cae8,...]
+                + ! : | + ! : | 2 mi_page_queue_find_free_ex  (in d3b-replay) + 1012  [0x104b6cda8]
+                + ! : | + ! : | + 2 mi_page_queue_remove  (in d3b-replay) + 32,388  [0x104b660a4,0x104b66208]
+                + ! : | + ! : | 2 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + ! : | + 1 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + ! : | + ! 1 mi_page_queue_push  (in d3b-replay) + 148  [0x104b6c88c]
+                + ! : | + ! : | + 1 mi_page_queue_push  (in d3b-replay) + 228  [0x104b6c8dc]
+                + ! : | + ! : | +   1 mi_bin  (in d3b-replay) + 48  [0x104b65f28]
+                + ! : | + ! : | 1 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + ! : |   1 mi_page_free_list_extend  (in d3b-replay) + 60  [0x104b6c738]
+                + ! : | + ! : 15 _mi_malloc_generic  (in d3b-replay) + 152,16,...  [0x104b77a1c,0x104b77994,...]
+                + ! : | + ! : 3 _mi_malloc_generic  (in d3b-replay) + 592  [0x104b77bd4]
+                + ! : | + ! : | 3 mi_theap_collect_ex  (in d3b-replay) + 308,228  [0x104b68aa4,0x104b68a54]
+                + ! : | + ! : 1 _mi_malloc_generic  (in d3b-replay) + 156  [0x104b77a20]
+                + ! : | + ! :   1 OUTLINED_FUNCTION_32  (in d3b-replay) + 8  [0x104b6d530]
+                + ! : | + ! 32 _mi_theap_realloc_zero  (in d3b-replay) + 364,44,...  [0x104b76a14,0x104b768d4,...]
+                + ! : | + ! 18 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                + ! : | + ! : 16 _platform_memmove  (in libsystem_platform.dylib) + 428,460,...  [0x188cd750c,0x188cd752c,...]
+                + ! : | + ! : 2 DYLD-STUB$$memcpy  (in d3b-replay) + 0,4  [0x104b79134,0x104b79138]
+                + ! : | + ! 6 mi_free  (in d3b-replay) + 76,24,...  [0x104b76838,0x104b76804,...]
+                + ! : | + ! 4 OUTLINED_FUNCTION_50  (in d3b-replay) + 12  [0x104b6d600]
+                + ! : | + ! 3 _mi_theap_realloc_zero  (in d3b-replay) + 276  [0x104b769bc]
+                + ! : | + ! : 3 OUTLINED_FUNCTION_23  (in d3b-replay) + 12,0  [0x104b6d4d0,0x104b6d4c4]
+                + ! : | + ! 2 _mi_theap_realloc_zero  (in d3b-replay) + 352  [0x104b76a08]
+                + ! : | + ! : 2 mi_free_try_collect_mt  (in d3b-replay) + 172  [0x104b696fc]
+                + ! : | + ! :   1 mi_abandoned_page_try_reclaim  (in d3b-replay) + 412  [0x104b69994]
+                + ! : | + ! :   | 1 _mi_arenas_page_unabandon  (in d3b-replay) + 36  [0x104b7700c]
+                + ! : | + ! :   |   1 OUTLINED_FUNCTION_94  (in d3b-replay) + 0  [0x104b6d7cc]
+                + ! : | + ! :   1 mi_abandoned_page_try_reclaim  (in d3b-replay) + 424  [0x104b699a0]
+                + ! : | + ! :     1 _mi_theap_page_reclaim  (in d3b-replay) + 320  [0x104b77780]
+                + ! : | + ! 2 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                + ! : | + ! : 2 OUTLINED_FUNCTION_12  (in d3b-replay) + 16  [0x104b6d454]
+                + ! : | + ! 1 _mi_theap_realloc_zero  (in d3b-replay) + 56  [0x104b768e0]
+                + ! : | + !   1 OUTLINED_FUNCTION_37  (in d3b-replay) + 4  [0x104b6d580]
+                + ! : | + 76 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+                + ! : | + ! 39 mi_malloc_aligned  (in d3b-replay) + 84,40,...  [0x104b76ad0,0x104b76aa4,...]
+                + ! : | + ! 19 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 428  [0x104b69c7c]
+                + ! : | + ! : 17 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + ! : | 5 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + ! : | + 5 mi_page_free_list_extend  (in d3b-replay) + 60,80  [0x104b6c738,0x104b6c74c]
+                + ! : | + ! : | 5 mi_page_queue_find_free_ex  (in d3b-replay) + 316,196,...  [0x104b6caf0,0x104b6ca78,...]
+                + ! : | + ! : | 3 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : | + ! : | + 3 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | + ! : | +   3 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : | + ! : | +     3 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | + ! : | +       3 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | + ! : | +         3 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | + ! : | +           3 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | + ! : | +             3 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + ! : | 2 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + ! : | + 2 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + ! : | +   2 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + ! : | +     2 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + ! : | +       2 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + ! : | +         2 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + ! : | +           2 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x188c8a10c]
+                + ! : | + ! : | 1 mi_page_queue_find_free_ex  (in d3b-replay) + 88  [0x104b6ca0c]
+                + ! : | + ! : | + 1 _mi_theap_collect_retired  (in d3b-replay) + 344  [0x104b665f4]
+                + ! : | + ! : | +   1 _mi_theap_collect_retired.cold.1  (in d3b-replay) + 96  [0x104b78b34]
+                + ! : | + ! : | +     1 _mi_arenas_page_free  (in d3b-replay) + 412  [0x104b76c80]
+                + ! : | + ! : | +       1 mi_page_map_set_range_prim  (in d3b-replay) + 56  [0x104b6ce20]
+                + ! : | + ! : | 1 mi_page_queue_find_free_ex  (in d3b-replay) + 1012  [0x104b6cda8]
+                + ! : | + ! : |   1 mi_page_queue_remove  (in d3b-replay) + 388  [0x104b66208]
+                + ! : | + ! : 2 _mi_malloc_generic  (in d3b-replay) + 36,452  [0x104b779a8,0x104b77b48]
+                + ! : | + ! 9 mi_malloc_aligned  (in d3b-replay) + 24  [0x104b76a94]
+                + ! : | + ! : 9 OUTLINED_FUNCTION_66  (in d3b-replay) + 0  [0x104b6d698]
+                + ! : | + ! 4 mi_malloc_aligned  (in d3b-replay) + 56  [0x104b76ab4]
+                + ! : | + ! : 4 OUTLINED_FUNCTION_5  (in d3b-replay) + 16,0  [0x104b6d3c4,0x104b6d3b4]
+                + ! : | + ! 3 mi_malloc_aligned  (in d3b-replay) + 72  [0x104b76ac4]
+                + ! : | + ! : 3 OUTLINED_FUNCTION_0  (in d3b-replay) + 20,0  [0x104b6d370,0x104b6d35c]
+                + ! : | + ! 1 mi_malloc_aligned  (in d3b-replay) + 88  [0x104b76ad4]
+                + ! : | + ! : 1 OUTLINED_FUNCTION_18  (in d3b-replay) + 0  [0x104b6d49c]
+                + ! : | + ! 1 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 324  [0x104b69c14]
+                + ! : | + 10 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 4,8,...  [0x104b70aa8,0x104b70aac,...]  mod.rs:565
+                + ! : | + 10 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 32,36  [0x104b70ac4,0x104b70ac8]  mod.rs:570
+                + ! : | + 2 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70adc]  mod.rs:573
+                + ! : | + 2 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:586
+                + ! : | + 2 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 144  [0x104b70b34]  mod.rs:587
+                + ! : | + 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 84  [0x104b70af8]  mod.rs:583
+                + ! : | + 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 140  [0x104b70b30]  result.rs:0
+                + ! : | 15 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 148  [0x104b70b38]  mod.rs:587
+                + ! : | 9 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 20,32,...  [0x104b70a58,0x104b70a64,...]  mod.rs:198
+                + ! : | 3 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 0  [0x104b70a44]  mod.rs:196
+                + ! : 291 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 568  [0x104b22078]  lib.rs:356
+                + ! : | 260 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70a7c]  mod.rs:198
+                + ! : | + 168 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                + ! : | + ! 82 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                + ! : | + ! : 68 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + ! : | 53 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + ! : | + 38 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + ! : | + ! 36 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + ! : | + ! : 25 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + ! : | + ! : | 24 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + ! : | + ! : | + 22 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + ! : | + ! : | + ! 22 mach_absolute_time  (in libsystem_kernel.dylib) + 108,16,...  [0x188c8a10c,0x188c8a0b0,...]
+                + ! : | + ! : | + ! : | + 2 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 12  [0x188c8bc04]
+                + ! : | + ! : | + ! : | 1 gettimeofday  (in libsystem_c.dylib) + 16  [0x188b62d98]
+                + ! : | + ! : | + ! : 8 _mach_boottime_usec  (in libsystem_c.dylib) + 0,12,...  [0x188b90488,0x188b90494,...]
+                + ! : | + ! : | + ! : 3 _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+                + ! : | + ! : | + ! :   3 DYLD-STUB$$mach_boottime_usec  (in libsystem_c.dylib) + 0,8  [0x188bd585c,0x188bd5864]
+                + ! : | + ! : | + ! 1 DYLD-STUB$$clock_gettime  (in d3b-replay) + 4  [0x104b79054]
+                + ! : | + ! : | + ! 1 clock_gettime  (in libsystem_c.dylib) + 32  [0x188b6ad44]
+                + ! : | + ! : | + 6 _mi_page_abandon  (in d3b-replay) + 116  [0x104b77958]
+                + ! : | + ! : | + ! 6 mi_page_queue_remove  (in d3b-replay) + 40,412,...  [0x104b660ac,0x104b66220,...]
+                + ! : | + ! : | + 2 _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+                + ! : | + ! : | + ! 1 _mi_arenas_page_abandon  (in d3b-replay) + 56  [0x104b76e24]
+                + ! : | + ! : | + ! : 1 OUTLINED_FUNCTION_99  (in d3b-replay) + 4  [0x104b6d808]
+                + ! : | + ! : | + ! 1 _mi_arenas_page_abandon  (in d3b-replay) + 72  [0x104b76e34]
+                + ! : | + ! : | + 2 mi_page_queue_remove  (in d3b-replay) + 456  [0x104b6624c]
+                + ! : | + ! : | + 1 _mi_arenas_collect  (in d3b-replay) + 584  [0x104b5d820]
+                + ! : | + ! : | + ! 1 _mi_bitmap_forall_setc_ranges  (in d3b-replay) + 464  [0x104b60a74]
+                + ! : | + ! : | + !   1 mi_arena_try_purge_visitor  (in d3b-replay) + 104  [0x104b6b594]
+                + ! : | + ! : | + !     1 mi_arena_try_purge_range  (in d3b-replay) + 112  [0x104b6b63c]
+                + ! : | + ! : | + !       1 _mi_os_purge_ex  (in d3b-replay) + 332  [0x104b65e5c]
+                + ! : | + ! : | + !         1 mi_os_decommit_ex  (in d3b-replay) + 152  [0x104b65b1c]
+                + ! : | + ! : | + !           1 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + ! : | + 1 _mi_arenas_collect  (in d3b-replay) + 96  [0x104b5d638]
+                + ! : | + ! : | + 1 _mi_page_abandon  (in d3b-replay) + 120  [0x104b7795c]
+                + ! : | + ! : | + ! 1 OUTLINED_FUNCTION_24  (in d3b-replay) + 8  [0x104b6d4e0]
+                + ! : | + ! : | + 1 _mi_page_abandon  (in d3b-replay) + 124  [0x104b77960]
+                + ! : | + ! : | + ! 1 OUTLINED_FUNCTION_33  (in d3b-replay) + 8  [0x104b6d540]
+                + ! : | + ! : | + 1 clock_gettime  (in libsystem_c.dylib) + 420  [0x188b6aec8]
+                + ! : | + ! : | 10 mi_page_queue_find_free_ex  (in d3b-replay) + 188,536,...  [0x104b6ca70,0x104b6cbcc,...]
+                + ! : | + ! : | 3 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + ! : | + 1 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + ! : | + ! 1 mi_page_queue_push  (in d3b-replay) + 180  [0x104b6c8ac]
+                + ! : | + ! : | + 1 mi_page_queue_push  (in d3b-replay) + 256  [0x104b6c8f8]
+                + ! : | + ! : | + ! 1 mi_page_queue_push  (in d3b-replay) + 300  [0x104b6c924]
+                + ! : | + ! : | + 1 mi_page_queue_push  (in d3b-replay) + 128  [0x104b6c878]
+                + ! : | + ! : | 2 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + ! : |   2 mi_page_free_list_extend  (in d3b-replay) + 60  [0x104b6c738]
+                + ! : | + ! : 11 _mi_malloc_generic  (in d3b-replay) + 152,16,...  [0x104b77a1c,0x104b77994,...]
+                + ! : | + ! : 2 _mi_malloc_generic  (in d3b-replay) + 592  [0x104b77bd4]
+                + ! : | + ! : | 2 mi_theap_collect_ex  (in d3b-replay) + 280,352  [0x104b68a88,0x104b68ad0]
+                + ! : | + ! : 1 _mi_malloc_generic  (in d3b-replay) + 104  [0x104b779ec]
+                + ! : | + ! :   1 mi_bin  (in d3b-replay) + 40  [0x104b65f20]
+                + ! : | + ! 35 _mi_theap_realloc_zero  (in d3b-replay) + 364,256,...  [0x104b76a14,0x104b769a8,...]
+                + ! : | + ! 23 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                + ! : | + ! : 22 _platform_memmove  (in libsystem_platform.dylib) + 428,420,...  [0x188cd750c,0x188cd7504,...]
+                + ! : | + ! : 1 DYLD-STUB$$memcpy  (in d3b-replay) + 4  [0x104b79138]
+                + ! : | + ! 6 _mi_theap_realloc_zero  (in d3b-replay) + 352  [0x104b76a08]
+                + ! : | + ! : 5 mi_free_try_collect_mt  (in d3b-replay) + 172  [0x104b696fc]
+                + ! : | + ! : | 5 mi_abandoned_page_try_reclaim  (in d3b-replay) + 424  [0x104b699a0]
+                + ! : | + ! : |   4 _mi_theap_page_reclaim  (in d3b-replay) + 176,256,...  [0x104b776f0,0x104b77740,...]
+                + ! : | + ! : |   1 _mi_theap_page_reclaim  (in d3b-replay) + 244  [0x104b77734]
+                + ! : | + ! : |     1 mi_bin  (in d3b-replay) + 40  [0x104b65f20]
+                + ! : | + ! : 1 mi_abandoned_page_try_reclaim  (in d3b-replay) + 448  [0x104b699b8]
+                + ! : | + ! 6 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                + ! : | + ! : 3 OUTLINED_FUNCTION_12  (in d3b-replay) + 16  [0x104b6d454]
+                + ! : | + ! : 3 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                + ! : | + ! 6 mi_free  (in d3b-replay) + 44,92,...  [0x104b76818,0x104b76848,...]
+                + ! : | + ! 3 OUTLINED_FUNCTION_50  (in d3b-replay) + 12  [0x104b6d600]
+                + ! : | + ! 3 mi_realloc_aligned  (in d3b-replay) + 28  [0x104b5c3d8]
+                + ! : | + ! 2 _mi_malloc_generic  (in d3b-replay) + 416,424  [0x104b77b24,0x104b77b2c]
+                + ! : | + ! 2 _mi_theap_realloc_zero  (in d3b-replay) + 276  [0x104b769bc]
+                + ! : | + !   2 OUTLINED_FUNCTION_23  (in d3b-replay) + 12  [0x104b6d4d0]
+                + ! : | + 62 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+                + ! : | + ! 30 mi_malloc_aligned  (in d3b-replay) + 84,40,...  [0x104b76ad0,0x104b76aa4,...]
+                + ! : | + ! 17 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 428  [0x104b69c7c]
+                + ! : | + ! : 13 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + ! : | 7 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + ! : | + 5 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + ! : | + ! 5 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + ! : | + !   4 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + ! : | + !   : 3 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + ! : | + !   : | 3 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + ! : | + !   : |   3 mach_absolute_time  (in libsystem_kernel.dylib) + 108,16  [0x188c8a10c,0x188c8a0b0]
+                + ! : | + ! : | + !   : 1 gettimeofday  (in libsystem_c.dylib) + 16  [0x188b62d98]
+                + ! : | + ! : | + !   1 _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+                + ! : | + ! : | + !     1 DYLD-STUB$$mach_boottime_usec  (in libsystem_c.dylib) + 8  [0x188bd5864]
+                + ! : | + ! : | + 1 _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+                + ! : | + ! : | + ! 1 _mi_arenas_page_abandon  (in d3b-replay) + 344  [0x104b76f44]
+                + ! : | + ! : | + 1 _mi_page_abandon  (in d3b-replay) + 152  [0x104b7797c]
+                + ! : | + ! : | +   1 OUTLINED_FUNCTION_44  (in d3b-replay) + 0  [0x104b6d5dc]
+                + ! : | + ! : | 3 mi_page_queue_find_free_ex  (in d3b-replay) + 188,196,...  [0x104b6ca70,0x104b6ca78,...]
+                + ! : | + ! : | 2 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : | + ! : | + 2 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | + ! : | +   2 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : | + ! : | +     2 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | + ! : | +       2 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | + ! : | +         2 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | + ! : | +           2 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | + ! : | +             2 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + ! : | 1 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + ! : |   1 mi_page_free_list_extend  (in d3b-replay) + 80  [0x104b6c74c]
+                + ! : | + ! : 2 _mi_malloc_generic  (in d3b-replay) + 104  [0x104b779ec]
+                + ! : | + ! : | 2 mi_bin  (in d3b-replay) + 40  [0x104b65f20]
+                + ! : | + ! : 2 _mi_malloc_generic  (in d3b-replay) + 52,152  [0x104b779b8,0x104b77a1c]
+                + ! : | + ! 5 mi_malloc_aligned  (in d3b-replay) + 56  [0x104b76ab4]
+                + ! : | + ! : 5 OUTLINED_FUNCTION_5  (in d3b-replay) + 16,0  [0x104b6d3c4,0x104b6d3b4]
+                + ! : | + ! 4 mi_malloc_aligned  (in d3b-replay) + 24  [0x104b76a94]
+                + ! : | + ! : 4 OUTLINED_FUNCTION_66  (in d3b-replay) + 0  [0x104b6d698]
+                + ! : | + ! 3 mi_malloc_aligned  (in d3b-replay) + 72  [0x104b76ac4]
+                + ! : | + ! : 3 OUTLINED_FUNCTION_0  (in d3b-replay) + 8,20  [0x104b6d364,0x104b6d370]
+                + ! : | + ! 2 mi_malloc_aligned  (in d3b-replay) + 88  [0x104b76ad4]
+                + ! : | + ! : 2 OUTLINED_FUNCTION_18  (in d3b-replay) + 0  [0x104b6d49c]
+                + ! : | + ! 1 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 16  [0x104b69ae0]
+                + ! : | + 10 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 32,36  [0x104b70ac4,0x104b70ac8]  mod.rs:570
+                + ! : | + 9 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 4,8  [0x104b70aa8,0x104b70aac]  mod.rs:565
+                + ! : | + 6 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 84  [0x104b70af8]  mod.rs:583
+                + ! : | + 5 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:586
+                + ! : | 17 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 148,152  [0x104b70b38,0x104b70b3c]  mod.rs:587
+                + ! : | 11 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 20,56  [0x104b70a58,0x104b70a7c]  mod.rs:198
+                + ! : | 3 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 0  [0x104b70a44]  mod.rs:196
+                + ! : 200 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 516  [0x104b22044]  lib.rs:355
+                + ! : | 180 _platform_memmove  (in libsystem_platform.dylib) + 684,12,...  [0x188cd760c,0x188cd736c,...]
+                + ! : | 20 DYLD-STUB$$memmove  (in d3b-replay) + 4,0  [0x104b79144,0x104b79140]
+                + ! : 180 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 180,148,...  [0x104b21ef4,0x104b21ed4,...]  lib.rs:349
+                + ! : 176 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 392  [0x104b21fc8]  lib.rs:356
+                + ! : | 158 _platform_memmove  (in libsystem_platform.dylib) + 684,668,...  [0x188cd760c,0x188cd75fc,...]
+                + ! : | 18 DYLD-STUB$$memmove  (in d3b-replay) + 4,0  [0x104b79144,0x104b79140]
+                + ! : 101 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 324,312,...  [0x104b21f84,0x104b21f78,...]  lib.rs:355
+                + ! : 76 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 328,332  [0x104b21a84,0x104b21a88]  lib.rs:320
+                + ! : 61 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 68  [0x104b21e84]  lib.rs:347
+                + ! : | 59 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 48,80,...  [0x104b2196c,0x104b2198c,...]  lib.rs:311
+                + ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 0  [0x104b2193c]  lib.rs:310
+                + ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 316  [0x104b21a78]  lib.rs:320
+                + ! : 56 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 560,360,...  [0x104b22070,0x104b21fa8,...]  lib.rs:356
+                + ! : 53 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 84  [0x104b21e94]  lib.rs:348
+                + ! : | 50 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 48,80,...  [0x104b2196c,0x104b2198c,...]  lib.rs:311
+                + ! : | 2 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 0  [0x104b2193c]  lib.rs:310
+                + ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 316  [0x104b21a78]  lib.rs:320
+                + ! : 52 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 24,12,...  [0x104b21e58,0x104b21e4c,...]  lib.rs:345
+                + ! : 44 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 284,260,...  [0x104b21f5c,0x104b21f44,...]  lib.rs:353
+                + ! : 25 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 452  [0x104b22c10]  configuration.rs:270
+                + ! : 20 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70a90]  mod.rs:199
+                + ! : 19 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 12  [0x104b22a58]  configuration.rs:245
+                + ! : 18 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 204,220,...  [0x104b21f0c,0x104b21f1c,...]  lib.rs:352
+                + ! : 14 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 464  [0x104b22010]  lib.rs:0
+                + ! : 10 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 228  [0x104b21f24]  mod.rs:0
+                + ! : 9 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 60  [0x104b22a88]  configuration.rs:249
+                + ! : 5 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 244  [0x104b22b40]  configuration.rs:256
+                + ! : 4 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 56  [0x104b22a84]  configuration.rs:0
+                + ! : 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 420  [0x104b21fe4]  lib.rs:358
+                + ! : 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 432  [0x104b21ff0]  lib.rs:359
+                + ! : 1 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 20  [0x104b22a60]  configuration.rs:246
+                + ! : 1 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 508  [0x104b22c48]  configuration.rs:271
+                + ! 683 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 808,772,...  [0x104b2618c,0x104b26168,...]  topology.rs:805
+                + ! 631 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1196  [0x104b26310]  topology.rs:820
+                + ! : 624 _platform_memmove  (in libsystem_platform.dylib) + 12,676,...  [0x188cd736c,0x188cd7604,...]
+                + ! : 7 DYLD-STUB$$memmove  (in d3b-replay) + 4,0  [0x104b79144,0x104b79140]
+                + ! 485 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1576  [0x104b2648c]  topology.rs:820
+                + ! : 467 _platform_memmove  (in libsystem_platform.dylib) + 12,464,...  [0x188cd736c,0x188cd7530,...]
+                + ! : 18 DYLD-STUB$$memmove  (in d3b-replay) + 4,0  [0x104b79144,0x104b79140]
+                + ! 330 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 2092  [0x104b26690]  topology.rs:820
+                + ! : 257 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 56  [0x104b70a1c]  mod.rs:198
+                + ! : | 116 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+                + ! : | + 49 mi_malloc_aligned  (in d3b-replay) + 84,56,...  [0x104b76ad0,0x104b76ab4,...]
+                + ! : | + 38 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 428  [0x104b69c7c]
+                + ! : | + ! 29 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + ! : 13 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + ! : | 8 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + ! : | + 7 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + ! : | + ! 6 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + ! : | + ! : 6 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + ! : | + ! :   5 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + ! : | + ! :   | 5 mach_absolute_time  (in libsystem_kernel.dylib) + 108,112  [0x188c8a10c,0x188c8a110]
+                + ! : | + ! : | + ! :   1 DYLD-STUB$$__commpage_gettimeofday  (in libsystem_c.dylib) + 8  [0x188bd4f84]
+                + ! : | + ! : | + ! 1 _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+                + ! : | + ! : | + !   1 DYLD-STUB$$mach_boottime_usec  (in libsystem_c.dylib) + 0  [0x188bd585c]
+                + ! : | + ! : | + 1 _mach_boottime_usec  (in libsystem_c.dylib) + 108  [0x188b904f4]
+                + ! : | + ! : | 2 _mi_page_abandon  (in d3b-replay) + 116  [0x104b77958]
+                + ! : | + ! : | + 2 mi_page_queue_remove  (in d3b-replay) + 20,40  [0x104b66098,0x104b660ac]
+                + ! : | + ! : | 1 _mi_arenas_collect  (in d3b-replay) + 92  [0x104b5d634]
+                + ! : | + ! : | + 1 _mi_preloading  (in d3b-replay) + 24  [0x104b63304]
+                + ! : | + ! : | 1 _mi_arenas_collect  (in d3b-replay) + 72  [0x104b5d620]
+                + ! : | + ! : | 1 _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+                + ! : | + ! : |   1 _mi_arenas_page_abandon  (in d3b-replay) + 344  [0x104b76f44]
+                + ! : | + ! : 7 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : | + ! : | 7 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | + ! : |   7 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : | + ! : |     7 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | + ! : |       7 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | + ! : |         7 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | + ! : |           7 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | + ! : |             7 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + ! : 5 mi_page_queue_find_free_ex  (in d3b-replay) + 188,224,...  [0x104b6ca70,0x104b6ca94,...]
+                + ! : | + ! : 2 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + ! : | 1 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + ! : | + 1 mi_page_queue_push  (in d3b-replay) + 192  [0x104b6c8b8]
+                + ! : | + ! : | 1 mi_page_queue_push  (in d3b-replay) + 256  [0x104b6c8f8]
+                + ! : | + ! : |   1 mi_bin  (in d3b-replay) + 40  [0x104b65f20]
+                + ! : | + ! : 1 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + ! : | 1 mi_page_free_list_extend  (in d3b-replay) + 60  [0x104b6c738]
+                + ! : | + ! : 1 mi_page_queue_find_free_ex  (in d3b-replay) + 1012  [0x104b6cda8]
+                + ! : | + ! :   1 mi_page_queue_remove  (in d3b-replay) + 376  [0x104b661fc]
+                + ! : | + ! 8 _mi_malloc_generic  (in d3b-replay) + 152,692,...  [0x104b77a1c,0x104b77c38,...]
+                + ! : | + ! 1 _mi_malloc_generic  (in d3b-replay) + 104  [0x104b779ec]
+                + ! : | + !   1 mi_bin  (in d3b-replay) + 40  [0x104b65f20]
+                + ! : | + 14 mi_malloc_aligned  (in d3b-replay) + 56  [0x104b76ab4]
+                + ! : | + ! 14 OUTLINED_FUNCTION_5  (in d3b-replay) + 16,12  [0x104b6d3c4,0x104b6d3c0]
+                + ! : | + 7 mi_malloc_aligned  (in d3b-replay) + 24  [0x104b76a94]
+                + ! : | + ! 7 OUTLINED_FUNCTION_66  (in d3b-replay) + 0  [0x104b6d698]
+                + ! : | + 7 mi_malloc_aligned  (in d3b-replay) + 72  [0x104b76ac4]
+                + ! : | + ! 7 OUTLINED_FUNCTION_0  (in d3b-replay) + 20,8  [0x104b6d370,0x104b6d364]
+                + ! : | + 1 mi_malloc_aligned  (in d3b-replay) + 88  [0x104b76ad4]
+                + ! : | +   1 OUTLINED_FUNCTION_18  (in d3b-replay) + 0  [0x104b6d49c]
+                + ! : | 100 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                + ! : | + 27 _mi_theap_realloc_zero  (in d3b-replay) + 352  [0x104b76a08]
+                + ! : | + ! 18 mi_free_try_collect_mt  (in d3b-replay) + 172  [0x104b696fc]
+                + ! : | + ! : 8 mi_abandoned_page_try_reclaim  (in d3b-replay) + 424  [0x104b699a0]
+                + ! : | + ! : | 5 _mi_theap_page_reclaim  (in d3b-replay) + 116,76,...  [0x104b776b4,0x104b7768c,...]
+                + ! : | + ! : | 2 _mi_theap_page_reclaim  (in d3b-replay) + 136  [0x104b776c8]
+                + ! : | + ! : | + 2 mi_page_thread_collect_to_local  (in d3b-replay) + 104  [0x104b66064]
+                + ! : | + ! : | 1 _mi_theap_page_reclaim  (in d3b-replay) + 244  [0x104b77734]
+                + ! : | + ! : |   1 mi_bin  (in d3b-replay) + 96  [0x104b65f58]
+                + ! : | + ! : 7 mi_abandoned_page_try_reclaim  (in d3b-replay) + 412  [0x104b69994]
+                + ! : | + ! : | 7 _mi_arenas_page_unabandon  (in d3b-replay) + 36,260,...  [0x104b7700c,0x104b770ec,...]
+                + ! : | + ! : 3 mi_abandoned_page_try_reclaim  (in d3b-replay) + 56,64,...  [0x104b69830,0x104b69838,...]
+                + ! : | + ! 5 mi_abandoned_page_try_reclaim  (in d3b-replay) + 448  [0x104b699b8]
+                + ! : | + ! 2 mi_free  (in d3b-replay) + 168  [0x104b76894]
+                + ! : | + ! 1 OUTLINED_FUNCTION_78  (in d3b-replay) + 0  [0x104b6d724]
+                + ! : | + ! 1 mi_free_try_collect_mt  (in d3b-replay) + 132  [0x104b696d4]
+                + ! : | + 21 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                + ! : | + ! 21 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + !   9 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : | + !   : 9 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | + !   :   9 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : | + !   :     9 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | + !   :       9 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | + !   :         9 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | + !   :           9 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | + !   :             9 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + !   5 mi_page_queue_find_free_ex  (in d3b-replay) + 196,224,...  [0x104b6ca78,0x104b6ca94,...]
+                + ! : | + !   4 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + !   : 4 mi_page_free_list_extend  (in d3b-replay) + 60,12  [0x104b6c738,0x104b6c708]
+                + ! : | + !   1 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + !   : 1 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + !   :   1 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + !   :     1 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + !   :       1 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + !   :         1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + !   :           1 mach_absolute_time  (in libsystem_kernel.dylib) + 36  [0x188c8a0c4]
+                + ! : | + !   1 mi_page_queue_find_free_ex  (in d3b-replay) + 1012  [0x104b6cda8]
+                + ! : | + !   : 1 mi_page_queue_remove  (in d3b-replay) + 20  [0x104b66098]
+                + ! : | + !   1 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + !     1 mi_page_queue_push  (in d3b-replay) + 256  [0x104b6c8f8]
+                + ! : | + !       1 mi_bin  (in d3b-replay) + 48  [0x104b65f28]
+                + ! : | + 19 _mi_theap_realloc_zero  (in d3b-replay) + 76,96,...  [0x104b768f4,0x104b76908,...]
+                + ! : | + 10 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                + ! : | + ! 10 _platform_memmove  (in libsystem_platform.dylib) + 36,204,...  [0x188cd7384,0x188cd742c,...]
+                + ! : | + 10 mi_free  (in d3b-replay) + 92,56,...  [0x104b76848,0x104b76824,...]
+                + ! : | + 5 OUTLINED_FUNCTION_50  (in d3b-replay) + 12,0,...  [0x104b6d600,0x104b6d5f4,...]
+                + ! : | + 3 _mi_theap_realloc_zero  (in d3b-replay) + 56  [0x104b768e0]
+                + ! : | + ! 3 OUTLINED_FUNCTION_37  (in d3b-replay) + 4  [0x104b6d580]
+                + ! : | + 3 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                + ! : | + ! 3 OUTLINED_FUNCTION_12  (in d3b-replay) + 16  [0x104b6d454]
+                + ! : | + 1 mi_free_try_collect_mt  (in d3b-replay) + 216  [0x104b69728]
+                + ! : | + 1 mi_realloc_aligned  (in d3b-replay) + 28  [0x104b5c3d8]
+                + ! : | 19 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 32,36  [0x104b70ac4,0x104b70ac8]  mod.rs:570
+                + ! : | 9 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 84,88  [0x104b70af8,0x104b70afc]  mod.rs:583
+                + ! : | 8 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 4,0,...  [0x104b70aa8,0x104b70aa4,...]  mod.rs:565
+                + ! : | 4 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70adc]  mod.rs:573
+                + ! : | 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:586
+                + ! : 54 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 148,152  [0x104b70b38,0x104b70b3c]  mod.rs:587
+                + ! : 17 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 20,44,...  [0x104b709f8,0x104b70a10,...]  mod.rs:198
+                + ! : 2 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 0,8  [0x104b709e4,0x104b709ec]  mod.rs:196
+                + ! 297 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 2044  [0x104b26660]  topology.rs:820
+                + ! : 270 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 56  [0x104b70a1c]  mod.rs:198
+                + ! : | 146 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                + ! : | + 37 _mi_theap_realloc_zero  (in d3b-replay) + 352  [0x104b76a08]
+                + ! : | + ! 27 mi_free_try_collect_mt  (in d3b-replay) + 172  [0x104b696fc]
+                + ! : | + ! : 11 mi_abandoned_page_try_reclaim  (in d3b-replay) + 424  [0x104b699a0]
+                + ! : | + ! : | 6 _mi_theap_page_reclaim  (in d3b-replay) + 76,16,...  [0x104b7768c,0x104b77650,...]
+                + ! : | + ! : | 5 _mi_theap_page_reclaim  (in d3b-replay) + 136  [0x104b776c8]
+                + ! : | + ! : |   5 mi_page_thread_collect_to_local  (in d3b-replay) + 12,104,...  [0x104b66008,0x104b66064,...]
+                + ! : | + ! : 9 mi_abandoned_page_try_reclaim  (in d3b-replay) + 412  [0x104b69994]
+                + ! : | + ! : | 8 _mi_arenas_page_unabandon  (in d3b-replay) + 152,36,...  [0x104b77080,0x104b7700c,...]
+                + ! : | + ! : | 1 _mi_arenas_page_unabandon  (in d3b-replay) + 64  [0x104b77028]
+                + ! : | + ! : |   1 OUTLINED_FUNCTION_99  (in d3b-replay) + 4  [0x104b6d808]
+                + ! : | + ! : 5 mi_abandoned_page_try_reclaim  (in d3b-replay) + 24,412,...  [0x104b69810,0x104b69994,...]
+                + ! : | + ! : 2 _mi_theap_page_reclaim  (in d3b-replay) + 660,668  [0x104b778d4,0x104b778dc]
+                + ! : | + ! 3 mi_free  (in d3b-replay) + 0,156  [0x104b767ec,0x104b76888]
+                + ! : | + ! 2 _mi_page_free_collect_partly  (in d3b-replay) + 208  [0x104b77618]
+                + ! : | + ! 2 mi_abandoned_page_try_reclaim  (in d3b-replay) + 448  [0x104b699b8]
+                + ! : | + ! 1 OUTLINED_FUNCTION_78  (in d3b-replay) + 0  [0x104b6d724]
+                + ! : | + ! 1 mi_free_try_collect_mt  (in d3b-replay) + 236  [0x104b6973c]
+                + ! : | + ! : 1 _mi_page_free_collect_partly  (in d3b-replay) + 148  [0x104b775dc]
+                + ! : | + ! 1 mi_free_try_collect_mt  (in d3b-replay) + 132  [0x104b696d4]
+                + ! : | + 33 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                + ! : | + ! 29 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + ! : 9 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + ! : | 8 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + ! : | + 8 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + ! : | +   6 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + ! : | +   ! 3 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + ! : | +   ! : 2 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + ! : | +   ! : | 2 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x188c8a10c]
+                + ! : | + ! : | +   ! : 1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 80  [0x188c8bc48]
+                + ! : | + ! : | +   ! 3 gettimeofday  (in libsystem_c.dylib) + 0  [0x188b62d88]
+                + ! : | + ! : | +   1 _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+                + ! : | + ! : | +   ! 1 DYLD-STUB$$mach_boottime_usec  (in libsystem_c.dylib) + 0  [0x188bd585c]
+                + ! : | + ! : | +   1 _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+                + ! : | + ! : | 1 _mi_page_abandon  (in d3b-replay) + 120  [0x104b7795c]
+                + ! : | + ! : |   1 OUTLINED_FUNCTION_24  (in d3b-replay) + 0  [0x104b6d4d8]
+                + ! : | + ! : 7 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : | + ! : | 7 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | + ! : |   7 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : | + ! : |     7 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | + ! : |       7 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | + ! : |         7 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | + ! : |           7 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | + ! : |             7 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + ! : 6 mi_page_queue_find_free_ex  (in d3b-replay) + 256,308,...  [0x104b6cab4,0x104b6cae8,...]
+                + ! : | + ! : 5 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + ! : | 5 mi_page_free_list_extend  (in d3b-replay) + 60,40,...  [0x104b6c738,0x104b6c724,...]
+                + ! : | + ! : 2 mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+                + ! : | + ! :   2 mi_page_queue_push  (in d3b-replay) + 56,64  [0x104b6c830,0x104b6c838]
+                + ! : | + ! 3 _mi_malloc_generic  (in d3b-replay) + 104  [0x104b779ec]
+                + ! : | + ! : 3 mi_bin  (in d3b-replay) + 96,48  [0x104b65f58,0x104b65f28]
+                + ! : | + ! 1 _mi_malloc_generic  (in d3b-replay) + 16  [0x104b77994]
+                + ! : | + 32 _mi_theap_realloc_zero  (in d3b-replay) + 44,248,...  [0x104b768d4,0x104b769a0,...]
+                + ! : | + 18 mi_free  (in d3b-replay) + 92,56,...  [0x104b76848,0x104b76824,...]
+                + ! : | + 12 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                + ! : | + ! 12 _platform_memmove  (in libsystem_platform.dylib) + 204,0,...  [0x188cd742c,0x188cd7360,...]
+                + ! : | + 5 mi_realloc_aligned  (in d3b-replay) + 28,0,...  [0x104b5c3d8,0x104b5c3bc,...]
+                + ! : | + 4 OUTLINED_FUNCTION_50  (in d3b-replay) + 12  [0x104b6d600]
+                + ! : | + 4 _mi_theap_realloc_zero  (in d3b-replay) + 276  [0x104b769bc]
+                + ! : | + ! 4 OUTLINED_FUNCTION_23  (in d3b-replay) + 12  [0x104b6d4d0]
+                + ! : | + 1 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                + ! : | +   1 OUTLINED_FUNCTION_12  (in d3b-replay) + 0  [0x104b6d444]
+                + ! : | 102 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+                + ! : | + 40 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 428  [0x104b69c7c]
+                + ! : | + ! 31 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | + ! : 14 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                + ! : | + ! : | 10 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : | + ! : | + 9 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | + ! : | + ! 9 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | + ! : | + !   9 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | + ! : | + !     9 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | + ! : | + !       9 mach_absolute_time  (in libsystem_kernel.dylib) + 108,112,...  [0x188c8a10c,0x188c8a110,...]
+                + ! : | + ! : | + 1 _mach_boottime_usec  (in libsystem_c.dylib) + 108  [0x188b904f4]
+                + ! : | + ! : | 2 _mi_arenas_collect  (in d3b-replay) + 24,72  [0x104b5d5f0,0x104b5d620]
+                + ! : | + ! : | 1 _mi_page_abandon  (in d3b-replay) + 116  [0x104b77958]
+                + ! : | + ! : | + 1 mi_page_queue_remove  (in d3b-replay) + 20  [0x104b66098]
+                + ! : | + ! : | 1 _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+                + ! : | + ! : |   1 _mi_arenas_page_abandon  (in d3b-replay) + 28  [0x104b76e08]
+                + ! : | + ! : |     1 OUTLINED_FUNCTION_94  (in d3b-replay) + 0  [0x104b6d7cc]
+                + ! : | + ! : 11 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : | + ! : | 11 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | + ! : |   11 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : | + ! : |     11 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | + ! : |       11 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | + ! : |         11 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | + ! : |           10 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | + ! : |           + 10 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + ! : |           1 mi_arena_try_alloc_at  (in d3b-replay) + 304  [0x104b6a66c]
+                + ! : | + ! : |             1 mi_bitmap_setN  (in d3b-replay) + 36  [0x104b5cbd8]
+                + ! : | + ! : 4 mi_page_queue_find_free_ex  (in d3b-replay) + 256,308,...  [0x104b6cab4,0x104b6cae8,...]
+                + ! : | + ! : 2 mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+                + ! : | + ! :   2 mi_page_free_list_extend  (in d3b-replay) + 60  [0x104b6c738]
+                + ! : | + ! 6 _mi_malloc_generic  (in d3b-replay) + 136,52,...  [0x104b77a0c,0x104b779b8,...]
+                + ! : | + ! 1 _mi_malloc_generic  (in d3b-replay) + 104  [0x104b779ec]
+                + ! : | + ! : 1 mi_bin  (in d3b-replay) + 40  [0x104b65f20]
+                + ! : | + ! 1 _mi_malloc_generic  (in d3b-replay) + 592  [0x104b77bd4]
+                + ! : | + ! : 1 mi_theap_collect_ex  (in d3b-replay) + 228  [0x104b68a54]
+                + ! : | + ! 1 mi_page_queue_find_free_ex  (in d3b-replay) + 1064  [0x104b6cddc]
+                + ! : | + 38 mi_malloc_aligned  (in d3b-replay) + 84,60,...  [0x104b76ad0,0x104b76ab8,...]
+                + ! : | + 9 mi_malloc_aligned  (in d3b-replay) + 72  [0x104b76ac4]
+                + ! : | + ! 9 OUTLINED_FUNCTION_0  (in d3b-replay) + 20  [0x104b6d370]
+                + ! : | + 8 mi_malloc_aligned  (in d3b-replay) + 24  [0x104b76a94]
+                + ! : | + ! 8 OUTLINED_FUNCTION_66  (in d3b-replay) + 0  [0x104b6d698]
+                + ! : | + 3 mi_malloc_aligned  (in d3b-replay) + 56  [0x104b76ab4]
+                + ! : | + ! 3 OUTLINED_FUNCTION_5  (in d3b-replay) + 16  [0x104b6d3c4]
+                + ! : | + 2 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 80  [0x104b69b20]
+                + ! : | + ! 2 mi_bin  (in d3b-replay) + 0,40  [0x104b65ef8,0x104b65f20]
+                + ! : | + 1 mi_malloc_aligned  (in d3b-replay) + 88  [0x104b76ad4]
+                + ! : | + ! 1 OUTLINED_FUNCTION_18  (in d3b-replay) + 0  [0x104b6d49c]
+                + ! : | + 1 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 0  [0x104b69ad0]
+                + ! : | 9 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 32  [0x104b70ac4]  mod.rs:570
+                + ! : | 6 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 84,88  [0x104b70af8,0x104b70afc]  mod.rs:583
+                + ! : | 4 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 0,4  [0x104b70aa4,0x104b70aa8]  mod.rs:565
+                + ! : | 2 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70adc]  mod.rs:573
+                + ! : | 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:586
+                + ! : 13 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 148  [0x104b70b38]  mod.rs:587
+                + ! : 10 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 20,32,...  [0x104b709f8,0x104b70a04,...]  mod.rs:198
+                + ! : 4 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 0  [0x104b709e4]  mod.rs:196
+                + ! 266 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 736  [0x104b26144]  mod.rs:0
+                + ! 261 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 832  [0x104b261a4]  topology.rs:809
+                + ! 78 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 768  [0x104b26164]  option.rs:0
+                + ! 71 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 352,388,...  [0x104b25fc4,0x104b25fe8,...]  topology.rs:798
+                + ! 67 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 120,208,...  [0x104b25edc,0x104b25f34,...]  topology.rs:797
+                + ! 49 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 452,444,...  [0x104b22004,0x104b21ffc,...]  lib.rs:359
+                + ! 33 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 28,24,...  [0x104b25e80,0x104b25e7c,...]  topology.rs:795
+                + ! 15 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 856  [0x104b261bc]  topology.rs:817
+                + ! 14 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 76  [0x104b70a30]  mod.rs:199
+                + ! 4 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 96  [0x104b25ec4]  topology.rs:0
+                + ! 4 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 60  [0x104b25ea0]  topology.rs:822
+                + ! 3 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 464  [0x104b26034]  topology.rs:799
+                + ! 2 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay) + 528  [0x104b22c5c]  configuration.rs:271
+                + 443 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5build  (in d3b-replay) + 424  [0x104b2e5ec]  lib.rs:424
+                + ! 220 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph8register  (in d3b-replay) + 104  [0x104b26770]
+                + ! : 175 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph8add_node  (in d3b-replay) + 156  [0x104b23210]  configuration.rs:229
+                + ! : | 61 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 160,48,...  [0x104b22170,0x104b22100,...]  lib.rs:327
+                + ! : | 54 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 396  [0x104b2225c]  lib.rs:327
+                + ! : | + 49 _RINvMs6_NtCsk9hRSqchupM_9hashbrown3rawINtB6_8RawTableTjjEE14reserve_rehashNCINvNtB8_3map11make_hasherjjINtNtCsjSAAZcmtVt9_4core4hash18BuildHasherDefaultINtCs2lmPNOoOUpP_13nohash_hasher12NoHashHasherjEEE0ECs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 144,204,...  [0x104b6fdcc,0x104b6fe08,...]  raw.rs:962
+                + ! : | + 5 _RINvMs6_NtCsk9hRSqchupM_9hashbrown3rawINtB6_8RawTableTjjEE14reserve_rehashNCINvNtB8_3map11make_hasherjjINtNtCsjSAAZcmtVt9_4core4hash18BuildHasherDefaultINtCs2lmPNOoOUpP_13nohash_hasher12NoHashHasherjEEE0ECs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 96  [0x104b6fd9c]  raw.rs:962
+                + ! : | +   5 _RINvMsa_NtCsk9hRSqchupM_9hashbrown3rawNtB6_13RawTableInner22fallible_with_capacityNtNtCs6eGy9mWPo3p_5alloc5alloc6GlobalECs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 244  [0x104b1e500]  raw.rs:1634
+                + ! : | +     5 mi_theap_malloc_zero_aligned_at_overalloc  (in d3b-replay) + 244  [0x104b69e24]
+                + ! : | +       3 _mi_malloc_generic  (in d3b-replay) + 692  [0x104b77c38]
+                + ! : | +       : 3 mi_huge_page_alloc  (in d3b-replay) + 152  [0x104b783c8]
+                + ! : | +       :   3 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | +       :     3 _mi_arenas_page_alloc  (in d3b-replay) + 116  [0x104b5c724]
+                + ! : | +       :       3 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | +       :         3 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | +       :           3 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | +       :             3 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | +       :               3 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | +       2 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : | +         1 mi_page_queue_find_free_ex  (in d3b-replay) + 88  [0x104b6ca0c]
+                + ! : | +         | 1 _mi_theap_collect_retired  (in d3b-replay) + 344  [0x104b665f4]
+                + ! : | +         |   1 _mi_theap_collect_retired.cold.1  (in d3b-replay) + 96  [0x104b78b34]
+                + ! : | +         |     1 _mi_arenas_page_free  (in d3b-replay) + 736  [0x104b76dc4]
+                + ! : | +         |       1 _mi_arenas_free  (in d3b-replay) + 176  [0x104b5ce9c]
+                + ! : | +         |         1 mi_arena_schedule_purge  (in d3b-replay) + 116  [0x104b5d198]
+                + ! : | +         |           1 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : | +         |             1 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : | +         |               1 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : | +         |                 1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : | +         |                   1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x188c8a10c]
+                + ! : | +         1 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : | +           1 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | +             1 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : | +               1 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | +                 1 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | +                   1 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | +                     1 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | +                       1 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | 26 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 432  [0x104b22280]  lib.rs:329
+                + ! : | + 25 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecINtNtB7_3vec3VecjEE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b708fc]  mod.rs:198
+                + ! : | + ! 25 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                + ! : | + !   16 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                + ! : | + !   : 16 _platform_memmove  (in libsystem_platform.dylib) + 88  [0x188cd73b8]
+                + ! : | + !   9 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                + ! : | + !     9 _mi_malloc_generic  (in d3b-replay) + 692  [0x104b77c38]
+                + ! : | + !       9 mi_huge_page_alloc  (in d3b-replay) + 152  [0x104b783c8]
+                + ! : | + !         9 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : | + !           9 _mi_arenas_page_alloc  (in d3b-replay) + 116  [0x104b5c724]
+                + ! : | + !             9 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : | + !               9 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : | + !                 9 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : | + !                   9 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : | + !                     9 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : | + 1 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecINtNtB7_3vec3VecjEE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 20  [0x104b708d8]  mod.rs:198
+                + ! : | 25 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 232,256,...  [0x104b221b8,0x104b221d0,...]  lib.rs:330
+                + ! : | 8 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 172  [0x104b2217c]  lib.rs:329
+                + ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 168  [0x104b22178]  lib.rs:328
+                + ! : 25 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph8add_node  (in d3b-replay) + 24  [0x104b2318c]  configuration.rs:220
+                + ! : 19 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 328,324  [0x104b22218,0x104b22214]  lib.rs:335
+                + ! : 1 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph8add_node  (in d3b-replay) + 148  [0x104b23208]  configuration.rs:229
+                + ! 181 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph8register  (in d3b-replay) + 68  [0x104b2674c]
+                + ! : 102 _RNvMs1_NtCsk9hRSqchupM_9hashbrown3mapINtB5_7HashMapyNtNtCs2KtJWdlgZWL_12knotrel_core8topology10NodeRecordNtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE6insertBS_  (in d3b-replay) + 396  [0x104b23910]
+                + ! : | 89 _RINvMs6_NtCsk9hRSqchupM_9hashbrown3rawINtB6_8RawTableTyNtNtCs2KtJWdlgZWL_12knotrel_core8topology10NodeRecordEE14reserve_rehashNCINvNtB8_3map11make_hasheryBR_NtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE0EBV_  (in d3b-replay) + 164,228,...  [0x104b70168,0x104b701a8,...]  raw.rs:962
+                + ! : | 13 _RINvMs6_NtCsk9hRSqchupM_9hashbrown3rawINtB6_8RawTableTyNtNtCs2KtJWdlgZWL_12knotrel_core8topology10NodeRecordEE14reserve_rehashNCINvNtB8_3map11make_hasheryBR_NtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE0EBV_  (in d3b-replay) + 96  [0x104b70124]  raw.rs:962
+                + ! : |   12 _RINvMsa_NtCsk9hRSqchupM_9hashbrown3rawNtB6_13RawTableInner22fallible_with_capacityNtNtCs6eGy9mWPo3p_5alloc5alloc6GlobalECs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 244  [0x104b1e500]  raw.rs:1634
+                + ! : |   ! 12 mi_theap_malloc_zero_aligned_at_overalloc  (in d3b-replay) + 244  [0x104b69e24]
+                + ! : |   !   9 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                + ! : |   !   : 9 mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+                + ! : |   !   :   9 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : |   !   :     9 mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+                + ! : |   !   :       9 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : |   !   :         9 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : |   !   :           9 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : |   !   :             9 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : |   !   :               9 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : |   !   2 _mi_malloc_generic  (in d3b-replay) + 692  [0x104b77c38]
+                + ! : |   !   : 2 mi_huge_page_alloc  (in d3b-replay) + 152  [0x104b783c8]
+                + ! : |   !   :   2 mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+                + ! : |   !   :     2 _mi_arenas_page_alloc  (in d3b-replay) + 116  [0x104b5c724]
+                + ! : |   !   :       2 mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+                + ! : |   !   :         2 mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+                + ! : |   !   :           2 mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+                + ! : |   !   :             2 mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+                + ! : |   !   :               2 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                + ! : |   !   1 _mi_malloc_generic  (in d3b-replay) + 448  [0x104b77b44]
+                + ! : |   !     1 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                + ! : |   !       1 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                + ! : |   !         1 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                + ! : |   !           1 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                + ! : |   !             1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                + ! : |   !               1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x188c8a10c]
+                + ! : |   1 _RINvMsa_NtCsk9hRSqchupM_9hashbrown3rawNtB6_13RawTableInner22fallible_with_capacityNtNtCs6eGy9mWPo3p_5alloc5alloc6GlobalECs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 312  [0x104b1e544]  raw.rs:1638
+                + ! : |     1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x188cd70d8]
+                + ! : 79 _RNvMs1_NtCsk9hRSqchupM_9hashbrown3mapINtB5_7HashMapyNtNtCs2KtJWdlgZWL_12knotrel_core8topology10NodeRecordNtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE6insertBS_  (in d3b-replay) + 100,28,...  [0x104b237e8,0x104b237a0,...]
+                + ! 26 _RNvMs1_NtCsk9hRSqchupM_9hashbrown3mapINtB5_7HashMapyNtNtCs2KtJWdlgZWL_12knotrel_core8topology10NodeRecordNtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE6insertBS_  (in d3b-replay) + 368,364  [0x104b238f4,0x104b238f0]
+                + ! 10 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph8add_node  (in d3b-replay) + 196,192  [0x104b23238,0x104b23234]  configuration.rs:233
+                + ! 6 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph8register  (in d3b-replay) + 40,44  [0x104b26730,0x104b26734]
+                + 65 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 84,72,...  [0x104b25eb8,0x104b25eac,...]  topology.rs:822
+                + 27 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5build  (in d3b-replay) + 268,336,...  [0x104b2e550,0x104b2e594,...]  lib.rs:424
+                + 14 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5build  (in d3b-replay) + 472,444  [0x104b2e61c,0x104b2e600]  lib.rs:426
+                + 12 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph8register  (in d3b-replay) + 132  [0x104b2678c]
+                + 10 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5build  (in d3b-replay) + 424  [0x104b2e5ec]  lib.rs:423
+                + 5 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5build  (in d3b-replay) + 460,468  [0x104b2e610,0x104b2e618]  lib.rs:427
+                392 _RNvCsGD37OsmRR2_10d3b_replay4main  (in d3b-replay) + 13300  [0x104b18d50]  main.rs:244
+                + 392 _RNvCsGD37OsmRR2_10d3b_replay16replay_lifecycle  (in d3b-replay) + 48  [0x104b1592c]  main.rs:151
+                +   138 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 416  [0x104b2e3c0]  lib.rs:438
+                +   ! 97 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 664  [0x104b25074]  topology.rs:934
+                +   ! : 93 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 72  [0x104b2399c]  topology.rs:856
+                +   ! : | 40 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 648  [0x104b21da0]  lib.rs:377
+                +   ! : | + 40 _platform_memmove  (in libsystem_platform.dylib) + 436,420,...  [0x188cd7514,0x188cd7504,...]
+                +   ! : | 29 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 508,476,...  [0x104b21d14,0x104b21cf4,...]  lib.rs:375
+                +   ! : | 9 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 368,396,...  [0x104b21c88,0x104b21ca4,...]  lib.rs:372
+                +   ! : | 7 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 44,232,...  [0x104b21b44,0x104b21c00,...]  lib.rs:369
+                +   ! : | 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 548  [0x104b21d3c]  lib.rs:0
+                +   ! : | 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 604  [0x104b21d74]  lib.rs:376
+                +   ! : | + 2 _platform_memmove  (in libsystem_platform.dylib) + 460  [0x188cd752c]
+                +   ! : | + 1 DYLD-STUB$$memmove  (in d3b-replay) + 4  [0x104b79144]
+                +   ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 16  [0x104b21b28]  lib.rs:367
+                +   ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 604  [0x104b21d74]  lib.rs:376
+                +   ! : 2 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 20  [0x104b23968]  topology.rs:856
+                +   ! : 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 536  [0x104b21d30]  lib.rs:380
+                +   ! : 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 8  [0x104b2395c]  topology.rs:853
+                +   ! 15 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 528  [0x104b24fec]  topology.rs:927
+                +   ! : 13 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70a7c]  mod.rs:198
+                +   ! : | 11 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                +   ! : | + 4 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                +   ! : | + ! 2 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                +   ! : | + ! : 2 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                +   ! : | + ! :   1 _mi_arenas_collect  (in d3b-replay) + 584  [0x104b5d820]
+                +   ! : | + ! :   | 1 _mi_bitmap_forall_setc_ranges  (in d3b-replay) + 652  [0x104b60b30]
+                +   ! : | + ! :   |   1 mi_arena_try_purge_visitor  (in d3b-replay) + 104  [0x104b6b594]
+                +   ! : | + ! :   |     1 mi_arena_try_purge_range  (in d3b-replay) + 112  [0x104b6b63c]
+                +   ! : | + ! :   |       1 _mi_os_purge_ex  (in d3b-replay) + 332  [0x104b65e5c]
+                +   ! : | + ! :   |         1 mi_os_decommit_ex  (in d3b-replay) + 152  [0x104b65b1c]
+                +   ! : | + ! :   |           1 madvise  (in libsystem_kernel.dylib) + 8  [0x188c8c9b0]
+                +   ! : | + ! :   1 _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+                +   ! : | + ! :     1 _mi_arenas_page_abandon  (in d3b-replay) + 56  [0x104b76e24]
+                +   ! : | + ! :       1 OUTLINED_FUNCTION_99  (in d3b-replay) + 0  [0x104b6d804]
+                +   ! : | + ! 2 _mi_malloc_generic  (in d3b-replay) + 136,452  [0x104b77a0c,0x104b77b48]
+                +   ! : | + 4 _mi_theap_realloc_zero  (in d3b-replay) + 364,220  [0x104b76a14,0x104b76984]
+                +   ! : | + 3 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                +   ! : | +   3 _platform_memmove  (in libsystem_platform.dylib) + 220,420,...  [0x188cd743c,0x188cd7504,...]
+                +   ! : | 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 32  [0x104b70ac4]  mod.rs:570
+                +   ! : | 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+                +   ! : |   1 mi_malloc_aligned  (in d3b-replay) + 32  [0x104b76a9c]
+                +   ! : 1 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 20  [0x104b70a58]  mod.rs:198
+                +   ! : 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 148  [0x104b70b38]  mod.rs:587
+                +   ! 8 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 328,424,...  [0x104b24f24,0x104b24f84,...]  topology.rs:926
+                +   ! 7 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 252  [0x104b24ed8]  topology.rs:924
+                +   ! 3 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 300  [0x104b24f08]  topology.rs:920
+                +   ! 3 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 564,648  [0x104b25010,0x104b25064]  topology.rs:930
+                +   ! 2 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 44,152  [0x104b24e08,0x104b24e74]  topology.rs:917
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 672  [0x104b2507c]  non_null.rs:0
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 320  [0x104b24f1c]  topology.rs:925
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay) + 508  [0x104b24fd8]  topology.rs:927
+                +   93 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 452  [0x104b2e3e4]  lib.rs:440
+                +   ! 42 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay) + 680  [0x104b23d18]  topology.rs:1033
+                +   ! : 42 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_10NodeRecord9remove_at  (in d3b-replay) + 68  [0x104b23584]  topology.rs:233
+                +   ! :   42 _platform_memmove  (in libsystem_platform.dylib) + 436,24,...  [0x188cd7514,0x188cd7378,...]
+                +   ! 27 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay) + 736  [0x104b23d50]  topology.rs:1038
+                +   ! : 26 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 72  [0x104b2399c]  topology.rs:856
+                +   ! : | 13 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 648  [0x104b21da0]  lib.rs:377
+                +   ! : | + 12 _platform_memmove  (in libsystem_platform.dylib) + 436,24,...  [0x188cd7514,0x188cd7378,...]
+                +   ! : | + 1 DYLD-STUB$$memmove  (in d3b-replay) + 4  [0x104b79144]
+                +   ! : | 6 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 420,356,...  [0x104b21cbc,0x104b21c7c,...]  lib.rs:372
+                +   ! : | 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 476,456  [0x104b21cf4,0x104b21ce0]  lib.rs:375
+                +   ! : | 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 604  [0x104b21d74]  lib.rs:376
+                +   ! : | + 3 _platform_memmove  (in libsystem_platform.dylib) + 12,436,...  [0x188cd736c,0x188cd7514,...]
+                +   ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 16  [0x104b21b28]  lib.rs:367
+                +   ! : 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 532  [0x104b21d2c]  lib.rs:380
+                +   ! 16 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay) + 648,612,...  [0x104b23cf8,0x104b23cd4,...]  topology.rs:1032
+                +   ! 2 mi_free  (in d3b-replay) + 92  [0x104b76848]
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 116  [0x104b239c8]  topology.rs:860
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay) + 348  [0x104b23bcc]  topology.rs:1018
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay) + 476  [0x104b23c4c]  topology.rs:1029
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay) + 768  [0x104b23d70]  topology.rs:1042
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay) + 948  [0x104b23e24]  topology.rs:1047
+                +   ! 1 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                +   !   1 OUTLINED_FUNCTION_12  (in d3b-replay) + 16  [0x104b6d454]
+                +   74 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 100  [0x104b2e284]  lib.rs:435
+                +   ! 25 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1460,1496,...  [0x104b26418,0x104b2643c,...]  topology.rs:820
+                +   ! 21 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1960  [0x104b2660c]  topology.rs:820
+                +   ! : 5 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 476  [0x104b2201c]  lib.rs:355
+                +   ! : | 4 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70a7c]  mod.rs:198
+                +   ! : | + 2 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+                +   ! : | + ! 2 mi_malloc_aligned  (in d3b-replay) + 24,56  [0x104b76a94,0x104b76ab4]
+                +   ! : | + 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 4  [0x104b70aa8]  mod.rs:565
+                +   ! : | + 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                +   ! : | +   1 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                +   ! : | +     1 _mi_malloc_generic  (in d3b-replay) + 220  [0x104b77a60]
+                +   ! : | 1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 148  [0x104b70b38]  mod.rs:587
+                +   ! : 4 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 568  [0x104b22078]  lib.rs:356
+                +   ! : | 4 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70a7c]  mod.rs:198
+                +   ! : |   3 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                +   ! : |   + 2 _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+                +   ! : |   + ! 1 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                +   ! : |   + ! : 1 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                +   ! : |   + ! :   1 _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+                +   ! : |   + ! :     1 _mi_arenas_page_abandon  (in d3b-replay) + 28  [0x104b76e08]
+                +   ! : |   + ! :       1 OUTLINED_FUNCTION_94  (in d3b-replay) + 0  [0x104b6d7cc]
+                +   ! : |   + ! 1 _mi_malloc_generic  (in d3b-replay) + 160  [0x104b77a24]
+                +   ! : |   + 1 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                +   ! : |   1 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 4  [0x104b70aa8]  mod.rs:565
+                +   ! : 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 516  [0x104b22044]  lib.rs:355
+                +   ! : | 3 _platform_memmove  (in libsystem_platform.dylib) + 12,464,...  [0x188cd736c,0x188cd7530,...]
+                +   ! : 3 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 392  [0x104b21fc8]  lib.rs:356
+                +   ! : | 3 _platform_memmove  (in libsystem_platform.dylib) + 668,684  [0x188cd75fc,0x188cd760c]
+                +   ! : 2 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 84  [0x104b21e94]  lib.rs:348
+                +   ! : | 2 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay) + 40,80  [0x104b21964,0x104b2198c]  lib.rs:311
+                +   ! : 2 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 124,180  [0x104b21ebc,0x104b21ef4]  lib.rs:349
+                +   ! : 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay) + 464  [0x104b22010]  lib.rs:0
+                +   ! : 1 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70a90]  mod.rs:199
+                +   ! 12 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1576  [0x104b2648c]  topology.rs:820
+                +   ! : 11 _platform_memmove  (in libsystem_platform.dylib) + 12,676,...  [0x188cd736c,0x188cd7604,...]
+                +   ! : 1 DYLD-STUB$$memmove  (in d3b-replay) + 4  [0x104b79144]
+                +   ! 7 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 2044  [0x104b26660]  topology.rs:820
+                +   ! : 7 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 56  [0x104b70a1c]  mod.rs:198
+                +   ! :   7 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+                +   ! :     4 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 428  [0x104b69c7c]
+                +   ! :     | 4 _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+                +   ! :     |   3 mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+                +   ! :     |   + 2 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                +   ! :     |   + ! 2 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                +   ! :     |   + !   2 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                +   ! :     |   + !     2 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                +   ! :     |   + !       2 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                +   ! :     |   + !         2 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x188c8a10c]
+                +   ! :     |   + 1 _mi_arenas_collect  (in d3b-replay) + 96  [0x104b5d638]
+                +   ! :     |   1 mi_page_queue_find_free_ex  (in d3b-replay) + 256  [0x104b6cab4]
+                +   ! :     1 mi_malloc_aligned  (in d3b-replay) + 24  [0x104b76a94]
+                +   ! :     | 1 OUTLINED_FUNCTION_66  (in d3b-replay) + 0  [0x104b6d698]
+                +   ! :     1 mi_malloc_aligned  (in d3b-replay) + 24  [0x104b76a94]
+                +   ! :     1 mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 80  [0x104b69b20]
+                +   ! :       1 mi_bin  (in d3b-replay) + 40  [0x104b65f20]
+                +   ! 4 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 1196  [0x104b26310]  topology.rs:820
+                +   ! : 3 _platform_memmove  (in libsystem_platform.dylib) + 484,464  [0x188cd7544,0x188cd7530]
+                +   ! : 1 DYLD-STUB$$memmove  (in d3b-replay) + 4  [0x104b79144]
+                +   ! 2 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 772  [0x104b26168]  topology.rs:805
+                +   ! 2 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 2092  [0x104b26690]  topology.rs:820
+                +   ! : 2 _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay) + 56  [0x104b70a1c]  mod.rs:198
+                +   ! :   2 _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+                +   ! :     1 _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+                +   ! :     | 1 DYLD-STUB$$memcpy  (in d3b-replay) + 4  [0x104b79138]
+                +   ! :     1 _mi_theap_realloc_zero  (in d3b-replay) + 352  [0x104b76a08]
+                +   ! :       1 mi_free_try_collect_mt  (in d3b-replay) + 172  [0x104b696fc]
+                +   ! :         1 mi_abandoned_page_try_reclaim  (in d3b-replay) + 424  [0x104b699a0]
+                +   ! :           1 _mi_theap_page_reclaim  (in d3b-replay) + 316  [0x104b7777c]
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay) + 388  [0x104b25fe8]  topology.rs:798
+                +   59 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 168  [0x104b2e2c8]  lib.rs:439
+                +   ! 28 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 1052  [0x104b25604]  topology.rs:1002
+                +   ! : 28 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 72  [0x104b2399c]  topology.rs:856
+                +   ! :   16 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 604  [0x104b21d74]  lib.rs:376
+                +   ! :   | 16 _platform_memmove  (in libsystem_platform.dylib) + 436,420,...  [0x188cd7514,0x188cd7504,...]
+                +   ! :   9 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 648  [0x104b21da0]  lib.rs:377
+                +   ! :   | 9 _platform_memmove  (in libsystem_platform.dylib) + 436,420  [0x188cd7514,0x188cd7504]
+                +   ! :   2 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 456,552  [0x104b21ce0,0x104b21d40]  lib.rs:375
+                +   ! :   1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 368  [0x104b21c88]  lib.rs:372
+                +   ! 13 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 484,448,...  [0x104b253cc,0x104b253a8,...]  topology.rs:975
+                +   ! 7 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 544  [0x104b25408]  topology.rs:978
+                +   ! 3 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 292,316  [0x104b2530c,0x104b25324]  topology.rs:972
+                +   ! 3 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 512  [0x104b253e8]  topology.rs:980
+                +   ! 3 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 616,592  [0x104b25450,0x104b25438]  topology.rs:982
+                +   ! 2 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 140  [0x104b25274]  topology.rs:968
+                +   11 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 384  [0x104b2e3a0]  lib.rs:436
+                +   ! 5 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph3cut  (in d3b-replay) + 1044  [0x104b25e18]  topology.rs:895
+                +   ! : 4 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 72  [0x104b2399c]  topology.rs:856
+                +   ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 84  [0x104b21b6c]  lib.rs:369
+                +   ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 420  [0x104b21cbc]  lib.rs:372
+                +   ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 604  [0x104b21d74]  lib.rs:376
+                +   ! : | + 1 _platform_memmove  (in libsystem_platform.dylib) + 420  [0x188cd7504]
+                +   ! : | 1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay) + 648  [0x104b21da0]  lib.rs:377
+                +   ! : |   1 _platform_memmove  (in libsystem_platform.dylib) + 436  [0x188cd7514]
+                +   ! : 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay) + 8  [0x104b2395c]  topology.rs:853
+                +   ! 3 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph3cut  (in d3b-replay) + 716  [0x104b25cd0]  topology.rs:885
+                +   ! : 3 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_10NodeRecord9remove_at  (in d3b-replay) + 68  [0x104b23584]  topology.rs:233
+                +   ! :   3 _platform_memmove  (in libsystem_platform.dylib) + 24,428,...  [0x188cd7378,0x188cd750c,...]
+                +   ! 2 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph3cut  (in d3b-replay) + 996  [0x104b25de8]  topology.rs:890
+                +   ! : 2 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_10NodeRecord9remove_at  (in d3b-replay) + 68  [0x104b23584]  topology.rs:233
+                +   ! :   2 _platform_memmove  (in libsystem_platform.dylib) + 24,436  [0x188cd7378,0x188cd7514]
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph3cut  (in d3b-replay) + 916  [0x104b25d98]  topology.rs:888
+                +   6 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 144,40,...  [0x104b2e2b0,0x104b2e248,...]  lib.rs:433
+                +   2 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 20,392  [0x104b2e234,0x104b2e3a8]  lib.rs:0
+                +   2 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 256,260  [0x104b2e320,0x104b2e324]  lib.rs:434
+                +   1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay) + 228  [0x104b252cc]  topology.rs:1006
+                +   1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph8register  (in d3b-replay) + 132  [0x104b2678c]
+                +   1 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 480  [0x104b2e400]  lib.rs:434
+                +   ! 1 _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph8register  (in d3b-replay) + 104  [0x104b26770]
+                +   !   1 _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph8add_node  (in d3b-replay) + 156  [0x104b23210]  configuration.rs:229
+                +   !     1 _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay) + 80  [0x104b22120]  lib.rs:327
+                +   1 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 372  [0x104b2e394]  lib.rs:436
+                +   1 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 432  [0x104b2e3d0]  lib.rs:438
+                +   1 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 448  [0x104b2e3e0]  lib.rs:440
+                +   1 _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay) + 536  [0x104b2e438]  lib.rs:442
+                159 _RNvCsGD37OsmRR2_10d3b_replay4main  (in d3b-replay) + 13312  [0x104b18d5c]  main.rs:245
+                  65 mi_free  (in d3b-replay) + 76,56,...  [0x104b76838,0x104b76824,...]
+                  37 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                  ! 26 OUTLINED_FUNCTION_12  (in d3b-replay) + 16,4  [0x104b6d454,0x104b6d448]
+                  ! 11 mi_free  (in d3b-replay) + 8  [0x104b767f4]
+                  30 _RINvNtCsjSAAZcmtVt9_4core3ptr9drop_glueNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphECsGD37OsmRR2_10d3b_replay  (in d3b-replay) + 96,76,...  [0x104b136e8,0x104b136d4,...]  mod.rs:848
+                  21 _RINvNtCsjSAAZcmtVt9_4core3ptr9drop_glueNtNtCs2KtJWdlgZWL_12knotrel_core13configuration17ConnectivityGraphECsGD37OsmRR2_10d3b_replay  (in d3b-replay) + 148,160,...  [0x104b131c4,0x104b131d0,...]  mod.rs:848
+                  4 _RINvNtCsjSAAZcmtVt9_4core3ptr9drop_glueNtNtCs2KtJWdlgZWL_12knotrel_core13configuration17ConnectivityGraphECsGD37OsmRR2_10d3b_replay  (in d3b-replay) + 176  [0x104b131e0]  mod.rs:848
+                  ! 4 _mi_page_retire  (in d3b-replay) + 304  [0x104b6648c]
+                  !   3 _mi_page_retire.cold.1  (in d3b-replay) + 56  [0x104b78ac0]
+                  !   : 2 _mi_arenas_page_free  (in d3b-replay) + 736  [0x104b76dc4]
+                  !   : | 1 _mi_arenas_free  (in d3b-replay) + 176  [0x104b5ce9c]
+                  !   : | + 1 mi_arena_schedule_purge  (in d3b-replay) + 116  [0x104b5d198]
+                  !   : | +   1 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                  !   : | +     1 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                  !   : | +       1 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                  !   : | +         1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                  !   : | +           1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x188c8a10c]
+                  !   : | 1 _mi_arenas_free  (in d3b-replay) + 192  [0x104b5ceac]
+                  !   : |   1 mi_bbitmap_setN  (in d3b-replay) + 148  [0x104b5d344]
+                  !   : 1 _mi_arenas_page_free  (in d3b-replay) + 520  [0x104b76cec]
+                  !   :   1 mi_bitmap_clearN  (in d3b-replay) + 144  [0x104b5fe0c]
+                  !   1 _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+                  !     1 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                  !       1 _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+                  !         1 DYLD-STUB$$mach_boottime_usec  (in libsystem_c.dylib) + 8  [0x188bd5864]
+                  1 _RINvNtCsjSAAZcmtVt9_4core3ptr9drop_glueNtNtCs2KtJWdlgZWL_12knotrel_core13configuration17ConnectivityGraphECsGD37OsmRR2_10d3b_replay  (in d3b-replay) + 132  [0x104b131b4]  mod.rs:848
+                  ! 1 _mi_arenas_page_free  (in d3b-replay) + 736  [0x104b76dc4]
+                  !   1 _mi_arenas_free  (in d3b-replay) + 176  [0x104b5ce9c]
+                  !     1 mi_arena_schedule_purge  (in d3b-replay) + 116  [0x104b5d198]
+                  !       1 clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+                  !         1 _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+                  !           1 gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+                  !             1 __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+                  !               1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x188c8a10c]
+                  1 _RINvNtCsjSAAZcmtVt9_4core3ptr9drop_glueNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphECsGD37OsmRR2_10d3b_replay  (in d3b-replay) + 152  [0x104b13720]  mod.rs:848
+                    1 mi_free_try_collect_mt  (in d3b-replay) + 172  [0x104b696fc]
+                      1 mi_abandoned_page_try_reclaim  (in d3b-replay) + 424  [0x104b699a0]
+                        1 _mi_theap_page_reclaim  (in d3b-replay) + 256  [0x104b77740]
+
+Total number in stack (recursive counted multiple, when >=5):
+        25       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x188cd7360]
+        14       clock_gettime  (in libsystem_c.dylib) + 296  [0x188b6ae4c]
+        14       madvise  (in libsystem_kernel.dylib) + 0  [0x188c8c9a8]
+        13       __commpage_gettimeofday_internal  (in libsystem_kernel.dylib) + 44  [0x188c8bc24]
+        13       _mach_boottime_usec  (in libsystem_c.dylib) + 64  [0x188b904c8]
+        13       _mi_malloc_generic  (in d3b-replay) + 468  [0x104b77b58]
+        13       gettimeofday  (in libsystem_c.dylib) + 56  [0x188b62dc0]
+        13       mach_absolute_time  (in libsystem_kernel.dylib) + 0  [0x188c8a0a0]
+        12       mi_bin  (in d3b-replay) + 0  [0x104b65ef8]
+        11       _mi_arenas_collect  (in d3b-replay) + 120  [0x104b5d650]
+        11       _mi_malloc_generic  (in d3b-replay) + 0  [0x104b77984]
+        11       mi_arena_try_alloc_at  (in d3b-replay) + 772  [0x104b6a840]
+        11       mi_arenas_page_alloc_fresh  (in d3b-replay) + 240  [0x104b6a9cc]
+        11       mi_arenas_try_alloc  (in d3b-replay) + 92  [0x104b5c464]
+        11       mi_arenas_try_find_free  (in d3b-replay) + 344  [0x104b6a02c]
+        11       mi_page_fresh_alloc  (in d3b-replay) + 40  [0x104b6c788]
+        11       mi_page_queue_find_free_ex  (in d3b-replay) + 696  [0x104b6cc6c]
+        10       mi_free  (in d3b-replay) + 0  [0x104b767ec]
+        10       mi_page_queue_find_free_ex  (in d3b-replay) + 0  [0x104b6c9b4]
+        10       mi_page_queue_remove  (in d3b-replay) + 0  [0x104b66084]
+        9       _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 76  [0x104b70af0]  mod.rs:580
+        8       DYLD-STUB$$memmove  (in d3b-replay) + 0  [0x104b79140]
+        8       _mi_theap_realloc_zero  (in d3b-replay) + 384  [0x104b76a28]
+        8       mi_arenas_page_regular_alloc  (in d3b-replay) + 348  [0x104b5c9e8]
+        8       mi_page_free_list_extend  (in d3b-replay) + 0  [0x104b6c6fc]
+        8       mi_page_queue_find_free_ex  (in d3b-replay) + 1028  [0x104b6cdb8]
+        8       mi_page_queue_find_free_ex  (in d3b-replay) + 108  [0x104b6ca20]
+        8       mi_page_queue_find_free_ex  (in d3b-replay) + 976  [0x104b6cd84]
+        7       _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 0  [0x104b70aa4]  mod.rs:587
+        7       _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 100  [0x104b70b08]  mod.rs:583
+        7       _mi_page_abandon  (in d3b-replay) + 148  [0x104b77978]
+        7       _mi_theap_page_reclaim  (in d3b-replay) + 0  [0x104b77640]
+        7       _mi_theap_realloc_zero  (in d3b-replay) + 348  [0x104b76a04]
+        7       mi_malloc_aligned  (in d3b-replay) + 0  [0x104b76a7c]
+        6       OUTLINED_FUNCTION_12  (in d3b-replay) + 0  [0x104b6d444]
+        6       _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 0  [0x104b70aa4]  mod.rs:565
+        6       _mach_boottime_usec  (in libsystem_c.dylib) + 32  [0x188b904a8]
+        6       _mi_theap_realloc_zero  (in d3b-replay) + 0  [0x104b768a8]
+        6       mi_abandoned_page_try_reclaim  (in d3b-replay) + 424  [0x104b699a0]
+        6       mi_free  (in d3b-replay) + 8  [0x104b767f4]
+        6       mi_free_try_collect_mt  (in d3b-replay) + 172  [0x104b696fc]
+        6       mi_page_queue_push  (in d3b-replay) + 0  [0x104b6c7f8]
+        5       DYLD-STUB$$mach_boottime_usec  (in libsystem_c.dylib) + 0  [0x188bd585c]
+        5       OUTLINED_FUNCTION_66  (in d3b-replay) + 0  [0x104b6d698]
+        5       _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 56  [0x104b70a7c]  mod.rs:198
+        5       _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay) + 0  [0x104b70aa4]  mod.rs:570
+        5       _mach_boottime_usec  (in libsystem_c.dylib) + 0  [0x188b90488]
+        5       _mi_arenas_collect  (in d3b-replay) + 0  [0x104b5d5d8]
+        5       _mi_malloc_generic  (in d3b-replay) + 104  [0x104b779ec]
+        5       _mi_theap_realloc_zero  (in d3b-replay) + 352  [0x104b76a08]
+        5       mi_abandoned_page_try_reclaim  (in d3b-replay) + 0  [0x104b697f8]
+        5       mi_malloc_aligned  (in d3b-replay) + 24  [0x104b76a94]
+        5       mi_theap_malloc_zero_aligned_at_generic  (in d3b-replay) + 428  [0x104b69c7c]
+
+Sort by top of stack, same collapsed (when >= 5):
+        _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph4link  (in d3b-replay)        3890
+        _platform_memmove  (in libsystem_platform.dylib)        1659
+        _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph4link  (in d3b-replay)        533
+        _RNvMs8_NtCs6eGy9mWPo3p_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay)        225
+        _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph19get_or_insert_index  (in d3b-replay)        192
+        mi_malloc_aligned  (in d3b-replay)        160
+        mi_free  (in d3b-replay)        126
+        _mi_theap_realloc_zero  (in d3b-replay)        123
+        _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph8add_node  (in d3b-replay)        115
+        _RNvMs1_NtCsk9hRSqchupM_9hashbrown3mapINtB5_7HashMapyNtNtCs2KtJWdlgZWL_12knotrel_core8topology10NodeRecordNtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE6insertBS_  (in d3b-replay)        105
+        _RINvMs6_NtCsk9hRSqchupM_9hashbrown3rawINtB6_8RawTableTyNtNtCs2KtJWdlgZWL_12knotrel_core8topology10NodeRecordEE14reserve_rehashNCINvNtB8_3map11make_hasheryBR_NtCsdO0sUrGJH62_10rustc_hash13FxBuildHasherE0EBV_  (in d3b-replay)        89
+        mach_absolute_time  (in libsystem_kernel.dylib)        80
+        DYLD-STUB$$memmove  (in d3b-replay)        67
+        _RNvMs1_Cs2KtJWdlgZWL_12knotrel_coreNtB5_5Graph3cut  (in d3b-replay)        67
+        _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph4link  (in d3b-replay)        66
+        madvise  (in libsystem_kernel.dylib)        66
+        _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5build  (in d3b-replay)        56
+        mi_page_queue_find_free_ex  (in d3b-replay)        52
+        _mi_malloc_generic  (in d3b-replay)        51
+        _RINvMs6_NtCsk9hRSqchupM_9hashbrown3rawINtB6_8RawTableTjjEE14reserve_rehashNCINvNtB8_3map11make_hasherjjINtNtCsjSAAZcmtVt9_4core4hash18BuildHasherDefaultINtCs2lmPNOoOUpP_13nohash_hasher12NoHashHasherjEEE0ECs2KtJWdlgZWL_12knotrel_core  (in d3b-replay)        49
+        _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCs2KtJWdlgZWL_12knotrel_core  (in d3b-replay)        48
+        _RNvMs7_NtCs6eGy9mWPo3p_5alloc7raw_vecINtB5_6RawVecNtNtCs2KtJWdlgZWL_12knotrel_core8topology9IncidenceE8grow_oneBQ_  (in d3b-replay)        47
+        OUTLINED_FUNCTION_12  (in d3b-replay)        36
+        _RNvMs1_NtCs2KtJWdlgZWL_12knotrel_core13configurationNtB5_17ConnectivityGraph8add_node  (in d3b-replay)        36
+        _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph16set_edge_enabled  (in d3b-replay)        32
+        _RINvNtCsjSAAZcmtVt9_4core3ptr9drop_glueNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphECsGD37OsmRR2_10d3b_replay  (in d3b-replay)        30
+        OUTLINED_FUNCTION_66  (in d3b-replay)        29
+        OUTLINED_FUNCTION_5  (in d3b-replay)        26
+        _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph15set_node_active  (in d3b-replay)        26
+        OUTLINED_FUNCTION_0  (in d3b-replay)        22
+        mi_page_queue_remove  (in d3b-replay)        22
+        _RINvNtCsjSAAZcmtVt9_4core3ptr9drop_glueNtNtCs2KtJWdlgZWL_12knotrel_core13configuration17ConnectivityGraphECsGD37OsmRR2_10d3b_replay  (in d3b-replay)        21
+        mi_page_free_list_extend  (in d3b-replay)        21
+        _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph11remove_node  (in d3b-replay)        20
+        _mi_theap_page_reclaim  (in d3b-replay)        20
+        _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph8register  (in d3b-replay)        19
+        OUTLINED_FUNCTION_50  (in d3b-replay)        16
+        mi_abandoned_page_try_reclaim  (in d3b-replay)        16
+        mi_bin  (in d3b-replay)        16
+        _mi_arenas_page_unabandon  (in d3b-replay)        15
+        _RNvXs2_CscQGJmcOfLHy_16lifecycle_probesNtNtCs2KtJWdlgZWL_12knotrel_core8topology14LifecycleGraphNtB5_7Subject5apply  (in d3b-replay)        14
+        _mach_boottime_usec  (in libsystem_c.dylib)        12
+        _mi_arenas_page_abandon  (in d3b-replay)        10
+        OUTLINED_FUNCTION_23  (in d3b-replay)        9
+        mi_realloc_aligned  (in d3b-replay)        9
+        __commpage_gettimeofday_internal  (in libsystem_kernel.dylib)        8
+        gettimeofday  (in libsystem_c.dylib)        8
+        DYLD-STUB$$mach_boottime_usec  (in libsystem_c.dylib)        7
+        mi_page_queue_push  (in d3b-replay)        7
+        mi_page_thread_collect_to_local  (in d3b-replay)        7
+        _mi_arenas_collect  (in d3b-replay)        6
+        mi_theap_collect_ex  (in d3b-replay)        6
+        OUTLINED_FUNCTION_18  (in d3b-replay)        5
+        _RNvMs2_NtCs2KtJWdlgZWL_12knotrel_core8topologyNtB5_14LifecycleGraph10engine_cut  (in d3b-replay)        5
+
+Binary Images:
+       0x104b0c000 -        0x104b92417 +d3b-replay (0) <211F95F2-7B40-3498-A192-BA557E2DA2BE> /tmp/*/d3b-replay
+       0x188868000 -        0x1888bab4b  libobjc.A.dylib (951.7) <FF1D8AE4-ABEF-35F1-A30A-1183B9CB414F> /usr/lib/libobjc.A.dylib
+       0x1888bb000 -        0x1888efd07  libdyld.dylib (1378) <B147D877-D0C2-388F-B38D-D3132E39905F> /usr/lib/system/libdyld.dylib
+       0x1888f0000 -        0x188996217  dyld (1.0.0 - 1378) <F924BDD3-4365-3466-9580-8B1B3FA8F857> /usr/lib/dyld
+       0x188997000 -        0x18899a228  libsystem_blocks.dylib (96) <CC947089-488D-316B-A9C7-46DEC0F73145> /usr/lib/system/libsystem_blocks.dylib
+       0x18899b000 -        0x1889ef55f  libxpc.dylib (3102.120.13) <C40FCAE8-7A17-3D82-87CB-3DA4802ADEF1> /usr/lib/system/libxpc.dylib
+       0x1889f0000 -        0x188a109ff  libsystem_trace.dylib (1861.120.4) <D0FABAB3-5AE7-3F10-8C62-60CBF5D70850> /usr/lib/system/libsystem_trace.dylib
+       0x188a11000 -        0x188abf5f7  libcorecrypto.dylib (1922.121.1) <A01A158D-6FE7-3B1C-A2C4-6BCB90D7314A> /usr/lib/system/libcorecrypto.dylib
+       0x188ac0000 -        0x188b101d7  libsystem_malloc.dylib (812.100.31) <5FAE4807-4D2B-3A95-A63A-DD96D3DA11B4> /usr/lib/system/libsystem_malloc.dylib
+       0x188b11000 -        0x188b5823f  libdispatch.dylib (1542.100.32) <F071EFE4-299F-3089-ACC4-0025B8FFB52A> /usr/lib/system/libdispatch.dylib
+       0x188b59000 -        0x188b5bffb  libsystem_featureflags.dylib (103) <71FCFFBD-85F8-3365-AFE0-BECEA4369122> /usr/lib/system/libsystem_featureflags.dylib
+       0x188b5c000 -        0x188bdcd9f  libsystem_c.dylib (1752.120.2) <694B7881-1BF3-3D0F-8F19-B50AE4E8EF8A> /usr/lib/system/libsystem_c.dylib
+       0x188bdd000 -        0x188c6dae7  libc++.1.dylib (2100.43) <5013C0F8-84A9-3B56-9FEB-C353816A750F> /usr/lib/libc++.1.dylib
+       0x188c6e000 -        0x188c8875f  libc++abi.dylib (2100.43) <E482D257-E5A0-3816-BD97-7B39342958DA> /usr/lib/libc++abi.dylib
+       0x188c89000 -        0x188cc62af  libsystem_kernel.dylib (12377.121.10) <FCA53B98-3D6A-38B2-A0EC-DF0F7E05F171> /usr/lib/system/libsystem_kernel.dylib
+       0x188cc7000 -        0x188cd3b3b  libsystem_pthread.dylib (539.100.4) <4F33683C-18C8-39A1-800B-2E3BD43BCC13> /usr/lib/system/libsystem_pthread.dylib
+       0x188cd4000 -        0x188cdc963  libsystem_platform.dylib (375.120.2) <160FD864-8D15-36FC-9E97-9725388CFAFE> /usr/lib/system/libsystem_platform.dylib
+       0x188cdd000 -        0x188d0c6eb  libsystem_info.dylib (600) <3D62F2D9-F516-31BF-83C7-E203D872300B> /usr/lib/system/libsystem_info.dylib
+       0x18cca4000 -        0x18ccade5f  libsystem_darwin.dylib (1752.120.2) <8858F025-745A-388E-9544-080781CC9A69> /usr/lib/system/libsystem_darwin.dylib
+       0x18d10f000 -        0x18d1211b6  libsystem_notify.dylib (348.120.4) <64D76451-1E0C-369B-A631-54DA3140E083> /usr/lib/system/libsystem_notify.dylib
+       0x18f3dc000 -        0x18f3f6f7b  libsystem_networkextension.dylib (2226.121.1) <0331EE20-A1FB-3C0D-990A-F65939CFF505> /usr/lib/system/libsystem_networkextension.dylib
+       0x18f479000 -        0x18f490fdf  libsystem_asl.dylib (406) <F40838DF-2F15-3F62-970F-DEE25706BF1B> /usr/lib/system/libsystem_asl.dylib
+       0x191037000 -        0x19103f387  libsystem_symptoms.dylib (2169.120.7) <F5029F5C-1BF3-31C7-892E-BC8606AC829E> /usr/lib/system/libsystem_symptoms.dylib
+       0x1952db000 -        0x195313257  libsystem_containermanager.dylib (725.120.2) <518BE44D-AA31-31E6-B44B-A37AD5E47040> /usr/lib/system/libsystem_containermanager.dylib
+       0x1966ec000 -        0x1966f05d7  libsystem_configuration.dylib (1405.120.5) <0F7BBC1C-3D50-3E59-A31F-E4672A80BCEB> /usr/lib/system/libsystem_configuration.dylib
+       0x1966f1000 -        0x1966f78cf  libsystem_sandbox.dylib (2680.120.12) <EC3A75EA-44C0-3A0B-9BF7-71C117B0A9C6> /usr/lib/system/libsystem_sandbox.dylib
+       0x197d4b000 -        0x197d4e1fb  libquarantine.dylib (196.120.2) <5849009B-ACA3-3796-94C4-BBDF8D300EBA> /usr/lib/system/libquarantine.dylib
+       0x1984ea000 -        0x1984f0d03  libsystem_coreservices.dylib (191.4.5) <9576143B-C303-35A3-BA63-1FD06EDA2BB1> /usr/lib/system/libsystem_coreservices.dylib
+       0x198a75000 -        0x198ab2a77  libsystem_m.dylib (3312.100.1) <A7E0863C-101A-31A0-922B-ED9B02626151> /usr/lib/system/libsystem_m.dylib
+       0x198ab4000 -        0x198ab7527  libmacho.dylib (1378) <755441B4-C034-3E3A-8E3C-F424FBB28261> /usr/lib/system/libmacho.dylib
+       0x198ad1000 -        0x198ade3a7  libcommonCrypto.dylib (600035) <CE357BB1-2D49-37CC-9FFE-D093936B1475> /usr/lib/system/libcommonCrypto.dylib
+       0x198adf000 -        0x198ae8ca3  libunwind.dylib (2100.2) <FC8F0C4E-6FB0-3E27-ABEF-B0FA720CD5E4> /usr/lib/system/libunwind.dylib
+       0x198af1000 -        0x198afb7ff  libcopyfile.dylib (240) <8ACFAC7A-88E9-3EF4-853F-A9140FF110E5> /usr/lib/system/libcopyfile.dylib
+       0x198afc000 -        0x198aff987  libcompiler_rt.dylib (103.3) <AA79151F-C19D-3C7C-92F8-B10F04D82C1C> /usr/lib/system/libcompiler_rt.dylib
+       0x198b00000 -        0x198b0478b  libsystem_collections.dylib (1752.120.2) <72DB5BE7-EF78-37D0-8AAD-53E37CFE4287> /usr/lib/system/libsystem_collections.dylib
+       0x198b05000 -        0x198b084cf  libsystem_secinit.dylib (168.100.7) <E525C566-CDA4-3D99-B12B-1615FD54A1F3> /usr/lib/system/libsystem_secinit.dylib
+       0x198b09000 -        0x198b0bbf7  libremovefile.dylib (85.100.6) <635E661D-80A7-340D-A165-3F7D318FDFC9> /usr/lib/system/libremovefile.dylib
+       0x198b0c000 -        0x198b0cf27  libkeymgr.dylib (31) <8C08891A-DF1C-3DCC-AB64-4742FD6BE9BA> /usr/lib/system/libkeymgr.dylib
+       0x198b0d000 -        0x198b15e37  libsystem_dnssd.dylib (2881.120.11) <6F45DF3F-233B-3BC3-BA8C-B43E7DA884BF> /usr/lib/system/libsystem_dnssd.dylib
+       0x198b16000 -        0x198b1b09b  libcache.dylib (95) <189B576E-6176-3F82-8FA4-5914B0BEAEE7> /usr/lib/system/libcache.dylib
+       0x198b1c000 -        0x198b1dce3  libSystem.B.dylib (1356) <BA6A669A-3BB9-3BC7-85E8-8F0C1E68351E> /usr/lib/libSystem.B.dylib
+       0x28bdd8000 -        0x28bddf349  libRosetta.dylib (367.9) <8651ED4F-6506-3788-B56B-32EE414A85CA> /usr/lib/libRosetta.dylib
+       0x28d9f5000 -        0x28d9f8a4b  libsystem_darwindirectory.dylib (122) <CF277A2C-C818-3F16-8B3F-3C7B39FCD164> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x28d9f9000 -        0x28da025d3  libsystem_eligibility.dylib (319.121.1) <DDAC0531-0262-3DDC-8EC8-80EB9438847A> /usr/lib/system/libsystem_eligibility.dylib
+       0x28da03000 -        0x28da0a88b  libsystem_sanitizers.dylib (26.1) <44C4234F-8B2D-38D3-A774-B4B3C75AF3A7> /usr/lib/system/libsystem_sanitizers.dylib
+       0x28da0b000 -        0x28da0bbb7  libsystem_trial.dylib (474.2.18.2) <68C583BA-AFF5-3916-86AE-6E38BFEF98D6> /usr/lib/system/libsystem_trial.dylib

@@ -1,0 +1,21 @@
+ops: lifecycle 9464, plain 13057; replays 24
+whole window (uninstrumented): lifecycle 1354.8 us, plain 541.2 us; ratio 2.537 (1.655-3.093); difference +817.8 us (+553.8 to +1133.0)
+
+[lifecycle] per-op pass total (one clock read per op): 1568.5 us
+  type                        count  no-op   time us   ns/op |    engine_link     engine_cut engine_shift_e engine_new_ver incident_scann neighbor_catal incident_shift incident_binar    compactions compaction_ver
+  add_node                      727      0      13.5      19 |              0              0              0              0              0              0              0              0              0              0
+  cut                           334      0      59.3     178 |              0            328           1284              0              0              0           1313            668              0              0
+  link                         1804      0     283.0     157 |           1790              0           4515              0              0              0           4597           5412              0              0
+  remove_node                   727      0     333.6     459 |              0           2809           5650              0           2843           2843           5788           2843              0              0
+  set_edge_enabled(false)      1465      6     218.7     149 |              0           1438           5587              0              0              0              0           2924              0              0
+  set_edge_enabled(true)       1479   1471     122.6      83 |              7              0             16              0              0              0              0           1487              0              0
+  set_node_active(false)       1509      8     484.4     321 |              0           5895          11397              0           5960           5936              0              0              0              0
+  set_node_active(true)        1419   1401      52.3      37 |             63              0            251              0             65             64              0              0              0              0
+  TOTAL                                                      |           1860          10470          28700              0           8868           8843          11698          13334              0              0
+
+[plain] per-op pass total (one clock read per op): 549.3 us
+  type                        count  no-op   time us   ns/op |    engine_link     engine_cut engine_shift_e engine_new_ver incident_scann neighbor_catal incident_shift incident_binar    compactions compaction_ver
+  add_node                      727    727      12.1      17 |              0              0              0              0              0              0              0              0              0              0
+  cut                         10470      0     445.2      43 |              0          10470          32244              0              0              0              0              0              0              0
+  link                         1860      0      91.7      49 |           1860              0           4727              0              0              0              0              0              0              0
+  TOTAL                                                      |           1860          10470          36971              0              0              0              0              0              0              0

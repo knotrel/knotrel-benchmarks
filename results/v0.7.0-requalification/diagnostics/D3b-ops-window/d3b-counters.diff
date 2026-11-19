@@ -1,0 +1,110 @@
+diff --git a/crates/knotrel-core/src/lib.rs b/crates/knotrel-core/src/lib.rs
+index e2f9c8a..5529469 100644
+--- a/crates/knotrel-core/src/lib.rs
++++ b/crates/knotrel-core/src/lib.rs
+@@ -311,6 +311,7 @@ impl Graph {
+         match self.ids.entry(node) {
+             Entry::Occupied(entry) => *entry.get(),
+             Entry::Vacant(entry) => {
++                crate::diag_d3b::add(3, 1);
+                 let index = self.adjacency.len();
+                 self.adjacency.push(Vec::new());
+                 entry.insert(index);
+@@ -352,6 +353,8 @@ impl Graph {
+         let reverse = self.adjacency[b]
+             .binary_search(&a)
+             .expect_err("symmetric absence");
++        crate::diag_d3b::add(0, 1);
++        crate::diag_d3b::add(2, (self.adjacency[a].len() - position + self.adjacency[b].len() - reverse) as u64);
+         self.adjacency[a].insert(position, b);
+         self.adjacency[b].insert(reverse, a);
+         self.edges += 1;
+@@ -373,6 +376,8 @@ impl Graph {
+             return Ok(false);
+         };
+         let reverse = self.adjacency[b].binary_search(&a).expect("symmetric edge");
++        crate::diag_d3b::add(1, 1);
++        crate::diag_d3b::add(2, (self.adjacency[a].len() - position - 1 + self.adjacency[b].len() - reverse - 1) as u64);
+         self.adjacency[a].remove(position);
+         self.adjacency[b].remove(reverse);
+         self.edges -= 1;
+@@ -587,3 +592,25 @@ mod tests {
+         assert_eq!(graph.adjacency[3], vec![1, 2]);
+     }
+ }
++
++/// D3b diagnostic (not a product API): process-wide work counters.
++#[doc(hidden)]
++pub mod diag_d3b {
++    use std::sync::atomic::{AtomicU64, Ordering};
++    /// Counter names, by index.
++    pub const NAMES: [&str; 10] = [
++        "engine_link", "engine_cut", "engine_shift_elems", "engine_new_vertex", "incident_scanned",
++        "neighbor_catalog_probes", "incident_shift_elems", "incident_binary_searches", "compactions",
++        "compaction_vertices",
++    ];
++    static C: [AtomicU64; 10] = [const { AtomicU64::new(0) }; 10];
++    /// Adds `v` to counter `i`.
++    #[inline]
++    pub fn add(i: usize, v: u64) {
++        C[i].fetch_add(v, Ordering::Relaxed);
++    }
++    /// Reads all counters.
++    pub fn snapshot() -> [u64; 10] {
++        std::array::from_fn(|i| C[i].load(Ordering::Relaxed))
++    }
++}
+diff --git a/crates/knotrel-core/src/topology.rs b/crates/knotrel-core/src/topology.rs
+index 335333b..10e38c5 100644
+--- a/crates/knotrel-core/src/topology.rs
++++ b/crates/knotrel-core/src/topology.rs
+@@ -224,12 +224,14 @@ impl NodeRecord {
+     }
+ 
+     fn position(&self, neighbor: NodeId) -> Result<usize, usize> {
++        crate::diag_d3b::add(7, 1);
+         self.incident
+             .binary_search_by_key(&neighbor, |incidence| incidence.neighbor)
+     }
+ 
+     /// Removes the incidence at `index`, shrinking a mostly empty vector.
+     fn remove_at(&mut self, index: usize) -> Incidence {
++        crate::diag_d3b::add(6, (self.incident.len() - index - 1) as u64);
+         let removed = self.incident.remove(index);
+         let capacity = self.incident.capacity();
+         if capacity > MIN_SHRINK_CAPACITY && self.incident.len() * 4 < capacity {
+@@ -828,6 +830,7 @@ impl LifecycleGraph {
+             let index = record
+                 .position(neighbor)
+                 .expect_err("edge is absent at both endpoints");
++            crate::diag_d3b::add(6, (record.incident.len() - index) as u64);
+             record
+                 .incident
+                 .insert(index, Incidence { neighbor, enabled });
+@@ -922,6 +925,8 @@ impl LifecycleGraph {
+         // Effective incident edges are visited in descending neighbor order
+         // (see `remove_node` for why).
+         let mut affected = Vec::new();
++        crate::diag_d3b::add(4, record.incident.len() as u64);
++        crate::diag_d3b::add(5, record.incident.iter().filter(|i| i.enabled).count() as u64);
+         for incidence in record.incident.iter().rev() {
+             if incidence.enabled && self.nodes[&incidence.neighbor].active {
+                 affected.push(incidence.neighbor);
+@@ -1023,6 +1028,8 @@ impl LifecycleGraph {
+         // from the end of the node's vector, so each removal shifts no elements
+         // instead of up to `d`. (Earlier candidates also measured this order on
+         // the now-deferred `ett` and `hdt` lifecycle support.)
++        crate::diag_d3b::add(4, record.incident.len() as u64);
++        crate::diag_d3b::add(5, record.incident.len() as u64);
+         for incidence in record.incident.iter().rev() {
+             let neighbor = self
+                 .nodes
+@@ -1058,6 +1065,8 @@ impl LifecycleGraph {
+         if retired <= self.nodes.len().max(MIN_RETIRED_BEFORE_COMPACTION) {
+             return;
+         }
++        crate::diag_d3b::add(8, 1);
++        crate::diag_d3b::add(9, self.nodes.len() as u64);
+         let (engine, effective) = Self::build_engine(self.engine.engine(), &mut self.nodes, &[]);
+         debug_assert_eq!(effective, self.effective_edges);
+         self.engine = engine;
