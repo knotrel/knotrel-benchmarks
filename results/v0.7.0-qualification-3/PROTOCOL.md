@@ -1,6 +1,6 @@
 # knotrel v0.7.0: qualification 3 protocol (draft until FREEZE-Q3.json is written)
 
-**Status: DRAFT.** This protocol is frozen by `FREEZE-Q3.json` after its
+**Status: DRAFT (review pending).** This protocol is frozen by `FREEZE-Q3.json` after its
 independent review and before any collection. Collection is launched by the
 maintainer, as before.
 
@@ -47,7 +47,26 @@ decisions:
 
 ### 2.1 Product changes in the candidate
 
-*(Completed from D2c and D4c before the freeze; see §11.)*
+**Candidate: knotrel `f34af87d5633bc00437a06cad0eae50e3db7edf0`.**
+
+Its only code change since e75ff6a is the catalog tombstone handling in
+`knotrel-core` (`crates/knotrel-core/src/topology.rs`, T1 of D2c). The other
+commits on the branch are documentation.
+- **The change:** an insert that would grow the lifecycle catalog's hash
+  table rebuilds it at the same size instead, when live entries are at most
+  90% of its full capacity.
+- **Why it was adopted:** it met every criterion declared in
+  `DIAGNOSTICS-PLAN-3.md` (§11):
+  - C3 PASS in all topologies;
+  - B5 unchanged;
+  - lower peak;
+  - rebuilds shorter than compactions;
+  - tests pass;
+  - B1 fresh-churn unchanged within ±0.5%;
+  - the product reproduces the diagnostic byte for byte.
+
+No metrics change (D4c unresolved) and no `ETag`-on-412 change (evaluation
+only, no API change) are included.
 
 ## 3. Experiments, cells and thresholds
 
@@ -107,7 +126,7 @@ flag store (vectors). It could not validate the topology, answer
 per-entry state, or plan lifecycle operations.
 
 The equivalent reference (`http-lifecycle --scenario import-equivalent`)
-does the following in its window, per import call:
+does the following in its timed window, per import call:
 1. **Capability.** It builds an application catalog of the registered
    topology with flags (`EquivalentStore`: per node, the flag and the
    incident edges with their flags). That is the structure the ops planner
@@ -125,11 +144,8 @@ does the following in its window, per import call:
    answers 201, so the application state changes only with a successful
    publication, as the lifecycle server's does.
 
-The request body is serialized untimed in both arms, as frozen. After the
-window, the probe checks:
-- that the catalog's effective edges equal those imported;
-- the catalog's node, registered-edge and active-node counts;
-- that connectivity answers agree between the arms.
+The request body is serialized untimed in both arms, as frozen. The
+equivalence checks (§4.4) run after the windows.
 
 ### 4.3 Why the planner references are equivalent
 
@@ -141,13 +157,59 @@ server's graph equal to the effective graph.
 The frozen reference planned untimed. D3b showed that the candidate does
 this bookkeeping inside its window. D3c measured both on one binary.
 
-In `ops-equivalent`, `ops-query-equivalent` and `events-equivalent`:
-- the planner, in its state at the start of the window, plans each
-  lifecycle chunk (256 operations, or 128 for events) inside the reference
-  window, right before that chunk's requests;
-- the requests are the frozen ones, prebuilt and untimed in both arms;
-- connectivity answers are checked between the arms after the window, as
-  before.
+In `ops-equivalent`, `ops-query-equivalent` and `events-equivalent`, inside
+the timed reference window, for each lifecycle chunk (256 operations, or 128
+for events) and right before that chunk's requests, the application does
+the following from the planner in its state at the window's start:
+1. **Validation and outcome.** For each operation it computes the outcome the
+   lifecycle server reports per operation: changed or unchanged, or the
+   error code `self_loop`, `unknown_node` or `unknown_edge`. That is part of
+   the service offered.
+2. **Catalog update.** It updates its registered topology and flags (the
+   frozen planner).
+3. **Publication.** It sends the plain operations that keep the plain
+   server's graph equal to the effective graph. The requests are the frozen
+   ones, prebuilt and untimed in both arms.
+
+**Server-level evidence only.** D3c's declared fidelity check failed: the
+core replay is 24–31% below the server's in-call time. The core-level
+attributions of D3b are therefore not part of this argument. The
+equivalence rests on the service each arm provides, and on server-level
+measurement in this campaign.
+
+### 4.4 Equivalence checks (after the windows; a failure stops the probe)
+
+The checks run sequentially after both windows of each pair, with no request
+in flight. Connectivity agreement alone is not taken as equivalence.
+1. **Per-operation outcomes** (`ops`, `ops-query`): every outcome the
+   reference computed in its window must equal the candidate's per-item
+   result.
+   - `connected` answers forwarded to the plain server are covered by the
+     connectivity check.
+   - The lifecycle feeder (`events`) reports no per-event results, so for
+     events the final-state checks are the equivalence check.
+2. **Final counts:** the candidate's `/v1/stats` registered nodes and edges,
+   active nodes, enabled and effective edges must equal the application
+   catalog's.
+3. **Registered content.** Every node of the catalog is queried on the
+   candidate with `node_state` (same ID and `active` flag). Every registered
+   edge is queried with `edge_state` (same endpoints, `enabled` flag and
+   effectiveness). With equal counts, the candidate holds nothing else.
+4. **Plain server content.**
+   - **Nodes:** every node of catalog ∪ removed IDs is checked one by one,
+     read-only, with `connected(v, v)`. The node count must equal
+     |catalog ∪ removed|.
+   - **Edges:** every effective edge is then cut, one by one, through
+     `/v1/batch`, or through feeder events in source-managed mode. Afterwards
+     the edge count must be 0, having equalled the effective edges before.
+   - **Why destructive:** the plain API has no read-only edge query, so the
+     edge check mutates this pair's plain server. It does so after the
+     windows and the connectivity check; the server is then discarded.
+   - **Difference from the lifecycle server, by design:** the plain server
+     has no node removal, so removed nodes stay as isolated vertices.
+
+**Before the freeze**, every equivalent cell was smoke-run at its real size,
+and injected mutations were each detected (`smoke/README.md`).
 
 ## 5. C3
 
@@ -230,4 +292,23 @@ What changes:
 
 ## 11. Phase-3 results that fix §2.1
 
-*(Completed before the freeze.)*
+These are diagnostics, not qualification results
+(`results/v0.7.0-requalification/diagnostics/`; plan `DIAGNOSTICS-PLAN-3.md`
+with addenda 1–2).
+
+| | Result | Use here |
+|---|---|---|
+| **D2c** (catalog tombstones) | **T1 meets every criterion.** Detail in D2c's README. | T1 is in the candidate (§2.1) |
+| **D3c** (ops fidelity) | **Fidelity not restored.** Core replay 24–31% below the server's in-call time. Server level: L/P +30.1% [+23.1, +36.6]; L/PP −21.3% [−27.2, −14.5] (one ungated run). | Core attributions withdrawn; the equivalence argument is service-based (§4.3) |
+| **D4c** (metrics) | **Not resolved:** the decomposition is internally inconsistent (run-level effects); the declared follow-up was not run, and that is reported. | No metrics change; the `metrics-ops` cell is measured as released, 6% tolerance |
+| **D5c** (probe revision 4) | **Verified:** 6/6 imports in all runs; forced runs recover in 22–30 ms. | Revision 4 used (§6) |
+| ETag on 412 | Consistent; stale after release, like a stats token. | Not included: no API change |
+
+D2c in detail:
+- C3 PASS ×3;
+- B5 unchanged;
+- peak and steady state −5.1 MiB;
+- rebuilds: median 0.7 ms, max 6.5 ms, against compactions up to 72 ms;
+- B1 fresh-churn ±0.5%;
+- the product reproduces the diagnostic byte for byte;
+- ring drift bounded.
