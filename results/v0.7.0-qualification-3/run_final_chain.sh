@@ -1,7 +1,7 @@
 #!/bin/sh
 # Runs the frozen v0.7.0 qualification 3 in one chain (PROTOCOL.md; identical to the
 # re-qualification chain except: this matrix, the qualification-3 collectors and analyzers, the
-# capability-equivalent B/C cells, the A extension seeds, and no soak in practice): grace period, policy, quiet period,
+# capability-equivalent B/C cells, and no soak in practice; seeds are a3-3's): grace period, policy, quiet period,
 # then A (main, extension if required), B/C, R, Rmem, M_desc, M_reg. Every measured child is
 # gated (scripts/conformance_gate.py) by the allow-list monitor (scripts/conformance_monitor.py).
 #
@@ -214,7 +214,7 @@ python3 scripts/analyze_bc_qualification.py --main "$A/raw-main" --rules v0.4.0 
 CELLS=$(python3 -c "import json;print(' '.join(json.load(open('$A/decision-analysis-main.json'))['extension_cells_required']))") || failed A-extension-cells 5
 if [ -n "$CELLS" ]; then
   stamp A-extension "start cells: $CELLS"
-  python3 scripts/prepare_bc_qualification.py "$A/extension/plan" --identities "$A/identities.json" --source-manifest /Users/rt/workspace/knotrel/evidence/p0-coverage-increment-1-plan-20261030/manifest.json --phase extension --cells $CELLS --checkpoint v0.7.0-Qualification3-A-Extension --session-seeds 230730 230731 230732 > "$L/A-extension-plan.log" 2>&1 || failed A-extension-plan 6
+  python3 scripts/prepare_bc_qualification.py "$A/extension/plan" --identities "$A/identities.json" --source-manifest /Users/rt/workspace/knotrel/evidence/p0-coverage-increment-1-plan-20261030/manifest.json --phase extension --cells $CELLS --checkpoint v0.7.0-Qualification3-A-Extension --session-seeds 130730 130731 130732 > "$L/A-extension-plan.log" 2>&1 || failed A-extension-plan 6
   python3 scripts/run_v070q3_collect.py a --manifest "$A/extension/plan/manifest.json" --schedule "$A/extension/plan/schedule.json" --execute "$A/extension/raw-extension" > "$L/A-extension-run.log" 2>&1
   RC=$?; gate_check A-extension; [ $RC -eq 0 ] || failed A-extension 6
   stamp A-extension end

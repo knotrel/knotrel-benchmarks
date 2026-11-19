@@ -2,8 +2,8 @@
 # Prepares the frozen v0.7.0 qualification 3 campaign (no measurement).
 # Identical to results/v0.7.0-requalification/prepare_campaign.sh (amendment 3, revision 2) except:
 # the campaign directory name (v0.7.0-qualification-3-<cand7>-q3-attemptN), the freeze record
-# (FREEZE-Q3.json) and series q3 only, the A session seeds (230720-230722), the A plan checkpoint
-# name, the qualification-3 launch environment check, and the informational __TEXT,__text
+# (FREEZE-Q3.json) and series q3 only, the A plan checkpoint name (the A session seeds are
+# a3-3's, 130720-130722), the qualification-3 launch environment check, and the informational __TEXT,__text
 # comparison against the builds of re-qualification attempt a3-3.
 #
 # Usage: prepare_campaign.sh CAND_SHA FREEZE_SHA [ATTEMPT [SERIES]]
@@ -120,7 +120,7 @@ ids["shared_binaries"]["measure_e2e"] = {"path": m, "sha256": h(m), "source_chec
 json.dump(ids, open(f"{camp}/A/identities.json", "w"), indent=1)
 PY
 B=$CAMP/src/cand/knotrel-benchmarks
-( cd "$B" && python3 scripts/prepare_bc_qualification.py "$CAMP/A/plan" --identities "$CAMP/A/identities.json" --source-manifest "$SOURCE_MANIFEST" --checkpoint v0.7.0-Qualification3-A-Main --session-seeds 230720 230721 230722 ) > "$L/A-plan.log" 2>&1
+( cd "$B" && python3 scripts/prepare_bc_qualification.py "$CAMP/A/plan" --identities "$CAMP/A/identities.json" --source-manifest "$SOURCE_MANIFEST" --checkpoint v0.7.0-Qualification3-A-Main --session-seeds 130720 130721 130722 ) > "$L/A-plan.log" 2>&1
 ( cd "$B" && python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan/manifest.json" --schedule "$CAMP/A/plan/schedule.json" --dry-run ) > "$L/A-dry-run.log" 2>&1
 
 # --- Binary checksums ---

@@ -265,8 +265,11 @@ qualification 3 freeze:
 
 **A2. Impact of T1 on operations.**
 - Cells: the two frozen B1 fresh-churn cells (`B1-ops-compact-bfs-sparse-
-  {1000,10000}-fresh-churn`: `pairs --exp ops --mix fresh-churn`, windows
-  8,000 and 48,000, 12 pairs after 2 warmup, seed 5000001).
+  {1000,10000}-fresh-churn`: `pairs --exp ops --mix fresh-churn`, 12 pairs
+  after 2 warmup, seed 5000001). The windows are those a3-3 ran after the
+  window multipliers: 16,000 for 1k (factor 2) and 48,000 for 10k (factor 1).
+  This was corrected before running; the first text gave the unmultiplied
+  8,000.
 - Build: the D2c timing build, with policy frozen or T1 (`KNOTREL_D2C`) on
   the same binary.
 - Runs: two runs per policy and cell, in the order frozen, T1, T1, frozen,
@@ -298,9 +301,11 @@ before the freeze):
     result. For `connected`, the answer is compared only where the
     application answers locally; forwarded queries are compared through the
     existing connectivity check.
-- **events:** the lifecycle feeder reports per-event results. The application
-  computes the same per-event outcomes in its window. The final-state check
-  below applies.
+- **events:** correction made before implementing. Contrary to what this
+  item first said, the lifecycle feeder reports no per-event results, only
+  `events_applied` and the state version (`FeederEventsResponse`). So there
+  is no per-event outcome to reproduce, and the final-state check below
+  applies.
 - **All four, final state after the window:**
   - the candidate's `/v1/stats` lifecycle counts (registered nodes and
     edges, active nodes, enabled and effective edges) must equal the
