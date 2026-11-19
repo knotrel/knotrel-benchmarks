@@ -9,6 +9,8 @@ from that plan are listed in each diagnostic's README. The main ones:
 - D4 gives pair ranges instead of intervals, and (d) was built without a
   guiding profile;
 - D5 added a "forced" variant.
+
+Rules that hold throughout:
 - **No verdict changes.** Attempt a3-3's results stand as measured:
   REGRESSION, FAIL ×3, INCONCLUSIVE ×2, INVALID. No threshold changes and no
   exception is accepted.
