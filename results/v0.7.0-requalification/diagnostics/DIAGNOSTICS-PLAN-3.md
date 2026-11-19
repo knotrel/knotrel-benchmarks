@@ -240,3 +240,79 @@ put into the candidate without a maintainer decision.
 - conformance rules inherited from amendment 3 revision 2 unless stated.
 
 It is reviewed and frozen before the maintainer launches the collection.
+
+## Addendum 1 (declared 2026-11-19, before the measurements it names)
+
+These follow the maintainer's message of 2026-11-19, which asks for the
+running chain to complete first and sets these prerequisites for the
+qualification 3 freeze:
+- equivalent references with the same guarantees, including validation,
+  catalog update and publication in the timed window; connectivity
+  agreement alone does not show equivalence;
+- previous seeds and workloads kept where possible;
+- deterministic memory results kept apart from timings;
+- the product T1 shown to reproduce the diagnostic variant without
+  instrumentation;
+- T1 adopted only after the chain, considering the transient peak,
+  rebuild and compaction latency, and the impact on operations.
+
+**A1. Timings only from the quiet chain.**
+- D2c's rebuild and compaction latencies come only from the timing build in
+  the phase-3 timing chain (`PHASE3-TIMING-RUNS.txt`). The count-build event
+  durations were recorded while other runs and builds were active. They are
+  reported as unreliable and are not used for criterion 4.
+- Any activity that overlapped the chain is disclosed.
+
+**A2. Impact of T1 on operations.**
+- Cells: the two frozen B1 fresh-churn cells (`B1-ops-compact-bfs-sparse-
+  {1000,10000}-fresh-churn`: `pairs --exp ops --mix fresh-churn`, windows
+  8,000 and 48,000, 12 pairs after 2 warmup, seed 5000001).
+- Build: the D2c timing build, with policy frozen or T1 (`KNOTREL_D2C`) on
+  the same binary.
+- Runs: two runs per policy and cell, in the order frozen, T1, T1, frozen,
+  after the phase-3 timing chain, on a quiet machine.
+- Reported: the lifecycle arm's window and the cell ratio against its
+  reference arm, per policy (medians, pair min–max). It is descriptive.
+- Decision input: T1 is not adopted if it makes the lifecycle arm slower by
+  more than the B1 tolerance (25%) by median in either cell.
+
+**A3. Product T1 reproduces the diagnostic.**
+- The frozen probes are built, count-alloc, against the candidate source
+  with the product change (no diagnostic code).
+- They run C3 (30 cycles) and B5 in all topologies, and 6,000 cycles in
+  ring, sparse and hub.
+- Every checkpoint's `net_heap_bytes` and logical counts must equal D2c's T1
+  series byte for byte. With `stats_alloc` (the frozen probe) against `cap`
+  (D2c), net live bytes are counted the same, as shown by the frozen-policy
+  reproduction.
+- Any difference stops the adoption of T1 until it is explained.
+
+**A4. Equivalence checks of the equivalent references** (probe tooling,
+before the freeze):
+- **ops, ops-query:** inside the reference window, the application computes
+  each lifecycle operation's outcome from its planner state, as the
+  lifecycle server reports it per operation: changed or unchanged, or the
+  error code (`self_loop`, `unknown_node`, `unknown_edge`). The plan then
+  updates the catalog; publication is the plain server request.
+  - After the window, every outcome must equal the candidate arm's per-item
+    result. For `connected`, the answer is compared only where the
+    application answers locally; forwarded queries are compared through the
+    existing connectivity check.
+- **events:** the lifecycle feeder reports per-event results. The application
+  computes the same per-event outcomes in its window. The final-state check
+  below applies.
+- **All four, final state after the window:**
+  - the candidate's `/v1/stats` lifecycle counts (registered nodes and
+    edges, active nodes, enabled and effective edges) must equal the
+    application catalog's;
+  - the plain server's node and edge counts must equal the registered nodes
+    and the effective edges.
+- Any mismatch aborts the probe, which is a failed child.
+- Each scenario is smoke-run at the cells' sizes (10k, 100k) before the
+  freeze. Those runs are checks, not measurements, and their timings are not
+  used.
+
+**A5. Seeds.** Qualification 3 keeps a3-3's A session and extension seeds
+(130720–130722, 130730–130732), reverting the draft's 2307xx. Every other
+seed and workload is unchanged too. The equivalent cells reuse their frozen
+counterparts' workloads, seeds and request counts.
