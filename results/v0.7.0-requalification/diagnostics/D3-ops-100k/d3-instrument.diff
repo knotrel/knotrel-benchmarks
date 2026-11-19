@@ -1,0 +1,126 @@
+diff --git a/crates/knotrel-server/src/api.rs b/crates/knotrel-server/src/api.rs
+index dada7aa..a4babd3 100644
+--- a/crates/knotrel-server/src/api.rs
++++ b/crates/knotrel-server/src/api.rs
+@@ -1288,7 +1288,13 @@ pub(crate) async fn batch(
+         );
+     }
+     tracing::debug!(count = batch.operations.len(), "executing batch operations");
+-    match service.execute(batch.operations).await {
++    let d3_start = std::time::Instant::now();
++    crate::d3::add(0, 1);
++    crate::d3::add(9, batch.operations.len() as u64);
++    let executed = service.execute(batch.operations).await;
++    crate::d3::since(2, d3_start);
++    let d3_serialize = std::time::Instant::now();
++    let response = match executed {
+         Ok(exec_result) => {
+             let mut response = Json(BatchResult {
+                 results: exec_result.outcomes,
+@@ -1298,7 +1304,10 @@ pub(crate) async fn batch(
+             response
+         }
+         Err(error) => service_error(error),
+-    }
++    };
++    crate::d3::since(8, d3_serialize);
++    crate::d3::since(1, d3_start);
++    response
+ }
+ 
+ /// Validation step 5a: a lifecycle operation without lifecycle support.
+diff --git a/crates/knotrel-server/src/lib.rs b/crates/knotrel-server/src/lib.rs
+index 774f50f..25eee83 100644
+--- a/crates/knotrel-server/src/lib.rs
++++ b/crates/knotrel-server/src/lib.rs
+@@ -53,6 +53,29 @@
+ //! use the corresponding release tag when consulting a published version.
+ 
+ mod api;
++/// D3 diagnostic phase counters (not a product API): nanoseconds and counts, summed over
++/// every request since the last [`d3::reset`].
++pub mod d3 {
++    use std::sync::atomic::{AtomicU64, Ordering};
++    /// Counter names, in index order.
++    pub const NAMES: [&str; 10] = ["requests", "handler_ns", "exec_await_ns", "queue_hop_ns",
++        "lock_wait_ns", "work_ns", "apply_ns", "post_work_ns", "serialize_ns", "operations"];
++    static COUNTERS: [AtomicU64; 10] = [const { AtomicU64::new(0) }; 10];
++    /// Zeroes every counter.
++    pub fn reset() {
++        for c in &COUNTERS { c.store(0, Ordering::Relaxed); }
++    }
++    /// Current values, in [`NAMES`] order.
++    pub fn snapshot() -> [u64; 10] {
++        std::array::from_fn(|i| COUNTERS[i].load(Ordering::Relaxed))
++    }
++    pub(crate) fn add(index: usize, value: u64) {
++        COUNTERS[index].fetch_add(value, Ordering::Relaxed);
++    }
++    pub(crate) fn since(index: usize, start: std::time::Instant) {
++        add(index, start.elapsed().as_nanos() as u64);
++    }
++}
+ mod configuration;
+ mod graph;
+ mod lifecycle;
+diff --git a/crates/knotrel-server/src/service.rs b/crates/knotrel-server/src/service.rs
+index e2d0657..0c1b6e2 100644
+--- a/crates/knotrel-server/src/service.rs
++++ b/crates/knotrel-server/src/service.rs
+@@ -2610,7 +2610,8 @@ impl Service {
+             }
+             // Each operation is counted once when it returns, so a panic keeps
+             // earlier counts and invents no outcome for the interrupted one.
+-            let outcomes = operations
++            let d3_apply = std::time::Instant::now();
++            let outcomes: Vec<_> = operations
+                 .into_iter()
+                 .map(|operation| match telemetry.as_deref() {
+                     None => state.apply(operation),
+@@ -2622,6 +2623,7 @@ impl Service {
+                     }
+                 })
+                 .collect();
++            crate::d3::since(6, d3_apply);
+             let metadata = state.response_metadata(mode, &instance_id);
+             ExecutionResult { outcomes, metadata }
+         })
+@@ -2878,7 +2880,9 @@ impl Service {
+         let clock = JobClock::submit(self.telemetry.as_ref(), kind);
+         // The worker logs inside the submitting request's span (M6.3).
+         let span = tracing::Span::current();
++        let d3_submit = std::time::Instant::now();
+         let handle = tokio::task::spawn_blocking(move || {
++            crate::d3::since(3, d3_submit);
+             let _span = span.enter();
+             JobClock::start(clock.as_ref());
+             let _job_guard = job_guard;
+@@ -2891,7 +2895,9 @@ impl Service {
+             let lifecycle = &service.lifecycle;
+             let telemetry = service.telemetry.as_deref();
+             lifecycle.check_worker_hook();
++            let d3_lock = std::time::Instant::now();
+             let mut graph = lock_timed(&service.graph, clock.as_ref(), lifecycle);
++            crate::d3::since(4, d3_lock);
+             if graph.failed || service.unavailable.load(Ordering::Acquire) {
+                 tracing::warn!("graph worker state marked as failed; rejecting work");
+                 panic_guard.unavailable.store(true, Ordering::Release);
+@@ -2902,7 +2908,10 @@ impl Service {
+             }
+             graph.failed = true;
+             let before = graph.sync_point();
++            let d3_work = std::time::Instant::now();
+             let result = work(&mut graph);
++            crate::d3::since(5, d3_work);
++            let d3_post = std::time::Instant::now();
+             graph.failed = false;
+             if effect == JobEffect::MayChangeState {
+                 before.log_transition(
+@@ -2913,6 +2922,7 @@ impl Service {
+                 publish_graph_counts(telemetry, &graph);
+             }
+             drop(graph);
++            crate::d3::since(7, d3_post);
+             lifecycle.check_worker_post_lock_hook();
+             panic_guard.success = true;
+             Ok(result)
