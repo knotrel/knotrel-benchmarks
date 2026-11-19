@@ -1055,6 +1055,12 @@ fn run_config(
             while !stop.load(Ordering::Relaxed) {
                 let start = Instant::now();
                 if background == "import" {
+                    // Revision 4: a refresh that could not replace a timed-out
+                    // connection poisoned it; reconnect before the next import so the
+                    // import is actually sent (its failure accounting stays honest).
+                    if conn.poisoned {
+                        conn = Conn::connect(address).expect("background reconnection");
+                    }
                     let position = format!("i{count}");
                     let body = import_body(&feeder_state, "replace", n, &edges, &position);
                     let result = import_with_refresh(
