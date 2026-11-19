@@ -81,19 +81,27 @@ def in_lifecycle_scope(cell: Dict[str, Any], lifecycle_engines: str) -> bool:
     return "--scenario" in args and args[args.index("--scenario") + 1] == "metrics-legacy"
 
 
-def matrix(profile: str, lifecycle_engines: str = ALL_LIFECYCLE_ENGINES) -> List[Dict[str, Any]]:
+def matrix(profile: str, lifecycle_engines: str = ALL_LIFECYCLE_ENGINES,
+           equivalent: bool = False) -> List[Dict[str, Any]]:
     """Every cell of experiments B and C within the lifecycle-engine scope.
 
     ``profile`` only shrinks repetition counts. The default scope (all engines)
     reproduces the original matrix; amendment 4 restricts it to ``compact-bfs``.
+    ``equivalent`` (v0.7.0 qualification 3) adds the capability-equivalent B4
+    cells (``*-equivalent`` scenarios, same tolerances and request counts) beside
+    the frozen ones; without it the matrix is unchanged.
     """
     unknown = set(lifecycle_engines.split(",")) - set(ENGINES)
     if unknown or not lifecycle_engines:
         raise SystemExit(f"unknown lifecycle engines: {sorted(unknown)}")
-    return [c for c in _full_matrix(profile) if in_lifecycle_scope(c, lifecycle_engines)]
+    return [c for c in _full_matrix(profile, equivalent) if in_lifecycle_scope(c, lifecycle_engines)]
 
 
-def _full_matrix(profile: str) -> List[Dict[str, Any]]:
+#: Scenarios whose reference gets a capability-equivalent variant (qualification 3).
+EQUIVALENT_SCENARIOS = ("ops", "ops-query", "events", "import")
+
+
+def _full_matrix(profile: str, equivalent: bool = False) -> List[Dict[str, Any]]:
     """Every cell of experiments B and C. ``profile`` only shrinks repetition counts."""
     pairs, warmup = (2, 0) if profile == "pilot" else (12, 2)
     cycles = 3 if profile == "pilot" else 30
@@ -141,8 +149,16 @@ def _full_matrix(profile: str) -> List[Dict[str, Any]]:
             for scenario, tolerance, requests in scenarios:
                 http(f"B4-http-{scenario}-{engine}-{topology}-10000", tolerance, scenario=scenario,
                      engine=engine, topology=topology, nodes=10_000, requests=requests)
+                if equivalent and scenario in EQUIVALENT_SCENARIOS:
+                    http(f"B4-http-{scenario}-equivalent-{engine}-{topology}-10000", tolerance,
+                         scenario=f"{scenario}-equivalent", engine=engine, topology=topology,
+                         nodes=10_000, requests=requests)
         http(f"B4-http-import-high-{engine}-sparse-10000", 1.00, scenario="import", engine=engine,
              topology="sparse", nodes=10_000, requests=1, inactive_percent=60, disabled_percent=30)
+        if equivalent:
+            http(f"B4-http-import-high-equivalent-{engine}-sparse-10000", 1.00,
+                 scenario="import-equivalent", engine=engine, topology="sparse", nodes=10_000,
+                 requests=1, inactive_percent=60, disabled_percent=30)
         for scenario, requests in (("metrics-ops", 40), ("metrics-legacy", 40)):
             http(f"B4-http-{scenario}-{engine}-sparse-10000", 0.06, scenario=scenario,
                  engine=engine, topology="sparse", nodes=10_000, requests=requests)
@@ -151,6 +167,10 @@ def _full_matrix(profile: str) -> List[Dict[str, Any]]:
             continue
         http(f"B4-http-{scenario}-compact-bfs-sparse-100000", tolerance, scenario=scenario,
              engine="compact-bfs", topology="sparse", nodes=100_000, requests=requests)
+        if equivalent and scenario in EQUIVALENT_SCENARIOS:
+            http(f"B4-http-{scenario}-equivalent-compact-bfs-sparse-100000", tolerance,
+                 scenario=f"{scenario}-equivalent", engine="compact-bfs", topology="sparse",
+                 nodes=100_000, requests=requests)
 
     for engine in ENGINES:
         for topology in ("sparse", "hub"):
@@ -211,6 +231,8 @@ def main() -> int:
                         help="engines whose lifecycle cells are in scope (amendment 4: compact-bfs)")
     parser.add_argument("--window-multipliers", type=Path,
                         help="pilot-derived JSON {cell id: factor}; archived in plan/")
+    parser.add_argument("--equivalent-references", action="store_true",
+                        help="add the capability-equivalent B4 cells (v0.7.0 qualification 3)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     args.out = confined(args.out, "--out")
@@ -225,7 +247,7 @@ def main() -> int:
         print(f"refusing to reuse existing output directory {args.out}", file=sys.stderr)
         return 2
     binaries = {"core": args.core, "core-count": args.core_count, "http": args.http}
-    cells = matrix(args.profile, args.lifecycle_engines)
+    cells = matrix(args.profile, args.lifecycle_engines, args.equivalent_references)
     if args.profile == "final" and not args.window_multipliers:
         print("--window-multipliers is required for the final profile", file=sys.stderr)
         return 2
@@ -239,6 +261,7 @@ def main() -> int:
     provenance = {
         "profile": args.profile, "order_seed": args.order_seed, "seed": SEED,
         "only": args.only, "cells": len(cells), "lifecycle_engines": args.lifecycle_engines,
+        "equivalent_references": args.equivalent_references,
         "knotrel": {"path": str(args.knotrel.resolve()), "head": git(args.knotrel, "rev-parse", "HEAD"),
                     "dirty": git(args.knotrel, "status", "--porcelain")},
         "benchmarks": {"head": git(benchmarks, "rev-parse", "HEAD"),
