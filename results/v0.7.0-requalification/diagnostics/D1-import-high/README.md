@@ -19,13 +19,16 @@ candidate checkout and lifecycle-probes library; the binary is in
 
 | Arm | Server | Body | Graph held |
 |---|---|---|---|
-| L | lifecycle | full registered topology with flags | 10,000 nodes, 19,991 registered edges, flags |
-| F | plain | full registered topology, everything active | the same nodes and edges, no flags |
+| L | lifecycle | full registered topology with flags | 10,000 nodes; catalog of 19,991 registered edges with flags; engine over the 2,139 effective edges |
+| F | plain | full registered topology, everything active | the same nodes; an engine over all 19,991 edges, no flags |
 | E | plain | effective graph only, plus the application flag store (the B4 reference) | 10,000 nodes, 2,139 effective edges |
 
-F holds the full volume but not the flags, so it cannot answer the
-effective-graph connectivity that L answers. It isolates volume from flags.
-It is not a drop-in alternative to L.
+F parses the same registered volume but does not hold the same data
+structures as L, so it does not isolate flags at equal volume. The lifecycle
+server keeps every registered entry in its catalog and builds its
+connectivity engine from the effective edges only (2,139 here). F builds a
+plain engine over all 19,991 edges. F also cannot answer the effective-graph
+connectivity that L answers, so it is not a drop-in alternative.
 
 ## Results (`raw/d1.jsonl`)
 
@@ -39,36 +42,45 @@ It is not a drop-in alternative to L.
 
 Paired ratios over the 12 pairs (median, min–max):
 
-| Ratio | Median | Range | Meaning |
+| Ratio | Median | Range (pair min–max) | Meaning |
 |---|---|---|---|
 | L / E | 4.96 | 4.18–5.71 | the B4 comparison (+396%; a3-3 measured +413%) |
-| F / E | 4.42 | 3.71–4.92 | storing and parsing 9.3× more edges, no flags |
-| L / F | 1.137 | 1.078–1.215 | flags and lifecycle at equal volume |
+| F / E | 4.42 | 3.71–4.92 | parsing and building a plain engine over 9.3× more edges |
+| L / F | 1.137 | 1.078–1.215 | lifecycle import against a plain import of the same volume (different structures; see above) |
 
 ## Breakdown
 
-- **Volume.** Of L's 3.96× excess over E, about 3.42× (86%) comes with F as
-  well: importing the 17,852 non-effective registered edges that the
-  full-topology contract keeps, against the reference's 2,139. The body is
-  5.3× larger (F against E), and server `prepare`, which covers parse and
-  build, is 5.9× longer.
-- **Flags and lifecycle.** At equal volume, L costs +13.7% (7.8–21.5%) over
-  F. Its body is 32% larger than F's: the node objects
-  `{"node":…,"active":false}` and the edge flags `"enabled":false`. The parse
-  proxy is 65% longer, and `prepare` 18% longer.
+- **Volume.** A plain server given the full registered volume (F) costs
+  4.42× the reference. The share of L's excess over E that F also shows
+  depends on the method: 86% (median of paired ratios, 3.42 / 3.96), 82%
+  (differences of median times) or 93% (log ratios). F's body is 5.3× E's,
+  and its server `prepare` phase (parse and build) is 5.9× longer.
+- **L against F** (+13.7%, pair range 7.8–21.5%): L's body is 32% larger
+  (the node objects `{"node":…,"active":false}` and the edge flags
+  `"enabled":false`), its parse proxy is 65% longer and its `prepare` 18%
+  longer. Because the two servers build different structures (a catalog
+  plus a 2,139-edge engine for L, a 19,991-edge engine for F), this figure
+  mixes flag handling with a different build. It is not a clean cost of
+  flags at equal volume.
 - **Parse share.** The parse proxy is about 25% of L's import time. Most of
   the time goes to building the graph, which scales with registered edges.
 
 ## What this establishes (no verdict)
 
 - The existing B4 reference imports only the effective graph, so it does not
-  hold the capability L provides. Most of the measured overhead, about 86%,
-  is the cost of holding the full registered topology. A plain server shows
-  the same cost when given the same volume.
-- **The remaining part, flags and lifecycle at equal volume, is about +14%.**
-  This diagnostic does not show that it is unavoidable. Candidates to examine
-  are the flagged wire format (larger body, object-shaped node entries) and
-  the flag handling in `prepare`. Neither was profiled here.
+  hold the capability L provides.
+- Parsing and building the full registered volume in a plain server costs
+  about as much as most of L's overhead: 82–93% of it, depending on the
+  method. That indicates volume is the main driver. It does not show that
+  L's own catalog-plus-engine build has the same cost structure.
+- **L against F is +13.7%.** This diagnostic does not show that it is
+  unavoidable. Candidates to examine are the flagged wire format (larger
+  body, object-shaped node entries) and the catalog and flag handling in
+  `prepare`. Neither was profiled here.
+- **Departure from the plan.** The plan described F as "the same parse and
+  storage volume, without flags". As noted above, F does not hold the same
+  structures as L. The plan's "remaining build and publication time" is
+  given only as the `prepare` and `publish` phases.
 - Whether the full-topology volume cost is required is a property of the
   product contract. That is the maintainer's question, not a measurement.
 

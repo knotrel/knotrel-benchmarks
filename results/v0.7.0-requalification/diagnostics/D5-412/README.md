@@ -6,7 +6,14 @@ of the qualification, and the a3-3 row stays INVALID as measured.
 ## Classification
 
 **Expected precondition enforcement by the server, caused by a probe
-error. No product defect was found.**
+error. No product defect was found in this diagnostic.**
+
+This classification rests partly on a synthetic reproduction. The
+unmodified probe never reproduced the 412 (0 of 9 runs). The forced copy
+builds in the hypothesised mechanism: it keeps the stored token. The
+criteria were then met on that reproduction and on the 54 fresh-token
+imports. That the a3-3 failure followed this path is inferred from its
+record (`stats-503` then 412s), not observed directly.
 
 ## Mechanism
 
@@ -65,14 +72,22 @@ in `raw/runs.txt`; every run exited 0, and none was discarded.
   requests under load to measure how often the refresh is refused. Its imports
   are fewer per window (4–5) because the sampling takes about 1 s of the
   5 s window.
+- **The stale token differs from a3-3's.** a3-3 ran the full configuration
+  list, so its stored token came from `c16-import`'s last import. The reduced
+  list here leaves the setup token `"1.0.p0"`. Both are stale after the
+  events configuration.
+- **The ~87% refusal rate** was sampled after the clients had saturated
+  admission. The refresh at the start of a configuration usually got 200
+  here, so 87% is not the probability that a3-3's single refresh would
+  fail.
 
 ## Observations (no verdict)
 
-- **Probe fix (tooling, not product).** A feeder that follows
-  `docs/http-api.md` retries 503 `busy` and re-reads the ETag before a
-  replacement import. The probe should do the same: retry `/v1/stats` on 503
-  and refresh after a 412. The frozen probe is not changed by this
-  diagnostic. Changing it is a tooling decision for a future collection.
+- **Probe refresh logic.** A feeder that follows `docs/http-api.md` retries
+  503 `busy` and re-reads the ETag before a replacement import. The probe
+  does neither. Whether to change it for future collections is a tooling
+  decision for the maintainer. The frozen probe is not changed by this
+  diagnostic.
 - **Operational note.** Under saturation, `/v1/stats` is refused most of the
   time (about 87% here), because it uses the same admission as graph work.
   This is documented behavior. Whether stats should bypass admission is a

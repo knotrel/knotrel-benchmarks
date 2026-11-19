@@ -34,24 +34,28 @@ more slowly: +74% applying time, +1.12 ms per window.
 
 ## Reading
 
-- **All of the overhead is in applying the operations** inside
-  `knotrel-core`'s `LifecycleGraph`. Admission, the blocking-pool hop and the
-  lock add nothing. The HTTP layer, parse and serialization, partly offsets
-  it.
-- **Why B1 and B4 differ.** The B1 core comparison
-  (`B1-ops-compact-bfs-sparse-100000-mutation`, a3-3: +1.47%
-  [+0.62, +3.96]) times the application-side reference *including* its
-  bookkeeping. B4's reference does its planning *untimed*. B4 therefore shows
-  the cost of lifecycle bookkeeping inside the server against a server that
-  receives pre-planned `link`/`cut`. Measured against an application doing
-  the same bookkeeping (B1), the core lifecycle operations cost about 1.5%
-  more.
+- **The apply phase exceeds the whole window difference** (+1,117 µs, 156%
+  of +714 µs). The handler's other phases and the outside-handler phase are
+  lower for the lifecycle arm and offset part of it. The two arms apply
+  different operation sets (9,464 lifecycle operations against 13,057 plain
+  ones), so this is a phase attribution, not a per-operation comparison.
+  Admission, the blocking-pool hop and the lock add nothing measurable.
+- **Context from a3-3, not measured here.** The B1 core comparison
+  (`B1-ops-compact-bfs-sparse-100000-mutation`: +1.47% [+0.62, +3.96]) times
+  its application-side reference with that reference's bookkeeping. B4's
+  reference plans untimed. The two cells measure different things, by design
+  of the frozen protocol. This diagnostic does not assess either design.
 - `knotrel-core` is byte-identical between v0.6.0 and v0.7.0. The rise from
   v0.6.0's +19.45% to +23.76% is not explained by this diagnostic. The
   server path changes in v0.7.0 (shared read lock, `sonic-rs`) apply to both
   arms.
 
-## Sampling profile (weak; recorded, not relied on)
+## Sampling profile (weak; recorded, not relied on). Departure from the plan
+
+The plan asked for six profiler windows per arm, alternating, with each
+code site classed as inherent or optimizable. What was run is one `sample`
+over 25 s of 35 pairs, with no per-arm difference and no classification.
+That plan item is not met.
 
 `raw/sample-ops-100k.txt` comes from macOS `sample` at 1 ms over 25 s of 35
 pairs (debug-info build). The windows are a small share of the run: setup and
@@ -67,10 +71,14 @@ checks dominate.
 
 ## What this establishes (no verdict)
 
-- **Actionable costs**, if any, are in `knotrel-core`'s lifecycle operation
-  paths, not in the server layer. Making them cheaper is a core change.
-- Measured against an application doing equivalent bookkeeping (B1), the
-  lifecycle operations cost about 1.5% more. This diagnostic does not change
-  or reinterpret the B4 rule or its reference.
+- **Actionable costs**, if any, are in the time spent applying lifecycle
+  operations (`knotrel-core`), not in the server's admission, lock or
+  dispatch. Making them cheaper would be a core change. This diagnostic does
+  not change or reinterpret the B4 rule or its reference.
+- **The instrumentation** adds the same counters to both arms. Its cost was
+  not measured separately.
+- **Provenance.** The build record reads `probes_dirty: true` (the diagnostic
+  probe copy). That `knotrel-core` is unchanged since v0.6.0 is stated in the
+  comparison report, not shown here.
 - **A ranked code-site profile needs a window-only profiler.** For example, a
   core-only replay of the B4 trace under `sample`. That is not done here.
