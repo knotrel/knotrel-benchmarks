@@ -79,7 +79,8 @@ attempt of series a3, final by rule).
 - **Executed code vs the first campaign** (`__TEXT,__text`, information only,
   [`analysis/text-section-compare.txt`](analysis/text-section-compare.txt)):
   both servers and the contention probe are identical; both `release-cells`
-  differ, as they do between every two builds in separate directories.
+  differ (they also differed between a3-2 and a3-3; the cause is not
+  examined).
 - **Tooling:** knotrel-benchmarks `087526ad36aa0f94513f41c3318287556c8f0dd2`,
   freeze commit `f73c2bd524e7dd6323ed5ee49017fb9e6840be6c` (FREEZE-A3
   revision 2, which adds only `FREEZE-A3.json`). Reference probes use the
@@ -90,8 +91,8 @@ attempt of series a3, final by rule).
   recorded thermal or performance warning; no child exited non-zero.
 - **1-minute load average** (disclosure; no load limit exists in the rules):
   2.52 at launch; B/C 1.45–2.91; R 2.00–2.49; Rmem 2.49–2.64; M_desc
-  2.64–20.11 and M_reg 2.18–16.06, from their own 16- and 64-client
-  configurations.
+  2.64–20.11 (M_desc includes 64-client configurations) and M_reg
+  2.18–16.06 (4- and 16-client cells); the load's sources are not recorded.
 - **Campaign:** evidence `v0.7.0-requalification-e75ff6a-a3-attempt3`,
   2026-11-18 20:11:42Z (grace) → 21:22:16Z, 70.6 min against the 240 min cap:
   quiet period 5.0, A main 14.2, A extension 13.3 (cells
@@ -120,8 +121,10 @@ other than Finder and Terminal stay forbidden.
   run ([`conformance/precheck-launch-env.txt`](conformance/precheck-launch-env.txt)).
 - Quiesce and launcher audit: audit passed with no findings (recorded mode)
   ([`conformance/launcher-audit.json`](conformance/launcher-audit.json));
-  restore OK after the chain, verified again by hand
-  ([`conformance/quiesce-restore-result.json`](conformance/quiesce-restore-result.json)).
+  restore OK after the chain
+  ([`conformance/quiesce-restore-result.json`](conformance/quiesce-restore-result.json));
+  `check_restored.sh` run again after the chain found no unrestored quiesce
+  (operator check, not archived).
 - Monitor alive throughout with no gap; violations 0; HID resets 0 (HID idle
   4,261 s at the end); foreground failures 0.
 - Quiet period conforming; 925 gated children, all conforming, gated =
@@ -140,27 +143,37 @@ invalidation; [`conformance/INTERFERENCE.md`](conformance/INTERFERENCE.md)).
   the analysis. The review found two blockers (R and M_reg cells split in
   two; a floating-point artefact marking children at exactly 25%); both were
   fixed and re-verified.
-- Background CPU: zero in all 3,905 monitor samples; no child has background
-  CPU above 2.2% of one core. 552 children are shorter than the sampling
+- Background CPU: zero in all 3,905 monitor samples (`background_pcpu_sum`);
+  by `ps` CPU time per child, at most 2.24% of one core. 552 children are shorter than the sampling
   interval and have no sample.
 - 11 cells are marked "read with caution": A `core_sustained_churn_10k`
   `compact-bfs` (8 of 24 children) and `compact-workspace` (10 of 24); eight
   B/C cells (B5 memory hub 100k and seven C cells at 1k); Rmem
   `import-core-60-30` (2 of 2). In every marked child the measure over the
-  limit is **baseline** CPU (the Terminal lineage), exactly one or two 0.01 s
-  `ps` ticks inside a child of 0.032–0.040 s. The marking follows §10.3
+  limit is **baseline** CPU (the Terminal lineage): exactly one 0.01 s `ps`
+  tick inside a child of 0.032–0.040 s (25.6–31.2% of one core). The marking follows §10.3
   unchanged; this resolution effect is disclosed, not corrected.
 
-**Cross-check (deviation, disclosed).** PROTOCOL.md §5 step 4 and
-RERUN-PROPOSAL.md name "the conformance cross-check", the first campaign's
-`scripts/analyze_v070_conformance.py`. It cannot be run on this campaign: it
-reads the first campaign's monitor format (top-five records by `kind`/`utc`),
-and it classes Terminal.app as a user application, while amendment 2 makes
-Terminal.app the controller. Per-cell conformance is taken instead from the
-gate's own per-child decisions (`scripts/report_v070r_cell_conformance.py`),
-which check the full process table against the allow-list before and after
-every child, a stronger basis than top-five samples. The maintainer approved
-writing the report on this basis (2026-11-19).
+**Cross-check (deviation, disclosed).** MATRIX `analysis` binds conformance
+to "the gate log, CONFORMANCE.txt and analyze_v070_conformance.py-style
+cross-check of the monitor log"; PROTOCOL.md §5 step 4 and RERUN-PROPOSAL.md
+name "the conformance cross-check". The first campaign's
+`scripts/analyze_v070_conformance.py` cannot be run on this campaign:
+- it reads records keyed `kind`/`utc`/`args`; the re-qualification monitor
+  writes `k`/`t` records with resolved paths and classes;
+- it classes Terminal.app as a user application, while amendment 2 makes
+  Terminal.app the controller;
+- by design it can return only NONCONFORMING or INDETERMINATE ("no interval
+  qualifies" as CONFORMING), because its monitor saw only the top five
+  processes.
+
+No adapted version of that script was written: its classes are the first
+campaign's, and the re-qualification monitor already classifies every
+process in the full table (not only the top five) and the gate checks that
+classification before and after every child. Per-cell conformance is taken
+from those gate decisions (`scripts/report_v070r_cell_conformance.py`). The
+maintainer approved writing the report on this basis
+([`REPORTING-DECISIONS.md`](REPORTING-DECISIONS.md), 2026-11-19).
 
 **Every directory of the re-qualification** (all counted, all reported; none
 selected by its result):
@@ -180,15 +193,19 @@ selected by its result):
 | `…-e75ff6a-a3-attempt3` | FREEZE-A3 r2 | **CONFORMING** | this report |
 
 The A outputs of the exhausted attempts 2 and 3 are checksummed in
-[`EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256`](EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256). The A outputs of a3-2 are not used:
-the attempt has no verdict.
+[`EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256`](EXHAUSTED-ATTEMPTS-A-OUTPUTS.sha256),
+and those of a3-2 (A main and its extension on `core_sparse_traversal_10k`
+`compact-bfs` and batch 8, 291 files) in
+[`A3-ATTEMPT2-A-OUTPUTS.sha256`](A3-ATTEMPT2-A-OUTPUTS.sha256). They are not
+used: those attempts have no CONFORMING verdict. a3-1 stopped in its quiet
+period and has no outputs.
 
 ## 3. Lifecycle off: existing behavior against v0.6.0 (experiment A, v0.4.0 rules)
 
 | Cell | Outcome | Primary (B → C, median) | Paired change [interval] (pairs) | Supporting metrics | First campaign (non-conforming) |
 |---|---|---|---|---|---|
 | core sparse traversal, `compact-bfs` | PASS | 4.473 → 4.466 ms | −0.27% [−1.83, +2.76] (12) | `connected` p99 +1.81% PASS; RSS PASS | PASS +2.96% |
-| core sparse traversal, `compact-workspace` | PASS | 5.687 → 5.770 ms | +0.39% [−8.22, +9.97] (12) | `connected` p99 +7.53% [−8.98, +12.91] PASS; RSS PASS | PASS −3.82% |
+| core sparse traversal, `compact-workspace` | PASS ² | 5.687 → 5.770 ms | +0.39% [−8.22, +9.97] (12) | `connected` p99 +7.53% [−8.98, +12.91] PASS; RSS PASS | PASS −3.82% |
 | core sustained churn, `compact-bfs` | PASS ¹ | 0.6685 → 0.6692 ms | +0.68% [−0.17, +1.44] (12) | `connected` p99 +1.24% [−1.63, +19.60] PASS; RSS PASS | PASS +0.54% |
 | core sustained churn, `compact-workspace` | PASS ¹ | 0.4698 → 0.4728 ms | +0.40% [−0.28, +1.06] (12) | PASS | PASS +0.43% |
 | HTTP startup to ready | PASS | 3.992 → 3.877 ms | −3.10% [−5.88, +0.57] (12) | query p99 −0.92% PASS; RSS +2.25% [+1.04, +3.20] PASS | INCONCLUSIVE_DISCLOSED |
@@ -199,6 +216,8 @@ the attempt has no verdict.
 
 ¹ Interference marking "read with caution" (§2), baseline CPU at `ps`
 resolution only.
+² Upper bound +9.97% against the 10% tolerance: PASS by 0.03 points, with a
+wide interval (§9 item 8).
 
 **Summary:** 9 PASS, no REGRESSION, no INCONCLUSIVE. Two cells took the
 12-pair extension (batch 8, batch 64). `link_p99_ns` and `cut_p99_ns` are
@@ -227,8 +246,9 @@ client, so it does not exercise the shared read lock under contention.
 | toggle churn, sparse 100k | PASS | 83.70 → 84.29 ms | +0.21% [−4.73, +4.00] | INCONCLUSIVE |
 
 The two cells INCONCLUSIVE in the first campaign (core import hub 10k,
-toggle churn) PASS here. Both run `knotrel-core` code only, which is
-byte-identical between the arms. Core import sparse 10k is no longer
+toggle churn) PASS here. Both exercise `knotrel-core` code paths, whose source
+is byte-identical between the arms (the `release-cells` binaries differ;
+this is not offered as an explanation of either result). Core import sparse 10k is no longer
 IMPROVED: its interval now includes zero.
 
 ## 5. Lifecycle on: memory (Rmem; allocator byte counts, deterministic, tolerance 20%)
@@ -342,7 +362,9 @@ baselines, as stated in the first campaign's §7). Full data:
   background imports in the window failed with `412 precondition_failed`,
   one stats request returned 503, and no import completed (invalid reasons:
   "background failures=6", "background completed=0"). The queries in the same
-  window ran (788.6 req/s). In the first campaign the same configuration
+  window ran (788.6 req/s, with 174,799 query responses 503, as in every
+  64-client configuration: 42 of 162 rows have 503s, and the first campaign
+  had 175,011 in this configuration). In the first campaign the same configuration
   completed 6 of 6 imports (p50 761 ms). In this campaign the 4- and
   16-client import configurations of the same server completed 5 of 5
   (p50 67 / 273 ms). The cause is not established.
@@ -354,19 +376,24 @@ baselines, as stated in the first campaign's §7). Full data:
 Statistical results of a CONFORMING campaign. No option below has been
 applied; none is recommended over another here; every item awaits the
 maintainer's decision. No decision from an earlier release or from the first
-v0.7.0 campaign applies.
+v0.7.0 campaign applies. Attempt a3-3 is final whatever its statistical
+result (PROTOCOL.md §§8.3, 10.4): any re-measurement or diagnostic named
+below is a separate, declared collection that can add evidence for a later
+decision or release; it cannot replace or supersede a result of this
+attempt.
 
 | # | Result | Impact | Evidence | Options |
 |---|---|---|---|---|
 | 1 | B4 `import-high` **REGRESSION** +413.26% [+375.24, +446.79] (t = 100%) | Full-topology import with 60/30 flags costs about 5× an effective-graph-only reference | Recurs from v0.5.0 (+444.8%), v0.6.0 (+419.9%) and the first campaign (+402.1%). The reference parses only the effective graph | (a) accept with disclosure as inherent to the full-topology contract; (b) define a different reference or tolerance for future releases (a product decision, made before measuring) |
 | 2 | C3 heap growth **FAIL** ×3 (fresh-ID churn, 100k) | Heap grows over 30 cycles before compaction | Identical values to v0.6.0 and the first campaign (`knotrel-core` unchanged); growth +0.103 / +0.172 / +0.119 against 0.10 | (a) accept with disclosure; (b) pre-size the catalog and re-measure (B5 cost); (c) a longer-window resource rule for future releases (product decision, made before measuring) |
-| 3 | B4 `ops` sparse 100k **INCONCLUSIVE** +23.76% [+18.05, +26.72] (t = 25%) | Lifecycle-on batch overhead at 100k may exceed 25%; median about +24% | INCONCLUSIVE in the first campaign too (+20.71%); v0.6.0 PASS +19.45%. Same binary, both arms exclusive-lock mutation batches | (a) accept with disclosure; (b) a declared re-measurement of this cell; (c) a targeted overhead diagnostic |
-| 4 | B4 `metrics-ops` sparse 10k **INCONCLUSIVE** +5.65% [+2.93, +8.58] (t = 6%) | Metrics overhead on lifecycle batches may exceed the 6% budget | Recurs from v0.5.0, v0.6.0 and the first campaign. Recording logic unchanged; `metrics.rs` only times `RwLock` acquisition | (a) accept with disclosure; (b) a targeted overhead diagnostic |
+| 3 | B4 `ops` sparse 100k **INCONCLUSIVE** +23.76% [+18.05, +26.72] (t = 25%) | Lifecycle-on batch overhead at 100k may exceed 25%; median about +24% | INCONCLUSIVE in the first campaign too (+20.71%); v0.6.0 PASS +19.45%. Same binary, both arms exclusive-lock mutation batches | (a) accept with disclosure; (b) a declared separate re-measurement of this cell (additional evidence, not a replacement); (c) a targeted overhead diagnostic |
+| 4 | B4 `metrics-ops` sparse 10k **INCONCLUSIVE** +5.65% [+2.93, +8.58] (t = 6%) | Metrics overhead on lifecycle batches may exceed the 6% budget | Recurs from v0.5.0, v0.6.0 and the first campaign. Recording logic unchanged; `metrics.rs` changed only to time `RwLock` acquisition | (a) accept with disclosure; (b) a targeted overhead diagnostic |
 | 5 | C4 RSS **EXCEEDS_BUDGET** 6/15 | Disclosure category by rule (allocator retention), not FAIL | Same cells as the first campaign | Disclose |
-| 6 | M_desc **INVALID** row `M-source-on-100k/read100-b8-c64-import`: 6 of 6 background imports `412 precondition_failed`, none completed | Under 64 query clients with lifecycle on, replacement imports in this window were all refused by the precondition check; whether this is a product behavior (for example a version precondition that cannot win against continuous catch-up) or a probe effect is not known | Descriptive experiment, no verdict. New: the first campaign completed 6/6 in the same configuration; 4- and 16-client configurations completed 5/5 here | (a) disclose as an unexplained invalid descriptive row; (b) a diagnostic of import preconditions under feeder catch-up and 64 clients before release; (c) a declared re-measurement of the configuration |
+| 6 | M_desc **INVALID** row `M-source-on-100k/read100-b8-c64-import`: 6 of 6 background imports `412 precondition_failed`, none completed | Under 64 query clients with lifecycle on, replacement imports in this window were all refused by the precondition check; whether this is a product behavior or a probe effect is not known | Descriptive experiment, no verdict. New: the first campaign completed 6/6 in the same configuration; 4- and 16-client configurations completed 5/5 here | (a) disclose as an unexplained invalid descriptive row; (b) a diagnostic of replacement-import preconditions with lifecycle on and 64 clients before release; (c) a declared separate re-measurement of the configuration (additional evidence, not a replacement) |
 | 7 | M_reg read95 batch 8 client p99 **+6.41% [+0.21, +10.09]** (PASS, interval entirely above zero) | A confirmed small tail-latency increase for mixes of mutation-bearing and query-only batches, within the 25% tolerance | Same direction as the first campaign (+5.38%). Plausible mechanism, not shown: a writer now waits for in-flight shared readers | (a) disclose; (b) a declared paired read95 batch 64 cell in a future collection (scope change, separate decision) |
-| 8 | Interference marking: 11 cells "read with caution" | None on the measurements: background CPU zero; baseline only at `ps` resolution | §2; [`conformance/INTERFERENCE.md`](conformance/INTERFERENCE.md) | Disclose (§10.3: no invalidation) |
-| 9 | Cross-check deviation (§2) | The named first-campaign script was not run; per-cell conformance comes from the gate | Format and class incompatibility with the re-qualification monitor and amendment 2 | Disclose (maintainer approved the report on this basis) |
+| 8 | A `core sparse traversal, compact-workspace` PASS with upper bound +9.97% (t = 10%) | Closest to its tolerance of all PASS cells: by 0.03 points; wide interval [−8.22, +9.97], median +0.39% | First campaign PASS −3.82% [−8.90, +6.59] (24 pairs); here 12 pairs, no extension required by the v0.4.0 rules | Disclose (PASS under the frozen rule) |
+| 9 | Interference marking: 11 cells "read with caution" | None shown on the measurements: background CPU zero in monitor samples and at most 2.24% of one core by `ps` share; baseline over the limit only by one `ps` tick | §2; [`conformance/INTERFERENCE.md`](conformance/INTERFERENCE.md) | Disclose (§10.3: no invalidation) |
+| 10 | Cross-check deviation (§2) | The named first-campaign script was not run; per-cell conformance comes from the gate | Format and class incompatibility with the re-qualification monitor and amendment 2 | Disclose (maintainer approved the report on this basis, [`REPORTING-DECISIONS.md`](REPORTING-DECISIONS.md)) |
 
 ## 10. Differences from the frozen plan (declared)
 
