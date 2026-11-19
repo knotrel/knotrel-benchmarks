@@ -1165,3 +1165,80 @@ and no should-fix findings. Five minor points:
 | M3 the scanner does not cover imported helpers, shell tools or Rust binaries | disclosed above (Limits) |
 | M4 the dry-run `--out` paths were not `precheck-*` in the precheck | named after the report file (`logs/precheck-launch-env-dryrun-*`, never created) |
 | M5 `LANG=C.UTF-8` under `env -i` | kept: the value recorded in a3-2's launch environment; disclosed above |
+
+## 11. Amendment 4 (probe refresh, future collections)
+
+**Ordered** by the maintainer on 2026-11-19, path C, item 5: fix the
+probe's 503/412 handling with bounded retries and backoff; record attempts,
+refusals, completions and overall latency; check that retries do not hide
+starvation; then a new freeze for future collections.
+
+**Scope.**
+- **This amendment applies to future collections only.** Attempt a3-3
+  stays under FREEZE-A3 revision 2 (freeze `f73c2bd5`), with its results as
+  measured. Its M_desc row `read100-b8-c64-import` stays **INVALID**: 6/6
+  replacement imports got 412 (diagnostics D5 and D5b).
+- No rule, threshold, matrix entry, collector or gate changes. `MATRIX.json`
+  is not modified.
+- Series a3 is closed: a3-3 was CONFORMING and final. This amendment is not
+  wired into `prepare_campaign.sh`. A future campaign, with its candidate,
+  matrix and freeze, needs the maintainer's approval.
+
+**Probe revision 3** (`tools/contention-probe`, `PROBE_REVISION = 3`).
+- **ETag refresh** (`refresh_etag`): `GET /v1/stats`, retried on 503 or an
+  I/O error.
+  - Backoff is 10, 20, 40, 80, then 160 ms per wait, at most
+    `REFRESH_ATTEMPTS` = 12 attempts: at most 1.27 s of waiting.
+  - Any other status ends the refresh unsuccessfully.
+  - An unsuccessful refresh is a recorded failure (`refresh-exhausted`).
+- **When it runs:** at the start of an import configuration, and after any
+  412.
+- **After a 412,** the import is retried once with the fresh token
+  (`import_with_refresh`). A second 412 is a recorded failure
+  (`precondition-after-refresh`).
+- **Imports refused with 503** are not retried within the second (unchanged:
+  one import per second, start to start).
+- **Accounting:** `background.imports` per import configuration:
+  - stats attempts, 503 refusals and I/O errors;
+  - refreshes, exhausted refreshes, and refresh latency (median and max);
+  - imports attempted and completed;
+  - 412s, retries, and failures after refresh.
+
+  `background.p50_ns`/`max_ns` already span each whole attempt, including
+  refresh and retry.
+- **Starvation:** `import_starved` is true when any refresh is exhausted, any
+  import fails after a refresh, or fewer imports complete than are
+  attempted.
+
+**Validity rule** (`scripts/analyze_v070r_a4.py`). The frozen rule of
+`analyze_v060_m_supplement.py` applies unchanged, plus:
+- an import configuration without `background.imports` is invalid (probe
+  revision below 3, fail closed);
+- an import configuration with `import_starved` not false is invalid.
+
+Everything else is `analyze_v070r_qualification.py` unchanged. a3-3's
+records are not analyzed with this script.
+
+**Verification.**
+- **Rust unit tests** (`cargo test`, 7 tests) against a scripted stub
+  server:
+  - the backoff sequence;
+  - 503 twice then 200;
+  - persistent 503, which exhausts the refresh and makes the configuration
+    starved;
+  - 412, then 503 and 200 on stats, then 201 on the retry;
+  - 412 after a refresh;
+  - 412 with an exhausted refresh, which is not retried;
+  - fewer completed than attempted.
+- **Python tests:** `scripts/tests/test_v070r_amendment4.py`.
+- **Live runs:** `diagnostics/D5b-probe-refresh`, on the a3-3 candidate
+  server with the D5 configurations.
+  - 3 runs of revision 3: 6/6 imports, no 412.
+  - 3 runs of a forced copy that skips the initial refresh, so the token is
+    stale as in a3-3. Each time, one 412, a refresh (1–2 attempts, one 503
+    refused in two runs), a successful retry, and 6/6 imports.
+  - No configuration was starved.
+- **The persistent-refusal case is shown at unit level, not live:** the stub
+  server, no live server.
+
+**Freeze.** `FREEZE-A4.json` (tooling freeze) after an independent review.

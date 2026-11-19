@@ -68,6 +68,24 @@
 //!   `lifecycle50` toggles base items and is meant for one configuration per
 //!   server process.
 //!
+//! # Revision 3 (v0.7.0 re-qualification amendment 4, future collections)
+//!
+//! A background import refreshes its `If-Match` token with bounded retries
+//! instead of one unretried `GET /v1/stats` (attempt a3-3 kept a stale token
+//! for a whole window after one `503 busy`; diagnostic D5):
+//! - the refresh retries a 503 or an I/O error with backoff 10, 20, 40, 80,
+//!   then 160 ms per wait, at most [`REFRESH_ATTEMPTS`] attempts; an exhausted
+//!   refresh is a recorded failure (`refresh-exhausted`), never hidden;
+//! - it runs when an import configuration starts and after any `412`; after a
+//!   `412` the import is retried once with the fresh token, and a second `412`
+//!   is a recorded failure (`precondition-after-refresh`);
+//! - the background summary records stats attempts and refusals, refreshes,
+//!   exhausted refreshes and refresh latency, imports attempted and completed,
+//!   `412`s and retries, and per-import latency including refresh and retry;
+//! - `import_starved` is true when any refresh is exhausted, any import fails
+//!   after a refresh, or fewer imports complete than are attempted, so a
+//!   starving configuration never looks successful.
+//!
 //! Correctness of answers is not re-verified here (it is covered by the test
 //! suites and the core oracles); the probe measures timing.
 
@@ -191,8 +209,9 @@ impl Conn {
     }
 }
 
-/// Probe revision recorded in every `start` record (1 = frozen v0.6.0 campaign).
-const PROBE_REVISION: u32 = 2;
+/// Probe revision recorded in every `start` record (1 = frozen v0.6.0 campaign,
+/// 2 = v0.6.0 supplementary run and v0.7.0 campaigns, 3 = amendment 4 refresh).
+const PROBE_REVISION: u32 = 3;
 
 /// Node-limit headroom above the loaded graph for IDs that toggles and feeder
 /// events register (at most 128 per client plus 128 feeder IDs).
@@ -455,6 +474,142 @@ fn rss_kib(pid: u32) -> Option<u64> {
         .output()
         .ok()?;
     String::from_utf8_lossy(&output.stdout).trim().parse().ok()
+}
+
+/// Maximum `GET /v1/stats` attempts per refresh (revision 3).
+const REFRESH_ATTEMPTS: u32 = 12;
+
+/// Backoff before refresh attempt `attempt + 1` (revision 3): 10 ms doubling to 160 ms.
+fn refresh_backoff(attempt: u32) -> Duration {
+    Duration::from_millis(10u64 << attempt.min(4))
+}
+
+/// Outcome of one bounded `If-Match` refresh (revision 3).
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Refresh {
+    etag: Option<String>,
+    attempts: u32,
+    refused_503: u32,
+    io_errors: u32,
+    other: u32,
+    latency_ns: u64,
+}
+
+/// Reads the live `ETag` from `GET /v1/stats`, retrying a 503 or an I/O error
+/// with [`refresh_backoff`], at most [`REFRESH_ATTEMPTS`] attempts. Any other
+/// status ends the refresh unsuccessfully. A broken connection is replaced.
+fn refresh_etag(conn: &mut Conn, address: SocketAddr) -> Refresh {
+    let start = Instant::now();
+    let mut out = Refresh::default();
+    while out.attempts < REFRESH_ATTEMPTS {
+        if out.attempts > 0 {
+            thread::sleep(refresh_backoff(out.attempts - 1));
+        }
+        out.attempts += 1;
+        match conn.request("GET", "/v1/stats", &[], b"") {
+            Ok((200, headers, _)) => {
+                out.etag = headers.iter().find(|(k, _)| k == "etag").map(|(_, v)| v.clone());
+                if out.etag.is_none() {
+                    out.other += 1;
+                }
+                break;
+            }
+            Ok((503, _, _)) => out.refused_503 += 1,
+            Ok(_) => {
+                out.other += 1;
+                break;
+            }
+            Err(_) => {
+                out.io_errors += 1;
+                if let Ok(fresh) = Conn::connect(address) {
+                    *conn = fresh;
+                }
+            }
+        }
+    }
+    out.latency_ns = start.elapsed().as_nanos() as u64;
+    out
+}
+
+/// Revision 3 import accounting for one background configuration.
+#[derive(Debug, Default)]
+struct ImportStats {
+    stats_attempts: u64,
+    stats_refused_503: u64,
+    stats_io_errors: u64,
+    refreshes: u64,
+    refresh_exhausted: u64,
+    refresh_latencies: Vec<u64>,
+    attempted: u64,
+    precondition_412: u64,
+    retries: u64,
+    precondition_after_refresh: u64,
+}
+
+impl ImportStats {
+    /// Records a refresh; returns its token when it succeeded.
+    fn record(&mut self, refresh: Refresh) -> Option<String> {
+        self.stats_attempts += u64::from(refresh.attempts);
+        self.stats_refused_503 += u64::from(refresh.refused_503);
+        self.stats_io_errors += u64::from(refresh.io_errors);
+        self.refreshes += 1;
+        self.refresh_latencies.push(refresh.latency_ns);
+        if refresh.etag.is_none() {
+            self.refresh_exhausted += 1;
+        }
+        refresh.etag
+    }
+
+    /// True when the configuration's imports cannot be taken as successful.
+    fn starved(&self, completed: u64) -> bool {
+        self.refresh_exhausted > 0 || self.precondition_after_refresh > 0 || completed < self.attempted
+    }
+
+    fn summary(&mut self, completed: u64) -> Value {
+        self.refresh_latencies.sort_unstable();
+        json!({"stats_attempts": self.stats_attempts, "stats_refused_503": self.stats_refused_503,
+               "stats_io_errors": self.stats_io_errors, "refreshes": self.refreshes,
+               "refresh_exhausted": self.refresh_exhausted,
+               "refresh_latency_p50_ns": percentile(&self.refresh_latencies, 0.5),
+               "refresh_latency_max_ns": self.refresh_latencies.last().copied().unwrap_or(0),
+               "imports_attempted": self.attempted, "imports_completed": completed,
+               "precondition_412": self.precondition_412, "retries": self.retries,
+               "precondition_after_refresh": self.precondition_after_refresh,
+               "import_starved": self.starved(completed)})
+    }
+}
+
+/// Sends one replacement import with the stored token; after a `412`,
+/// refreshes the token ([`refresh_etag`]) and retries once (revision 3).
+/// Returns the final response; the caller accounts it as before.
+fn import_with_refresh(
+    conn: &mut Conn,
+    address: SocketAddr,
+    feeder: &mut Feeder,
+    body: &[u8],
+    imports: &mut ImportStats,
+    failure_kinds: &mut BTreeMap<String, u64>,
+) -> Result<(u16, Headers, Value), String> {
+    imports.attempted += 1;
+    let etag = feeder.etag.clone();
+    let result = post_feeder(conn, feeder, "/v1/feeder/import", body, Some(&etag));
+    if !matches!(result, Ok((412, _, _))) {
+        return result;
+    }
+    imports.precondition_412 += 1;
+    let Some(tag) = imports.record(refresh_etag(conn, address)) else {
+        *failure_kinds.entry("refresh-exhausted".into()).or_default() += 1;
+        return result;
+    };
+    feeder.etag = tag;
+    imports.retries += 1;
+    let etag = feeder.etag.clone();
+    let retried = post_feeder(conn, feeder, "/v1/feeder/import", body, Some(&etag));
+    if matches!(retried, Ok((412, _, _))) {
+        imports.precondition_412 += 1;
+        imports.precondition_after_refresh += 1;
+    }
+    retried
 }
 
 /// Source-managed state shared by setup and background threads.
@@ -754,21 +909,16 @@ fn run_config(
             let mut durations = Vec::new();
             let mut toggled = false;
             let mut pending_events: Option<String> = None;
+            let mut imports = ImportStats::default();
             if background == "import" {
                 // The stored ETag may be stale (events of an earlier
-                // configuration advance the state version): read it fresh.
-                match conn.request("GET", "/v1/stats", &[], b"") {
-                    Ok((200, headers, _)) => {
-                        if let Some((_, tag)) = headers.iter().find(|(k, _)| k == "etag") {
-                            feeder_state.etag = tag.clone();
-                        }
-                    }
-                    other => {
-                        let kind = match other {
-                            Ok((status, _, _)) => format!("stats-{status}"),
-                            Err(e) => format!("stats-io: {e}"),
-                        };
-                        *failure_kinds.entry(kind).or_default() += 1;
+                // configuration advance the state version): read it fresh,
+                // with bounded retries (revision 3).
+                match imports.record(refresh_etag(&mut conn, address)) {
+                    Some(tag) => feeder_state.etag = tag,
+                    None => {
+                        failures += 1;
+                        *failure_kinds.entry("refresh-exhausted".into()).or_default() += 1;
                     }
                 }
             }
@@ -789,13 +939,13 @@ fn run_config(
                 if background == "import" {
                     let position = format!("i{count}");
                     let body = import_body(&feeder_state, "replace", n, &edges, &position);
-                    let etag = feeder_state.etag.clone();
-                    let result = post_feeder(
+                    let result = import_with_refresh(
                         &mut conn,
-                        &feeder_state,
-                        "/v1/feeder/import",
+                        address,
+                        &mut feeder_state,
                         &body,
-                        Some(&etag),
+                        &mut imports,
+                        &mut failure_kinds,
                     );
                     match result {
                         Ok((201, ref headers, ref reply)) => {
@@ -889,9 +1039,14 @@ fn run_config(
                 }
             }
             durations.sort_unstable();
-            let summary = json!({"kind": background, "completed": count, "failures": failures,
+            let mut summary = json!({"kind": background, "completed": count, "failures": failures,
                                  "refused_503": refused, "failure_kinds": failure_kinds,
                                  "p50_ns": percentile(&durations, 0.5), "max_ns": durations.last().copied().unwrap_or(0)});
+            if background == "import" {
+                // Revision 3 accounting; `p50_ns`/`max_ns` above already include
+                // refresh and retry time (each duration spans the whole attempt).
+                summary["imports"] = imports.summary(count);
+            }
             (feeder_state, summary)
         }))
     } else {
@@ -1055,5 +1210,143 @@ fn main() {
     if let Err(error) = outcome {
         eprintln!("contention-probe: {error}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Revision 3 refresh and retry against a scripted stub server.
+    use super::*;
+    use std::sync::Mutex;
+
+    /// One scripted response: status, optional `etag` header.
+    type Reply = (u16, Option<&'static str>);
+
+    /// Serves `script` in order on one keep-alive connection; records each
+    /// request as `"METHOD PATH if-match"`.
+    fn stub(script: Vec<Reply>) -> (SocketAddr, Arc<Mutex<Vec<String>>>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let log = Arc::clone(&seen);
+        thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut writer = stream;
+            for (status, etag) in script {
+                let mut line = String::new();
+                if reader.read_line(&mut line).unwrap() == 0 {
+                    return;
+                }
+                let target: Vec<&str> = line.split_whitespace().take(2).collect();
+                let (mut length, mut if_match) = (0usize, String::from("-"));
+                loop {
+                    let mut header = String::new();
+                    reader.read_line(&mut header).unwrap();
+                    let header = header.trim_end().to_owned();
+                    if header.is_empty() {
+                        break;
+                    }
+                    let (name, value) = header.split_once(':').unwrap();
+                    match name.to_ascii_lowercase().as_str() {
+                        "content-length" => length = value.trim().parse().unwrap(),
+                        "if-match" => if_match = value.trim().to_owned(),
+                        _ => {}
+                    }
+                }
+                let mut body = vec![0; length];
+                reader.read_exact(&mut body).unwrap();
+                log.lock().unwrap().push(format!("{} {} {if_match}", target[0], target[1]));
+                let reply = if status == 201 { r#"{"generation":2}"# } else { "{}" };
+                let etag = etag.map(|t| format!("etag: {t}\r\n")).unwrap_or_default();
+                write!(writer, "HTTP/1.1 {status} X\r\n{etag}content-length: {}\r\n\r\n{reply}", reply.len()).unwrap();
+            }
+        });
+        (address, seen)
+    }
+
+    fn feeder() -> Feeder {
+        Feeder { instance: "i".into(), generation: 1, etag: "\"stale\"".into(), sequence: 0, position: "p".into() }
+    }
+
+    #[test]
+    fn backoff_doubles_to_160_ms() {
+        let waits: Vec<u64> = (0..6).map(|a| refresh_backoff(a).as_millis() as u64).collect();
+        assert_eq!(waits, [10, 20, 40, 80, 160, 160]);
+    }
+
+    #[test]
+    fn refresh_retries_503_then_reads_the_etag() {
+        let (address, seen) = stub(vec![(503, None), (503, None), (200, Some("\"live\""))]);
+        let mut conn = Conn::connect(address).unwrap();
+        let refresh = refresh_etag(&mut conn, address);
+        assert_eq!(refresh.etag.as_deref(), Some("\"live\""));
+        assert_eq!((refresh.attempts, refresh.refused_503), (3, 2));
+        assert!(refresh.latency_ns >= 30_000_000, "10 + 20 ms of backoff");
+        assert_eq!(seen.lock().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn persistent_503_exhausts_the_refresh() {
+        let (address, _) = stub(vec![(503, None); REFRESH_ATTEMPTS as usize]);
+        let mut conn = Conn::connect(address).unwrap();
+        let refresh = refresh_etag(&mut conn, address);
+        assert_eq!(refresh.etag, None);
+        assert_eq!((refresh.attempts, refresh.refused_503), (REFRESH_ATTEMPTS, REFRESH_ATTEMPTS));
+        let mut imports = ImportStats::default();
+        assert_eq!(imports.record(refresh), None);
+        assert_eq!(imports.refresh_exhausted, 1);
+        assert!(imports.starved(0));
+        assert_eq!(imports.summary(0)["import_starved"], Value::Bool(true));
+    }
+
+    #[test]
+    fn a_412_refreshes_and_the_retry_succeeds() {
+        let (address, seen) = stub(vec![(412, None), (503, None), (200, Some("\"live\"")), (201, Some("\"next\""))]);
+        let mut conn = Conn::connect(address).unwrap();
+        let (mut feeder, mut imports, mut kinds) = (feeder(), ImportStats::default(), BTreeMap::new());
+        let result = import_with_refresh(&mut conn, address, &mut feeder, b"{}", &mut imports, &mut kinds);
+        assert!(matches!(result, Ok((201, _, _))));
+        assert_eq!(
+            *seen.lock().unwrap(),
+            ["POST /v1/feeder/import \"stale\"", "GET /v1/stats -", "GET /v1/stats -", "POST /v1/feeder/import \"live\""]
+        );
+        assert_eq!((imports.attempted, imports.precondition_412, imports.retries), (1, 1, 1));
+        assert_eq!((imports.stats_attempts, imports.stats_refused_503, imports.precondition_after_refresh), (2, 1, 0));
+        assert!(!imports.starved(1));
+        assert!(kinds.is_empty());
+    }
+
+    #[test]
+    fn a_412_after_refresh_is_a_recorded_failure() {
+        let (address, _) = stub(vec![(412, None), (200, Some("\"live\"")), (412, None)]);
+        let mut conn = Conn::connect(address).unwrap();
+        let (mut feeder, mut imports, mut kinds) = (feeder(), ImportStats::default(), BTreeMap::new());
+        let result = import_with_refresh(&mut conn, address, &mut feeder, b"{}", &mut imports, &mut kinds);
+        assert!(matches!(result, Ok((412, _, _))));
+        assert_eq!((imports.precondition_412, imports.precondition_after_refresh), (2, 1));
+        assert!(imports.starved(0));
+    }
+
+    #[test]
+    fn a_412_with_an_exhausted_refresh_is_not_retried() {
+        let mut script = vec![(412, None)];
+        script.extend(vec![(503, None); REFRESH_ATTEMPTS as usize]);
+        let (address, seen) = stub(script);
+        let mut conn = Conn::connect(address).unwrap();
+        let (mut feeder, mut imports, mut kinds) = (feeder(), ImportStats::default(), BTreeMap::new());
+        let result = import_with_refresh(&mut conn, address, &mut feeder, b"{}", &mut imports, &mut kinds);
+        assert!(matches!(result, Ok((412, _, _))));
+        assert_eq!(imports.retries, 0);
+        assert_eq!(kinds.get("refresh-exhausted"), Some(&1));
+        assert_eq!(seen.lock().unwrap().iter().filter(|r| r.starts_with("POST")).count(), 1);
+        assert!(imports.starved(0));
+    }
+
+    #[test]
+    fn fewer_completed_than_attempted_is_starved() {
+        let imports = ImportStats { attempted: 5, ..ImportStats::default() };
+        assert!(imports.starved(4));
+        assert!(!imports.starved(5));
     }
 }
