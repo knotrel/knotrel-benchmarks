@@ -19,8 +19,8 @@ v0.7.0 campaign: every result was measured again and is reported as measured.
 - The qualification does **not** pass unconditionally: §9 lists the results
   that are not PASS. None is waived, accepted or dispositioned here. Each
   awaits the maintainer's decision.
-- Independent review: pending (`analysis/INDEPENDENT-REVIEW.md` will record
-  it).
+- Independent review: done, no open findings
+  ([`analysis/INDEPENDENT-REVIEW.md`](analysis/INDEPENDENT-REVIEW.md)).
 
 This report keeps two things separate, per cell:
 - **Statistical result:** what the frozen analyzers computed from the raw
@@ -197,8 +197,9 @@ The A outputs of the exhausted attempts 2 and 3 are checksummed in
 and those of a3-2 (A main and its extension on `core_sparse_traversal_10k`
 `compact-bfs` and batch 8, 291 files) in
 [`A3-ATTEMPT2-A-OUTPUTS.sha256`](A3-ATTEMPT2-A-OUTPUTS.sha256). They are not
-used: those attempts have no CONFORMING verdict. a3-1 stopped in its quiet
-period and has no outputs.
+used: those attempts have no CONFORMING verdict. Attempt 1 of the first
+series and a3-1 stopped in their quiet periods and have no measurement
+outputs.
 
 ## 3. Lifecycle off: existing behavior against v0.6.0 (experiment A, v0.4.0 rules)
 
