@@ -59,10 +59,15 @@ PROTOCOL.md` and `MATRIX.json`), except as stated here:
   B1/B2/B3/B4 cell tolerances; B5 3×; C1–C4; R, Rmem and M_reg tolerances;
 - the M_desc validity rule, extended in §6.
 
-**New seeds** (no data of an earlier campaign is reused): A session seeds
-230720, 230721, 230722, and extension seeds 230730, 230731, 230732. The
-B/C, R and M_reg order seeds and the probe seeds are unchanged, so cell
-order and workloads are the same as a3-3's.
+**Seeds and workloads are a3-3's** (addendum 1, A5 of `DIAGNOSTICS-PLAN-3.md`):
+- A session seeds 130720–130722 and extension seeds 130730–130732;
+- the B/C, R and M_reg order seeds and the probe seeds;
+- every workload.
+
+The equivalent cells reuse their frozen counterparts' workloads, seeds and
+request counts. Reusing the seeds reuses no data: a new campaign collects
+everything anew. The cell order is the same, which keeps the comparison with
+a3-3 direct.
 
 ## 4. Capability-equivalent B4 references
 
@@ -209,7 +214,19 @@ What changes:
 
 ## 10. Differences from the re-qualification, in one place
 
-*(Completed before the freeze.)*
+| Area | Re-qualification (FREEZE-A3 rev. 2) | Qualification 3 |
+|---|---|---|
+| Candidate | e75ff6a | e75ff6a plus the declared product changes (§2.1) |
+| B/C cells | 127 | 140: the 13 equivalent cells added (§4.1) |
+| Deciding B4 cells for import, ops, ops-query, events | frozen references (lean store, untimed planner) | capability-equivalent references; frozen cells descriptive |
+| Window multipliers | `lifecycle-qualification-v0.5.0/window-multipliers-dcd8ccc.json` | `window-multipliers-q3.json`: the same 61 factors, plus each equivalent cell with its frozen counterpart's factor. The candidate arm is unchanged and the reference arm only slower, so the faster arm's window stays at least 2 ms. |
+| `http-lifecycle` | frozen scenarios | `*-equivalent` scenarios added; frozen scenarios unchanged |
+| Contention probe | revision 2 | revision 4 (§6) |
+| M validity rule | frozen supplement rule | plus amendment 4 (`analyze_v070r_a4.py`), installed only by the analysis command |
+| Collectors and analyzers | `run_v070r_collect.py`, `analyze_v070r_qualification.py` | `run_v070q3_collect.py` and `analyze_v070q3.py`: the same code, bound to this matrix |
+| A seeds | 130720–130722; extension 130730–130732 | unchanged (addendum 1, A5) |
+| Campaign directory and series | `v0.7.0-requalification-<cand7>-a3-attemptN`, a3, cap 3 | `v0.7.0-qualification-3-<cand7>-q3-attemptN`, q3, cap 3 |
+| Thresholds, estimators, pair counts, conformance rules | — | unchanged |
 
 ## 11. Phase-3 results that fix §2.1
 
