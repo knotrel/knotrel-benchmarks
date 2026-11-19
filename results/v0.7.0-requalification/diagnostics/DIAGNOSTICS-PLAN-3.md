@@ -339,3 +339,16 @@ windows and untimed:
 For `events-equivalent`, which has no per-event results in the API, this
 complete final-state check is the equivalence check (maintainer: "va bene
 non confrontare risultati per evento se l'API non li espone").
+
+**Plain server content (maintainer, 2026-11-19).**
+- Every node of catalog ∪ removed IDs is checked individually on the plain
+  server (`node_state`: registered).
+- The node count must equal |catalog ∪ removed|.
+- The edge count must equal the effective edges, and every effective edge
+  is checked individually.
+
+Together these exclude any extra node or edge. Difference from the lifecycle
+server, documented: the plain server has no node removal, so a node removed
+in the window stays as an isolated vertex there (the frozen planner's design).
+The lifecycle server deletes it from its registered topology. The check
+expects exactly that difference and nothing else.
