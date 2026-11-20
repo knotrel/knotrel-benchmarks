@@ -4,14 +4,15 @@
 Reads only what ``run_v070q3_t5.py`` wrote: ``plan.json``, ``provenance.json``,
 ``run-log.jsonl`` and ``raw/*.jsonl``. It runs no benchmark.
 
-**Validation (any failure: the analysis stops, exit 1, T5 has no PASS).**
+**Validation (any failure: the analysis stops, exit 1, T5 has no PASS; with ``--json`` it
+writes an ``invalid`` marker that the report turns into six INVALID deciding rows).**
 - the plan is the frozen one (``run_v070q3_t5.plan`` with the recorded order seed); every
   run has a raw file and a run-log record with exit 0, AC power recorded before it, in plan
   order;
 - every raw file starts with a ``build`` record: arm B built from ``--expect-base-rev``, arm
   C from ``--expect-cand-rev``, probes from ``--expect-probes-rev``, none dirty, timing build;
-- a ``pauses_start`` record with the frozen workload, cycle records 1-600 in order and a
-  ``pauses_end`` record whose ``max_ns`` is the largest cycle maximum;
+- exactly the records build, ``pauses_start`` (the frozen workload, engine and topology),
+  cycle records 1-600 in order and ``pauses_end``, whose whose ``max_ns`` is the largest cycle maximum;
 - **same duration and workload:** within a topology, every run (both arms, warmup
   included) has the same schedule digest, result digest, number of calls per cycle and
   final logical counts, and the same compaction cycles. A compaction cycle is one after
@@ -74,8 +75,14 @@ def lines(path: Path) -> List[Dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
-def run_summary(run_id: str, records: List[Dict[str, Any]], rev: str, probes_rev: str) -> Dict[str, Any]:
-    build = records[0] if records else {}
+KINDS = ["build", "pauses_start"] + ["cycle"] * collector.CYCLES + ["pauses_end"]
+
+
+def run_summary(run_id: str, topology: str, records: List[Dict[str, Any]], rev: str,
+                probes_rev: str) -> Dict[str, Any]:
+    if [r.get("kind") for r in records] != KINDS:
+        raise Invalid(f"{run_id}: records are not build, pauses_start, {collector.CYCLES} cycles, pauses_end")
+    build = records[0]
     if build.get("kind") != "build":
         raise Invalid(f"{run_id}: missing build record")
     if build.get("knotrel_rev") != rev or build.get("knotrel_dirty") is not False:
@@ -90,7 +97,7 @@ def run_summary(run_id: str, records: List[Dict[str, Any]], rev: str, probes_rev
     if len(start) != 1 or len(end) != 1:
         raise Invalid(f"{run_id}: {len(start)} start and {len(end)} end records")
     start, end = start[0], end[0]
-    want = {"nodes": collector.NODES, "cycles": collector.CYCLES, "churn_percent": collector.CHURN_PERCENT,
+    want = {"engine": collector.ENGINE, "topology": topology, "nodes": collector.NODES, "cycles": collector.CYCLES, "churn_percent": collector.CHURN_PERCENT,
             "seed": collector.SEED, "reuse": "fresh"}
     got = {k: start.get(k) for k in want}
     if got != want:
@@ -117,7 +124,7 @@ def run_summary(run_id: str, records: List[Dict[str, Any]], rev: str, probes_rev
                          "calls_per_cycle": [r["calls"] for r in cycles], "final_logical": end["final_logical"],
                          "compactions": compactions},
             "wall_ns": end["wall_ns"], "timed_ns": end["timed_ns"], "calls": end["calls"],
-            "max_ops": sorted({r["max_op"] for r in cycles if r["cycle"] in compactions})}
+            "longest_call_kinds_in_compaction_cycles": sorted({r["max_op"] for r in cycles if r["cycle"] in compactions})}
 
 
 def describe(values: List[float]) -> Dict[str, float]:
@@ -140,7 +147,7 @@ def analyze(directory: Path, base_rev: str, cand_rev: str, probes_rev: str) -> D
         if r["argv"][1:] != collector.child_args(r["topology"]):
             raise Invalid(f"{r['id']}: arguments {r['argv'][1:]}")
     revs = {"B": base_rev, "C": cand_rev}
-    runs = {r["id"]: run_summary(r["id"], lines(directory / "raw" / f"{r['id']}.jsonl"), revs[r["arm"]], probes_rev)
+    runs = {r["id"]: run_summary(r["id"], r["topology"], lines(directory / "raw" / f"{r['id']}.jsonl"), revs[r["arm"]], probes_rev)
             for r in expected_plan}
     results, absolute = [], {}
     for topology in collector.TOPOLOGIES:
@@ -162,7 +169,8 @@ def analyze(directory: Path, base_rev: str, cand_rev: str, probes_rev: str) -> D
                   "timed_ms": describe([x["timed_ns"] / 1e6 for x in arms[arm]]),
                   "mean_call_ns": describe([x["timed_ns"] / x["calls"] for x in arms[arm]]),
                   "calls": arms[arm][0]["calls"],
-                  "compacting_call_kinds": sorted({k for x in arms[arm] for k in x["max_ops"]})}
+                  "longest_call_kinds_in_compaction_cycles": sorted(
+                      {k for x in arms[arm] for k in x["longest_call_kinds_in_compaction_cycles"]})}
             for arm in ("B", "C")}
         for metric in ("P_max", "P_90"):
             values = [{"B": by_pair[p]["B"][metric], "C": by_pair[p]["C"][metric]} for p in range(collector.PAIRS)]
@@ -188,8 +196,12 @@ def main() -> int:
     args = parser.parse_args()
     try:
         out = analyze(args.directory, args.expect_base_rev, args.expect_cand_rev, args.expect_probes_rev)
-    except (Invalid, OSError, KeyError, ValueError) as error:
+    except (Invalid, _bc.AnalysisError, OSError, KeyError, ValueError, IndexError, TypeError,
+            ZeroDivisionError) as error:
+        # The report turns this marker into six INVALID deciding rows (never a PASS).
         print(f"T5 INVALID: {error}", file=sys.stderr)
+        if args.json:
+            args.json.write_text(json.dumps({"check": "T5", "invalid": f"{type(error).__name__}: {error}"}, indent=1))
         return 1
     text = json.dumps(out, indent=1)
     if args.json:

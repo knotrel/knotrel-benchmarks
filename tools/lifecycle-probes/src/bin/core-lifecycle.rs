@@ -401,7 +401,8 @@ fn pauses_command(args: &Args) -> Result<(), String> {
     let storage = graph.storage_stats();
     println!(
         "{}",
-        json!({"kind":"pauses_start","nodes":n,"edges":edges.len(),"cycles":cycles,
+        json!({"kind":"pauses_start","engine":args.get("engine")?,
+               "topology":args.get("topology")?,"nodes":n,"edges":edges.len(),"cycles":cycles,
                "churn_percent":percent,"seed":seed,"reuse":"fresh",
                "schedule_ops": plan.iter().map(Vec::len).sum::<usize>(),
                "schedule_digest":format!("{schedule_digest:016x}"),
