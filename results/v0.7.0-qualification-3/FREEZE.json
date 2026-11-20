@@ -1,5 +1,5 @@
 {
- "frozen_utc": "2026-11-20T06:39:59Z",
+ "frozen_utc": "2026-11-20T09:37:46Z",
  "campaign": "v0.7.0 qualification 3",
  "candidate": {
   "repository": "knotrel",
@@ -14,8 +14,8 @@
  },
  "tooling": {
   "repository": "knotrel-benchmarks",
-  "commit": "605ad6d4feb37e7e794459468e6561ca10ea51d8",
-  "note": "after the independent review of revision 2 and its fixes (PROTOCOL section 12, item 3) and the pre-freeze smokes; the freeze commit adds only FREEZE.json and FREEZE-r1.json (the revision-1 record, unchanged)"
+  "commit": "62f2a123a454a8cdf726ad832c33a72f88d533be",
+  "note": "after the independent review of revision 3 and its fixes (PROTOCOL 14.6); the freeze commit adds only FREEZE.json and FREEZE-r2.json"
  },
  "requalification": "a3-3 (FREEZE-A3 revision 2) preserved in full with its verdicts; not re-labelled",
  "controller_kind": "terminal",
@@ -33,22 +33,23 @@
    "2026-11-19",
    "2026-11-20"
   ],
-  "quoted": "PROTOCOL section 1",
+  "quoted": "PROTOCOL section 1 (decisions 1-10)",
   "release": "'Non autorizzo un rilascio senza qualificazione conforme.'"
  },
  "pending_maintainer_items": [],
  "file_sha256": {
-  "results/v0.7.0-qualification-3/MATRIX.json": "579882eaad370731fd0510fbc8ac78ec29dbee82d10e6d0f7eae88195ef3e39f",
-  "results/v0.7.0-qualification-3/PROTOCOL.md": "42d54e324c40473e12ee6cc5529141d1e2ebbffad4df8f03e4d014838d2dc719",
+  "results/v0.7.0-qualification-3/MATRIX.json": "28f1bfa616af1604d7e5fe748d9d43ad9e6493da90ebbcd7ee4a707c35fdd8c0",
+  "results/v0.7.0-qualification-3/PROTOCOL.md": "f8fd584e283ed209e4bd3e4f5625982fd79d1bb97f109f0779a2c6ab69132dbb",
   "results/v0.7.0-qualification-3/check_restored.sh": "2a10048c075c85ae0d1c49bdf5e88222a9f670312956802b2ec36eff5cac8451",
-  "results/v0.7.0-qualification-3/launch_command.sh": "b897eac93acd5b74b352de531b850ec9883c0c75b2cadc5bbcb3b6c04142fcba",
-  "results/v0.7.0-qualification-3/launch_env_check.sh": "1f22fa6138b08da9325966002f4926d383dc5fabc34e36de213b3f0bfa1757a0",
+  "results/v0.7.0-qualification-3/launch_command.sh": "3d8436e8b402c8481f32c0d96602a3e17f9e3bb981de8dffedebe8720197572e",
+  "results/v0.7.0-qualification-3/launch_env_check.sh": "a8fdae14efb77617aae8f4c5a6923eea7b03487537d1b848a8504bfed618d644",
   "results/v0.7.0-qualification-3/launch_tools.txt": "951b642b800276ff270ab7bf6a08ee573865968931527df82c61b63b16ddb767",
   "results/v0.7.0-qualification-3/precheck_terminal.sh": "5a34df4c62f88a2d438dd70c71781348037a4f91941dc569c22c00f79400f79a",
   "results/v0.7.0-qualification-3/prepare_campaign.sh": "40f00d7e315093a54d098a638d6b84bbc5e5dd5f1a713414a7eb6633676d484f",
   "results/v0.7.0-qualification-3/run_final_chain.sh": "98c985b53f4c2d41d1e061a3d794cd573a59f861bb73e8ef6f8110f2cc491ec8",
   "results/v0.7.0-qualification-3/series_budget.sh": "185b91956ec5fc9f960b54309e68b6cf2ec157043b242619a6b8222730b6e977",
   "results/v0.7.0-qualification-3/smoke/README.md": "864aaa87e64a626d122d1564d81d9ed4e39719ccf0ba3073553bc5d1aace0cfb",
+  "results/v0.7.0-qualification-3/smoke/r3-monitor-smoke.txt": "ab8c5b692e3ded92f4248d45382257071b45fa9611270dc465a4cc29342f28f0",
   "results/v0.7.0-qualification-3/smoke/smoke-r2-final.txt": "cf6a32f85d66470476ed480f52491afdf2f223231632f8e2aec8cebc5913b276",
   "results/v0.7.0-qualification-3/smoke/t5-smoke.txt": "32ba291f65775951c180d919f3317e3316f1d112bf1dfae4bdbe2c099bb3b84f",
   "results/v0.7.0-qualification-3/window-multipliers-q3.json": "d696dd93bf1d9835aeddd17588aed84a8d91f32456c9eda6f743d78011dcf142",
@@ -63,7 +64,10 @@
   "scripts/analyze_v070r_qualification.py": "06efd9d731544faea1753767341b2204ee1da2295ba9baab2ec4e4613f4d43e5",
   "scripts/cli_paths.py": "a781fe43e12360185fd7e31e5dab50f0336bd407f690840af2b430263531622b",
   "scripts/conformance_gate.py": "909259b5d3fdd1e0efdb4688aa6f694c2e96527e04ed31518b47c85cb129ae86",
-  "scripts/conformance_monitor.py": "4234ec9106a87239e761c698d915268b345f8797b271dff5d33346fd9e938007",
+  "scripts/conformance_monitor.py": "db01dbe24a73e2056bb06c71e2259d26c10ccbd1a9178475d7b7e8fc492f39a8",
+  "scripts/interference_collect.py": "245fe331761404953415eef26b524c97cceeb953ddfb1f378f1d6ccb7f3ce4ac",
+  "scripts/interference_gate.py": "e4373b5e91d440f2d80410e37fcc679090eb587e57f26ac03b5942090534e934",
+  "scripts/interference_monitor.py": "92ccc1c3cf741d0dc64ee668bcc498cf793ced25adc6338e24296b9e41c03a91",
   "scripts/launcher_audit.py": "93962886ce03cddf597d9ec3902f51899e990e1d78545ade566360cee4127ffe",
   "scripts/prepare_bc_qualification.py": "3f0e10d5eb0b23436178f0bbd0e907056a82f4c73497318c34b42d8d9c83dc3d",
   "scripts/report_v070q3_bc.py": "b025499a13c74c386c85b18800991aaada1d9418649706f7a3832b07a4cd0887",
@@ -72,9 +76,12 @@
   "scripts/run_p0_aa.py": "d5abebd60a318aed49057cf9d377c94296c1c7661caca06733b4f988aea90b69",
   "scripts/run_scale.py": "7fb45267f6bf53820e97fbdd7d48c547eb9aaecdd73f1e2a9e66ae614ea7ae38",
   "scripts/run_v060_qualification.py": "333b5cb170256b027099fcb27b1030cde3cd141a7e24c4e2cade9dcb1275e741",
-  "scripts/run_v070q3_collect.py": "3130ddefaaf3e9a11d5644dc800165ba61ec64b1ec698db5c437547ee0a883f2",
-  "scripts/run_v070q3_t5.py": "eec003cc2f38d97ef4c176923490eb74ea1f81033e8a6d0d0b068d5a2dac823c",
+  "scripts/run_v070q3_autonomous.py": "7b63a275614862a3b521093d6739fd51affffb43fac52bc27deae2da7705ce89",
+  "scripts/run_v070q3_collect.py": "e36ffbc8db29748bbf19423f2c5a2cbb80e26b99721c54b651ab0e39d0fb9523",
+  "scripts/run_v070q3_t5.py": "6f349b0b33db866067b94105842f107a5dcc79b4d6be1ac88eefb7c3c627f980",
   "scripts/run_v070r_collect.py": "29c84947f848cf1328292cb7d73f3313d3eddce3d5e98167ef78ef91b11604ad",
+  "scripts/tests/test_v070q3.py": "d45985fefa6ff14c893e87ec080a320234450d142e1ef0e7748092f7c0b0642c",
+  "scripts/tests/test_v070q3_r3.py": "76a9d586ed69625c816b9ff9acea9a70d4842b4340ad73ffe25522230feaa597",
   "tools/contention-probe/Cargo.lock": "d174e1053c51c8029993fc3bb27dec136e97badc5972bc5c7834479240061106",
   "tools/contention-probe/Cargo.toml": "c688ba6c57c979f3b7cae9465b71c11e0bf037e54c72520adc560b1a5180db8c",
   "tools/contention-probe/src/main.rs": "68fa37351cb8f6150d6810fd2b25c66a98a4a93001ebae8ba7d1391092ad4f6b",
@@ -88,12 +95,15 @@
   "tools/lifecycle-probes/src/churn.rs": "f1d9e4e8bdb4eca2263a7afc33bb4cdd58323c8d0b28ee3c7b271eef83ecd0f9",
   "tools/lifecycle-probes/src/lib.rs": "ae89de731b85860650e2385c82c816224bee4af275ed1edf871c1d74769277f2"
  },
- "revision": 2,
+ "revision": 3,
  "supersedes": {
-  "revision": 1,
-  "freeze_commit": "66f2f0a9",
-  "file": "results/v0.7.0-qualification-3/FREEZE-r1.json",
-  "reason": "maintainer decisions 2026-11-20 (PROTOCOL section 1, decisions 1-9); no collection ran under revision 1; its prepared attempt was renamed ...-q3-attempt1.unlaunched-66f2f0a9 (PROTOCOL section 7)"
+  "revision": 2,
+  "freeze_commit": "6afc1f8b",
+  "file": "results/v0.7.0-qualification-3/FREEZE-r2.json",
+  "attempts_under_it": {
+   "q3-1": "NONCONFORMING: user input in the quiet period (allow-list rule)",
+   "q3-2": "NONCONFORMING: gate stop after R from the heartbeat timestamp defect (tooling failure); kept unchanged, not relabelled"
+  }
  },
  "t5": {
   "baseline_commit": "e75ff6a26ec245aefcadfff254e0ac2dd6efc4fc",
@@ -119,5 +129,52 @@
   "D4c departure accepted for the diagnostic only, no exception to the 6% budget (decision 2)",
   "free disk space (decision 5): about 14 GiB free; a campaign needs about 2.5 GB"
  ],
- "smokes": "functional and completeness checks only, not qualification data; no threshold or criterion was set or changed from them (smoke/README.md)"
+ "technical_fix": "exact heartbeat timestamps in the conformance monitor and in the new telemetry monitor; same clock and representation on both sides; no tolerance (PROTOCOL 14.1)",
+ "protocol_change": {
+  "decision": "maintainer 2026-11-20, decision 10 (PROTOCOL section 1)",
+  "policy": "proportional interference policy replaces the allow-list rule for attempts prepared under revision 3 (PROTOCOL 14.2-14.5): presence of applications, Claude, browsers, IDEs, user input and WindowServer activity is recorded as context and never stops or invalidates by itself",
+  "rules": {
+   "sample_s": 1.0,
+   "gap_s": 2.5,
+   "status_age_s": 3.0,
+   "monitor_lost_s": 30.0,
+   "after_s": 0.0,
+   "invalid_window_s": 10.0,
+   "invalid_cpu": 1.5,
+   "ready_window_s": 30.0,
+   "ready_cpu": 0.6,
+   "pressure_max": 1,
+   "sleep_jump_s": 2.0,
+   "wait_limit_s": 600.0,
+   "retries": 2
+  },
+  "limits": {
+   "budget_s": 6300.0,
+   "a_block_restarts": 1,
+   "monitor_start_s": 20.0,
+   "monitor_check_samples": 6,
+   "min_free_bytes": 3221225472
+  },
+  "units": {
+   "A": "block (A main, A extension); restart at most a_block_restarts times",
+   "BC": "cell (one child: both arms, warmup and 12 pairs)",
+   "T5": "pair (both runs)",
+   "R": "pair",
+   "M_reg": "pair",
+   "Rmem": "cell (ref and cand)",
+   "M_desc": "child (one server configuration list)"
+  },
+  "threshold_basis": "PROTOCOL 14.3: host observations of a3-3 and q3-2 (quiet hosts: 10-s external CPU max 1.08/1.07 cores, 30-s max 0.58/0.56); OS states for memory, power, thermal, sleep; no measured result consulted",
+  "not_measured": [
+   "disk activity: no per-process attribution without elevated privileges; heavy indexing or builds appear as external CPU"
+  ]
+ },
+ "replacement_attempt": "q3-3 replaces q3-2 for the tooling failure (attempts_cap 4 for this reason only); the first CONFORMING attempt is final",
+ "launch": "LAUNCH-COMMAND.txt runs scripts/run_v070q3_autonomous.py detached; no Terminal-only controller, no applications closed",
+ "tests": {
+  "suite": "744 passed, 2 skipped, 72 subtests passed in 30.67s",
+  "command": "python3 -m pytest -q scripts/tests",
+  "at_commit": "62f2a123a454a8cdf726ad832c33a72f88d533be"
+ },
+ "smokes": "functional checks only, not qualification data (smoke/README.md, smoke/r3-monitor-smoke.txt)"
 }
