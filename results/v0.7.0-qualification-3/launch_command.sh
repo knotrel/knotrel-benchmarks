@@ -22,7 +22,8 @@ LOG=$CAMP/chain-launch.log
 # controller and no need to quit applications. Run detached (new session) so that closing the
 # app that started it does not end it; it writes CAMP/SUMMARY.txt and logs/CONFORMANCE.txt.
 if [ "$EXTRA" != "--soak" ]; then
-  echo "export PATH=$PYDIR:/usr/bin:/bin:/usr/sbin:/sbin; cd $CAMP/src/cand/knotrel-benchmarks && python3 scripts/run_v070q3_autonomous.py $CAMP $CAND >> $CAMP/runner.log 2>&1; echo \"runner exit=\$?\" >> $CAMP/runner.log"
+  # os.setsid() puts the runner in its own session (macOS has no setsid command); stdin is /dev/null.
+  echo "export PATH=$PYDIR:/usr/bin:/bin:/usr/sbin:/sbin; cd $CAMP/src/cand/knotrel-benchmarks && nohup python3 -c 'import os,sys; os.setsid(); os.execv(sys.executable, [sys.executable] + sys.argv[1:])' scripts/run_v070q3_autonomous.py $CAMP $CAND < /dev/null >> $CAMP/runner.log 2>&1 &"
   exit 0
 fi
 echo "export PATH=$PYDIR:/usr/bin:/bin:/usr/sbin:/sbin; cd /; if /usr/bin/caffeinate -dimsu /bin/sh $R/precheck_terminal.sh $CAMP < /dev/null; then /usr/bin/caffeinate -dimsu /bin/sh $R/run_final_chain.sh $CAMP $CAND $EXTRA < /dev/null >> $LOG 2>&1; echo \"chain exit=\$?\" >> $LOG; tail -4 $LOG; fi"

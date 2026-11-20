@@ -755,9 +755,9 @@ servers, the monitor) is excluded from the external load.
 | External CPU | cumulative CPU time of every process outside the campaign tree, per second (`ps`) | **wait** before a unit while the 30-s mean exceeds 0.6 cores or the 10-s mean exceeds 1.5; **invalidate** a unit if any 10-s mean inside it exceeds 1.5 |
 | Memory pressure | `kern.memorystatus_vm_pressure_level` | wait / invalidate above level 1 (normal) |
 | Sleep | growth of (wall clock − monotonic clock), which stops during sleep | invalidate on a jump above 2 s; wait 30 s after one |
-| Power | `pmset -g batt`, every 5 s | battery: wait / invalidate |
-| Thermal | `pmset -g therm`, every 5 s | any recorded thermal or performance warning, or a CPU speed limit below 100: wait / invalidate |
-| Monitor coverage | sample gaps; monitor status | a gap above 2.5 s, or no sample at the start or after the end of a unit: invalidate; status silent for 30 s or monitor gone: stop (MONITOR LOST) |
+| Power | `pmset -g batt`, every sample | battery: wait / invalidate |
+| Thermal | `pmset -g therm`, every sample | any recorded thermal or performance warning, or a CPU speed limit below 100: wait / invalidate |
+| Monitor coverage | sample gaps; monitor status | from the last sample at or before a unit's start to the first at or after its end, a gap above 2.5 s, or a missing end sample: invalidate; monitor gone, or no new sample for 30 s of monotonic time (sleep excluded): stop (MONITOR LOST) |
 
 **Basis of the CPU thresholds** (host observations only; no B/C, T5 or
 other measured result was consulted):
@@ -795,6 +795,10 @@ process that starts and exits between two samples.
 
 - **Wait** happens only before a unit, never inside one; no timed process is
   suspended or resumed.
+- **Judgement** waits for the first sample at or after the unit's end; that
+  sample's process table is read after its time, so its CPU delta covers the
+  unit to its end. Every sample carries the power and thermal readings, so a
+  short unit is never judged without one.
 - **Unit = what must be judged together:**
   - B/C: the cell (one child that runs both arms, the warmup and the 12 pairs);
   - T5, R, M_reg: the pair, both arms;
@@ -819,9 +823,16 @@ process that starts and exits between two samples.
     sustained host load");
   - the whole attempt has **105 minutes** from its start, waits and
     repetitions included. This is the upper end of the duration stated for a
-    complete campaign (1 h 30–1 h 45); q3-2's steps took 82 minutes, so
-    about 20 minutes remain for waits and repetitions. Past the deadline, no
-    new unit starts: BUDGET EXHAUSTED.
+    complete campaign (1 h 30–1 h 45). q3-2's steps took 82 minutes; judging
+    each of about 730 units adds on average half a sample interval (about
+    6 minutes in all); about 15 minutes remain for waits and repetitions.
+    The budget starts after the preflight. Past the deadline no new unit
+    starts: BUDGET EXHAUSTED.
+  - A's frozen collector keeps its own 45-minute deadline per block; waits
+    inside A count against it, and exceeding it is FAILED.
+  - The frozen AC and thermal checks of A (per session) and of R, Rmem and
+    M (per child) still stop their collector (FAILED) if power or thermal
+    state is bad at that moment; the gate normally waits before that point.
 
   Each of these ends with everything preserved, and is reported to the
   maintainer.
@@ -853,14 +864,42 @@ EXHAUSTED, RECOVERY EXHAUSTED, MONITOR LOST, FAILED, INTERRUPTED, NOT
 STARTED. Only CONFORMING attempts give verdicts. The agent that starts the
 runner does no other work while it runs.
 
-### 14.6 What does not change
+### 14.6 Review before the freeze
+
+Independent review of `85485c3e`: one probable blocker and eight should-fix
+items, all addressed before the freeze:
+- **blocker:** waiting for a sample one second after each unit cost about
+  2 s per unit (about 23 minutes in all) and would have exhausted the
+  budget. Now the first sample at or after the end is used (§14.4);
+- gaps straddling a unit's start or end are detected;
+- power and thermal state are read in every sample;
+- monitor silence is measured on monotonic time and waited for up to 30 s,
+  so a sleep or a short stall does not end the campaign;
+- any preflight failure is NOT STARTED, and a monitor that fails to start
+  leaves the directory relaunchable;
+- `CONFORMANCE.txt` is written before anything else at the end, and partial
+  record lines are skipped;
+- the launch command detaches the runner into its own session;
+- B/C cells are keyed by binary and arguments (core and core-count cells
+  share arguments);
+- the collector runs in its own process group, which the runner stops whole.
+
+Minors addressed: stop reasons are recorded before a gate exit; reasons are
+de-duplicated without merging distinct kinds; every monitor command has a
+10-s timeout; T5 keeps a failing run's output; the budget starts after the
+preflight. Not changed (disclosed in §14.4): A's own 45-minute deadline and
+the frozen collectors' AC and thermal checks. Residual test gap: the A and
+B/C adapters are tested with fakes, not end to end through the frozen
+collectors.
+
+### 14.7 What does not change
 
 Candidate, reference, experiments, cells, seeds, run order, estimators,
 thresholds, the T5 specification, the equivalence rules, the unqualified
 requirements and the release rule of §8 are unchanged. The first CONFORMING
 attempt is final.
 
-### 14.7 The replacement attempt
+### 14.8 The replacement attempt
 
 q3-2 failed on the tooling defect of §14.1. Under decision 10 its
 replacement is **q3-3**, prepared from the revision-3 freeze (`attempts_cap`

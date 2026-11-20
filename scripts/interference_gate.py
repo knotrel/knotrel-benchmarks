@@ -8,9 +8,10 @@ together) through :meth:`Gate.run_unit`:
    below). It never waits inside a unit: no timed child is suspended or resumed.
 2. The unit's children run; each child's start and end are taken with ``time.time()``, the
    clock of the telemetry samples.
-3. **After the unit** :meth:`Gate.assess` waits for a telemetry sample at least
-   ``after_s`` after the end (same clock, exact values) and judges the unit's interval
-   (rule ``invalid``).
+3. **After the unit** :meth:`Gate.assess` waits for the first telemetry sample with
+   ``t >= end`` (same clock, exact values; ``after_s`` = 0). That sample's process table is
+   read after ``t``, so its CPU delta covers the unit up to its end. It then judges the unit's
+   interval (rule ``invalid``).
 4. A valid unit is kept. An invalid unit is recorded with its reasons; the collector preserves
    its outputs as invalidated, and the **whole unit** is repeated, at most ``retries`` times.
    Then :class:`RecoveryExhausted` stops the campaign (the result stays inconclusive).
@@ -21,17 +22,18 @@ Rules (``RULES``; the same values are frozen in MATRIX ``conformance.qualificati
 - **ready:** the latest sample is at most ``status_age_s`` old; at least ``ready_window_s`` of
   samples with no gap above ``gap_s``; over that window: mean external CPU <=
   ``ready_cpu`` cores, the trailing ``invalid_window_s`` mean <= ``invalid_cpu``, memory
-  pressure level <= ``pressure_max`` in every sample, no sleep, and in the latest slow sample
+  pressure level <= ``pressure_max`` in every sample, no sleep, and in the latest sample
   AC power and no thermal warning.
-- **invalid:** in the interval [start - gap_s, end + after_s]: a gap between samples above
-  ``gap_s`` (or none at the ends), any sample whose trailing ``invalid_window_s`` mean
-  external CPU exceeds ``invalid_cpu``, memory pressure above ``pressure_max``, a sleep
-  (``sleep_s`` > ``sleep_jump_s``), or a slow sample showing battery power or a thermal
-  warning.
+- **invalid:** from the last sample at or before ``start`` to the first sample at or after
+  ``end`` (exact values, same clock): a gap between consecutive samples above ``gap_s`` (or
+  no sample at either end), any sample whose trailing ``invalid_window_s`` mean external CPU
+  exceeds ``invalid_cpu``, memory pressure above ``pressure_max``, a sleep (``sleep_s`` >
+  ``sleep_jump_s``), or a sample showing battery power or a thermal warning (every sample
+  carries both).
 - **limits:** a wait longer than ``wait_limit_s`` raises :class:`Blocked` ("blocked by
   sustained host load"); passing the campaign deadline raises :class:`BudgetExhausted`;
-  a monitor whose status is older than ``status_age_s`` for ``monitor_lost_s`` raises
-  :class:`MonitorLost`. Each is a ``SystemExit`` with its own code, so the runner can state
+  a monitor that is gone, or whose status has not advanced for ``monitor_lost_s`` of
+  monotonic time (which excludes system sleep), raises :class:`MonitorLost`. Each is a ``SystemExit`` with its own code, so the runner can state
   the cause.
 
 Records go to ``DIR/units.jsonl``: one line per unit attempt and per wait.
@@ -41,6 +43,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
@@ -50,8 +53,7 @@ RULES: Dict[str, float] = {
     "gap_s": 2.5,
     "status_age_s": 3.0,
     "monitor_lost_s": 30.0,
-    "after_s": 1.0,
-    "after_wait_s": 10.0,
+    "after_s": 0.0,
     "invalid_window_s": 10.0,
     "invalid_cpu": 1.5,
     "ready_window_s": 30.0,
@@ -105,18 +107,23 @@ def trailing_mean(samples: Sequence[Dict[str, Any]], index: int, window: float) 
 
 
 def coverage_reasons(beats: Sequence[float], start: float, end: float, gap: float) -> List[str]:
-    """Heartbeat coverage of [start, end]: a beat at or before start + gap, one at or after
-    ``end`` (exact comparison, same clock), and no gap above ``gap`` in between."""
+    """Heartbeat coverage of [start, end] (exact comparisons, same clock): the last beat at or
+    before ``start`` (within ``gap``) and the first at or after ``end`` must exist, and no two
+    consecutive beats from the one to the other may be more than ``gap`` apart."""
+    beats = sorted(beats)
+    before = [t for t in beats if t <= start]
+    after = [t for t in beats if t >= end]
     reasons = []
-    inside = sorted(t for t in beats if start - gap <= t)
-    if not any(t <= start + gap for t in inside):
+    if not before or start - before[-1] > gap:
         reasons.append("no telemetry at the unit's start")
-    if not any(t >= end for t in inside):
+    if not after:
         reasons.append("no telemetry after the unit ended")
-    points = [start] + [t for t in inside if start < t < end] + [end]
-    worst = max(b - a for a, b in zip(points, points[1:]))
+    lo = before[-1] if before else start
+    hi = after[0] if after else end
+    points = [lo] + [t for t in beats if lo < t < hi] + [hi]
+    worst = max((b - a for a, b in zip(points, points[1:])), default=0.0)
     if worst > gap:
-        reasons.append(f"telemetry gap {worst:.2f} s inside the unit")
+        reasons.append(f"telemetry gap {worst:.2f} s around the unit")
     return reasons
 
 
@@ -132,8 +139,10 @@ def slow_sample_reasons(sample: Dict[str, Any]) -> List[str]:
 def judge(samples: Sequence[Dict[str, Any]], start: float, end: float,
           rules: Dict[str, float] = RULES) -> List[str]:
     """Reasons that make the unit [start, end] invalid (empty: valid)."""
-    reasons = coverage_reasons([s["t"] for s in samples], start, end, rules["gap_s"])
-    lo, hi = start - rules["gap_s"], end + rules["after_s"]
+    beats = [s["t"] for s in samples]
+    reasons = coverage_reasons(beats, start, end, rules["gap_s"])
+    lo = max([t for t in beats if t <= start], default=start)
+    hi = min([t for t in beats if t >= end + rules["after_s"]], default=end)
     for i, s in enumerate(samples):
         if not lo <= s["t"] <= hi:
             continue
@@ -148,8 +157,8 @@ def judge(samples: Sequence[Dict[str, Any]], start: float, end: float,
             reasons.append(f"system sleep of {s['sleep_s']:.1f} s")
         reasons += slow_sample_reasons(s)
     seen, unique = set(), []
-    for r in reasons:  # keep the first occurrence of each kind, in order
-        key = r.split(" ")[0] + r.split(" ")[1] if " " in r else r
+    for r in reasons:  # keep the first occurrence of each kind (numbers ignored), in order
+        key = re.sub(r"[-+\d.]+", "#", r.split(" (busiest")[0])
         if key not in seen:
             seen.add(key)
             unique.append(r)
@@ -180,11 +189,10 @@ def ready_reasons(samples: Sequence[Dict[str, Any]], now: float, rules: Dict[str
         reasons.append("memory pressure above normal")
     if any(s.get("sleep_s", 0) > rules["sleep_jump_s"] for s in window):
         reasons.append("system sleep in the window")
-    slow = [s for s in samples if "ac" in s]
-    if not slow:
-        reasons.append("no power/thermal sample yet")
+    if "ac" not in samples[-1]:
+        reasons.append("no power/thermal reading in the latest sample")
     else:
-        reasons += slow_sample_reasons(slow[-1])
+        reasons += slow_sample_reasons(samples[-1])
     return reasons
 
 
@@ -193,9 +201,14 @@ class Gate:
 
     def __init__(self, directory: Path, clock: Callable[[], float] = time.time,
                  sleep: Callable[[float], None] = time.sleep, rules: Optional[Dict[str, float]] = None,
-                 alive: Optional[Callable[[int], bool]] = None):
+                 alive: Optional[Callable[[int], bool]] = None, mono: Optional[Callable[[], float]] = None):
         self.dir = Path(directory)
         self.clock, self.sleep = clock, sleep
+        # Monitor silence is measured on a clock that stops during system sleep. Tests that
+        # simulate time pass only ``clock``; then both clocks are the simulated one.
+        self.mono = mono or (time.monotonic if clock is time.time else clock)
+        self._status_seen: Optional[float] = None
+        self._status_since = self.mono()
         self.rules = dict(RULES if rules is None else rules)
         self.alive = alive or _alive
         self.log_path = self.dir / "telemetry.jsonl"
@@ -223,18 +236,22 @@ class Gate:
                         self._samples.append(row)
         return self._samples
 
-    def _check_monitor(self, since: float) -> None:
-        """Raise MonitorLost when the monitor is dead or silent for ``monitor_lost_s``."""
+    def _check_monitor(self) -> None:
+        """Raise MonitorLost when the monitor is gone, or its status has not advanced for
+        ``monitor_lost_s`` seconds of monotonic time (system sleep excluded)."""
         try:
             status = json.loads(self.status_path.read_text())
             pid, t = int(status["pid"]), float(status["t"])
         except (OSError, ValueError, KeyError):
-            pid, t = 0, 0.0
-        now = self.clock()
-        if (pid and not self.alive(pid)) or (now - t > self.rules["status_age_s"]
-                                             and now - since > self.rules["monitor_lost_s"]):
-            raise MonitorLost(f"telemetry monitor {'gone' if pid and not self.alive(pid) else 'silent'} "
-                              f"(last sample {now - t:.1f} s ago)")
+            pid, t = 0, None
+        if t != self._status_seen:
+            self._status_seen, self._status_since = t, self.mono()
+        silent = self.mono() - self._status_since
+        gone = bool(pid) and not self.alive(pid)
+        if gone or silent > self.rules["monitor_lost_s"]:
+            reason = f"telemetry monitor {'gone' if gone else 'silent'} ({silent:.1f} s without a new sample)"
+            self.record({"kind": "stop", "reason": reason})
+            raise MonitorLost(reason)
 
     def record(self, row: Dict[str, Any]) -> None:
         row = {"block": self.block, **row}
@@ -249,8 +266,10 @@ class Gate:
         while True:
             now = self.clock()
             if now > self.deadline:
-                raise BudgetExhausted(f"campaign duration budget exhausted before {label}")
-            self._check_monitor(began)
+                reason = f"campaign duration budget exhausted before {label}"
+                self.record({"kind": "stop", "reason": reason})
+                raise BudgetExhausted(reason)
+            self._check_monitor()
             reasons = ready_reasons(self.samples(), now, self.rules)
             if not reasons:
                 waited = now - began
@@ -262,17 +281,17 @@ class Gate:
             if now - began > self.rules["wait_limit_s"]:
                 self.record({"kind": "wait", "label": label, "start": began, "end": now,
                              "seconds": now - began, "reasons": reasons, "blocked": True})
+                self.record({"kind": "stop", "reason": f"blocked by sustained host load before {label}"})
                 raise Blocked(f"blocked by sustained host load before {label}: {'; '.join(reasons)}")
             self.sleep(self.rules["sample_s"])
 
     def assess(self, start: float, end: float) -> List[str]:
-        """Wait for telemetry past ``end + after_s`` and judge [start, end]."""
+        """Wait for the first sample at or after ``end + after_s`` and judge [start, end].
+
+        Waits as long as the monitor is alive and advancing (MonitorLost otherwise)."""
         target = end + self.rules["after_s"]
-        waited_from = self.clock()
         while not self.samples() or self.samples()[-1]["t"] < target:
-            if self.clock() - waited_from > self.rules["after_wait_s"]:
-                self._check_monitor(waited_from - self.rules["monitor_lost_s"])
-                return judge(self.samples(), start, end, self.rules) + ["telemetry did not reach the unit's end"]
+            self._check_monitor()
             self.sleep(0.05)
         return judge(self.samples(), start, end, self.rules)
 
@@ -351,10 +370,21 @@ def gate() -> Gate:
     return _GATE
 
 
+def read_rows(path: Path) -> List[Dict[str, Any]]:
+    """JSON lines of ``path``; a partial line (a writer killed mid-append) is skipped."""
+    rows = []
+    if path.exists():
+        for line in path.read_text().splitlines():
+            try:
+                rows.append(json.loads(line))
+            except ValueError:
+                continue
+    return rows
+
+
 def valid_children(directory: Path) -> Dict[str, int]:
     """Valid children per experiment prefix (text before ':'), counting only each step's final block."""
-    rows = [json.loads(line) for line in (Path(directory) / "units.jsonl").read_text().splitlines() if line.strip()] \
-        if (Path(directory) / "units.jsonl").exists() else []
+    rows = read_rows(Path(directory) / "units.jsonl")
     final_block: Dict[str, str] = {}
     for r in rows:
         if r.get("kind") == "unit" and r.get("block"):

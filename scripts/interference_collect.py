@@ -107,7 +107,7 @@ _BC_IDS: Dict[tuple, str] = {}
 
 
 def _bc_cell_id(args: Any) -> str:
-    key = tuple(str(a) for a in args[1:])
+    key = (os.path.realpath(str(args[0])), *(str(a) for a in args[1:]))
     if key not in _BC_IDS:
         raise SystemExit(f"B/C child not in the plan: {' '.join(key)[:200]}")
     return _BC_IDS[key]
@@ -119,10 +119,17 @@ def _bc(argv: List[str]) -> int:
     out = Path(argv[argv.index("--out") + 1])
     apply = collector.apply_multipliers
 
+    binaries = {name: os.path.realpath(argv[argv.index(flag) + 1])
+                for name, flag in (("core", "--core"), ("core-count", "--core-count"), ("http", "--http"))
+                if flag in argv}
+
     def recording_apply(cells: List[Dict[str, Any]], multipliers: Dict[str, int]) -> None:
         apply(cells, multipliers)
-        for cell in cells:
-            _BC_IDS[tuple(str(a) for a in cell["args"])] = cell["id"]
+        for cell in cells:  # keyed by binary and arguments: core and core-count cells share arguments
+            key = (binaries[cell["binary"]], *(str(a) for a in cell["args"]))
+            if key in _BC_IDS:
+                raise SystemExit(f"two B/C cells with the same binary and arguments: {cell['id']}")
+            _BC_IDS[key] = cell["id"]
 
     collector.apply_multipliers = recording_apply
     collector.subprocess = _UnitSubprocess(measured, out)
