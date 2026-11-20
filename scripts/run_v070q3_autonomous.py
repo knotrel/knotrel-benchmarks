@@ -154,6 +154,23 @@ class Runner:
             time.sleep(0.5)
         raise Stop("NOT STARTED", "telemetry monitor did not deliver samples")
 
+    def stop_process(self, proc: Optional[subprocess.Popen], wait_s: float) -> None:
+        """Terminate ``proc`` and its process group (it was started in its own session)."""
+        if proc is None or proc.poll() is not None:
+            return
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            proc.terminate()
+        try:
+            proc.wait(timeout=wait_s)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                proc.kill()
+            proc.wait()
+
     # -- steps -----------------------------------------------------------------
     def run_step(self, name: str, argv: List[str], block: str, restartable_dirs: List[Path] = ()) -> None:
         restarts = 0
@@ -166,7 +183,8 @@ class Runner:
             self.stamp(name, f"start (block {block}#{restarts})")
             began = self.clock()
             with open(self.logs / f"{name}.log", "a") as log:
-                self.child = subprocess.Popen(argv, cwd=self.bench, env=env, stdout=log, stderr=subprocess.STDOUT)
+                self.child = subprocess.Popen(argv, cwd=self.bench, env=env, stdout=log, stderr=subprocess.STDOUT,
+                                              start_new_session=True)
                 code = self.child.wait()
                 self.child = None
             self.steps.append({"step": name, "block": f"{block}#{restarts}", "exit": code,
@@ -190,12 +208,13 @@ class Runner:
             raise Stop("FAILED", f"{name} exited {code} (logs/{name}.log)")
 
     def last_gate_reason(self) -> str:
-        units = self.gate_dir / "units.jsonl"
-        if units.exists():
-            rows = [json.loads(line) for line in units.read_text().splitlines() if line.strip()]
-            if rows:
-                last = rows[-1]
-                return f"{last.get('label') or last.get('unit')}: {'; '.join(last.get('reasons', []))}"
+        rows = ig.read_rows(self.gate_dir / "units.jsonl")
+        stops = [r for r in rows if r.get("kind") == "stop"]
+        if stops:
+            return stops[-1]["reason"]
+        if rows:
+            last = rows[-1]
+            return f"{last.get('label') or last.get('unit')}: {'; '.join(last.get('reasons', []))}"
         return "see the step log"
 
     def collect(self, experiment: str, *args: str) -> List[str]:
@@ -266,10 +285,7 @@ class Runner:
         self.check_binaries("end")
 
     def summary(self) -> Dict[str, Any]:
-        rows = []
-        units = self.gate_dir / "units.jsonl"
-        if units.exists():
-            rows = [json.loads(line) for line in units.read_text().splitlines() if line.strip()]
+        rows = ig.read_rows(self.gate_dir / "units.jsonl")
         samples = ig.Gate(self.gate_dir).samples() if (self.gate_dir / "telemetry.jsonl").exists() else []
         invalid = [r for r in rows if r.get("kind") == "unit" and not r["valid"]]
         waits = [r for r in rows if r.get("kind") == "wait"]
@@ -297,21 +313,23 @@ class Runner:
         }
 
     def finish(self) -> None:
-        for proc in (self.child,):
+        # The status line first: nothing below may prevent it.
+        (self.logs / "CONFORMANCE.txt").write_text(f"{self.status}: {self.cause}\n")
+        self.stop_process(self.child, 30)
+        for proc in (self.monitor, self.caffeinate):
             if proc is not None and proc.poll() is None:
                 proc.terminate()
                 try:
-                    proc.wait(timeout=30)
+                    proc.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     proc.kill()
-        if self.monitor is not None and self.monitor.poll() is None:
-            self.monitor.terminate()
-            try:
-                self.monitor.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self.monitor.kill()
-        if self.caffeinate is not None and self.caffeinate.poll() is None:
-            self.caffeinate.terminate()
+        try:
+            self.write_records()
+        except Exception as error:  # noqa: BLE001 - the status line is already written
+            with open(self.logs / "CONFORMANCE.txt", "a") as handle:
+                handle.write(f"summary not written: {error!r}\n")
+
+    def write_records(self) -> None:
         summary = self.summary()
         (self.camp / "SUMMARY.json").write_text(json.dumps(summary, indent=1))
         lines = [f"{summary['status']}: {summary['cause']}",
@@ -321,7 +339,6 @@ class Runner:
         lines += [f"  invalidated {u['unit']} attempt {u['attempt']}: {'; '.join(u['reasons'])}" for u in summary["invalidated_units"]]
         lines += [f"  step {s['step']} {s['block']} exit {s['exit']} {s['seconds']} s" for s in self.steps]
         (self.camp / "SUMMARY.txt").write_text("\n".join(lines) + "\n")
-        (self.logs / "CONFORMANCE.txt").write_text(f"{self.status}: {self.cause}\n")
         restored = subprocess.run(["sh", str(self.bench / Q3 / "check_restored.sh")], capture_output=True, text=True)
         self.stamp("RESTORE", "nothing quiesced by this policy; earlier quiesce state "
                    + ("restored" if restored.returncode == 0 else "NOT restored (see check_restored.sh)"))
@@ -343,9 +360,23 @@ class Runner:
             signal.signal(sig, interrupted)
         self.logs.mkdir(exist_ok=True)
         try:
-            self.preflight()
+            try:
+                self.preflight()
+            except Stop:
+                raise
+            except BaseException as error:  # noqa: BLE001 - any preflight failure measures nothing
+                raise Stop("NOT STARTED", f"preflight error: {error!r}")
             self.stamp("PREFLIGHT", "ok")
-            self.start_monitor()
+            self.started = self.clock()  # the budget starts after the preflight
+            try:
+                self.start_monitor()
+            except Stop:
+                self.stop_process(self.monitor, 5)
+                if self.caffeinate is not None:
+                    self.caffeinate.terminate()
+                if self.gate_dir.exists():  # keep it, but free the name so the directory can relaunch
+                    self.gate_dir.rename(self.camp / f"gate.not-started-{int(time.time())}")
+                raise
             self.sequence()
             self.end_checks()
             self.status, self.cause = "CONFORMING", "every unit valid under the revision-3 policy; counts and binaries verified"
@@ -358,7 +389,7 @@ class Runner:
         finally:
             for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
                 signal.signal(sig, signal.SIG_IGN)
-            if self.status != "NOT STARTED" or (self.gate_dir.exists()):
+            if self.status != "NOT STARTED":
                 self.finish()
             else:
                 (self.logs / "PREFLIGHT-REFUSED.txt").write_text(f"{self.status}: {self.cause}\n")

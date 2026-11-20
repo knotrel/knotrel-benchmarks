@@ -170,6 +170,8 @@ def collect_units(out: Path, binaries: Dict[str, Path], runs: List[Dict[str, Any
                 done.append({"run": run, "argv": argv, "child": child, "before": before,
                              "seconds": round(time.monotonic() - start, 3)})
                 if child.returncode != 0:
+                    (out / "raw" / f"{run['id']}.jsonl").write_text(child.stdout)
+                    (out / "raw" / f"{run['id']}.stderr").write_text(child.stderr)
                     raise SystemExit(f"stopping: {run['id']} failed: {child.stderr.strip()[:500]}")
 
         def preserve(attempt: int, reasons: List[str]) -> None:
