@@ -824,8 +824,9 @@ process that starts and exits between two samples.
   - the whole attempt has **105 minutes** from its start, waits and
     repetitions included. This is the upper end of the duration stated for a
     complete campaign (1 h 30–1 h 45). q3-2's steps took 82 minutes; judging
-    each of about 730 units adds on average half a sample interval (about
-    6 minutes in all); about 15 minutes remain for waits and repetitions.
+    each of about 730 units adds the wait for the next sample, 0.66–0.93 s
+    in the live smoke (about 8–9 minutes in all); about 13 minutes remain
+    for waits and repetitions.
     The budget starts after the preflight. Past the deadline no new unit
     starts: BUDGET EXHAUSTED.
   - A's frozen collector keeps its own 45-minute deadline per block; waits
