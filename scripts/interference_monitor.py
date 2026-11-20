@@ -19,9 +19,9 @@ Per sample:
 - ``sleep_s``: growth of (wall clock - monotonic clock) since the previous sample. The
   monotonic clock stops while the Mac sleeps, so a sleep shows as a jump;
 - ``load1``: one-minute load average (context).
-Every fifth sample adds ``ac`` (on AC power), ``therm`` (``ok`` or the pmset warning text),
-``swapouts`` and ``pageouts`` (cumulative, context) and ``hid_idle`` (seconds since the last
-user input, context only).
+- ``ac`` (on AC power) and ``therm`` (``ok`` or the pmset warning text), read after ``t``.
+Every fifth sample adds ``swapouts`` and ``pageouts`` (cumulative, context) and ``hid_idle``
+(seconds since the last user input, context only). Every external command has a 10-s timeout.
 
     interference_monitor.py monitor --root PID --dir DIR [--interval 1.0]
     interference_monitor.py sample            # one sample pair to stdout (diagnostics)
@@ -63,7 +63,7 @@ Table = Dict[int, Tuple[int, float, str]]
 def cpu_table() -> Table:
     """pid -> (ppid, cumulative CPU seconds, command name)."""
     out = subprocess.run(["ps", "-A", "-o", "pid=,ppid=,time=,comm="], capture_output=True, text=True,
-                         env=C_ENV, check=True).stdout
+                         env=C_ENV, check=True, timeout=10).stdout
     table: Table = {}
     for line in out.splitlines():
         fields = line.split(None, 3)
@@ -110,7 +110,7 @@ def cpu_delta(previous: Table, current: Table, campaign: Set[int]) -> Tuple[floa
 
 def pressure_level() -> Optional[int]:
     out = subprocess.run(["sysctl", "-n", "kern.memorystatus_vm_pressure_level"], capture_output=True,
-                         text=True, env=C_ENV)
+                         text=True, env=C_ENV, timeout=10)
     try:
         return int(out.stdout.strip())
     except ValueError:
@@ -118,14 +118,14 @@ def pressure_level() -> Optional[int]:
 
 
 def power_on_ac() -> Optional[bool]:
-    out = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True, env=C_ENV).stdout
+    out = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True, env=C_ENV, timeout=10).stdout
     first = out.splitlines()[0] if out.strip() else ""
     return None if not first else "AC Power" in first
 
 
 def thermal_state() -> str:
     """``ok``, or the pmset lines that report a recorded warning or a speed limit below 100."""
-    out = subprocess.run(["pmset", "-g", "therm"], capture_output=True, text=True, env=C_ENV)
+    out = subprocess.run(["pmset", "-g", "therm"], capture_output=True, text=True, env=C_ENV, timeout=10)
     if out.returncode != 0:
         return f"unreadable: {out.stderr.strip()[:200]}"
     bad = []
@@ -140,7 +140,7 @@ def thermal_state() -> str:
 
 
 def vm_counters() -> Dict[str, Optional[int]]:
-    out = subprocess.run(["vm_stat"], capture_output=True, text=True, env=C_ENV).stdout
+    out = subprocess.run(["vm_stat"], capture_output=True, text=True, env=C_ENV, timeout=10).stdout
     found: Dict[str, Optional[int]] = {"swapouts": None, "pageouts": None}
     for line in out.splitlines():
         for key, label in (("swapouts", "Swapouts"), ("pageouts", "Pageouts")):
@@ -151,7 +151,7 @@ def vm_counters() -> Dict[str, Optional[int]]:
 
 def hid_idle() -> Optional[float]:
     out = subprocess.run(["ioreg", "-c", "IOHIDSystem", "-d", "4", "-r"], capture_output=True, text=True,
-                         env=C_ENV).stdout
+                         env=C_ENV, timeout=10).stdout
     match = re.search(r'"HIDIdleTime" = (\d+)', out)
     return int(match.group(1)) / 1e9 if match else None
 
@@ -199,9 +199,9 @@ class Sampler:
             "ext_cpu": ext / span, "camp_cpu": camp / span,
             "top": [[name, round(sec / span, 3)] for name, sec in top],
             "pressure": self.pressure(), "sleep_s": max(0.0, offset - self.prev_offset),
-            "load1": os.getloadavg()[0]}
+            "load1": os.getloadavg()[0], "ac": self.power(), "therm": self.therm()}
         if self.seq % SLOW_EVERY == 1:
-            row.update({"ac": self.power(), "therm": self.therm(), **self.vm(), "hid_idle": self.idle()})
+            row.update({**self.vm(), "hid_idle": self.idle()})
         self.previous, self.prev_t, self.prev_offset = table, t, offset
         return row
 

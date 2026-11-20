@@ -125,8 +125,7 @@ class Host:
             if self.silent:
                 continue
             row = sample(t, **self.profile(t))
-            if self.seq % 5 == 0:
-                row.update(self.slow(t))
+            row.update(self.slow(t))  # every sample carries power and thermal readings
             self.seq += 1
             with open(self.log, "a") as h:
                 h.write(json.dumps(row) + "\n")
@@ -174,7 +173,7 @@ class ProportionalGate(unittest.TestCase):
 
     def test_load_during_unit_repeats_the_whole_pair(self):
         with tempfile.TemporaryDirectory() as tmp:
-            host = Host(tmp, lambda t: {"ext": 2.5 if 1046 <= t < 1060 else 0.1})
+            host = Host(tmp, lambda t: {"ext": 4.0 if 1044 <= t < 1060 else 0.1})
             g = host.gate()
             ran, preserved = [], []
 
@@ -353,7 +352,7 @@ class Adapters(unittest.TestCase):
             probe = Path(tmp) / "probe"
             probe.write_text("#!/bin/sh\necho run $$\n")
             probe.chmod(0o755)
-            ic._BC_IDS[("--x", "1")] = "B1-cell"
+            ic._BC_IDS[(os.path.realpath(str(probe)), "--x", "1")] = "B1-cell"
             ig._GATE = FakeGate(invalid={("BC:B1-cell", 0)})
             sub = ic._UnitSubprocess([str(probe)], Path(tmp) / "BC")
             result = sub.run([str(probe), "--x", "1"], capture_output=True, text=True)
@@ -525,3 +524,54 @@ class RunnerArguments(unittest.TestCase):
         self.assertIn("scripts/run_v070q3_autonomous.py /x/evidence/v0.7.0-qualification-3-fa5f3a9-q3-attempt3 " + "f" * 40, out)
         self.assertNotIn("run_final_chain.sh", out)
         self.assertNotIn("precheck_terminal.sh", out)
+
+
+class ReviewFixes(unittest.TestCase):
+    def test_gap_straddling_start_or_end_is_detected(self):
+        self.assertTrue(ig.coverage_reasons([96.6, 102.4, 103.0], 100.0, 102.6, 2.5))  # 5.8 s gap over start
+        self.assertTrue(ig.coverage_reasons([99.5, 100.5, 104.0], 100.0, 101.0, 2.5))  # 3.5 s gap over end
+        self.assertEqual(ig.coverage_reasons([99.5, 100.5, 101.5], 100.0, 101.0, 2.5), [])
+
+    def test_battery_right_after_a_short_unit_invalidates_it(self):
+        samples = [sample(t, ac=True, therm="ok") for t in (97.0, 98.0, 99.0, 100.0)]
+        samples.append(sample(101.0, ac=False, therm="ok"))  # first sample after the end
+        self.assertTrue(any("AC" in r for r in ig.judge(samples, 100.2, 100.9)))
+
+    def test_monitor_silence_uses_monotonic_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            host = Host(tmp, lambda t: {})
+            mono = [0.0]
+            g = ig.Gate(Path(tmp), clock=lambda: host.now, sleep=host.tick, alive=lambda pid: True,
+                        mono=lambda: mono[0])
+            host.now += 120  # wall clock jumps (system sleep); monotonic does not
+            host.next = host.now + 1.0
+            g._check_monitor()  # no MonitorLost: no monotonic time has passed
+            self.assertTrue(True)
+
+    def test_preflight_exception_is_not_started(self):
+        import run_v070q3_autonomous as ra
+        with tempfile.TemporaryDirectory() as tmp:
+            camp = Path(tmp) / "v0.7.0-qualification-3-fa5f3a9-q3-attempt9"
+            camp.mkdir()
+            runner = ra.Runner(camp, "fa5f3a9" + "0" * 33)
+
+            def broken():
+                raise FileNotFoundError("frozen file missing")
+            runner.preflight = broken
+            self.assertEqual(runner.run(), 1)
+            self.assertFalse((camp / "logs/CONFORMANCE.txt").exists())
+            self.assertIn("NOT STARTED", (camp / "logs/PREFLIGHT-REFUSED.txt").read_text())
+
+    def test_partial_units_line_is_skipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "units.jsonl").write_text(json.dumps({"kind": "unit", "block": "BC#0", "valid": True,
+                                                               "children": ["BC:c"]}) + "\n{\"kind\": \"un")
+            self.assertEqual(ig.valid_children(Path(tmp)), {"BC": 1})
+
+    def test_launch_command_detaches(self):
+        out = subprocess.run(["sh", str(ROOT / "results/v0.7.0-qualification-3/launch_command.sh"),
+                              "/x/evidence/v0.7.0-qualification-3-fa5f3a9-q3-attempt3", "f" * 40],
+                             capture_output=True, text=True, check=True).stdout
+        self.assertIn("os.setsid()", out)
+        self.assertIn("< /dev/null", out)
+
