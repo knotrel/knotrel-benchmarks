@@ -602,7 +602,7 @@ def run_monitor(policy_path: Path, out: Path, status: Path, interval: float) -> 
             if found:
                 violations_total += 1
                 last_violation = {"t": t, "processes": found}
-            handle.write(json.dumps({"k": "s", "t": round(t, 3), "seq": seq, "v": found}) + "\n")
+            handle.write(sample_line(t, seq, found))
             if t - last_hid_wall >= 1.0:
                 last_hid_wall = t
                 idle, mono = hid_read()
@@ -615,13 +615,13 @@ def run_monitor(policy_path: Path, out: Path, status: Path, interval: float) -> 
                     last_hid = (idle, mono)
                 if reset:
                     hid_resets_total += 1
-                handle.write(json.dumps({"k": "h", "t": round(time.time(), 3), "idle": idle, "reset": reset}) + "\n")
+                handle.write(json.dumps({"k": "h", "t": time.time(), "idle": idle, "reset": reset}) + "\n")
             if t - last_top >= 1.0:
                 last_top = t
                 rows = [(p, c) for p, c in classify(procs, policy, foreground) if c != "campaign"]
                 rows.sort(key=lambda pc: -pc[0].pcpu)
                 bg_pcpu = round(sum(p.pcpu for p, c in rows if c == "background"), 1)
-                handle.write(json.dumps({"k": "top", "t": round(t, 3), "background_pcpu_sum": bg_pcpu, "processes": [
+                handle.write(json.dumps({"k": "top", "t": t, "background_pcpu_sum": bg_pcpu, "processes": [
                     {"pid": p.pid, "pcpu": p.pcpu, "class": c, "path": (p.path or p.comm)[:160]}
                     for p, c in rows[:5]]}) + "\n")
             write_atomic(status, {"pid": os.getpid(), "t": t, "seq": seq, "violations_total": violations_total,
@@ -632,6 +632,17 @@ def run_monitor(policy_path: Path, out: Path, status: Path, interval: float) -> 
                                  "violations_total": violations_total, "hid_resets_total": hid_resets_total,
                                  "hid_failures": hid_failures, "foreground_failures": foreground_failures}) + "\n")
     return 0
+
+
+def sample_line(t: float, seq: int, found: List[str]) -> str:
+    """One heartbeat line of the monitor log.
+
+    ``t`` is written exactly as read (``json`` round-trips a float), the same value the status
+    file carries. Before revision 3 it was rounded to the millisecond, so the gate could see a
+    heartbeat after a child's end in the status file and miss the same heartbeat in the log
+    (attempt q3-2, PROTOCOL section 14.1).
+    """
+    return json.dumps({"k": "s", "t": t, "seq": seq, "v": found}) + "\n"
 
 
 def git_snapshot(root: Path) -> Dict[str, Dict[str, object]]:

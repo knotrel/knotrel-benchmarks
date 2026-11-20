@@ -115,6 +115,8 @@ def main() -> int:
     if args.dry_run:
         print(json.dumps({"runs": len(runs), "provenance": provenance}, indent=1))
         return 0
+    if os.environ.get("KNOTREL_INTERFERENCE_DIR"):
+        return collect_units(args.out, binaries, runs, provenance)
     import conformance_gate  # only a real run is gated (a dry run must not touch the gate)
     (args.out / "raw").mkdir(parents=True)
     (args.out / "plan.json").write_text(json.dumps(runs, indent=1))
@@ -138,6 +140,57 @@ def main() -> int:
         if child.returncode != 0:
             print(f"stopping: {run['id']} failed: {child.stderr.strip()[:500]}", file=sys.stderr)
             return 1
+    return 0
+
+
+def collect_units(out: Path, binaries: Dict[str, Path], runs: List[Dict[str, Any]],
+                  provenance: Dict[str, Any]) -> int:
+    """Revision 3: each **pair** (both runs) is one unit of the interference gate. An invalid
+    pair is preserved in ``raw/invalidated/`` and ``invalidated.jsonl`` and repeated whole; the
+    run log holds only the valid runs, in plan order."""
+    import interference_gate as ig
+    g = ig.gate()
+    (out / "raw" / "invalidated").mkdir(parents=True)
+    (out / "plan.json").write_text(json.dumps(runs, indent=1))
+    (out / "provenance.json").write_text(json.dumps(provenance, indent=1))
+    log = (out / "run-log.jsonl").open("a")
+    position = 0
+    for first in range(0, len(runs), 2):
+        pair = runs[first:first + 2]
+        done: List[Dict[str, Any]] = []
+
+        def both() -> None:
+            done.clear()
+            for run in pair:
+                argv = [str(binaries[run["arm"]])] + child_args(run["topology"])
+                before = host_state()
+                start = time.monotonic()
+                child = g.child(f"T5:{run['id']}", lambda: subprocess.run(
+                    argv, capture_output=True, text=True, env={"PATH": os.environ["PATH"]}))
+                done.append({"run": run, "argv": argv, "child": child, "before": before,
+                             "seconds": round(time.monotonic() - start, 3)})
+                if child.returncode != 0:
+                    raise SystemExit(f"stopping: {run['id']} failed: {child.stderr.strip()[:500]}")
+
+        def preserve(attempt: int, reasons: List[str]) -> None:
+            for d in done:
+                name = f"{d['run']['id']}.attempt{attempt}"
+                (out / "raw" / "invalidated" / f"{name}.jsonl").write_text(d["child"].stdout)
+                (out / "raw" / "invalidated" / f"{name}.stderr").write_text(d["child"].stderr)
+            with open(out / "invalidated.jsonl", "a") as handle:
+                handle.write(json.dumps({"pair": [r["id"] for r in pair], "attempt": attempt,
+                                         "reasons": reasons}) + "\n")
+
+        g.run_unit(f"T5:{pair[0]['topology']}-{pair[0]['pair']}", both, preserve)
+        for d in done:
+            run = d["run"]
+            (out / "raw" / f"{run['id']}.jsonl").write_text(d["child"].stdout)
+            (out / "raw" / f"{run['id']}.stderr").write_text(d["child"].stderr)
+            log.write(json.dumps({"position": position, **run, "argv": d["argv"], "exit": d["child"].returncode,
+                                  "seconds": d["seconds"], "host_before": d["before"]}) + "\n")
+            log.flush()
+            position += 1
+            print(f"[{position}/{len(runs)}] {run['id']} exit={d['child'].returncode} {d['seconds']:.1f}s", flush=True)
     return 0
 
 
