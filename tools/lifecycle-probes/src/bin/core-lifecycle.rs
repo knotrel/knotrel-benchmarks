@@ -7,6 +7,8 @@
 //! core-lifecycle resources --arm lifecycle|reference|plain --engine E
 //!     --topology T --nodes N --cycles C --churn-percent P
 //!     --reuse none|fresh|same|toggle --seed S
+//! core-lifecycle pauses --engine E --topology T --nodes N --cycles C
+//!     --churn-percent P --seed S
 //! ```
 //!
 //! The first output line is a `build` record: the linked knotrel revision,
@@ -32,6 +34,17 @@
 //! expected counts, storage diagnostics (lifecycle arm), RSS and, in the
 //! `count-alloc` build, live heap. Heap and RSS are also reported net of the
 //! baseline, which holds the generated topology and the schedule.
+//!
+//! `pauses` (v0.7.0 qualification 3, check T5) replays the fresh-ID churn
+//! schedule of `resources --reuse fresh` on the lifecycle arm and times every
+//! lifecycle call separately with `Instant`. A call's time includes any engine
+//! compaction or catalog rebuild it triggers. After each cycle, outside the
+//! timing, it checks the logical counts against the independent model (any
+//! difference stops the run) and prints one `cycle` record: number of calls,
+//! longest call and its operation kind, summed call time and
+//! `retired_vertices` (a drop marks a compaction in that cycle). The last line
+//! is a `pauses_end` record with totals and two digests: of the schedule
+//! (identical workload) and of the results (identical behaviour).
 
 use knotrel_core::{EngineConfig, LifecycleGraph};
 use lifecycle_probes::churn::schedule;
@@ -328,6 +341,119 @@ fn resources_command(args: &Args) -> Result<(), String> {
     }
 }
 
+/// FNV-1a step over one 64-bit word.
+fn fnv(digest: u64, word: u64) -> u64 {
+    (digest ^ word).wrapping_mul(0x0100_0000_01b3)
+}
+
+/// Order-sensitive digest of one operation (kind and arguments).
+fn op_digest(digest: u64, op: Op) -> u64 {
+    match op {
+        Op::AddNode(v) => fnv(fnv(digest, 1), v),
+        Op::Link(a, b) => fnv(fnv(fnv(digest, 2), a), b),
+        Op::Cut(a, b) => fnv(fnv(fnv(digest, 3), a), b),
+        Op::Connected(a, b) => fnv(fnv(fnv(digest, 4), a), b),
+        Op::SetNode(v, on) => fnv(fnv(fnv(digest, 5), v), u64::from(on)),
+        Op::SetEdge(a, b, on) => fnv(fnv(fnv(fnv(digest, 6), a), b), u64::from(on)),
+        Op::Remove(v) => fnv(fnv(digest, 7), v),
+    }
+}
+
+fn op_kind(op: Op) -> &'static str {
+    match op {
+        Op::AddNode(_) => "add_node",
+        Op::Link(..) => "link",
+        Op::Cut(..) => "cut",
+        Op::Connected(..) => "connected",
+        Op::SetNode(..) => "set_node_active",
+        Op::SetEdge(..) => "set_edge_enabled",
+        Op::Remove(_) => "remove_node",
+    }
+}
+
+fn logical(graph: &LifecycleGraph) -> [usize; 5] {
+    [
+        graph.node_count(),
+        graph.edge_count(),
+        graph.active_node_count(),
+        graph.enabled_edge_count(),
+        graph.effective_edge_count(),
+    ]
+}
+
+fn pauses_command(args: &Args) -> Result<(), String> {
+    let engine = parse_engine(args.get("engine")?).ok_or("unknown --engine")?;
+    let topology = Topology::parse(args.get("topology")?).ok_or("unknown --topology")?;
+    let n: u64 = args.num("nodes")?;
+    let cycles: usize = args.num("cycles")?;
+    let percent: u64 = args.num("churn-percent")?;
+    let seed: u64 = args.num("seed")?;
+    let edges = generate(topology, n, seed);
+    let (plan, expected) = schedule(n, &edges, "fresh", cycles, percent, seed)?;
+    let schedule_digest = plan
+        .iter()
+        .flatten()
+        .fold(0xcbf2_9ce4_8422_2325_u64, |d, &op| op_digest(d, op));
+    let mut graph = <LifecycleGraph as Subject>::build(engine, n, &edges);
+    if logical(&graph) != expected[0] {
+        return Err("construction: logical counts differ from the model".into());
+    }
+    let storage = graph.storage_stats();
+    println!(
+        "{}",
+        json!({"kind":"pauses_start","nodes":n,"edges":edges.len(),"cycles":cycles,
+               "churn_percent":percent,"seed":seed,"reuse":"fresh",
+               "schedule_ops": plan.iter().map(Vec::len).sum::<usize>(),
+               "schedule_digest":format!("{schedule_digest:016x}"),
+               "retired_vertices":storage.retired_vertices,
+               "catalog_node_capacity":storage.catalog_node_capacity})
+    );
+    let mut result_digest = 0xcbf2_9ce4_8422_2325_u64;
+    let (mut calls, mut timed_ns, mut longest) = (0_u64, 0_u128, 0_u128);
+    let wall = Instant::now();
+    for (cycle, ops) in plan.iter().enumerate() {
+        let (mut max_ns, mut max_kind, mut sum_ns) = (0_u128, "", 0_u128);
+        for &op in ops {
+            let start = Instant::now();
+            let result = graph.apply(op);
+            let elapsed = start.elapsed().as_nanos();
+            result_digest = fnv(result_digest, result);
+            sum_ns += elapsed;
+            if elapsed > max_ns {
+                max_ns = elapsed;
+                max_kind = op_kind(op);
+            }
+        }
+        if logical(&graph) != expected[cycle + 1] {
+            return Err(format!(
+                "cycle {}: logical counts differ from the model",
+                cycle + 1
+            ));
+        }
+        calls += ops.len() as u64;
+        timed_ns += sum_ns;
+        longest = longest.max(max_ns);
+        let storage = graph.storage_stats();
+        println!(
+            "{}",
+            json!({"kind":"cycle","cycle":cycle + 1,"calls":ops.len(),"max_ns":max_ns as u64,
+                   "max_op":max_kind,"sum_ns":sum_ns as u64,
+                   "retired_vertices":storage.retired_vertices,
+                   "engine_vertices":storage.engine_vertices,
+                   "catalog_node_capacity":storage.catalog_node_capacity})
+        );
+    }
+    println!(
+        "{}",
+        json!({"kind":"pauses_end","cycles":cycles,"calls":calls,"timed_ns":timed_ns as u64,
+               "max_ns":longest as u64,"wall_ns":wall.elapsed().as_nanos() as u64,
+               "schedule_digest":format!("{schedule_digest:016x}"),
+               "result_digest":format!("{result_digest:016x}"),
+               "final_logical":logical(&graph)})
+    );
+    Ok(())
+}
+
 fn main() -> ExitCode {
     let mut items = std::env::args().skip(1);
     let command = items.next().unwrap_or_default();
@@ -335,7 +461,8 @@ fn main() -> ExitCode {
     let result = Args::parse(items).and_then(|args| match command.as_str() {
         "pairs" => pairs_command(&args),
         "resources" => resources_command(&args),
-        _ => Err("usage: core-lifecycle pairs|resources --flag value ...".into()),
+        "pauses" => pauses_command(&args),
+        _ => Err("usage: core-lifecycle pairs|resources|pauses --flag value ...".into()),
     });
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -343,5 +470,30 @@ fn main() -> ExitCode {
             eprintln!("error: {error}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn op_digest_depends_on_kind_arguments_and_order() {
+        let base = 0xcbf2_9ce4_8422_2325_u64;
+        let ab = op_digest(op_digest(base, Op::AddNode(1)), Op::Remove(2));
+        let ba = op_digest(op_digest(base, Op::Remove(2)), Op::AddNode(1));
+        assert_ne!(ab, ba);
+        assert_ne!(
+            op_digest(base, Op::AddNode(1)),
+            op_digest(base, Op::Remove(1))
+        );
+        assert_ne!(
+            op_digest(base, Op::Link(1, 2)),
+            op_digest(base, Op::Link(2, 1))
+        );
+        assert_ne!(
+            op_digest(base, Op::SetNode(1, true)),
+            op_digest(base, Op::SetNode(1, false))
+        );
     }
 }

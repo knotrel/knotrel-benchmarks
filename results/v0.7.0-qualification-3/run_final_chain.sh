@@ -1,8 +1,8 @@
 #!/bin/sh
 # Runs the frozen v0.7.0 qualification 3 in one chain (PROTOCOL.md; identical to the
 # re-qualification chain except: this matrix, the qualification-3 collectors and analyzers, the
-# capability-equivalent B/C cells, and no soak in practice; seeds are a3-3's): grace period, policy, quiet period,
-# then A (main, extension if required), B/C, R, Rmem, M_desc, M_reg. Every measured child is
+# capability-equivalent B/C cells, check T5 (revision 2), and no soak in practice; seeds are a3-3's): grace period, policy,
+# quiet period, then A (main, extension if required), B/C, T5, R, Rmem, M_desc, M_reg. Every measured child is
 # gated (scripts/conformance_gate.py) by the allow-list monitor (scripts/conformance_monitor.py).
 #
 # Amendment 2 (PROTOCOL.md section 9): the maintainer runs CAMP/LAUNCH-COMMAND.txt (written by
@@ -57,7 +57,7 @@ MATRIX=$B/results/v0.7.0-qualification-3/MATRIX.json
 export LIFECYCLE_QUALIFICATION_ROOTS=/Users/rt/workspace/knotrel/evidence
 export KNOTREL_GATE_DIR=$G
 cd "$B" || exit 2
-for f in "$A/raw-main" "$CAMP/BC" "$CAMP/R" "$CAMP/Rmem" "$CAMP/Mdesc" "$CAMP/Mreg" "$G" "$L/quiesce-restore.json"; do
+for f in "$A/raw-main" "$CAMP/BC" "$CAMP/T5" "$CAMP/R" "$CAMP/Rmem" "$CAMP/Mdesc" "$CAMP/Mreg" "$G" "$L/quiesce-restore.json"; do
   if [ -e "$f" ]; then echo "refusing to relaunch: $f exists" >&2; exit 3; fi
 done
 mkdir -p "$G"
@@ -82,7 +82,7 @@ finish() {  # runs on every exit: stop the monitor, record conformance, Git stat
   [ -e "$L/git-after.json" ] || python3 scripts/conformance_monitor.py git-snapshot /Users/rt/workspace/knotrel > "$L/git-after.json" 2>/dev/null
   { echo "$RESULT"; cat "$G/gate-stop.json" 2>/dev/null; } > "$L/CONFORMANCE.txt"
   [ -e "$G/activity-monitor.jsonl" ] && cp "$G/activity-monitor.jsonl" "$L/activity-monitor.jsonl"
-  ( cd "$CAMP" && find A BC R Rmem Mdesc Mreg gate -type f -print0 2>/dev/null | xargs -0 shasum -a 256 > logs/outputs-sha256.txt )
+  ( cd "$CAMP" && find A BC T5 R Rmem Mdesc Mreg gate -type f -print0 2>/dev/null | xargs -0 shasum -a 256 > logs/outputs-sha256.txt )
   RESTORE_FAILED=""
   if [ -e "$L/quiesce-restore.json" ]; then
     if python3 scripts/launcher_audit.py restore --camp "$CAMP" > "$L/quiesce-restore.log" 2>&1; then
@@ -229,6 +229,12 @@ stamp BC start
 python3 scripts/run_v070q3_collect.py bc --out "$CAMP/BC" --profile final --core "$T/cand-probes/release/core-lifecycle" --core-count "$T/cand-probes-count/release/core-lifecycle" --http "$T/cand-probes/release/http-lifecycle" --order-seed 50720 --knotrel "$CAMP/src/cand/knotrel" --lifecycle-engines compact-bfs --equivalent-references --window-multipliers results/v0.7.0-qualification-3/window-multipliers-q3.json > "$L/BC.log" 2>&1
 RC=$?; gate_check BC; [ $RC -eq 0 ] || failed BC 7
 stamp BC end
+
+# --- T5: compaction pauses, B = probes on knotrel e75ff6a (without T1), C = candidate probes (revision 2) ---
+stamp T5 start
+python3 scripts/run_v070q3_t5.py --out "$CAMP/T5" --base "$T/t1base-probes/release/core-lifecycle" --cand "$T/cand-probes/release/core-lifecycle" --order-seed 50730 > "$L/T5.log" 2>&1
+RC=$?; gate_check T5; [ $RC -eq 0 ] || failed T5 17
+stamp T5 end
 
 # --- R, Rmem, M_desc, M_reg ---
 step() {  # step-name exit-code collector-args...

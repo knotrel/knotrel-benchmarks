@@ -2628,6 +2628,49 @@
    "warmup_pairs": 2,
    "pairs": 12,
    "seed": 7
+  },
+  "T5": {
+   "question": "Does T1 lengthen the longest pauses of lifecycle calls under fresh-ID churn at 100k nodes? (revision 2, maintainer decision 2026-11-20 on decision 3)",
+   "decision": "Approvo T5 con tolleranza del 25%, come criterio nuovo per le pause di compattazione, dichiarato prima della raccolta. Il fatto che sia già usato per query_tail non lo rende automaticamente applicabile a questa metrica.",
+   "arms": {
+    "B": "core-lifecycle (timing build, frozen probe source) built against knotrel e75ff6a26ec245aefcadfff254e0ac2dd6efc4fc (a3-3 candidate, without T1)",
+    "C": "core-lifecycle (timing build, frozen probe source) built against the candidate fa5f3a9eac24873dd2d8d3e0a2c21764cfff9373 (with T1); the binary of the B/C cells"
+   },
+   "workload": {
+    "mode": "pauses",
+    "engine": "compact-bfs",
+    "topologies": [
+     "sparse",
+     "ring",
+     "hub"
+    ],
+    "nodes": 100000,
+    "cycles": 600,
+    "churn_percent": 5,
+    "reuse": "fresh",
+    "seed": 5000001
+   },
+   "design": {
+    "process_per_run": true,
+    "warmup_pairs": 2,
+    "pairs": 12,
+    "order_seed": 50730,
+    "order": "warmup pair -2 C first, -1 B first; analyzed pairs 6/6 by random.Random(f'{seed}:{topology}'); runs interleaved by round, topology order per round by random.Random(f'{seed}:round:{r}')"
+   },
+   "same_duration_and_workload": "within a topology every run has the same schedule digest, result digest, calls per cycle, final logical counts and compaction cycles; otherwise the analysis is invalid",
+   "metrics": {
+    "P_max": "longest single lifecycle call of the run",
+    "P_90": "27th of the 30 sorted per-interval maxima; interval k = the cycles after compaction k-1 up to and including compaction k; exactly 30 compactions, the last at cycle 600, else invalid"
+   },
+   "aggregation": "per pair d = ln(C/B) for each metric",
+   "interval": "[d(3), d(10)] of the 12 sorted d: distribution-free interval for the median of d, coverage 96.1%; point estimate median of d",
+   "tolerance": 0.25,
+   "tolerance_basis": "a new criterion for pause tails, declared before collection; not inherited from query_tail",
+   "rule": "PASS if d(10) <= ln(1.25); REGRESSION if d(3) > ln(1.25); otherwise INCONCLUSIVE; for each metric and topology (six deciding results); any non-PASS goes to the maintainer, no waiver",
+   "invalid": "a failed run stops the collector (chain FAILED); a validation failure of the analysis leaves T5 without PASS",
+   "absolute_values": "reported for every result: per arm median, minimum and maximum of each metric, wall and timed run durations, mean call time",
+   "collector": "scripts/run_v070q3_t5.py",
+   "analyzer": "scripts/analyze_v070q3_t5.py"
   }
  },
  "host_conditions": {

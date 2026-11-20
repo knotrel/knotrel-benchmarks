@@ -13,7 +13,7 @@
 #   2. every program in launch_tools.txt resolves by name, CAMP/bin holds exactly python3 and rustc,
 #      and `rustc +1.100.0 -Vv` succeeds (the B/C provenance call);
 #   3. the dry run of every collector of the chain, with the chain's own arguments (A main, B/C,
-#      R, Rmem, M_desc, M_reg). A dry run measures nothing, writes no output and changes no Git ref,
+#      T5, R, Rmem, M_desc, M_reg). A dry run measures nothing, writes no output and changes no Git ref,
 #      and runs no gated child (KNOTREL_GATE_DIR stays unset, so a gated call would refuse). It may
 #      refresh the Git index of the campaign clones (git status) and the Python bytecode cache of
 #      the tooling clone; both happen before the chain's Git snapshot.
@@ -52,10 +52,11 @@ run() {  # name command...
 }
 run A python3 scripts/run_v070q3_collect.py a --manifest "$A/plan/manifest.json" --schedule "$A/plan/schedule.json" --dry-run
 run BC python3 scripts/run_v070q3_collect.py bc --out "$D-BC" --profile final --core "$T/cand-probes/release/core-lifecycle" --core-count "$T/cand-probes-count/release/core-lifecycle" --http "$T/cand-probes/release/http-lifecycle" --order-seed 50720 --knotrel "$CAMP/src/cand/knotrel" --lifecycle-engines compact-bfs --equivalent-references --window-multipliers results/v0.7.0-qualification-3/window-multipliers-q3.json --dry-run
+run T5 python3 scripts/run_v070q3_t5.py --out "$D-T5" --base "$T/t1base-probes/release/core-lifecycle" --cand "$T/cand-probes/release/core-lifecycle" --order-seed 50730 --dry-run
 run R python3 scripts/run_v070q3_collect.py r --out "$D-R" --ref "$T/ref-probes/release/release-cells" --cand "$T/cand-probes/release/release-cells" --dry-run
 run Rmem python3 scripts/run_v070q3_collect.py rmem --out "$D-Rmem" --ref "$T/ref-probes-peak/release/memory-peak" --cand "$T/cand-probes-peak/release/memory-peak" --dry-run
 run Mdesc python3 scripts/run_v070q3_collect.py mdesc --out "$D-Mdesc" --probe "$T/contention/release/contention-probe" --server "$T/cand-server/release/knotrel-server" --dry-run
 run Mreg python3 scripts/run_v070q3_collect.py mreg --out "$D-Mreg" --probe "$T/contention/release/contention-probe" --ref "$T/ref-server/release/knotrel-server" --cand "$T/cand-server/release/knotrel-server" --dry-run
-for X in BC R Rmem Mdesc Mreg; do [ ! -e "$D-$X" ] || bad "dry run $X wrote $D-$X"; done
+for X in BC T5 R Rmem Mdesc Mreg; do [ ! -e "$D-$X" ] || bad "dry run $X wrote $D-$X"; done
 say "LAUNCH-ENV OK"
 echo "LAUNCH-ENV OK"
