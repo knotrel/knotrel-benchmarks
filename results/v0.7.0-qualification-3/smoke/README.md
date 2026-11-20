@@ -55,3 +55,15 @@ not make the other two equivalent:
 That file comes from a build made before the tooling commit. The pre-freeze
 smoke of revision 2 is repeated from the reviewed tooling.
 
+**Pre-freeze smokes of revision 2 (tooling d9b98997, clean builds).** These
+are functional and completeness checks, not qualification data. No threshold
+or criterion was set or changed from them.
+- `smoke-r2-final.txt`: the 13 equivalent cells, the same results as the
+  draft. All 13 complete the functional checks; 11 are equivalent; hub ops
+  and hub events are not (max 1,565 plain operations per command).
+- `t5-smoke.txt`: the whole T5 plan (84 runs) through the frozen collector,
+  with the gate replaced by a direct call. Every run exits 0. Within each
+  topology all runs share the same compaction cycles (30, at 20, 40, …,
+  600), call count and digests. The analyzer accepts the collection. Its
+  statuses and ratios are deliberately not recorded: the data came from an
+  ungated, non-quiesced host and decide nothing.
