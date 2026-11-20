@@ -8,7 +8,8 @@ warmup. The purpose was the equivalence checks of `http-lifecycle`:
 - the registered content of the candidate;
 - the content of the plain server.
 
-Every cell passed. `smoke-final.txt` records the tooling commit, the knotrel
+Every cell completed the checks. (Revision 2 found that two of them, hub ops
+and hub events, are not equivalent: see below.) `smoke-final.txt` records the tooling commit, the knotrel
 candidate and the probe binary hash, and per cell the exit status and the
 last record without timings. An earlier smoke file, from a probe version
 before the review fixes and with truncated, timed lines, was replaced.
@@ -39,8 +40,10 @@ per-event results there, so the final-state checks apply instead.
 ## Revision 2 (2026-11-20)
 
 `smoke-r2-draft.txt` repeats the 13 cells with the revision-2 probe, which
-records atomicity per pair (PROTOCOL §4.3). All exit 0 with every equivalence
-check passing:
+records atomicity per pair (PROTOCOL §4.3). All 13 exit 0 and complete every
+functional check of §4.4 (outcomes, counts, registered content, plain
+content). **Only 11 are equivalent**; completing the functional checks does
+not make the other two equivalent:
 - **Hub ops and events: not equivalent.** They need 39 and 76 plain requests
   against 37 and 74. Their largest single command expands to 1,565 plain
   operations, so `atomicity_equivalent: false`.

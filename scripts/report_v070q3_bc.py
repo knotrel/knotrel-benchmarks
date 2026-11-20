@@ -16,7 +16,13 @@ records show ``atomicity_equivalent: false`` is reported as ``NOT_EQUIVALENT`` a
 deciding non-PASS results (fail-closed); a listed cell whose records show equivalence is
 reported as an inconsistency. Unqualified requirements are always listed.
 
-    report_v070q3_bc.py BC-analysis.json
+Revision 2 also adds check T5 (compaction pauses, ``analyze_v070q3_t5.py`` output): its six
+results are deciding rows of kind ``T5``, statuses copied unchanged. ``qualification_scope``
+states that the qualification cannot be complete while any requirement is unqualified,
+whatever the statuses (maintainer decision 2026-11-20): unqualified requirements never
+disappear from the verdict.
+
+    report_v070q3_bc.py BC-analysis.json T5-analysis.json
 """
 
 from __future__ import annotations
@@ -65,6 +71,25 @@ def label(analysis: dict, matrix: dict) -> list:
     return rows
 
 
+def t5_rows(t5: dict) -> list:
+    """The six T5 results as deciding rows (statuses copied, absolute values kept)."""
+    if t5.get("check") != "T5" or len(t5.get("results", [])) != 6:
+        raise SystemExit("T5 analysis missing or incomplete: six results required")
+    return [{"id": r["id"], "kind": "T5", "role": "deciding", "status": r["status"],
+             "median_change_pct": r.get("median_change_pct"), "interval_pct": r.get("interval_pct"),
+             "tolerance_pct": r.get("tolerance_pct"), "absolute_ms": r.get("absolute_ms")}
+            for r in t5["results"]]
+
+
+def scope(unqualified: list) -> dict:
+    """Whether q3 can qualify every release requirement (never, while any is unqualified)."""
+    return {"complete": not unqualified,
+            "unqualified_requirements": len(unqualified),
+            "note": ("every requirement is in scope" if not unqualified else
+                     "incomplete: the listed requirements are not qualified by q3; no outcome of the "
+                     "deciding results makes the qualification complete or removes them from the verdict")}
+
+
 def non_pass(rows: list) -> list:
     """Deciding results that are neither PASS/IMPROVED nor a defined disclosure category."""
     return [r for r in rows if r["role"] == "deciding" and r["status"] not in ("PASS", "IMPROVED")
@@ -77,13 +102,18 @@ def inconsistencies(rows: list) -> list:
 
 
 def main() -> int:
+    if len(sys.argv) != 3:
+        print(__doc__, file=sys.stderr)
+        return 2
     analysis = json.loads(Path(sys.argv[1]).read_text())
     matrix = json.loads(MATRIX.read_text())
-    rows = label(analysis, matrix)
+    rows = label(analysis, matrix) + t5_rows(json.loads(Path(sys.argv[2]).read_text()))
     disclosures = [r for r in rows if r["status"] in DISCLOSURE.get(r["kind"], set())]
     eq = matrix["experiments"]["B_C"]["equivalent_references"]
+    unqualified = eq.get("unqualified_requirements", [])
     print(json.dumps({"rows": rows, "deciding_non_pass": non_pass(rows), "disclosures": disclosures,
-                      "unqualified_requirements": eq.get("unqualified_requirements", []),
+                      "unqualified_requirements": unqualified,
+                      "qualification_scope": scope(unqualified),
                       "not_equivalent_inconsistencies": inconsistencies(rows)}, indent=1))
     return 0
 
