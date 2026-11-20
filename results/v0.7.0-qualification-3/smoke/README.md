@@ -35,3 +35,20 @@ residual limit of the equivalence (PROTOCOL §4.3).
 
 As intended, A is not detected on `events-equivalent`: the API reports no
 per-event results there, so the final-state checks apply instead.
+
+## Revision 2 (2026-11-20)
+
+`smoke-r2-draft.txt` repeats the 13 cells with the revision-2 probe, which
+records atomicity per pair (PROTOCOL §4.3). All exit 0 with every equivalence
+check passing:
+- **Hub ops and events: not equivalent.** They need 39 and 76 plain requests
+  against 37 and 74. Their largest single command expands to 1,565 plain
+  operations, so `atomicity_equivalent: false`.
+- **Every other planner cell:** one plain request per chunk, at most 15
+  plain operations per command.
+- **Import cells:** the field does not apply. Each import is one atomic
+  publication on both sides.
+
+That file comes from a build made before the tooling commit. The pre-freeze
+smoke of revision 2 is repeated from the reviewed tooling.
+
