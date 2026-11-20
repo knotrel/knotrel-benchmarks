@@ -221,9 +221,11 @@ deciding equivalent cell passes.
   is empty.
 - The other differences are documentation, CI workflow and test files from
   `main`, plus the release documentation.
-- **Repeat the check on the final commit.** Merging into `main` can give
-  the commit a new SHA, so the same `git diff` must be repeated against the
-  final SHA on `main` before tagging.
+- **Checked on `main` after the merge:** knotrel `main` at `551b83f`
+  (knotrel/knotrel#58, rebase-merged) has the same tree as `acc4582`, and
+  `git diff fa5f3a9 551b83f -- crates Cargo.toml Cargo.lock rust-toolchain.toml`
+  is empty. Any later documentation-only commit must be checked the same way
+  before tagging.
 - The `fixedbitset` bump is re-applied after the release.
 
 ## 7. Not claimed
