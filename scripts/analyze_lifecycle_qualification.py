@@ -103,6 +103,15 @@ def paired(cell: Dict[str, Any], records: List[Dict[str, Any]]) -> Dict[str, Any
     summary = summarize_metric("window_ns", values, cell["tolerance"])
     if min(summary["B_median"], summary["C_median"]) < TIMER_FLOOR_NS:
         summary["status"] = "TIMER_LIMITED"
+    # Qualification 3, revision 2: planner references record whether they offered the
+    # candidate's isolation (one plain request per lifecycle chunk). Copied, not judged here.
+    flags = [r["atomicity_equivalent"] for r in pairs + warm if "atomicity_equivalent" in r]
+    if flags:
+        if len(flags) != len(pairs + warm):
+            raise Invalid(f"{cell['id']}: atomicity recorded for some pairs only")
+        summary["atomicity_equivalent"] = all(flags)
+        summary["reference_max_op_plain_ops"] = max(r["reference_max_op_plain_ops"] for r in pairs + warm)
+        summary["reference_split_chunks"] = max(r["reference_split_chunks"] for r in pairs + warm)
     summary["id"] = cell["id"]
     summary["experiment"] = cell["experiment"]
     summary["scale"] = cell.get("scale", 1)
