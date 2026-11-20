@@ -1,0 +1,122 @@
+{
+ "status": "CONFORMING",
+ "cause": "every unit valid under the revision-3 policy; counts and binaries verified",
+ "started_utc": "2026-11-20T09:41:40Z",
+ "ended_utc": "2026-11-20T11:08:55Z",
+ "duration_min": 87.2,
+ "limits": {
+  "budget_s": 6300.0,
+  "a_block_restarts": 1,
+  "monitor_start_s": 20.0,
+  "monitor_check_samples": 6,
+  "min_free_bytes": 3221225472
+ },
+ "rules": {
+  "sample_s": 1.0,
+  "gap_s": 2.5,
+  "status_age_s": 3.0,
+  "monitor_lost_s": 30.0,
+  "after_s": 0.0,
+  "invalid_window_s": 10.0,
+  "invalid_cpu": 1.5,
+  "ready_window_s": 30.0,
+  "ready_cpu": 0.6,
+  "pressure_max": 1,
+  "sleep_jump_s": 2.0,
+  "wait_limit_s": 600.0,
+  "retries": 2
+ },
+ "steps": [
+  {
+   "step": "A-main",
+   "block": "A-main#0",
+   "exit": 0,
+   "seconds": 1010.0
+  },
+  {
+   "step": "A-extension",
+   "block": "A-extension#0",
+   "exit": 0,
+   "seconds": 864.9
+  },
+  {
+   "step": "BC",
+   "block": "BC#0",
+   "exit": 0,
+   "seconds": 654.1
+  },
+  {
+   "step": "T5",
+   "block": "T5#0",
+   "exit": 0,
+   "seconds": 969.1
+  },
+  {
+   "step": "R",
+   "block": "R#0",
+   "exit": 0,
+   "seconds": 165.6
+  },
+  {
+   "step": "Rmem",
+   "block": "Rmem#0",
+   "exit": 0,
+   "seconds": 11.1
+  },
+  {
+   "step": "Mdesc",
+   "block": "Mdesc#0",
+   "exit": 0,
+   "seconds": 721.5
+  },
+  {
+   "step": "Mreg",
+   "block": "Mreg#0",
+   "exit": 0,
+   "seconds": 830.6
+  }
+ ],
+ "units": 756,
+ "invalidated_units": [],
+ "waits": {
+  "count": 6,
+  "total_s": 71.7,
+  "longest_s": 18.2,
+  "reasons": [
+   [
+    "external CPU 0.61 cores over 30 s > 0.6 (busiest now: opendirectoryd 0.01, com.apple.DriverKit-AppleBCMWLAN 0.01, photolibraryd 0.01)"
+   ],
+   [
+    "external CPU 0.63 cores over 30 s > 0.6 (busiest now: bluetoothd 0.01, CursorUIViewService 0.01, logd 0.01)"
+   ],
+   [
+    "external CPU 0.60 cores over 30 s > 0.6 (busiest now: launchd 0.01, airportd 0.01, nearbyd 0.01)"
+   ],
+   [
+    "external CPU 0.61 cores over 30 s > 0.6 (busiest now: fseventsd 0.01, opendirectoryd 0.01)"
+   ],
+   [
+    "external CPU 0.60 cores over 30 s > 0.6 (busiest now: runningboardd 0.02, launchd 0.01, logd 0.01)"
+   ]
+  ]
+ },
+ "telemetry": {
+  "samples": 5189,
+  "ext_cpu_cores": {
+   "p50": 0.04950361878932868,
+   "p99": 1.6435236354185092,
+   "max": 2.6366980242102382
+  },
+  "context_user_inputs": 1,
+  "context_top_external_cpu_s": {
+   "deleted": 69.47855368971823,
+   "launchd": 32.59214466786384,
+   "cloudd": 25.886543008565894,
+   "WindowServer": 20.050033717870757,
+   "triald_system": 19.5098325457573,
+   "mobileassetd": 18.362757818222047,
+   "pkd": 15.59250775551796,
+   "fseventsd": 13.766901309251795
+  }
+ }
+}
