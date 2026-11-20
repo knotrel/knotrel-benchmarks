@@ -48,7 +48,7 @@ for T in ("sparse", "ring", "hub"):
             ys = imax[lo_i - 1:hi_i]; b, se = slope(list(range(len(ys))), ys)
             t = 1.9761 if len(ys) == 150 else 1.9763
             lo, hi = b - t * se, b + t * se
-            return b, lo, hi, ("cumulative" if lo > 0 else "bounded")
+            return b, lo, hi, ("interval above 0" if lo > 0 else "interval below 0" if hi < 0 else "interval includes 0")  # labels only (addendum 4): no bound is inferred
         b2, l2, h2, k2 = classify(151, 300) if len(imax) >= 300 else (0, 0, 0, "n/a")
         b1, l1, h1, k1 = classify(2, 150)
         ev = events(p)

@@ -89,8 +89,15 @@ class Cells(unittest.TestCase):
         q3 = lifecycle.matrix("final", "compact-bfs", True)
         added = [c for c in q3 if c["id"] not in {f["id"] for f in frozen}]
         self.assertEqual(len(added), 13)
-        deciding = MATRIX["experiments"]["B_C"]["equivalent_references"]["deciding"]
-        descriptive = MATRIX["experiments"]["B_C"]["equivalent_references"]["descriptive"]
+        eq = MATRIX["experiments"]["B_C"]["equivalent_references"]
+        # Revision 2: the hub ops and events equivalent cells run unchanged but are not equivalent.
+        not_equivalent = eq["not_equivalent"]["cells"]
+        self.assertEqual(sorted(not_equivalent), ["B4-http-events-equivalent-compact-bfs-hub-10000",
+                                                  "B4-http-ops-equivalent-compact-bfs-hub-10000"])
+        deciding = eq["deciding"] + not_equivalent
+        descriptive = eq["descriptive"]
+        self.assertEqual(len(eq["deciding"]), 11)
+        self.assertEqual(len(eq["unqualified_requirements"]), 2)
         self.assertEqual(sorted(c["id"] for c in added), sorted(deciding))
         self.assertEqual(sorted(d.replace("-equivalent", "") for d in deciding), sorted(descriptive))
         by_id = {c["id"]: c for c in q3}
@@ -148,6 +155,8 @@ class Report(unittest.TestCase):
         import report_v070q3_bc as report
         eq = MATRIX["experiments"]["B_C"]["equivalent_references"]
         timing = [{"id": i, "status": "PASS"} for i in eq["deciding"] + eq["descriptive"]]
+        timing += [{"id": i, "status": "PASS", "atomicity_equivalent": False}
+                   for i in eq["not_equivalent"]["cells"]]
         timing.append({"id": "B1-ops-compact-bfs-sparse-1000-query", "status": "INCONCLUSIVE"})
         timing[len(eq["deciding"])]["status"] = "REGRESSION"  # a descriptive cell
         rows = report.label({"timing": timing}, MATRIX)
@@ -166,6 +175,42 @@ class Report(unittest.TestCase):
         self.assertNotIn("C-rss-x:C4", bad)  # disclosure category
         self.assertIn("B1-ops-compact-bfs-sparse-1000-query", bad)
         self.assertFalse(any(eq_id in bad for eq_id in eq["descriptive"]))
+        self.assertFalse(any(eq_id in bad for eq_id in eq["not_equivalent"]["cells"]))
+        self.assertTrue(all(roles[i] == "not_equivalent" for i in eq["not_equivalent"]["cells"]))
+
+    def test_atomicity_fail_closed(self):
+        import report_v070q3_bc as report
+        eq = MATRIX["experiments"]["B_C"]["equivalent_references"]
+        cells = eq["deciding"] + eq["descriptive"] + eq["not_equivalent"]["cells"]
+        timing = [{"id": i, "status": "PASS"} for i in cells]
+        split = next(i for i in eq["deciding"] if "-ops-equivalent-" in i)
+        timing[cells.index(split)]["atomicity_equivalent"] = False
+        rows = report.label({"timing": timing}, MATRIX)
+        row = next(r for r in rows if r["id"] == split)
+        self.assertEqual((row["status"], row["measured_status"]), ("NOT_EQUIVALENT", "PASS"))
+        self.assertIn(split, {r["id"] for r in report.non_pass(rows)})
+        listed = eq["not_equivalent"]["cells"][0]
+        timing[cells.index(listed)]["atomicity_equivalent"] = True
+        self.assertEqual(report.inconsistencies(report.label({"timing": timing}, MATRIX)), [listed])
+
+    def test_analyzer_copies_atomicity(self):
+        import analyze_lifecycle_qualification as analyzer
+        cell = {"id": "B4-http-ops-equivalent-x", "binary": "http", "tolerance": 0.25, "experiment": "B4"}
+        def recs(flag):
+            out = []
+            for k, i in enumerate(range(-2, 12)):
+                out.append({"kind": "warmup" if i < 0 else "pair", "candidate_first": k % 2 == 0,
+                            "reference_ns": 4e6, "candidate_ns": 4e6 + k, "answers_agree": True,
+                            "atomicity_equivalent": flag, "reference_split_chunks": 0 if flag else 2,
+                            "reference_max_op_plain_ops": 10 if flag else 1565})
+            return out
+        self.assertTrue(analyzer.paired(cell, recs(True))["atomicity_equivalent"])
+        summary = analyzer.paired(cell, recs(False))
+        self.assertEqual((summary["atomicity_equivalent"], summary["reference_max_op_plain_ops"]), (False, 1565))
+        partial = recs(True)
+        del partial[3]["atomicity_equivalent"]
+        with self.assertRaises(analyzer.Invalid):
+            analyzer.paired(cell, partial)
 
 
 class PreFreezeReviewBlockers(unittest.TestCase):

@@ -381,3 +381,30 @@ None changes a threshold or a declared criterion.
   probe prints the counts).
 - **A3** is repeated from clean checkouts of the candidate (`fa5f3a9`) and of
   the tooling, with clean build records (`D2c-tombstones/raw/product-clean/`).
+
+## Addendum 4: maintainer decisions before the qualification-3 launch (2026-11-20)
+
+Recorded after the freeze of qualification 3 (66f2f0a9) and before any of its
+collection. Verbatim:
+- **D4c:** "accetto l'omissione del follow-up come deviazione della sola
+  diagnostica. Non considero risolto l'overhead e non concedo deroghe al 6%:
+  deciderà la misura q3 prevista dal protocollo."
+- **Ring drift:** "correggi la conclusione: un intervallo della pendenza che
+  contiene zero non dimostra crescita limitata. Riporta il comportamento
+  osservato sui 6.000 cicli e l'eventuale limite strutturale che sostiene
+  quella classificazione."
+
+What changes here:
+- **D4c.** The departure (declared follow-up not run) is accepted as a
+  departure of this diagnostic only. The metrics overhead is **not**
+  resolved. No exception to the 6% budget: B4 `metrics-ops` in qualification 3
+  decides, under its unchanged tolerance.
+- **Ring-drift classification.** The "bounded" label of the declared rule
+  (above, "Ring-drift classification") is withdrawn: an interval that
+  includes 0 shows no detected slope, not a bound. `D2c-tombstones/summarize.py`
+  now prints the interval's position only ("includes 0", "above 0", "below 0");
+  its numbers are unchanged. The observed behaviour over 6,000 cycles and the
+  structural bounds, including the component without one, are in the D2c
+  README ("Ring drift: observed behaviour") and `summary-drift.txt`. T1's
+  inclusion does not rest on this classification: its five declared criteria
+  are unaffected.

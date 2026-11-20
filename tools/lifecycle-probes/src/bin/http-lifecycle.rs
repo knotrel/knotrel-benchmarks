@@ -643,6 +643,37 @@ struct Arm {
     /// and those the prebuilt requests carry (they must be equal).
     window_legacy: Option<Vec<Op>>,
     prepared_legacy: Option<Vec<Op>>,
+    /// Equivalent planner references (qualification 3, revision 2): the
+    /// lifecycle chunks whose plain operations needed more than one plain
+    /// request, and the largest plain expansion of a single lifecycle
+    /// operation. A plain request carries at most [`BATCH`] operations, so a
+    /// split chunk is not one isolated unit on the plain side, and a single
+    /// operation expanding beyond [`BATCH`] cannot be indivisible there.
+    atomicity: Option<Atomicity>,
+}
+
+/// See [`Arm::atomicity`].
+#[derive(Clone, Copy, Default)]
+struct Atomicity {
+    split_chunks: usize,
+    max_op_plain_ops: usize,
+}
+
+impl Atomicity {
+    /// Records one lifecycle chunk: the plain expansion of each of its
+    /// operations, and the number of plain requests that carry it.
+    fn record(&mut self, expansions: impl IntoIterator<Item = usize>, requests: usize) {
+        for e in expansions {
+            self.max_op_plain_ops = self.max_op_plain_ops.max(e);
+        }
+        self.split_chunks += usize::from(requests > 1);
+    }
+
+    /// Whether the plain side offered the lifecycle side's isolation: one
+    /// plain request per lifecycle chunk, every operation within one request.
+    fn equivalent(self) -> bool {
+        self.split_chunks == 0 && self.max_op_plain_ops <= BATCH
+    }
 }
 
 async fn send(call: &Call) -> (StatusCode, Bytes) {
@@ -1148,6 +1179,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 responses: None,
                 window_legacy: None,
                 prepared_legacy: None,
+                atomicity: None,
             })
         }
         "ops" | "ops-query" | "events" | "metrics-ops" => {
@@ -1169,18 +1201,23 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 let mut steps = Vec::new();
                 let mut prepared = Vec::new();
                 let mut bodies = Vec::new();
+                let mut atomicity = Atomicity::default();
                 for chunk in ops.chunks(128) {
                     match planner.as_mut() {
                         None => bodies.push(feeder.events(chunk)),
                         Some(planner) => {
                             let mut legacy = Vec::new();
+                            let mut expansions = Vec::with_capacity(chunk.len());
                             for &op in chunk {
+                                let before = legacy.len();
                                 planner.plan(op, &mut legacy);
+                                expansions.push(legacy.len() - before);
                             }
                             let before = bodies.len();
                             for part in legacy.chunks(BATCH) {
                                 bodies.push(feeder.events(part));
                             }
+                            atomicity.record(expansions, bodies.len() - before);
                             if equivalent {
                                 steps.push((chunk.to_vec(), bodies.len() - before));
                                 prepared.extend_from_slice(&legacy);
@@ -1206,6 +1243,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     responses: None,
                     window_legacy: None,
                     prepared_legacy: equivalent.then_some(prepared),
+                    atomicity: equivalent.then_some(atomicity),
                 });
             }
             let (lifecycle, metrics) = if scenario == "metrics-ops" {
@@ -1232,6 +1270,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     responses: (candidate && equivalent_scenario).then(Vec::new),
                     window_legacy: None,
                     prepared_legacy: None,
+                    atomicity: None,
                 });
             }
             let mut planner = Planner::new(n, edges);
@@ -1239,15 +1278,20 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
             let mut steps = Vec::new();
             let mut prepared = Vec::new();
             let mut bodies = Vec::new();
+            let mut atomicity = Atomicity::default();
             for chunk in ops.chunks(256) {
                 let mut legacy = Vec::new();
+                let mut expansions = Vec::with_capacity(chunk.len());
                 for &op in chunk {
+                    let before = legacy.len();
                     planner.plan(op, &mut legacy);
+                    expansions.push(legacy.len() - before);
                 }
                 let before = bodies.len();
                 for part in legacy.chunks(BATCH) {
                     bodies.push(batch_body(part));
                 }
+                atomicity.record(expansions, bodies.len() - before);
                 if equivalent {
                     steps.push((chunk.to_vec(), bodies.len() - before));
                     prepared.extend_from_slice(&legacy);
@@ -1270,6 +1314,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 responses: equivalent.then(Vec::new),
                 window_legacy: None,
                 prepared_legacy: equivalent.then_some(prepared),
+                atomicity: equivalent.then_some(atomicity),
             })
         }
         "import" | "import-optin" => {
@@ -1365,6 +1410,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     responses: None,
                     window_legacy: None,
                     prepared_legacy: None,
+                    atomicity: None,
                 });
             }
             let flag_store = (!candidate && flagged).then(|| FlagStore {
@@ -1390,6 +1436,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 responses: None,
                 window_legacy: None,
                 prepared_legacy: None,
+                atomicity: None,
             })
         }
         _ => Err("unknown --scenario".into()),
@@ -1474,13 +1521,18 @@ async fn main_async() -> Result<(), String> {
                 .map_err(|e| format!("equivalence check failed in pair {index}: {e}"))?;
         }
         let pair = index as i64 - warmup as i64;
-        println!(
-            "{}",
-            json!({"kind": if pair < 0 {"warmup"} else {"pair"}, "pair": pair, "scenario": scenario,
-                   "candidate_first": candidate_first, "candidate_ns": c as u64, "reference_ns": r as u64,
-                   "candidate_requests": candidate.calls.len(), "reference_requests": reference.calls.len(),
-                   "answers_agree": agree})
-        );
+        let mut record = json!({"kind": if pair < 0 {"warmup"} else {"pair"}, "pair": pair, "scenario": scenario,
+               "candidate_first": candidate_first, "candidate_ns": c as u64, "reference_ns": r as u64,
+               "candidate_requests": candidate.calls.len(), "reference_requests": reference.calls.len(),
+               "answers_agree": agree});
+        // Qualification 3, revision 2: whether the planner reference offered
+        // the candidate's isolation (one plain request per lifecycle chunk).
+        if let Some(a) = reference.atomicity {
+            record["reference_split_chunks"] = json!(a.split_chunks);
+            record["reference_max_op_plain_ops"] = json!(a.max_op_plain_ops);
+            record["atomicity_equivalent"] = json!(a.equivalent());
+        }
+        println!("{record}");
     }
     Ok(())
 }
@@ -1497,5 +1549,28 @@ fn main() -> ExitCode {
             eprintln!("error: {error}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn atomicity_requires_one_request_per_chunk_and_small_commands() {
+        let mut a = Atomicity::default();
+        a.record([3, 10, 0], 1);
+        assert!(a.equivalent());
+        a.record([BATCH], 1);
+        assert!(a.equivalent());
+        let mut split = a;
+        split.record([600, 600], 2);
+        assert!(!split.equivalent());
+        assert_eq!((split.split_chunks, split.max_op_plain_ops), (1, BATCH));
+        // A single command beyond one plain request is never equivalent.
+        let mut big = Atomicity::default();
+        big.record([1_565], 2);
+        assert!(!big.equivalent());
+        assert_eq!(big.max_op_plain_ops, 1_565);
     }
 }

@@ -7,38 +7,38 @@ B5 at 100k (lifecycle/plain <= 3.0)
   hub frozen: 2.4425 | hub T1: 2.4425 | hub T2: 2.4425
 6,000 cycles: peaks, transient, steady state, events, ring-drift classification
   sparse frozen intervals 300 | running-max peak 43.294 MiB, checkpoint peak 33.519 MiB @7 | first-interval max 33.519, later interval max 31.232, mean of later maxima 31.085 MiB | last 100 cycles mean 30.354 MiB | mismatches 0
-         slope of interval maxima: 2-150 -76.6 B/interval [-143.8, -9.4] bounded; 151-300 +6.8 [-46.1, +59.7] bounded
+         slope of interval maxima: 2-150 -76.6 B/interval [-143.8, -9.4] interval below 0; 151-300 +6.8 [-46.1, +59.7] interval includes 0
          final counts: catalog_node_capacity 180569, incident_capacity 534116, incident_entries 300140
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=0; catalog_rebuild_after_compaction n=0; engine_compaction n=300 median 20445 us max 36601 us
   sparse T1     intervals 300 | running-max peak 38.169 MiB, checkpoint peak 28.394 MiB @7 | first-interval max 28.394, later interval max 26.107, mean of later maxima 25.960 MiB | last 100 cycles mean 25.229 MiB | mismatches 0
-         slope of interval maxima: 2-150 -76.6 B/interval [-143.8, -9.4] bounded; 151-300 +6.8 [-46.1, +59.7] bounded
+         slope of interval maxima: 2-150 -76.6 B/interval [-143.8, -9.4] interval below 0; 151-300 +6.8 [-46.1, +59.7] interval includes 0
          final counts: catalog_node_capacity 112013, incident_capacity 534116, incident_entries 300140
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=972 median 694 us max 1914 us; catalog_rebuild_after_compaction n=0; engine_compaction n=300 median 16642 us max 37634 us
   sparse T2     intervals 300 | running-max peak 38.169 MiB, checkpoint peak 28.394 MiB @7 | first-interval max 28.394, later interval max 26.107, mean of later maxima 25.960 MiB | last 100 cycles mean 25.229 MiB | mismatches 0
-         slope of interval maxima: 2-150 -76.6 B/interval [-143.8, -9.4] bounded; 151-300 +6.8 [-46.1, +59.7] bounded
+         slope of interval maxima: 2-150 -76.6 B/interval [-143.8, -9.4] interval below 0; 151-300 +6.8 [-46.1, +59.7] interval includes 0
          final counts: catalog_node_capacity 114688, incident_capacity 534116, incident_entries 300140
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=901 median 695 us max 1178 us; catalog_rebuild_after_compaction n=300 median 681 us max 1363 us; engine_compaction n=300 median 16691 us max 24799 us
   ring   frozen intervals 300 | running-max peak 40.175 MiB, checkpoint peak 30.154 MiB @19 | first-interval max 30.154, later interval max 28.870, mean of later maxima 28.849 MiB | last 100 cycles mean 28.054 MiB | mismatches 0
-         slope of interval maxima: 2-150 +69.4 B/interval [+27.8, +111.0] cumulative; 151-300 +4.4 [-27.4, +36.1] bounded
+         slope of interval maxima: 2-150 +69.4 B/interval [+27.8, +111.0] interval above 0; 151-300 +4.4 [-27.4, +36.1] interval includes 0
          final counts: catalog_node_capacity 176848, incident_capacity 437124, incident_entries 199742
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=0; catalog_rebuild_after_compaction n=0; engine_compaction n=300 median 17224 us max 67504 us
   ring   T1     intervals 300 | running-max peak 35.050 MiB, checkpoint peak 25.029 MiB @19 | first-interval max 25.029, later interval max 23.745, mean of later maxima 23.724 MiB | last 100 cycles mean 22.929 MiB | mismatches 0
-         slope of interval maxima: 2-150 +69.4 B/interval [+27.8, +111.0] cumulative; 151-300 +4.4 [-27.4, +36.1] bounded
+         slope of interval maxima: 2-150 +69.4 B/interval [+27.8, +111.0] interval above 0; 151-300 +4.4 [-27.4, +36.1] interval includes 0
          final counts: catalog_node_capacity 106628, incident_capacity 437124, incident_entries 199742
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=972 median 692 us max 4599 us; catalog_rebuild_after_compaction n=0; engine_compaction n=300 median 14505 us max 76958 us
   ring   T2     intervals 300 | running-max peak 35.050 MiB, checkpoint peak 25.029 MiB @19 | first-interval max 25.029, later interval max 23.745, mean of later maxima 23.724 MiB | last 100 cycles mean 22.929 MiB | mismatches 0
-         slope of interval maxima: 2-150 +69.4 B/interval [+27.8, +111.0] cumulative; 151-300 +4.4 [-27.4, +36.1] bounded
+         slope of interval maxima: 2-150 +69.4 B/interval [+27.8, +111.0] interval above 0; 151-300 +4.4 [-27.4, +36.1] interval includes 0
          final counts: catalog_node_capacity 114688, incident_capacity 437124, incident_entries 199742
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=901 median 689 us max 1229 us; catalog_rebuild_after_compaction n=300 median 679 us max 742 us; engine_compaction n=300 median 14342 us max 23298 us
   hub    frozen intervals 300 | running-max peak 43.188 MiB, checkpoint peak 33.220 MiB @8 | first-interval max 33.220, later interval max 31.119, mean of later maxima 31.084 MiB | last 100 cycles mean 30.354 MiB | mismatches 0
-         slope of interval maxima: 2-150 -5.3 B/interval [-52.4, +41.8] bounded; 151-300 +6.8 [-46.1, +59.7] bounded
+         slope of interval maxima: 2-150 -5.3 B/interval [-52.4, +41.8] interval includes 0; 151-300 +6.8 [-46.1, +59.7] interval includes 0
          final counts: catalog_node_capacity 180569, incident_capacity 534116, incident_entries 300140
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=0; catalog_rebuild_after_compaction n=0; engine_compaction n=300 median 21392 us max 84007 us
   hub    T1     intervals 300 | running-max peak 38.063 MiB, checkpoint peak 28.095 MiB @8 | first-interval max 28.095, later interval max 25.994, mean of later maxima 25.959 MiB | last 100 cycles mean 25.229 MiB | mismatches 0
-         slope of interval maxima: 2-150 -5.3 B/interval [-52.4, +41.8] bounded; 151-300 +6.8 [-46.1, +59.7] bounded
+         slope of interval maxima: 2-150 -5.3 B/interval [-52.4, +41.8] interval includes 0; 151-300 +6.8 [-46.1, +59.7] interval includes 0
          final counts: catalog_node_capacity 112013, incident_capacity 534116, incident_entries 300140
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=972 median 702 us max 1786 us; catalog_rebuild_after_compaction n=0; engine_compaction n=300 median 16621 us max 85504 us
   hub    T2     intervals 300 | running-max peak 38.063 MiB, checkpoint peak 28.095 MiB @8 | first-interval max 28.095, later interval max 25.994, mean of later maxima 25.959 MiB | last 100 cycles mean 25.229 MiB | mismatches 0
-         slope of interval maxima: 2-150 -5.3 B/interval [-52.4, +41.8] bounded; 151-300 +6.8 [-46.1, +59.7] bounded
+         slope of interval maxima: 2-150 -5.3 B/interval [-52.4, +41.8] interval includes 0; 151-300 +6.8 [-46.1, +59.7] interval includes 0
          final counts: catalog_node_capacity 114688, incident_capacity 534116, incident_entries 300140
          events (count build; timing in summary-latency.txt): catalog_rebuild_on_grow n=901 median 695 us max 955 us; catalog_rebuild_after_compaction n=300 median 682 us max 1350 us; engine_compaction n=300 median 16643 us max 18099 us
