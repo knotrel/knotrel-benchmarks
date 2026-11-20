@@ -57,6 +57,9 @@ run R python3 scripts/run_v070q3_collect.py r --out "$D-R" --ref "$T/ref-probes/
 run Rmem python3 scripts/run_v070q3_collect.py rmem --out "$D-Rmem" --ref "$T/ref-probes-peak/release/memory-peak" --cand "$T/cand-probes-peak/release/memory-peak" --dry-run
 run Mdesc python3 scripts/run_v070q3_collect.py mdesc --out "$D-Mdesc" --probe "$T/contention/release/contention-probe" --server "$T/cand-server/release/knotrel-server" --dry-run
 run Mreg python3 scripts/run_v070q3_collect.py mreg --out "$D-Mreg" --probe "$T/contention/release/contention-probe" --ref "$T/ref-server/release/knotrel-server" --cand "$T/cand-server/release/knotrel-server" --dry-run
+# Revision 3: the autonomous runner's own preflight (FREEZE revision, hashes, binaries, AC, disk,
+# no unrestored quiesce); it measures nothing and starts no monitor.
+run runner python3 scripts/run_v070q3_autonomous.py "$CAMP" "$(basename "$CAMP" | sed -E 's/.*-([0-9a-f]{7})-q3-.*/\1/')"0000000000000000000000000000000000 --dry-run
 for X in BC T5 R Rmem Mdesc Mreg; do [ ! -e "$D-$X" ] || bad "dry run $X wrote $D-$X"; done
 say "LAUNCH-ENV OK"
 echo "LAUNCH-ENV OK"

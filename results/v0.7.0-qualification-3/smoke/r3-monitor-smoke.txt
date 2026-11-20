@@ -1,0 +1,8 @@
+Revision 3 live smoke of the telemetry monitor and gate (functional check only; no benchmark ran)
+date 2026-11-20; host Apple M3 (4 performance + 4 efficiency cores), 16 GB, AC power
+setup: interference_monitor.py with root = the smoke process; Gate.ready, then one unit with one child (/bin/sleep 3)
+result: ready after 34.3 s (30 s of telemetry required; one external burst at start); unit valid, no reasons
+samples 41, largest gap 1.01 s; status-file t equal to the last log sample t (exact timestamps)
+external CPU (Claude session active, issuing this smoke): median 0.48 cores, max 2.47 cores; campaign CPU max 0.04 cores
+first slow sample: ac true, therm ok, pressure 1
+earlier single sample the same day: XProtectRemediatorToyDrop 0.94 cores (system background scan)
