@@ -1,7 +1,9 @@
 # knotrel v0.7.0: qualification 3 protocol (draft until FREEZE.json is written)
 
-**Status: reviewed; frozen by `FREEZE.json`.** This protocol is frozen by `FREEZE.json` after its
-independent review and before any collection. Collection is launched by the
+**Status: revision 2, draft until `FREEZE.json` revision 2 is written.**
+Revision 1 was frozen at 66f2f0a9 (kept as `FREEZE-r1.json`). No collection
+ran under it. Revision 2 records the maintainer's decisions of 2026-11-20
+(§1) and the changes they require (§13). Collection is launched by the
 maintainer, as before.
 
 ## 1. Why a third qualification
@@ -36,6 +38,24 @@ decisions:
 - **general:** "mantenendo le soglie percentuali attuali. Conserva
   integralmente a3-3 e i suoi verdetti. … Non autorizzo un rilascio senza
   qualificazione conforme."
+
+**Decisions of 2026-11-20** (before launch, after the revision-1 freeze).
+Verbatim:
+1. **Hub atomicity:** "correggi la referenza affinché offra la stessa
+   atomicità del candidato. Se non è possibile, quelle celle non possono
+   essere presentate come equivalenti né qualificare quel requisito."
+2. **D4c:** "accetto l'omissione del follow-up come deviazione della sola
+   diagnostica. Non considero risolto l'overhead e non concedo deroghe al
+   6%: deciderà la misura q3 prevista dal protocollo."
+3. **T1:** "mantienilo nel candidato, ma chiarisci se q3 misura e vincola le
+   code di latenza delle compattazioni. … Se manca questa copertura, proponi
+   prima del nuovo freeze un controllo mirato con criterio motivato."
+4. **Ring drift:** "correggi la conclusione: un intervallo della pendenza che
+   contiene zero non dimostra crescita limitata."
+5. **Disk:** "autorizzo la pulizia degli artefatti di build rigenerabili del
+   worktree, preservando binari congelati, evidenze e manifest."
+6. "Registra queste decisioni e le modifiche in un nuovo freeze, preservando
+   quello precedente, poi rigenera il tentativo e il comando di lancio."
 
 ## 2. Candidate and reference
 
@@ -111,7 +131,16 @@ frozen counterpart:
 | `B4-http-events-equivalent-…` (same three) | `B4-http-events-…` | 25% |
 
 - **Verdicts.** For these five scenario families, the release decision uses
-  the equivalent cell's verdict.
+  the equivalent cell's verdict, except for the two cells below.
+- **Not equivalent (revision 2, decision 1):**
+  `B4-http-ops-equivalent-compact-bfs-hub-10000` and
+  `B4-http-events-equivalent-compact-bfs-hub-10000`. Their reference cannot
+  offer the candidate's atomicity (§4.3). They still run, unchanged and in
+  the same position, and are reported as descriptive with no verdict. The
+  two requirements they would have qualified (B4 lifecycle batches and
+  lifecycle feeder events on `hub` 10k) are **not qualified by this
+  campaign**. The report lists them, and their disposition is the
+  maintainer's. Eleven equivalent cells decide.
 - **Frozen cells.** The frozen counterparts are measured and analyzed
   exactly as before. They are reported as descriptive comparisons of the
   additional cost: L/E for import, L/P for the planner families. They carry
@@ -187,12 +216,46 @@ the following from the planner in its state at the window's start:
    server's graph equal to the effective graph. The requests are the frozen
    ones, prebuilt and untimed in both arms.
 
-**Residual limit: atomicity.** A lifecycle batch is one indivisible unit.
-When a chunk expands into more than 1,024 plain operations, the frozen
-planner splits it into two plain requests. That happens on `hub`: 39
-requests against 37 for ops, 76 against 74 for events. Those chunks are then
-not atomic on the plain side. The equivalent reference is kept as the frozen
-planner sends it; the limit is disclosed, not corrected.
+**Atomicity (revision 2).** What the candidate guarantees
+(`docs/topology-lifecycle.md` §4, `docs/http-api.md`):
+- each lifecycle command is one indivisible step: no query sees a node
+  partly deactivated or partly removed;
+- each request, batch or feeder events, runs under one hold of the graph
+  lock, so no query sees a state between its operations.
+
+For the reference to offer the same, each lifecycle chunk must map to one
+plain request, and every single command must fit in it. A plain request
+carries at most 1,024 operations (`MAX_BATCH_OPERATIONS` in knotrel-server,
+for `/v1/batch` and feeder events; not configurable). The plain API has only
+`add_node`, `link`, `cut` and `connected`, and the standalone plain server
+has no import.
+
+On `hub` 10k this cannot hold. The frozen trace deactivates two hub nodes,
+nodes 1754 and 5231. Each deactivation expands into **1,425 and 1,565 plain
+cuts**: a single command larger than any plain request. The two chunks that
+contain them need two plain requests each (39 requests against 37 for ops,
+76 against 74 for events). Changing the chunking cannot fix this: the
+indivisible unit is the single command.
+- **ops (standalone):** no atomic plain route exists, so the reference cannot
+  be corrected.
+- **events (source-managed):** the only atomic plain route would be a full
+  replacement import (`POST /v1/feeder/import`, mode `replace`) of the
+  effective graph for each affected chunk. That is a different reference
+  design, with a different cost and generation semantics. It is not adopted
+  without a maintainer decision.
+- **Consequence (decision 1):** both cells are not equivalent (§4.1).
+
+**Recorded per pair.** In each pair, `http-lifecycle` records:
+- `reference_split_chunks`: lifecycle chunks the plain side needed more than
+  one request for;
+- `reference_max_op_plain_ops`: the largest plain expansion of one command;
+- `atomicity_equivalent`.
+
+**Smoke at real size.** Every other planner cell (ops, ops-query and events
+on sparse 10k and 100k; ops-query on hub) shows one plain request per chunk
+and at most 10 plain operations per command. If a deciding cell nevertheless
+records `atomicity_equivalent: false`, the report marks it `NOT_EQUIVALENT`
+among the deciding non-PASS results (§8). This is fail-closed.
 
 **Server-level evidence only.** D3c's declared fidelity check failed: the
 core replay is 24–31% below the server's in-call time. The core-level
@@ -251,6 +314,41 @@ and injected mutations were each detected (`smoke/README.md`).
 - The candidate's catalog tombstone handling, if included (§2.1), is
   measured by the unchanged C cells.
 
+### 5.1 Compaction latency tails: not covered (decision 3)
+
+**Q3 does not measure or constrain the latency tails of engine compactions
+or catalog rebuilds:**
+- the C cells measure memory and logical counts only (C1–C4);
+- B1–B4 decide on median window times.
+  - A B1 fresh-churn window contains about one catalog rebuild and one engine
+    compaction at 10k (three at 1k), from D2c's event counts
+    (`raw/b1-events/`).
+  - But those pauses are on graphs of 1k and 10k nodes, where a compaction
+    is short, and they enter only a window total judged by its median over
+    24 pairs. No B cell times a single pause, and none runs lifecycle churn
+    at 100k, where D2c measured compactions of 11–16 ms (median);
+- M_reg measures HTTP client latency without lifecycle churn.
+
+D2c's T1 timing runs showed higher compaction tails: ring p99 31.1 against
+17.3 ms, hub maximum 72.3 against 27.3 ms. Each came from one run on an
+ungated laptop. A targeted check with a motivated criterion is **proposed**
+in `PROPOSAL-T1-TAILS.md`. It is not part of this protocol until the
+maintainer decides; this revision is not frozen before then.
+
+### 5.2 Ring drift (decision 4)
+
+D2c's "bounded" classification of the ring drift is withdrawn (D2c README,
+"Ring drift: observed behaviour"; plan addendum 4):
+- **Observed:** a rise of about 90 KiB over the first ~50 compaction
+  intervals, then a 48 KiB band up to cycle 6,000.
+- **Bounded by construction:** the catalog table (under T1) and the engine
+  (rebuilt at every compaction).
+- **Not bounded by construction:** the per-node incident capacity. It is
+  released at node removal, but its level depends on the workload's degree
+  process.
+
+C3 itself is unchanged and decides on 30 cycles as before.
+
 ## 6. M_desc and M_reg: probe revision 4
 
 `tools/contention-probe` revision 4 replaces revision 2:
@@ -290,6 +388,21 @@ What changes:
 - the series is **q3**, cap 3, and every directory counts;
 - the first conforming attempt is final.
 
+**The attempt prepared under revision 1.** `…-q3-attempt1` was prepared
+from freeze 66f2f0a9 and **never launched**: it has no `logs/CONFORMANCE.txt`,
+no measurement and no result.
+- **Renaming.** Following the precedent of the unlaunched soak directories
+  of the re-qualification (`…-a2-soak2.unlaunched-<freeze>`), it is renamed
+  `…-q3-attempt1.unlaunched-66f2f0a9`. Its revision-1 launch command can then
+  no longer run.
+- **Kept:** sources, logs, manifests, binary hashes and every release
+  binary listed in `binaries-sha256.txt`.
+- **Removed:** only the regenerable intermediate build files (decision 5).
+- **Count.** It used no attempt: the series budget counts launched
+  attempts, and no result exists that could be chosen. The attempt prepared
+  under revision 2 is therefore q3-1 again. This is decision 6
+  ("rigenera il tentativo"); it is recorded, not inferred.
+
 ## 8. Analysis and decision
 
 - **Analyzers:** A, R, Rmem and M_reg use the re-qualification analyzers
@@ -300,13 +413,19 @@ What changes:
   requires the collector's `equivalent_references` provenance; without the
   flag nothing changes for earlier runs.
 - **Report:** `report_v070q3_bc.py` lists every B/C result: timing, B5 and
-  C1–C4. It marks the deciding and descriptive cells (§4.1) and the
-  deciding non-PASS results, with C4 EXCEEDS_BUDGET counted as a disclosure
-  category.
+  C1–C4. It marks:
+  - the deciding, descriptive and not-equivalent cells (§4.1);
+  - the deciding non-PASS results, with C4 EXCEEDS_BUDGET counted as a
+    disclosure category and `NOT_EQUIVALENT` as non-PASS (§4.3);
+  - the unqualified requirements, always;
+  - any not-equivalent cell whose records nevertheless show equivalence, as
+    an inconsistency.
 - **Release decision:** only a CONFORMING attempt whose deciding results are
   all PASS (or IMPROVED, or disclosure categories already defined, such as
   C4 EXCEEDS_BUDGET) supports a release. Every other outcome goes to the
   maintainer.
+- **Unqualified requirements (§4.1)** receive no verdict from this campaign.
+  They are not PASS, and their disposition is the maintainer's.
 - **No acceptance with disclosure, no rerun chosen by its result,** and no
   rule changed after collection.
 
@@ -324,7 +443,7 @@ What changes:
 |---|---|---|
 | Candidate | e75ff6a | e75ff6a plus the declared product changes (§2.1) |
 | B/C cells | 127 | 140: the 13 equivalent cells added (§4.1); frozen cells in a3-3's order, each equivalent cell right after its counterpart (§3) |
-| Deciding B4 cells for import, ops, ops-query, events | frozen references (lean store, untimed planner) | capability-equivalent references; frozen cells descriptive |
+| Deciding B4 cells for import, ops, ops-query, events | frozen references (lean store, untimed planner) | capability-equivalent references; frozen cells descriptive; hub ops and hub events equivalent cells not equivalent (revision 2, §4.3), so those two requirements are unqualified |
 | Window multipliers | `lifecycle-qualification-v0.5.0/window-multipliers-dcd8ccc.json` | `window-multipliers-q3.json`: the same 61 factors, plus each equivalent cell with its frozen counterpart's factor. The candidate arm differs only by keeping its response bodies (§4.2, a reference-count push per request), and the reference arm is only slower, so the faster arm's window stays at least 2 ms. |
 | `http-lifecycle` | frozen scenarios | `*-equivalent` scenarios added; frozen scenarios unchanged |
 | Contention probe | revision 2 | revision 4 (§6); FREEZE-A4's revision 3 superseded |
@@ -334,6 +453,7 @@ What changes:
 | A seeds | 130720–130722; extension 130730–130732 | unchanged (addendum 1, A5) |
 | Campaign directory and series | `v0.7.0-requalification-<cand7>-a3-attemptN`, a3, cap 3 | `v0.7.0-qualification-3-<cand7>-q3-attemptN`, q3, cap 3 |
 | Thresholds, estimators, pair counts, conformance rules | — | unchanged |
+| Freeze | — | revision 2 (`FREEZE.json`); revision 1 kept as `FREEZE-r1.json` (66f2f0a9) |
 
 ## 11. Phase-3 results that fix §2.1
 
@@ -345,7 +465,7 @@ with addenda 1–2).
 |---|---|---|
 | **D2c** (catalog tombstones) | **T1 meets every criterion.** Detail in D2c's README. | T1 is in the candidate (§2.1) |
 | **D3c** (ops fidelity) | **Fidelity not restored.** Core replay 24–31% below the server's in-call time. Server level: L/P +30.1% [+23.1, +36.6]; L/PP −21.3% [−27.2, −14.5] (one ungated run). | Core attributions withdrawn; the equivalence argument is service-based (§4.3) |
-| **D4c** (metrics) | **Not resolved:** the decomposition is internally inconsistent (run-level effects are the likely, unshown cause). The declared follow-up was not run, a departure set aside after seeing the data, which **awaits the maintainer's acceptance**. | No metrics change; the `metrics-ops` cell is measured as released, 6% tolerance |
+| **D4c** (metrics) | **Not resolved:** the decomposition is internally inconsistent (run-level effects are the likely, unshown cause). The declared follow-up was not run; the maintainer **accepted this as a departure of the diagnostic only** (2026-11-20). The overhead is not resolved and the 6% budget has no exception. | No metrics change; the `metrics-ops` cell is measured as released and decides at 6% |
 | **D5c** (probe revision 4) | **Verified:** 6/6 imports in all runs; forced runs recover in 22–30 ms. | Revision 4 used (§6) |
 | ETag on 412 | Consistent; stale after release, like a stats token. | Not included: no API change |
 
@@ -359,7 +479,9 @@ D2c in detail:
 - B1 fresh-churn ±0.5%, with T1 rebuilding about once per lifecycle window;
 - the product reproduces the diagnostic, identical at every checkpoint (net heap and counts), from clean checkouts
   of the candidate and the tooling (D2c `summary-product-clean.txt`);
-- ring drift bounded.
+- ring drift: about 90 KiB over the first ~50 intervals, then a 48 KiB band
+  to cycle 6,000; bounded growth **not** demonstrated (§5.2);
+- compaction tails: not covered by q3 (§5.1).
 
 ## 12. Reviews before the freeze
 
@@ -382,3 +504,19 @@ D2c in detail:
      probe's reconnection of a poisoned connection before the next import,
      the usage line, and "identical at every checkpoint" in place of "byte
      for byte".
+
+## 13. Revision 2 (2026-11-20)
+
+What changed since the revision-1 freeze (66f2f0a9), from the decisions in
+§1. Nothing else changed: experiments, seeds, workloads, run order,
+estimators, thresholds and conformance rules are the same.
+
+| Decision | Change |
+|---|---|
+| 1, hub atomicity | Probe records atomicity per pair. Hub ops and events equivalent cells are moved to `not_equivalent` in the matrix, and their requirements are listed as unqualified. Analyzer copies the atomicity fields; the report is fail-closed (§4.1, §4.3, §8). |
+| 2, D4c | Departure accepted for the diagnostic only; no exception to 6% (§11; plan addendum 4) |
+| 3, T1 tails | Coverage stated as absent (§5.1); targeted check proposed in `PROPOSAL-T1-TAILS.md`, pending the maintainer's decision |
+| 4, ring drift | Classification withdrawn; observed behaviour and structural bounds reported (§5.2; D2c README) |
+| 5, disk | The knotrel worktree's build cache (8.4 GiB) removed; regenerable intermediates of the unlaunched attempt removed, its binaries kept (§7) |
+| 6, freeze | Revision 1 kept as `FREEZE-r1.json`; `FREEZE.json` revision 2 written after review; the unlaunched attempt renamed, and q3-1 prepared anew (§7) |
+

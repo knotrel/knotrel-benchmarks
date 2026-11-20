@@ -57,7 +57,14 @@ model behind that rule:
 - On the same-binary control, the released overhead measured +5.41% [+4.54,
   +5.82] on this host. That is not a qualification result.
 
-**Departure from the plan, awaiting the maintainer's acceptance.** The
+**Maintainer decision (2026-11-20, plan addendum 4):** "accetto l'omissione
+del follow-up come deviazione della sola diagnostica. Non considero risolto
+l'overhead e non concedo deroghe al 6%: deciderà la misura q3 prevista dal
+protocollo." The departure below is accepted for this diagnostic only; the
+overhead stays unresolved and B4 `metrics-ops` in qualification 3 decides at
+6%.
+
+**Departure from the plan (accepted as a diagnostic-only departure).** The
 declared follow-up (a same-observability variant for each claimed component,
 candidate inclusion only without overlap) was **not run**. That decision was
 taken after seeing the data.

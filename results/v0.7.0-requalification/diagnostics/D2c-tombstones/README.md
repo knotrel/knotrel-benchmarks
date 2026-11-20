@@ -52,14 +52,61 @@ three policies. Construction is unchanged.
 
 T2 has the same heap values as T1 to the byte.
 
-**Ring-drift classification (declared).** Least-squares slope of the
-per-interval maxima, with a 95% interval:
+**Ring drift: observed behaviour** (corrected 2026-11-20, plan addendum 4;
+`summary-drift.txt` from `summarize_drift.py`). The declared rule called an
+interval that includes 0 "bounded". **That conclusion is withdrawn:** an
+interval of the slope that contains zero does not demonstrate bounded growth.
+It only fails to detect a slope, and it is compatible with any drift up to its
+upper bound. The slope intervals are still reported, without that label:
 
-| | Intervals 2–150 | Intervals 151–300 (decides) |
+| | Slope, intervals 2–150 (B/interval) | Slope, intervals 151–300 (B/interval) |
 |---|---|---|
-| sparse (all policies) | −76.6 B/interval [−143.8, −9.4] | +6.8 [−46.1, +59.7]: **bounded** |
-| ring (all policies) | +69.4 [+27.8, +111.0]: cumulative over this early span | +4.4 [−27.4, +36.1]: **bounded** |
-| hub (all policies) | −5.3 [−52.4, +41.8] | +6.8 [−46.1, +59.7]: **bounded** |
+| sparse (frozen and T1) | −76.6 [−143.8, −9.4] | +6.8 [−46.1, +59.7] |
+| ring (frozen and T1) | +69.4 [+27.8, +111.0] | +4.4 [−27.4, +36.1] |
+| hub (frozen and T1) | −5.3 [−52.4, +41.8] | +6.8 [−46.1, +59.7] |
+
+**What was observed on ring with T1** (per-compaction-interval maxima of net
+heap, 300 intervals of 20 cycles):
+- Interval 1, the transient, reaches 25.029 MiB.
+- Interval 2 is the lowest later maximum, 23.639 MiB. The maxima then rise by
+  about 90 KiB: the mean of intervals 51–100 is 23.725 MiB.
+- From interval 51 to 300, the five block means of 50 intervals lie within
+  23.723–23.726 MiB (a spread of 2.8 KiB). Every single interval maximum lies
+  within 23.699–23.745 MiB (a range of 47.8 KiB).
+- Over intervals 151–300, the slope's upper bound (+36.1 B per interval)
+  would add at most about 10.6 KiB over another 6,000 cycles. That is what the
+  data exclude at 95%, with serial correlation not modelled. It is not a proof
+  of a bound beyond the observed 6,000 cycles.
+- The frozen policy shows the same pattern, 5.1 MiB higher: the early rise is
+  not caused by T1.
+
+**What bounds the heap by construction, and what does not:**
+- **Catalog table:** bounded under T1. Live nodes stay at 100,000, at most
+  90% of the table's full capacity (114,688), so the table is rebuilt at the
+  same size and never grows. Observed: at most 114,687.
+- **Engine:** bounded by compaction. It is rebuilt from the live catalog at
+  every compaction (retired slots above the live count), so its vertices stay
+  at most 2n + 1024 (C1) and its adjacency storage is rebuilt each interval.
+  Observed: 195,000 vertices at each interval maximum.
+- **Catalog incident lists: not bounded by construction.** Each live node's
+  list keeps the capacity of its largest degree so far. It is released when
+  the node is removed (the record is dropped). Under uniform 5% churn every
+  node is eventually removed: the chance of surviving 6,000 cycles is
+  0.95^6000 ≈ 10^−134. So no storage carries over from one node lifetime to
+  the next, but the total depends on the workload's degree process, which the
+  code does not bound.
+  - Observed `incident_capacity` at the start of each interval: 423,660 at
+    the first, at most 438,224, 437,220 at the last.
+  - That rise matches the early rise of the heap maxima in direction, as
+    capacities move from the ring's construction sizing to the churned degree
+    distribution. It is not attributed byte for byte.
+
+**Conclusion.** Over 6,000 cycles the ring heap rose about 90 KiB in the
+first ~50 intervals and then stayed within a 48 KiB band. The only component
+not bounded by construction is the per-node incident capacity. Its storage
+does not accumulate across node lifetimes, so the observed plateau is
+consistent with the mechanism. Its level beyond 6,000 cycles rests on the
+workload's degree distribution staying stationary, and that is not shown.
 
 **Event counts** (deterministic, count build):
 - T1: 972 catalog rebuilds per 6,000 cycles (about one per 6 cycles).
@@ -129,9 +176,10 @@ cells.
    - The first interval is still the highest: about 2.3 MiB (sparse, hub)
      and 1.3 MiB (ring) above the later interval maxima.
    - After that the heap stays in a band.
-   - The ring drift is **bounded** by the declared classification: the slope
-     over intervals 151–300 has an interval that includes 0. Its early
-     positive slope (intervals 2–150) does not continue.
+   - The ring heap rose about 90 KiB over the first ~50 intervals, then
+     stayed within a 48 KiB band up to cycle 6,000. Bounded growth is **not**
+     demonstrated: the per-node incident capacity has no structural bound
+     (see "Ring drift: observed behaviour").
    - Serial correlation is not modelled; this is disclosed in the plan.
 4. **T2 adds nothing to C3.** It lowers the engine-compaction maximum and
    adds 300 rebuilds. By the declared rule, T1 is chosen.

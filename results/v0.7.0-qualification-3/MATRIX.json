@@ -56,13 +56,11 @@
      "B4-http-import-equivalent-compact-bfs-hub-10000",
      "B4-http-import-equivalent-compact-bfs-sparse-100000",
      "B4-http-ops-equivalent-compact-bfs-sparse-10000",
-     "B4-http-ops-equivalent-compact-bfs-hub-10000",
      "B4-http-ops-equivalent-compact-bfs-sparse-100000",
      "B4-http-ops-query-equivalent-compact-bfs-sparse-10000",
      "B4-http-ops-query-equivalent-compact-bfs-hub-10000",
      "B4-http-ops-query-equivalent-compact-bfs-sparse-100000",
      "B4-http-events-equivalent-compact-bfs-sparse-10000",
-     "B4-http-events-equivalent-compact-bfs-hub-10000",
      "B4-http-events-equivalent-compact-bfs-sparse-100000"
     ],
     "descriptive": [
@@ -80,7 +78,21 @@
      "B4-http-events-compact-bfs-hub-10000",
      "B4-http-events-compact-bfs-sparse-100000"
     ],
-    "tolerances": "those of the frozen counterpart (import 100%, ops/ops-query/events 25%)"
+    "tolerances": "those of the frozen counterpart (import 100%, ops/ops-query/events 25%)",
+    "not_equivalent": {
+     "cells": [
+      "B4-http-ops-equivalent-compact-bfs-hub-10000",
+      "B4-http-events-equivalent-compact-bfs-hub-10000"
+     ],
+     "decision": "maintainer 2026-11-20 (PROTOCOL section 1): 'Se non è possibile, quelle celle non possono essere presentate come equivalenti né qualificare quel requisito.'",
+     "reason": "a single lifecycle operation of the frozen hub trace (deactivation of a hub node) expands to 1,425 and 1,565 plain operations; a plain batch or feeder events request carries at most 1,024 (knotrel-server MAX_BATCH_OPERATIONS, not configurable) and the standalone plain server has no atomic import, so the reference cannot offer the candidate's per-command indivisibility or per-request isolation (PROTOCOL section 4.3)",
+     "treatment": "measured unchanged, in the same position; reported as descriptive, no verdict; probe records atomicity_equivalent per pair"
+    },
+    "unqualified_requirements": [
+     "B4 lifecycle batch operations (ops), compact-bfs hub 10k: no equivalent reference can be built; q3 gives no verdict for this requirement; its disposition is the maintainer's",
+     "B4 lifecycle feeder events (events), compact-bfs hub 10k: no equivalent reference was built (the only atomic plain route, a full replacement import per affected chunk, is a different reference design not adopted without a maintainer decision); q3 gives no verdict for this requirement; its disposition is the maintainer's"
+    ],
+    "atomicity_rule": "a deciding equivalent cell whose records show atomicity_equivalent false is reported NOT_EQUIVALENT among the deciding non-PASS results (report_v070q3_bc.py, fail-closed)"
    }
   },
   "R": {
