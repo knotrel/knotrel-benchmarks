@@ -381,21 +381,27 @@ including any engine compaction or catalog rebuild it triggers.
 **Workload: the same duration and the same work in every run.**
 - `core-lifecycle pauses`: the frozen C workload, fresh-ID churn of 5% per
   cycle on 100,000 nodes, seed 5000001, `compact-bfs`, on `sparse`, `ring`
-  and `hub`. Each run is **600 cycles**, 12,000,000 lifecycle calls, from a
-  fresh process; construction is not timed.
+  and `hub`. Each run is **600 cycles** from a fresh process: 15,000,000
+  lifecycle calls on `sparse` and `hub` (25,000 per cycle), 12,000,000 on
+  `ring` (20,000 per cycle). Construction is not timed.
 - Every call is timed separately with `Instant`, identically in both arms.
   After each cycle, outside the timing, the probe checks the logical counts
   against the independent model (a difference stops the run) and reads
-  `retired_vertices`; a drop marks the cycle of a compaction.
+  the storage statistics; a drop of `retired_vertices` marks the cycle of a
+  compaction. Reading them walks the catalog (O(n)) between cycles. That is
+  identical in both arms, but it changes cache state before the next
+  cycle's first calls.
+- The raw file is self-describing: build, `pauses_start` (engine,
+  topology and workload), 600 cycle records, `pauses_end`, and nothing
+  else.
 - **Equality is checked, not assumed.** Within a topology, the analysis
   requires every run of both arms, warmup included, to have the same
   schedule digest, result digest, calls per cycle, final logical counts and
   compaction cycles. So maxima are always compared over the same number of
   calls on the same sequence of operations. Otherwise the analysis is
   invalid.
-- **Thirty compactions.** The development runs (both arms, all three
-  topologies; `smoke/t5-smoke.txt`) compact at cycles 20, 40, …, 600, by
-  a `remove_node` call. The analysis requires exactly 30 compaction cycles,
+- **Thirty compactions.** The pre-freeze smoke (both arms, all three
+  topologies; `smoke/t5-smoke.txt`) compacts at cycles 20, 40, …, 600. The analysis requires exactly 30 compaction cycles,
   the last at cycle 600, so the 30 intervals cover every cycle; otherwise it
   is invalid.
 
@@ -413,7 +419,8 @@ including any engine compaction or catalog rebuild it triggers.
   analyzed pairs is a 6/6 shuffle by `random.Random(f"50730:{topology}")`.
 - Runs are interleaved by round: round r runs pair r of each topology, the
   topologies in an order shuffled by `random.Random(f"50730:round:{r}")`.
-- 84 runs of about 9 s, about 15 minutes, in the chain after B/C
+- 84 runs of 7–12 s plus construction, about 17 minutes, in the chain
+  after B/C
   (`scripts/run_v070q3_t5.py`, every run gated, label `T5:`). A failed run
   stops the collector and the chain: FAILED, no verdict.
 
@@ -431,12 +438,26 @@ including any engine compaction or catalog rebuild it triggers.
   results**. `scripts/analyze_v070q3_t5.py` computes them with
   `summarize_metric` of `analyze_bc_qualification.py`, reused unchanged.
 - Any non-PASS, and an invalid analysis, goes to the maintainer as every
-  other deciding non-PASS does. There is no waiver and no extension.
+  other deciding non-PASS does. There is no waiver and no extension. An
+  invalid analysis writes a marker that the report turns into six INVALID
+  deciding rows, so B/C can still be reported.
 
 **Absolute values, reported with every result:** per arm, the median,
 minimum and maximum of P_max and P_90 in ms; per run, the wall and timed
 duration and the mean call time; the 12 pairs' values; the kind of the
-calls that compacted.
+longest call in the compaction cycles.
+
+**Known limits, disclosed before collection.**
+- **P_max is one extreme** over 12–15 million calls. Preemption or a move
+  between core types during a 15–25 ms compaction can inflate one run. The
+  balanced order spreads that over both arms. The [d(3), d(10)] interval
+  absorbs at most two such pairs on each side; more can make a result
+  INCONCLUSIVE. P_90 is less exposed.
+- **`hub` is a hub only at first.** With uniform 5% churn the original hub
+  nodes are removed within the first tens of cycles (survival 0.95^c), and
+  D2c's interval maxima for `hub` and `sparse` coincide after about 50
+  intervals. Most `hub` intervals of T5 therefore measure a graph without
+  its hub; the topology mainly changes the first intervals.
 
 **Why 25% is the T5 criterion.** No product document states a pause
 objective, so an absolute ceiling would be chosen without a basis. A
@@ -534,8 +555,10 @@ no measurement and no result.
     an inconsistency.
 - **Release decision:** only a CONFORMING attempt whose deciding results are
   all PASS (or IMPROVED, or disclosure categories already defined, such as
-  C4 EXCEEDS_BUDGET) supports a release. Every other outcome goes to the
-  maintainer.
+  C4 EXCEEDS_BUDGET), T5 included, **and with no unqualified requirement**
+  supports a release. The report's `overall.release_supported_by_q3` is
+  false while any requirement is unqualified. Every other outcome goes to
+  the maintainer.
 - **Unqualified requirements (§4.1)** receive no verdict from this campaign.
   They are not PASS, and their disposition is the maintainer's. They stay in
   the overall verdict. While any is unqualified, no outcome makes q3 a
@@ -621,6 +644,27 @@ D2c in detail:
      probe's reconnection of a poisoned connection before the next import,
      the usage line, and "identical at every checkpoint" in place of "byte
      for byte".
+
+3. **Independent review of revision 2, `66f2f0a9..56ab1b27`.** No blocker.
+   Five should-fix items, all addressed:
+   - the report now refuses a planner equivalent cell without an atomicity
+     record, and the B/C analyzer marks it invalid (it failed open before);
+   - the report reads `unqualified_requirements` strictly, requires at
+     least one per not-equivalent cell, and gives an `overall` verdict that
+     never supports a release while any is unqualified; §8 says so;
+   - the T5 smoke is committed (`smoke/t5-smoke.txt`);
+   - the freeze lists the T5 scripts and `cli_paths.py`; revision 1 is kept
+     as `FREEZE-r1.json`;
+   - the T5 analyzer turns every failure into "T5 INVALID" and a marker,
+     and the report gives six INVALID rows for it.
+
+   Minors addressed: per-topology call counts and duration; "longest call in
+   the compaction cycles" in place of "call that compacted"; the report
+   checks the six T5 ids; the raw file is self-describing and trailing
+   records are rejected; the catalog walk between cycles, the exposure of
+   P_max to single extremes, and the dissolving hub are disclosed (§5.1).
+   Not changed: the informational `__TEXT` comparison does not include the
+   e75ff6a probe (its source differs by construction).
 
 ## 13. Revision 2 (2026-11-20)
 
