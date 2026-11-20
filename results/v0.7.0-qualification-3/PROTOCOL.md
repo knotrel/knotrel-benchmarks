@@ -57,6 +57,24 @@ Verbatim:
 6. "Registra queste decisioni e le modifiche in un nuovo freeze, preservando
    quello precedente, poi rigenera il tentativo e il comando di lancio."
 
+**Decisions of 2026-11-20, second message** (on the revision-2 draft).
+Verbatim:
+7. **T5:** "Approvo T5 con tolleranza del 25%, come criterio nuovo per le
+   pause di compattazione, dichiarato prima della raccolta. Il fatto che sia
+   già usato per query_tail non lo rende automaticamente applicabile a
+   questa metrica." And: "Prima del freeze precisa aggregazione per coppia,
+   intervalli d'incertezza e regole PASS/REGRESSION/INCONCLUSIVE per
+   entrambe le metriche. Riporta anche i tempi assoluti; i massimi devono
+   essere confrontati su run della stessa durata e workload." (§5.1)
+8. **Hub ops/events:** "Mantieni hub ops/`events` descrittivi, senza
+   introdurre ora la referenza basata su import sostitutivo. I due requisiti
+   restano non qualificati: non possono sparire dal verdetto complessivo né
+   consentire di dichiarare qualificazione completa. Questa scelta autorizza
+   la raccolta q3, non una riduzione dei requisiti di rilascio." (§4.1, §8)
+9. **Smoke wording:** "Correggi anche “13 celle passano tutti i controlli di
+   equivalenza”: due non sono equivalenti, pur completando i controlli
+   funzionali." (`smoke/README.md`)
+
 ## 2. Candidate and reference
 
 - **Reference:** knotrel v0.6.0 (signed tag `v0.6.0` =
@@ -100,6 +118,10 @@ PROTOCOL.md` and `MATRIX.json`), except as stated here:
   B1/B2/B3/B4 cell tolerances; B5 3×; C1–C4; R, Rmem and M_reg tolerances;
 - the M_desc validity rule, extended in §6.
 
+**One experiment is added:** check T5 (compaction pauses, §5.1), with its own
+tolerance of 25%. That tolerance is a new criterion, declared before
+collection (decision 7); it is not inherited from any existing threshold.
+
 **Seeds and workloads are a3-3's** (addendum 1, A5 of `DIAGNOSTICS-PLAN-3.md`):
 - A session seeds 130720–130722 and extension seeds 130730–130732;
 - the B/C, R and M_reg order seeds and the probe seeds;
@@ -141,6 +163,12 @@ frozen counterpart:
   lifecycle feeder events on `hub` 10k) are **not qualified by this
   campaign**. The report lists them, and their disposition is the
   maintainer's. Eleven equivalent cells decide.
+  - No replace-import reference is introduced for `events` (decision 8).
+  - The two requirements never disappear from the overall verdict, and
+    while they are unqualified this campaign cannot be declared a complete
+    qualification, whatever the other results (§8). Running q3 with them
+    unqualified authorizes the collection; it does not reduce the release
+    requirements.
 - **Frozen cells.** The frozen counterparts are measured and analyzed
   exactly as before. They are reported as descriptive comparisons of the
   additional cost: L/E for import, L/P for the planner families. They carry
@@ -314,10 +342,10 @@ and injected mutations were each detected (`smoke/README.md`).
 - The candidate's catalog tombstone handling, if included (§2.1), is
   measured by the unchanged C cells.
 
-### 5.1 Compaction latency tails: not covered (decision 3)
+### 5.1 Compaction latency tails: check T5 (decisions 3 and 7)
 
-**Q3 does not measure or constrain the latency tails of engine compactions
-or catalog rebuilds:**
+**Without T5, q3 would not measure or constrain the latency tails of engine
+compactions or catalog rebuilds:**
 - the C cells measure memory and logical counts only (C1–C4);
 - B1–B4 decide on median window times.
   - A B1 fresh-churn window contains about one catalog rebuild and one engine
@@ -330,10 +358,91 @@ or catalog rebuilds:**
 - M_reg measures HTTP client latency without lifecycle churn.
 
 D2c's T1 timing runs showed higher compaction tails: ring p99 31.1 against
-17.3 ms, hub maximum 72.3 against 27.3 ms. Each came from one run on an
-ungated laptop. A targeted check with a motivated criterion is **proposed**
-in `PROPOSAL-T1-TAILS.md`. It is not part of this protocol until the
-maintainer decides; this revision is not frozen before then.
+17.3 ms, hub maximum 72.3 against 27.3 ms, each from one run on an ungated
+laptop. The maintainer approved the targeted check proposed in
+`PROPOSAL-T1-TAILS.md` (decision 7). It is specified here; where this
+section and the proposal differ, this section rules.
+
+**Question.** Does T1 lengthen the longest pauses of lifecycle calls under
+fresh-ID churn at 100k nodes? A pause is the time of one lifecycle call,
+including any engine compaction or catalog rebuild it triggers.
+
+**Arms.**
+- **B:** `core-lifecycle`, timing build, frozen probe source, built against
+  knotrel `e75ff6a` (the a3-3 candidate, without T1) into
+  `targets/t1base-probes`.
+- **C:** the same source built against the candidate `fa5f3a9` (with T1):
+  the `cand-probes` binary of the B/C cells.
+- T1 is the only executed-code difference between the two sources (§2.1:
+  `git diff e75ff6a fa5f3a9` touches `crates/knotrel-core/src/topology.rs`
+  and documentation only; the lockfile is the same), so the comparison
+  isolates T1.
+
+**Workload: the same duration and the same work in every run.**
+- `core-lifecycle pauses`: the frozen C workload, fresh-ID churn of 5% per
+  cycle on 100,000 nodes, seed 5000001, `compact-bfs`, on `sparse`, `ring`
+  and `hub`. Each run is **600 cycles**, 12,000,000 lifecycle calls, from a
+  fresh process; construction is not timed.
+- Every call is timed separately with `Instant`, identically in both arms.
+  After each cycle, outside the timing, the probe checks the logical counts
+  against the independent model (a difference stops the run) and reads
+  `retired_vertices`; a drop marks the cycle of a compaction.
+- **Equality is checked, not assumed.** Within a topology, the analysis
+  requires every run of both arms, warmup included, to have the same
+  schedule digest, result digest, calls per cycle, final logical counts and
+  compaction cycles. So maxima are always compared over the same number of
+  calls on the same sequence of operations. Otherwise the analysis is
+  invalid.
+- **Thirty compactions.** The development runs (both arms, all three
+  topologies; `smoke/t5-smoke.txt`) compact at cycles 20, 40, …, 600, by
+  a `remove_node` call. The analysis requires exactly 30 compaction cycles,
+  the last at cycle 600, so the 30 intervals cover every cycle; otherwise it
+  is invalid.
+
+**Metrics per run.**
+- **P_max:** the longest single call of the run.
+- **P_90:** interval k is the cycles after compaction k−1, up to and
+  including compaction k. Its maximum is its longest call. P_90 is the 27th
+  of the 30 interval maxima sorted in ascending order, the typical bad
+  compaction pause.
+
+**Design.**
+- 2 warmup pairs, then 12 analyzed pairs per topology; a pair is two
+  consecutive runs, one per arm.
+- Warmup pair −2 runs C first, pair −1 B first. The first arm of the 12
+  analyzed pairs is a 6/6 shuffle by `random.Random(f"50730:{topology}")`.
+- Runs are interleaved by round: round r runs pair r of each topology, the
+  topologies in an order shuffled by `random.Random(f"50730:round:{r}")`.
+- 84 runs of about 9 s, about 15 minutes, in the chain after B/C
+  (`scripts/run_v070q3_t5.py`, every run gated, label `T5:`). A failed run
+  stops the collector and the chain: FAILED, no verdict.
+
+**Aggregation, interval and rule (both metrics; frozen before collection).**
+- Per pair: d = ln(C / B), the metric of the C run over that of the B run
+  of the same pair.
+- Over the 12 analyzed pairs, sorted: the interval is [d(3), d(10)]. It is
+  a distribution-free interval for the median of d, coverage 1 − 2 ·
+  P(Bin(12, ½) ≤ 2) = 96.1%. The point estimate is the median of d.
+- Tolerance t = 25%:
+  - **PASS** if d(10) ≤ ln(1.25);
+  - **REGRESSION** if d(3) > ln(1.25);
+  - **INCONCLUSIVE** otherwise.
+- The rule applies to P_max and P_90 on each topology: **six deciding
+  results**. `scripts/analyze_v070q3_t5.py` computes them with
+  `summarize_metric` of `analyze_bc_qualification.py`, reused unchanged.
+- Any non-PASS, and an invalid analysis, goes to the maintainer as every
+  other deciding non-PASS does. There is no waiver and no extension.
+
+**Absolute values, reported with every result:** per arm, the median,
+minimum and maximum of P_max and P_90 in ms; per run, the wall and timed
+duration and the mean call time; the 12 pairs' values; the kind of the
+calls that compacted.
+
+**Why 25% is the T5 criterion.** No product document states a pause
+objective, so an absolute ceiling would be chosen without a basis. A
+relative bound answers the question asked, T1's effect. 25% is the
+maintainer's decision for this metric (decision 7); it equals the
+`query_tail` tolerance by choice, not by inheritance.
 
 ### 5.2 Ring drift (decision 4)
 
@@ -412,12 +521,15 @@ no measurement and no result.
   `--expect-equivalent-references`. It then expects the 140-cell matrix and
   requires the collector's `equivalent_references` provenance; without the
   flag nothing changes for earlier runs.
-- **Report:** `report_v070q3_bc.py` lists every B/C result: timing, B5 and
-  C1–C4. It marks:
+- **T5:** `analyze_v070q3_t5.py T5 --expect-base-rev e75ff6a… --expect-cand-rev
+  fa5f3a9… --expect-probes-rev <freeze commit>` (§5.1).
+- **Report:** `report_v070q3_bc.py BC-analysis.json T5-analysis.json` lists
+  every B/C result (timing, B5 and C1–C4) and the six T5 results. It marks:
   - the deciding, descriptive and not-equivalent cells (§4.1);
   - the deciding non-PASS results, with C4 EXCEEDS_BUDGET counted as a
     disclosure category and `NOT_EQUIVALENT` as non-PASS (§4.3);
-  - the unqualified requirements, always;
+  - the unqualified requirements, always, and `qualification_scope`: not
+    complete while any requirement is unqualified;
   - any not-equivalent cell whose records nevertheless show equivalence, as
     an inconsistency.
 - **Release decision:** only a CONFORMING attempt whose deciding results are
@@ -425,7 +537,10 @@ no measurement and no result.
   C4 EXCEEDS_BUDGET) supports a release. Every other outcome goes to the
   maintainer.
 - **Unqualified requirements (§4.1)** receive no verdict from this campaign.
-  They are not PASS, and their disposition is the maintainer's.
+  They are not PASS, and their disposition is the maintainer's. They stay in
+  the overall verdict. While any is unqualified, no outcome makes q3 a
+  complete qualification (decision 8), and q3 alone does not support the
+  release of the requirements they cover.
 - **No acceptance with disclosure, no rerun chosen by its result,** and no
   rule changed after collection.
 
@@ -452,7 +567,8 @@ no measurement and no result.
 | Freeze record | FREEZE-A3.json (plus FREEZE.json, which the recorder requires) | `FREEZE.json` in this directory: the name the R/Rmem/M recorder requires, checked at launch |
 | A seeds | 130720–130722; extension 130730–130732 | unchanged (addendum 1, A5) |
 | Campaign directory and series | `v0.7.0-requalification-<cand7>-a3-attemptN`, a3, cap 3 | `v0.7.0-qualification-3-<cand7>-q3-attemptN`, q3, cap 3 |
-| Thresholds, estimators, pair counts, conformance rules | — | unchanged |
+| T5 (compaction pauses) | — | added (§5.1): B = probes on e75ff6a, C = candidate probes; P_max and P_90, 12 pairs, tolerance 25% (a new criterion, decision 7); runs after B/C |
+| Thresholds, estimators, pair counts, conformance rules | — | unchanged for every existing experiment |
 | Freeze | — | revision 2 (`FREEZE.json`); revision 1 kept as `FREEZE-r1.json` (66f2f0a9) |
 
 ## 11. Phase-3 results that fix §2.1
@@ -481,7 +597,8 @@ D2c in detail:
   of the candidate and the tooling (D2c `summary-product-clean.txt`);
 - ring drift: about 90 KiB over the first ~50 intervals, then a 48 KiB band
   to cycle 6,000; bounded growth **not** demonstrated (§5.2);
-- compaction tails: not covered by q3 (§5.1).
+- compaction tails: not covered by the existing experiments; measured by
+  check T5 (§5.1).
 
 ## 12. Reviews before the freeze
 
@@ -508,15 +625,18 @@ D2c in detail:
 ## 13. Revision 2 (2026-11-20)
 
 What changed since the revision-1 freeze (66f2f0a9), from the decisions in
-§1. Nothing else changed: experiments, seeds, workloads, run order,
-estimators, thresholds and conformance rules are the same.
+§1. Nothing else changed: the existing experiments' seeds, workloads, run
+order, estimators, thresholds and conformance rules are the same. T5 is the
+one added experiment (§5.1).
 
 | Decision | Change |
 |---|---|
 | 1, hub atomicity | Probe records atomicity per pair. Hub ops and events equivalent cells are moved to `not_equivalent` in the matrix, and their requirements are listed as unqualified. Analyzer copies the atomicity fields; the report is fail-closed (§4.1, §4.3, §8). |
 | 2, D4c | Departure accepted for the diagnostic only; no exception to 6% (§11; plan addendum 4) |
-| 3, T1 tails | Coverage stated as absent (§5.1); targeted check proposed in `PROPOSAL-T1-TAILS.md`, pending the maintainer's decision |
+| 3 and 7, T1 tails | Coverage without T5 stated as absent; T5 approved with a 25% tolerance as a new criterion and specified in full (§5.1): `core-lifecycle pauses`, the e75ff6a probe build, `run_v070q3_t5.py`, `analyze_v070q3_t5.py`, T5 rows in the report, the chain step, the gate count `T5` |
 | 4, ring drift | Classification withdrawn; observed behaviour and structural bounds reported (§5.2; D2c README) |
 | 5, disk | The knotrel worktree's build cache (8.4 GiB) removed; regenerable intermediates of the unlaunched attempt removed, its binaries kept (§7) |
+| 8, hub ops/events | Kept descriptive, no replace-import reference; requirements stay in the verdict; `qualification_scope` in the report (§4.1, §8) |
+| 9, smoke wording | `smoke/README.md` corrected: the two hub cells complete the functional checks but are not equivalent |
 | 6, freeze | Revision 1 kept as `FREEZE-r1.json`; `FREEZE.json` revision 2 written after review; the unlaunched attempt renamed, and q3-1 prepared anew (§7) |
 

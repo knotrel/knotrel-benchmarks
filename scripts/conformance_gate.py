@@ -280,6 +280,9 @@ def collector_counts(camp: Path) -> Dict[str, int]:
     counts["A"] = observations
     bc = camp / "BC" / "run-log.jsonl"
     counts["BC"] = len(bc.read_text().splitlines()) if bc.exists() else 0
+    # Qualification 3, revision 2: check T5 (compaction pauses), one line per run.
+    t5 = camp / "T5" / "run-log.jsonl"
+    counts["T5"] = len(t5.read_text().splitlines()) if t5.exists() else 0
     for prefix, name in (("r", "R"), ("rmem", "Rmem"), ("mdesc", "Mdesc"), ("mreg", "Mreg")):
         log = camp / name / "run-log.json"
         counts[prefix] = len(json.loads(log.read_text())["children"]) if log.exists() else 0

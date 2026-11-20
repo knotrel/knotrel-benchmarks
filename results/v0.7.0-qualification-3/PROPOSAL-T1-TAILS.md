@@ -1,9 +1,10 @@
 # Proposal: targeted check of compaction latency tails with T1 (decision 3)
 
-**Status: PROPOSED, awaiting the maintainer's decision.** It is not part of
-the qualification-3 protocol, and nothing here has been implemented or
-measured. If it is accepted, possibly with changes, it is implemented,
-reviewed and added to the protocol before the revision-2 freeze.
+**Status: APPROVED on 2026-11-20 (PROTOCOL §1, decision 7), with the 25%
+tolerance as a new criterion for pause tails.** The binding specification is
+PROTOCOL §5.1; where this proposal differs (for example the run time, about
+9 s), §5.1 rules. This file is kept as the proposal the maintainer decided
+on.
 
 ## Why a check is needed
 

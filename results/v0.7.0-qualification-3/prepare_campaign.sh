@@ -5,6 +5,8 @@
 # (FREEZE.json) and series q3 only, the A plan checkpoint name (the A session seeds are
 # a3-3's, 130720-130722), the qualification-3 launch environment check, and the informational __TEXT,__text
 # comparison against the builds of re-qualification attempt a3-3.
+# Revision 2: the probes are also built against knotrel e75ff6a (src/t1base, targets/t1base-probes),
+# arm B of check T5 (PROTOCOL.md section 5.1).
 #
 # Usage: prepare_campaign.sh CAND_SHA FREEZE_SHA ATTEMPT SERIES
 #   CAND_SHA   knotrel candidate commit (full SHA)
@@ -26,6 +28,7 @@ ATTEMPT=${3:-1}
 SERIES=${4:-}
 REF=5db9ec4738a7f90bf06a83ea12f35c0dab9ab538      # knotrel v0.6.0 (published, signed tag)
 HARNESS=df635a1e872fd9e2d556b166ac23f342ee45d675  # core harness used by A since v0.4.0
+T1BASE=e75ff6a26ec245aefcadfff254e0ac2dd6efc4fc   # a3-3 candidate without T1: arm B of check T5
 KREPO=/Users/rt/workspace/knotrel/knotrel
 BREPO=/Users/rt/workspace/knotrel/knotrel-benchmarks
 C8=$(echo "$CAND" | cut -c1-7)
@@ -43,7 +46,7 @@ sh "$(dirname "$0")/check_restored.sh" || exit 3
 CAMP=$CAMP-$SERIES-attempt$ATTEMPT
 SOURCE_MANIFEST=/Users/rt/workspace/knotrel/evidence/p0-coverage-increment-1-plan-20261030/manifest.json
 if [ -e "$CAMP" ]; then echo "refusing to reuse $CAMP" >&2; exit 3; fi
-mkdir -p "$CAMP/logs" "$CAMP/src/ref" "$CAMP/src/cand" "$CAMP/targets" "$CAMP/A/sources/B" "$CAMP/A/sources/C" "$CAMP/A/build-inputs/B" "$CAMP/A/build-inputs/C"
+mkdir -p "$CAMP/logs" "$CAMP/src/ref" "$CAMP/src/cand" "$CAMP/src/t1base" "$CAMP/targets" "$CAMP/A/sources/B" "$CAMP/A/sources/C" "$CAMP/A/build-inputs/B" "$CAMP/A/build-inputs/C"
 L=$CAMP/logs
 clone() { git clone --quiet "$1" "$2" && git -C "$2" checkout --quiet --detach "$3" && test "$(git -C "$2" rev-parse HEAD)" = "$3"; }
 
@@ -52,6 +55,8 @@ clone "$KREPO" "$CAMP/src/ref/knotrel" "$REF"
 clone "$KREPO" "$CAMP/src/cand/knotrel" "$CAND"
 clone "$BREPO" "$CAMP/src/ref/knotrel-benchmarks" "$FREEZE"
 clone "$BREPO" "$CAMP/src/cand/knotrel-benchmarks" "$FREEZE"
+clone "$KREPO" "$CAMP/src/t1base/knotrel" "$T1BASE"
+clone "$BREPO" "$CAMP/src/t1base/knotrel-benchmarks" "$FREEZE"
 # Reference probes link knotrel 0.6.0: restore the probe lockfile of knotrel-benchmarks tag
 # v0.6.0 (bddef0f3), which resolves knotrel 0.6.0 without sonic-rs.
 git -C "$CAMP/src/ref/knotrel-benchmarks" show bddef0f301f582495cb22e47cfd67def88fa9967:tools/lifecycle-probes/Cargo.lock > "$CAMP/src/ref/knotrel-benchmarks/tools/lifecycle-probes/Cargo.lock"
@@ -86,6 +91,7 @@ for X in B C; do
 done
 P=tools/lifecycle-probes
 ( cd "$CAMP/src/cand/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/cand-probes cargo +1.100.0 build --release --locked --offline --bin core-lifecycle --bin http-lifecycle --bin release-cells ) > "$L/build-cand-probes.log" 2>&1
+( cd "$CAMP/src/t1base/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/t1base-probes cargo +1.100.0 build --release --locked --offline --bin core-lifecycle ) > "$L/build-t1base-probes.log" 2>&1
 ( cd "$CAMP/src/cand/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/cand-probes-count cargo +1.100.0 build --release --locked --offline --features count-alloc --bin core-lifecycle ) > "$L/build-cand-probes-count.log" 2>&1
 ( cd "$CAMP/src/cand/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/cand-probes-peak cargo +1.100.0 build --release --locked --offline --features peak-alloc --bin memory-peak ) > "$L/build-cand-probes-peak.log" 2>&1
 ( cd "$CAMP/src/ref/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/ref-probes cargo +1.100.0 build --release --locked --offline --bin release-cells ) > "$L/build-ref-probes.log" 2>&1

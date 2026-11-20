@@ -259,3 +259,156 @@ class PreFreezeReviewBlockers(unittest.TestCase):
         a33 = Path("/Users/rt/workspace/knotrel/evidence/v0.7.0-requalification-e75ff6a-a3-attempt3/BC/plan/order.json")
         if a33.exists():
             self.assertEqual(json.loads(a33.read_text()), frozen_order)
+
+
+T5 = MATRIX["experiments"]["T5"]
+T1BASE = "e75ff6a26ec245aefcadfff254e0ac2dd6efc4fc"
+CAND = "fa5f3a9eac24873dd2d8d3e0a2c21764cfff9373"
+PROBES = "p" * 40
+
+
+def t5_args(text: str) -> list:
+    for line in text.splitlines():
+        if "run_v070q3_t5.py" in line and "--out" in line:
+            words = shlex.split(line[line.index("run_v070q3_t5.py"):].split(">")[0])
+            out = [w for w in words[1:] if w != "--dry-run"]
+            i = out.index("--out")
+            return out[:i] + out[i + 2:]
+    raise AssertionError("no T5 collector call")
+
+
+def t5_fixture(directory: Path, scale=lambda run, kind: 1.0, compactions=30, mutate=None):
+    """A complete synthetic T5 collection. ``scale(run, kind)`` multiplies run timings."""
+    import run_v070q3_t5 as collector
+    runs = collector.plan(T5["design"]["order_seed"])
+    (directory / "raw").mkdir(parents=True)
+    (directory / "plan.json").write_text(json.dumps(runs))
+    (directory / "provenance.json").write_text(json.dumps({"order_seed": T5["design"]["order_seed"]}))
+    step = collector.CYCLES // compactions
+    log = []
+    for position, run in enumerate(runs):
+        rev = T1BASE if run["arm"] == "B" else CAND
+        out = [{"kind": "build", "knotrel_rev": rev, "knotrel_dirty": False, "probes_rev": PROBES,
+                "probes_dirty": False, "count_alloc": False},
+               {"kind": "pauses_start", "nodes": 100000, "cycles": 600, "churn_percent": 5, "seed": 5000001,
+                "reuse": "fresh", "retired_vertices": 0}]
+        retired, longest = 0, 0
+        for cycle in range(1, 601):
+            compacting = cycle % step == 0
+            retired = 1000 if compacting else retired + 5000
+            max_ns = int((10_000_000 + 1000 * cycle) * scale(run, "compaction")) if compacting else 5000
+            longest = max(longest, max_ns)
+            out.append({"kind": "cycle", "cycle": cycle, "calls": 20000, "max_ns": max_ns,
+                        "max_op": "remove_node" if compacting else "add_node", "sum_ns": 1,
+                        "retired_vertices": retired})
+        out.append({"kind": "pauses_end", "calls": 12_000_000, "max_ns": longest, "timed_ns": 6_000_000_000,
+                    "wall_ns": 6_500_000_000, "schedule_digest": "s", "result_digest": "r",
+                    "final_logical": [1, 2, 3, 4, 5]})
+        if mutate:
+            mutate(run, out)
+        (directory / "raw" / f"{run['id']}.jsonl").write_text("\n".join(json.dumps(r) for r in out))
+        log.append({"position": position, **run, "argv": ["bin"] + collector.child_args(run["topology"]),
+                    "exit": 0, "host_before": {"power": "Now drawing from 'AC Power'"}})
+    (directory / "run-log.jsonl").write_text("\n".join(json.dumps(r) for r in log))
+
+
+class T5Check(unittest.TestCase):
+    def test_chain_env_and_prepare(self):
+        self.assertEqual(t5_args(CHAIN), t5_args(ENV))
+        args = t5_args(CHAIN)
+        self.assertEqual(args[args.index("--order-seed") + 1], str(T5["design"]["order_seed"]))
+        self.assertEqual(args[args.index("--base") + 1], "$T/t1base-probes/release/core-lifecycle")
+        self.assertEqual(args[args.index("--cand") + 1], "$T/cand-probes/release/core-lifecycle")
+        self.assertIn(f"T1BASE={T1BASE}", PREPARE)
+        self.assertIn('clone "$KREPO" "$CAMP/src/t1base/knotrel" "$T1BASE"', PREPARE)
+        self.assertIn('clone "$BREPO" "$CAMP/src/t1base/knotrel-benchmarks" "$FREEZE"', PREPARE)
+        self.assertIn("CARGO_TARGET_DIR=$T/t1base-probes cargo +1.100.0 build --release --locked --offline --bin core-lifecycle", PREPARE)
+        # T5 runs after B/C and before R; its output is checksummed and refuses a relaunch.
+        self.assertLess(CHAIN.index("stamp BC end"), CHAIN.index("stamp T5 start"))
+        self.assertLess(CHAIN.index("stamp T5 end"), CHAIN.index("step R 8"))
+        self.assertIn('"$CAMP/T5"', CHAIN.split("refusing to relaunch")[0])
+        self.assertIn("find A BC T5 R Rmem Mdesc Mreg gate", CHAIN)
+
+    def test_constants_match_matrix(self):
+        import analyze_v070q3_t5 as analyzer
+        import run_v070q3_t5 as collector
+        w = T5["workload"]
+        self.assertEqual((collector.NODES, collector.CYCLES, collector.CHURN_PERCENT, collector.SEED, collector.ENGINE),
+                         (w["nodes"], w["cycles"], w["churn_percent"], w["seed"], w["engine"]))
+        self.assertEqual(list(collector.TOPOLOGIES), w["topologies"])
+        self.assertEqual((collector.WARMUP, collector.PAIRS), (T5["design"]["warmup_pairs"], T5["design"]["pairs"]))
+        self.assertEqual(analyzer.TOLERANCE, T5["tolerance"])
+        self.assertEqual((analyzer.INTERVALS, analyzer.P90_RANK), (30, 27))
+
+    def test_plan(self):
+        import run_v070q3_t5 as collector
+        runs = collector.plan(50730)
+        self.assertEqual(runs, collector.plan(50730))
+        self.assertEqual(len(runs), 3 * 14 * 2)
+        for topology in collector.TOPOLOGIES:
+            mine = [r for r in runs if r["topology"] == topology]
+            firsts = [r["arm"] for r in mine if r["slot"] == 0]
+            self.assertEqual(firsts[:2], ["C", "B"])
+            self.assertEqual(firsts[2:].count("C"), 6)
+            for p in range(-2, 12):
+                pair = [r for r in mine if r["pair"] == p]
+                self.assertEqual(sorted(r["arm"] for r in pair), ["B", "C"])
+                self.assertEqual(runs.index(pair[1]), runs.index(pair[0]) + 1)  # consecutive
+
+    def analyze(self, **kw):
+        import tempfile
+        import analyze_v070q3_t5 as analyzer
+        with tempfile.TemporaryDirectory() as tmp:
+            t5_fixture(Path(tmp), **kw)
+            return analyzer.analyze(Path(tmp), T1BASE, CAND, PROBES)
+
+    def test_statuses(self):
+        same = self.analyze()
+        self.assertEqual([r["status"] for r in same["results"]], ["PASS"] * 6)
+        self.assertEqual(same["non_pass"], [])
+        p90 = next(r for r in same["results"] if r["id"] == "T5-P_90-ring")
+        self.assertAlmostEqual(p90["absolute_ms"]["B"]["median"], 10.540)  # 27th of 30 = compaction at 540
+        worse = self.analyze(scale=lambda run, kind: 1.4 if run["arm"] == "C" else 1.0)
+        self.assertEqual({r["status"] for r in worse["results"]}, {"REGRESSION"})
+        # Within the tolerance on some pairs only: the interval straddles ln(1.25).
+        mixed = self.analyze(scale=lambda run, kind: (1.4 if run["pair"] % 2 else 1.0) if run["arm"] == "C" else 1.0)
+        self.assertEqual({r["status"] for r in mixed["results"]}, {"INCONCLUSIVE"})
+
+    def test_invalid(self):
+        import analyze_v070q3_t5 as analyzer
+        def other_digest(run, out):
+            if run["id"] == "hub-3-C":
+                out[-1]["result_digest"] = "x"
+        def dirty(run, out):
+            if run["id"] == "ring-0-B":
+                out[0]["knotrel_rev"] = CAND
+        def lost_cycle(run, out):
+            if run["id"] == "sparse-5-B":
+                del out[100]
+        for kw in ({"mutate": other_digest}, {"mutate": dirty}, {"mutate": lost_cycle}, {"compactions": 20}):
+            with self.assertRaises(analyzer.Invalid, msg=str(kw)):
+                self.analyze(**kw)
+
+    def test_report_rows_and_scope(self):
+        import report_v070q3_bc as report
+        rows = report.t5_rows(self.analyze())
+        self.assertEqual(len(rows), 6)
+        self.assertTrue(all(r["role"] == "deciding" and r["kind"] == "T5" for r in rows))
+        with self.assertRaises(SystemExit):
+            report.t5_rows({"check": "T5", "results": []})
+        unqualified = MATRIX["experiments"]["B_C"]["equivalent_references"]["unqualified_requirements"]
+        self.assertFalse(report.scope(unqualified)["complete"])
+        self.assertTrue(report.scope([])["complete"])
+        bad = [dict(r, status="INCONCLUSIVE") for r in rows]
+        self.assertEqual(len(report.non_pass(bad)), 6)
+
+    def test_gate_counts_t5(self):
+        import tempfile
+        import conformance_gate as cg
+        with tempfile.TemporaryDirectory() as tmp:
+            camp = Path(tmp)
+            self.assertEqual(cg.collector_counts(camp)["T5"], 0)
+            (camp / "T5").mkdir()
+            (camp / "T5" / "run-log.jsonl").write_text("{}\n{}\n")
+            self.assertEqual(cg.collector_counts(camp)["T5"], 2)
+            self.assertIn("T5: 2 children recorded by the collector, 0 gated", cg.verify_gating(camp, camp / "gate"))
