@@ -150,11 +150,23 @@ if __name__ == "__main__":
     unittest.main()
 
 
+def planner(row: dict) -> dict:
+    """Planner equivalent cells carry an atomicity record (equivalent unless set otherwise)."""
+    if report_planner().search(row["id"]):
+        row["atomicity_equivalent"] = True
+    return row
+
+
+def report_planner():
+    import report_v070q3_bc as report
+    return report.PLANNER_EQUIVALENT
+
+
 class Report(unittest.TestCase):
     def test_roles(self):
         import report_v070q3_bc as report
         eq = MATRIX["experiments"]["B_C"]["equivalent_references"]
-        timing = [{"id": i, "status": "PASS"} for i in eq["deciding"] + eq["descriptive"]]
+        timing = [planner({"id": i, "status": "PASS"}) for i in eq["deciding"] + eq["descriptive"]]
         timing += [{"id": i, "status": "PASS", "atomicity_equivalent": False}
                    for i in eq["not_equivalent"]["cells"]]
         timing.append({"id": "B1-ops-compact-bfs-sparse-1000-query", "status": "INCONCLUSIVE"})
@@ -182,7 +194,10 @@ class Report(unittest.TestCase):
         import report_v070q3_bc as report
         eq = MATRIX["experiments"]["B_C"]["equivalent_references"]
         cells = eq["deciding"] + eq["descriptive"] + eq["not_equivalent"]["cells"]
-        timing = [{"id": i, "status": "PASS"} for i in cells]
+        timing = [planner({"id": i, "status": "PASS"}) for i in cells]
+        for t in timing:
+            if t["id"] in eq["not_equivalent"]["cells"]:
+                t["atomicity_equivalent"] = False
         split = next(i for i in eq["deciding"] if "-ops-equivalent-" in i)
         timing[cells.index(split)]["atomicity_equivalent"] = False
         rows = report.label({"timing": timing}, MATRIX)
@@ -211,6 +226,33 @@ class Report(unittest.TestCase):
         del partial[3]["atomicity_equivalent"]
         with self.assertRaises(analyzer.Invalid):
             analyzer.paired(cell, partial)
+        # Review S1: a planner equivalent cell without any atomicity record is invalid.
+        none = recs(True)
+        for r in none:
+            del r["atomicity_equivalent"]
+        with self.assertRaises(analyzer.Invalid):
+            analyzer.paired(cell, none)
+
+    def test_report_requires_atomicity_on_planner_cells(self):
+        import report_v070q3_bc as report
+        eq = MATRIX["experiments"]["B_C"]["equivalent_references"]
+        cells = eq["deciding"] + eq["descriptive"] + eq["not_equivalent"]["cells"]
+        timing = [planner({"id": i, "status": "PASS"}) for i in cells]
+        missing = next(t for t in timing if "-events-equivalent-" in t["id"] and t["id"] in eq["deciding"])
+        del missing["atomicity_equivalent"]
+        with self.assertRaises(SystemExit):
+            report.label({"timing": timing}, MATRIX)
+
+    def test_overall_never_complete_with_unqualified(self):
+        import report_v070q3_bc as report
+        unqualified = MATRIX["experiments"]["B_C"]["equivalent_references"]["unqualified_requirements"]
+        rows = [{"id": "x", "kind": "timing", "role": "deciding", "status": "PASS"}]
+        verdict = report.overall(rows, unqualified)
+        self.assertTrue(verdict["deciding_all_pass"])
+        self.assertFalse(verdict["qualification_complete"])
+        self.assertFalse(verdict["release_supported_by_q3"])
+        self.assertEqual(len(verdict["unqualified_requirements"]), 2)
+        self.assertTrue(report.overall(rows, [])["release_supported_by_q3"])
 
 
 class PreFreezeReviewBlockers(unittest.TestCase):
@@ -290,7 +332,7 @@ def t5_fixture(directory: Path, scale=lambda run, kind: 1.0, compactions=30, mut
         rev = T1BASE if run["arm"] == "B" else CAND
         out = [{"kind": "build", "knotrel_rev": rev, "knotrel_dirty": False, "probes_rev": PROBES,
                 "probes_dirty": False, "count_alloc": False},
-               {"kind": "pauses_start", "nodes": 100000, "cycles": 600, "churn_percent": 5, "seed": 5000001,
+               {"kind": "pauses_start", "engine": "compact-bfs", "topology": run["topology"], "nodes": 100000, "cycles": 600, "churn_percent": 5, "seed": 5000001,
                 "reuse": "fresh", "retired_vertices": 0}]
         retired, longest = 0, 0
         for cycle in range(1, 601):
@@ -401,6 +443,53 @@ class T5Check(unittest.TestCase):
         self.assertTrue(report.scope([])["complete"])
         bad = [dict(r, status="INCONCLUSIVE") for r in rows]
         self.assertEqual(len(report.non_pass(bad)), 6)
+
+    def test_invalid_marker_gives_invalid_rows(self):
+        import report_v070q3_bc as report
+        rows = report.t5_rows({"check": "T5", "invalid": "Invalid: x"})
+        self.assertEqual(sorted(r["id"] for r in rows), sorted(report.T5_IDS))
+        self.assertEqual(len(report.non_pass(rows)), 6)
+        good = self.analyze()
+        good["results"][0]["id"] = good["results"][1]["id"]  # duplicate id
+        with self.assertRaises(SystemExit):
+            report.t5_rows(good)
+
+    def test_trailing_or_wrong_topology_record_invalid(self):
+        import analyze_v070q3_t5 as analyzer
+        def trailing(run, out):
+            if run["id"] == "ring-1-C":
+                out.append({"kind": "cycle"})
+        def topology(run, out):
+            if run["id"] == "hub-1-B":
+                out[1]["topology"] = "ring"
+        for mutate in (trailing, topology):
+            with self.assertRaises(analyzer.Invalid):
+                self.analyze(mutate=mutate)
+
+    def test_collector_refusals_and_dry_run(self):
+        import os
+        import subprocess as sp
+        import tempfile
+        script = str(ROOT / "scripts" / "run_v070q3_t5.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            a, b = Path(tmp) / "a", Path(tmp) / "b"
+            for x in (a, b):
+                x.write_text("#!/bin/sh\n")
+                x.chmod(0o755)
+            env = dict(os.environ, LIFECYCLE_QUALIFICATION_ROOTS=tmp)
+            env.pop("KNOTREL_GATE_DIR", None)
+            run = lambda *args: sp.run([sys.executable, script, *args], capture_output=True, text=True, env=env)
+            dry = run("--out", f"{tmp}/out", "--base", str(a), "--cand", str(b), "--order-seed", "50730", "--dry-run")
+            self.assertEqual(dry.returncode, 0, dry.stderr)
+            self.assertEqual(json.loads(dry.stdout)["runs"], 84)
+            self.assertFalse((Path(tmp) / "out").exists())
+            self.assertEqual(run("--out", f"{tmp}/out", "--base", str(a), "--cand", str(a), "--order-seed", "1").returncode, 2)
+            (Path(tmp) / "out").mkdir()
+            self.assertEqual(run("--out", f"{tmp}/out", "--base", str(a), "--cand", str(b), "--order-seed", "1").returncode, 2)
+            # A real run without the gate refuses before any child runs.
+            gated = run("--out", f"{tmp}/new", "--base", str(a), "--cand", str(b), "--order-seed", "1")
+            self.assertNotEqual(gated.returncode, 0)
+            self.assertIn("KNOTREL_GATE_DIR", gated.stderr)
 
     def test_gate_counts_t5(self):
         import tempfile
