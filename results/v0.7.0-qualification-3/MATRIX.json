@@ -2935,10 +2935,65 @@
   "qualification_3": {
    "rules": "amendment 3 revision 2 unchanged (controller terminal, background allowed and recorded, interference disclosure only, launcher audit record, no soak, launch environment check)",
    "attempt_series": "q3",
-   "attempts_cap": 3,
+   "attempts_cap": 4,
    "first_conforming_attempt_is_final": true,
    "every_directory_counts": true,
-   "campaign_directory": "/Users/rt/workspace/knotrel/evidence/v0.7.0-qualification-3-<cand7>-q3-attemptN"
+   "campaign_directory": "/Users/rt/workspace/knotrel/evidence/v0.7.0-qualification-3-<cand7>-q3-attemptN",
+   "revision_3": {
+    "decision": "maintainer 2026-11-20 (PROTOCOL section 1, decision 10): prospective revision of the conformance protocol; one replacement attempt for the tooling failure of q3-2, beyond the earlier count, within the duration budget of one complete campaign",
+    "technical_fix": "monitor heartbeat timestamps written exactly (conformance_monitor.sample_line); the gate compares values of the same clock and representation (PROTOCOL 14.1)",
+    "policy": "proportional interference policy replaces the allow-list rule for attempts prepared under revision 3 (PROTOCOL 14.2-14.5): presence of applications, Claude, browsers, IDEs, user input and WindowServer activity is recorded as context and never stops or invalidates by itself",
+    "rules": {
+     "sample_s": 1.0,
+     "gap_s": 2.5,
+     "status_age_s": 3.0,
+     "monitor_lost_s": 30.0,
+     "after_s": 1.0,
+     "after_wait_s": 10.0,
+     "invalid_window_s": 10.0,
+     "invalid_cpu": 1.5,
+     "ready_window_s": 30.0,
+     "ready_cpu": 0.6,
+     "pressure_max": 1,
+     "sleep_jump_s": 2.0,
+     "wait_limit_s": 600.0,
+     "retries": 2
+    },
+    "limits": {
+     "budget_s": 6300.0,
+     "a_block_restarts": 1,
+     "monitor_start_s": 20.0,
+     "monitor_check_samples": 6,
+     "min_free_bytes": 3221225472
+    },
+    "units": {
+     "A": "block (A main, A extension); restart at most a_block_restarts times",
+     "BC": "cell (one child: both arms, warmup and 12 pairs)",
+     "T5": "pair (both runs)",
+     "R": "pair",
+     "M_reg": "pair",
+     "Rmem": "cell (ref and cand)",
+     "M_desc": "child (one server configuration list)"
+    },
+    "measured_indicators": [
+     "external CPU (cores, from cumulative CPU time of processes outside the campaign tree)",
+     "memory pressure level (kern.memorystatus_vm_pressure_level)",
+     "system sleep (wall minus monotonic clock)",
+     "AC power (pmset -g batt)",
+     "thermal or performance warning, CPU speed limit (pmset -g therm)",
+     "telemetry coverage (gaps, monitor alive)"
+    ],
+    "context_only": [
+     "user input (HID idle time)",
+     "busiest external processes",
+     "swapouts and pageouts",
+     "load average"
+    ],
+    "not_measured": [
+     "disk activity: no per-process attribution without elevated privileges; heavy indexing or builds appear as external CPU"
+    ],
+    "replacement_attempt": "q3-3 replaces q3-2 (tooling failure); q3-2 stays NONCONFORMING and unchanged; the first CONFORMING attempt is final"
+   }
   }
  },
  "analysis": "A: analyze_bc_qualification.py --rules v0.4.0; B/C: analyze_lifecycle_qualification.py --expect-equivalent-references, report_v070q3_bc.py, with experiments.B_C.equivalent_references deciding; R/Rmem/M_desc/M_reg: analyze_v070q3.py (analyze_v070r_qualification.py bound to this matrix, with the amendment 4 validity rule of analyze_v070r_a4.py); conformance: the gate log, CONFORMANCE.txt and the per-cell conformance and interference reports"

@@ -124,7 +124,9 @@ class MatrixDelta(unittest.TestCase):
         conf = {k: v for k, v in MATRIX["conformance"].items() if k != "qualification_3"}
         self.assertEqual(conf, RQ_MATRIX["conformance"])
         self.assertEqual(MATRIX["conformance"]["qualification_3"]["attempt_series"], "q3")
-        self.assertEqual(MATRIX["conformance"]["qualification_3"]["attempts_cap"], 3)
+        # Revision 3 (decision 10): one replacement attempt for the tooling failure of q3-2.
+        self.assertEqual(MATRIX["conformance"]["qualification_3"]["attempts_cap"], 4)
+        self.assertIn("q3-3 replaces q3-2", MATRIX["conformance"]["qualification_3"]["revision_3"]["replacement_attempt"])
         for name in ("R", "Rmem", "M_desc", "M_reg"):
             a, b = dict(MATRIX["experiments"][name]), dict(RQ_MATRIX["experiments"][name])
             a.pop("question"), b.pop("question")

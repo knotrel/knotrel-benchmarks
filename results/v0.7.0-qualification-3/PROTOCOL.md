@@ -1,6 +1,8 @@
 # knotrel v0.7.0: qualification 3 protocol (draft until FREEZE.json is written)
 
-**Status: revision 2, draft until `FREEZE.json` revision 2 is written.**
+**Status: revision 3 (§14), frozen when `FREEZE.json` revision 3 is written.**
+Revision 2 was frozen at 6afc1f8b (kept as `FREEZE-r2.json`); attempts q3-1
+and q3-2 ran under it, both NONCONFORMING, and stay as they are.
 Revision 1 was frozen at 66f2f0a9 (kept as `FREEZE-r1.json`). No collection
 ran under it. Revision 2 records the maintainer's decisions of 2026-11-20
 (§1) and the changes they require (§13). Collection is launched by the
@@ -71,6 +73,18 @@ Verbatim:
    restano non qualificati: non possono sparire dal verdetto complessivo né
    consentire di dichiarare qualificazione completa. Questa scelta autorizza
    la raccolta q3, non una riduzione dei requisiti di rilascio." (§4.1, §8)
+10. **Revision 3** (after q3-2, 2026-11-20): the maintainer authorized
+    fixing the timestamp defect without weakening the check, and "una
+    revisione prospettica del protocollo di conformance": an open
+    application, an idle Claude, browser or IDE, keyboard input, mouse
+    movement and WindowServer activity are no longer violations by
+    themselves; interference is detected by measurable indicators, with
+    explicit thresholds, windows and hysteresis; one autonomous invocation;
+    interference handled without selecting results; "Autorizzo un tentativo
+    sostitutivo per il guasto del tooling, oltre al conteggio precedente,
+    entro il budget di durata già previsto per una campagna completa. Non è
+    un'autorizzazione a ripetere finché i risultati diventano favorevoli."
+    (§14)
 9. **Smoke wording:** "Correggi anche “13 celle passano tutti i controlli di
    equivalenza”: due non sono equivalenti, pur completando i controlli
    funzionali." (`smoke/README.md`)
@@ -683,4 +697,173 @@ one added experiment (§5.1).
 | 8, hub ops/events | Kept descriptive, no replace-import reference; requirements stay in the verdict; `qualification_scope` in the report (§4.1, §8) |
 | 9, smoke wording | `smoke/README.md` corrected: the two hub cells complete the functional checks but are not equivalent |
 | 6, freeze | Revision 1 kept as `FREEZE-r1.json`; `FREEZE.json` revision 2 written after review; the unlaunched attempt renamed, and q3-1 prepared anew (§7) |
+
+## 14. Revision 3 (2026-11-20, decision 10)
+
+Two distinct changes: a **technical fix** (§14.1), which corrects a defect
+and changes no rule, and a **protocol change** (§14.2–14.6), which replaces
+the conformance policy for attempts prepared under revision 3. Attempts
+q3-1 and q3-2 are kept unchanged and NONCONFORMING; nothing here relabels
+them.
+
+### 14.1 Technical fix: heartbeat timestamps
+
+- **Defect.** The monitor wrote each heartbeat's time to its log rounded to
+  the millisecond, and the exact time to its status file. The gate waited on
+  the status file for a heartbeat after a child's end, then looked for it in
+  the log. In q3-2 the heartbeat came 0.14 ms after the end of child 610: the
+  exact time was after the end and the rounded one before it, so the gate
+  stopped the attempt for a heartbeat that existed.
+- **Fix.** `conformance_monitor.sample_line` writes the time exactly (JSON
+  round-trips a float), the same value the status file carries. Both sides
+  compare values of the same clock and representation; no tolerance is added.
+  The new monitor (§14.3) does the same.
+- **Tests** (`scripts/tests/test_v070q3_r3.py`, `TimestampDefect`): the q3-2
+  values reproduce the false stop with the old writer; with the fix the same
+  values pass; heartbeats before, at and after the end; real gaps, a dead
+  monitor and an incomplete log line are still detected. The regression
+  tests fail when run against the old writer.
+- No probability is attached to the defect: one occurrence in 610 children
+  (q3-2) and none in 926 (a3-3) is too little to estimate one.
+
+### 14.2 Protocol change: presence is context, interference is measured
+
+From revision 3 the rule "nothing outside the allow-list runs and no user
+input occurs" no longer applies. Instead:
+- applications, Claude (including the session that started the runner),
+  browsers, IDEs, keyboard and mouse input and WindowServer activity are
+  **recorded as context** and never stop or invalidate anything by
+  themselves;
+- **interference** is what the indicators of §14.3 measure. A build,
+  indexing or local inference that uses enough CPU makes the runner wait; the
+  application that might start one is not forbidden;
+- the frozen collectors' presence checks are disabled under this policy:
+  `check_no_builds` (R, Rmem, M) and A's `competing_workloads`. Their AC
+  power and thermal checks stay;
+- no launcher is quiesced and no application is closed, parked or killed.
+  The runner changes no system or IDE setting; its only temporary measure is
+  a `caffeinate -dimsu -w <runner>` assertion that ends with the runner.
+
+### 14.3 Indicators, thresholds and their basis
+
+The monitor (`scripts/interference_monitor.py`) samples once per second.
+The campaign (the runner and all its descendants: collectors, benchmarks,
+servers, the monitor) is excluded from the external load.
+
+| Indicator | How it is measured | Rule |
+|---|---|---|
+| External CPU | cumulative CPU time of every process outside the campaign tree, per second (`ps`) | **wait** before a unit while the 30-s mean exceeds 0.6 cores or the 10-s mean exceeds 1.5; **invalidate** a unit if any 10-s mean inside it exceeds 1.5 |
+| Memory pressure | `kern.memorystatus_vm_pressure_level` | wait / invalidate above level 1 (normal) |
+| Sleep | growth of (wall clock − monotonic clock), which stops during sleep | invalidate on a jump above 2 s; wait 30 s after one |
+| Power | `pmset -g batt`, every 5 s | battery: wait / invalidate |
+| Thermal | `pmset -g therm`, every 5 s | any recorded thermal or performance warning, or a CPU speed limit below 100: wait / invalidate |
+| Monitor coverage | sample gaps; monitor status | a gap above 2.5 s, or no sample at the start or after the end of a unit: invalidate; status silent for 30 s or monitor gone: stop (MONITOR LOST) |
+
+**Basis of the CPU thresholds** (host observations only; no B/C, T5 or
+other measured result was consulted):
+- The two collections with the strictest host state so far, a3-3 and q3-2,
+  ran with Claude quit and nobody at the Mac. Their monitor logs record each
+  second the five busiest non-campaign processes. Summed, the 10-s mean
+  reached at most 1.08 and 1.07 cores, and the 30-s mean at most 0.58 and
+  0.56 cores. Those peaks come from system daemons (`deleted`, `cloudd`,
+  `triald_system`, `fseventsd`), the background that the earlier protocol
+  accepted.
+- **1.5 cores (10 s)** is therefore above everything a quiet host produced,
+  so ordinary background never invalidates a unit. On this Mac (Apple M3,
+  four performance and four efficiency cores) it means sustained external
+  work of more than one and a half cores: builds, indexing and local inference
+  typically use several cores.
+- **0.6 cores (30 s)** is just above the quiet hosts' 30-s maximum, so a
+  quiet host is always ready, and well below 1.5, which gives hysteresis: a
+  unit does not start right after a load until the load has clearly ended.
+- The windows follow the sample rate: 10 s smooths single-sample spikes (a
+  2-s burst of 4 cores raises a 10-s mean by 0.8); 30 s is a short settle
+  interval that a quiet host passes at once.
+- The new monitor's per-process sum covers all processes, not only the top
+  five, so it reads somewhat higher than the old logs on the same host. The
+  live smoke (`smoke/r3-monitor-smoke.txt`) records its idle level with this
+  session active.
+
+**Memory, power, thermal and sleep** use the operating system's own states,
+so they need no chosen number. The 2-s sleep jump is twice the sample
+interval. **Disk activity is not measured:** it cannot be attributed to
+processes without elevated privileges, and the campaign does its own I/O.
+Heavy indexing and builds show up as external CPU. **Not seen:** an external
+process that starts and exits between two samples.
+
+### 14.4 Units, recovery and budget (declared before collection)
+
+- **Wait** happens only before a unit, never inside one; no timed process is
+  suspended or resumed.
+- **Unit = what must be judged together:**
+  - B/C: the cell (one child that runs both arms, the warmup and the 12 pairs);
+  - T5, R, M_reg: the pair, both arms;
+  - Rmem: the cell (`ref` and `cand`);
+  - M_desc: the child (one server's configuration list; unpaired);
+  - A: the whole block (A main, A extension). Its frozen collector cannot
+    repeat one pair; the gate waits before each child and an invalid child
+    invalidates the block.
+- **Repetition:** an invalid unit is repeated **whole**, at most 2 times (3
+  attempts); an invalid A block is restarted at most once. A unit still
+  invalid after that ends the campaign as RECOVERY EXHAUSTED: no result is
+  produced from it, so it stays inconclusive.
+- **Validity depends only on telemetry** and these rules, never on a
+  measured value, a verdict or a distance to a threshold.
+- **Everything is kept:** invalid attempts with their reasons and intervals
+  (`gate/units.jsonl`), their outputs (`BC/invalidated/`,
+  `T5/raw/invalidated/` and `T5/invalidated.jsonl`, the run logs' `invalidated`
+  lists and `raw/invalidated/` for R, Rmem, M, `invalidated/` for A blocks),
+  and every wait with its reasons.
+- **Limits:**
+  - one wait longer than 10 min ends the campaign as BLOCKED ("blocked by
+    sustained host load");
+  - the whole attempt has **105 minutes** from its start, waits and
+    repetitions included. This is the upper end of the duration stated for a
+    complete campaign (1 h 30–1 h 45); q3-2's steps took 82 minutes, so
+    about 20 minutes remain for waits and repetitions. Past the deadline, no
+    new unit starts: BUDGET EXHAUSTED.
+
+  Each of these ends with everything preserved, and is reported to the
+  maintainer.
+
+### 14.5 The runner
+
+`scripts/run_v070q3_autonomous.py CAMP CAND` (the prepared
+`LAUNCH-COMMAND.txt`), one invocation:
+1. preflight, which measures nothing: frozen files and binaries match their
+   hashes, AC power, disk space, no unrestored quiesce from earlier attempts,
+   no output yet. A refusal is NOT STARTED, writes no `CONFORMANCE.txt` and
+   uses no attempt;
+2. starts `caffeinate` and the monitor, and requires 6 gap-free samples,
+   including a power/thermal sample, within 20 s;
+3. runs A main, A analysis, A extension if required, B/C, T5, R, Rmem,
+   M_desc and M_reg, with the frozen collectors' arguments (a test compares
+   them with the frozen chain). Each collector waits by itself before each
+   unit;
+4. end checks: every collector child has exactly one valid unit record
+   (final blocks only), and binaries are unchanged;
+5. always, including after an error or a signal: stops the current child,
+   the monitor and `caffeinate`; writes `logs/CONFORMANCE.txt`,
+   `SUMMARY.json`, `SUMMARY.txt` (status, cause, invalidated units, waits,
+   steps) and output checksums; checks that no earlier quiesce is left
+   unrestored.
+
+Statuses: CONFORMING (all units valid under these rules), BLOCKED, BUDGET
+EXHAUSTED, RECOVERY EXHAUSTED, MONITOR LOST, FAILED, INTERRUPTED, NOT
+STARTED. Only CONFORMING attempts give verdicts. The agent that starts the
+runner does no other work while it runs.
+
+### 14.6 What does not change
+
+Candidate, reference, experiments, cells, seeds, run order, estimators,
+thresholds, the T5 specification, the equivalence rules, the unqualified
+requirements and the release rule of §8 are unchanged. The first CONFORMING
+attempt is final.
+
+### 14.7 The replacement attempt
+
+q3-2 failed on the tooling defect of §14.1. Under decision 10 its
+replacement is **q3-3**, prepared from the revision-3 freeze (`attempts_cap`
+4 in the matrix for this reason only). It is one attempt, not permission to
+repeat until results are favourable.
 
