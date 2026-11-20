@@ -253,7 +253,7 @@ indivisible unit is the single command.
 
 **Smoke at real size.** Every other planner cell (ops, ops-query and events
 on sparse 10k and 100k; ops-query on hub) shows one plain request per chunk
-and at most 10 plain operations per command. If a deciding cell nevertheless
+and at most 15 plain operations per command (`smoke/smoke-r2-draft.txt`). If a deciding cell nevertheless
 records `atomicity_equivalent: false`, the report marks it `NOT_EQUIVALENT`
 among the deciding non-PASS results (§8). This is fail-closed.
 
