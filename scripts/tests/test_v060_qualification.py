@@ -14,6 +14,10 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import historical  # noqa: E402
+
+historical.ensure()  # earlier campaigns are read from their release tags
 
 import analyze_v060_qualification as an  # noqa: E402
 import run_v060_qualification as col  # noqa: E402

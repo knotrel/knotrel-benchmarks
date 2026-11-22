@@ -87,7 +87,7 @@ re-qualified.
 
 ### Hot-path audit after the v0.3.0 candidate
 
-- **[Hot-path audit, 2026-11-15](results/hot-path-audit-20261114/README.md):**
+- **[Hot-path audit, 2026-11-15](https://github.com/knotrel/knotrel-benchmarks/blob/v0.4.0/results/hot-path-audit-20261114/README.md):**
   Knotrel `e1e1181` versus the audit's allocation and contention changes
   (unreleased; candidate code diff sha256 `8b579f7d…cc9d7`), Rust 1.100.0,
   Apple M3, 12 counterbalanced rounds with a same-binary A/A arm. Results are
@@ -95,19 +95,24 @@ re-qualified.
   changes are confirmed faster, 1 is a marginal regression on an unchanged
   code path, 28 are inconclusive. It measures only this change set, not a
   release.
-- **[Hot-path regression re-check, 2026-11-15](results/hot-path-recheck-20261115/README.md):**
+- **[Hot-path regression re-check, 2026-11-15](https://github.com/knotrel/knotrel-benchmarks/blob/v0.4.0/results/hot-path-recheck-20261115/README.md):**
   the one marginal regression above, re-measured with the same binaries over
   24 rounds, is inconclusive (+0.83% against a ±2.14% A/A bound) and does not
   reproduce.
 
 ### v0.4.0 candidate: observability overhead
 
-- **[Metrics overhead (M6.5), 2026-11-15](results/metrics-overhead-20261115/README.md):**
+- **[Metrics overhead (M6.5), 2026-11-15](https://github.com/knotrel/knotrel-benchmarks/blob/v0.4.0/results/metrics-overhead-20261115/README.md):**
   opt-in Prometheus metrics on versus off on the v0.4.0 candidate tree
   (unreleased), in-process router probe, Apple M3, 24 rounds with an A/A arm.
   All six scenarios pass the pre-approved budget (median ≤ 3%, 95% CI upper
   bound ≤ 6%); the largest cost is +1.28%. Logs are not measured by this
   campaign.
+
+The hot-path and metrics-overhead campaigns above, and the v0.5.0–v0.7.0
+qualifications, are kept at their release tags; the current release's
+qualification is [`results/v0.9.0-qualification`](results/v0.9.0-qualification/DECISION.md).
+See [results/README.md](results/README.md#earlier-release-evidence-at-tags).
 
 ### Historical engine and competitor comparison
 

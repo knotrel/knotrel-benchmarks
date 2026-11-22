@@ -16,6 +16,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import historical  # noqa: E402
+
+historical.ensure()  # earlier campaigns are read from their release tags
 
 import conformance_gate as cg  # noqa: E402
 import conformance_monitor as cm  # noqa: E402

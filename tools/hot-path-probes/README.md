@@ -1,7 +1,7 @@
 # hot-path-probes
 
 Measurement tools for the knotrel hot-path audit campaign
-([`results/hot-path-audit-20261114/`](../../results/hot-path-audit-20261114/README.md)),
+([`results/hot-path-audit-20261114/`](https://github.com/knotrel/knotrel-benchmarks/blob/v0.4.0/results/hot-path-audit-20261114/README.md)),
 driven by [`scripts/run_hot_path_audit.py`](../../scripts/run_hot_path_audit.py).
 
 | Binary | Purpose |
