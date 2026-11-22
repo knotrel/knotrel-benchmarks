@@ -1,0 +1,139 @@
+{
+ "status": "BUDGET EXHAUSTED",
+ "cause": "Mreg: campaign duration budget exhausted before mreg:Mreg-standalone-on-lifecycle50-b8-c16-100k-none-warmup-00",
+ "started_utc": "2026-11-22T06:46:48Z",
+ "ended_utc": "2026-11-22T08:31:55Z",
+ "duration_min": 105.1,
+ "limits": {
+  "budget_s": 6300.0,
+  "a_block_restarts": 1,
+  "monitor_start_s": 20.0,
+  "monitor_check_samples": 6,
+  "min_free_bytes": 3221225472
+ },
+ "rules": {
+  "sample_s": 1.0,
+  "gap_s": 2.5,
+  "status_age_s": 3.0,
+  "monitor_lost_s": 30.0,
+  "after_s": 0.0,
+  "invalid_window_s": 10.0,
+  "invalid_cpu": 1.5,
+  "ready_window_s": 30.0,
+  "ready_cpu": 0.6,
+  "pressure_max": 1,
+  "sleep_jump_s": 2.0,
+  "wait_limit_s": 600.0,
+  "retries": 2
+ },
+ "steps": [
+  {
+   "step": "A-main",
+   "block": "A-main#0",
+   "exit": 0,
+   "seconds": 1232.2
+  },
+  {
+   "step": "A-extension",
+   "block": "A-extension#0",
+   "exit": 0,
+   "seconds": 1358.0
+  },
+  {
+   "step": "BC",
+   "block": "BC#0",
+   "exit": 0,
+   "seconds": 1257.1
+  },
+  {
+   "step": "T5",
+   "block": "T5#0",
+   "exit": 0,
+   "seconds": 1181.0
+  },
+  {
+   "step": "R",
+   "block": "R#0",
+   "exit": 0,
+   "seconds": 156.5
+  },
+  {
+   "step": "Rmem",
+   "block": "Rmem#0",
+   "exit": 0,
+   "seconds": 12.1
+  },
+  {
+   "step": "Mdesc",
+   "block": "Mdesc#0",
+   "exit": 0,
+   "seconds": 721.2
+  },
+  {
+   "step": "Mreg",
+   "block": "Mreg#0",
+   "exit": 76,
+   "seconds": 380.8
+  }
+ ],
+ "units": 716,
+ "invalidated_units": [
+  {
+   "block": "BC#0",
+   "unit": "BC:B1-ops-compact-bfs-sparse-100000-mutation",
+   "attempt": 0,
+   "reasons": [
+    "external CPU 1.59 cores over 10 s > 1.5 (busiest: duetexpertd 0.88, mobileassetd 0.33, remindd 0.25)"
+   ]
+  },
+  {
+   "block": "T5#0",
+   "unit": "T5:hub-3",
+   "attempt": 0,
+   "reasons": [
+    "external CPU 1.55 cores over 10 s > 1.5 (busiest: duetexpertd 0.94, WindowServer 0.34, Google Chrome Helper (Aperitif Renderer) 0.19)"
+   ]
+  }
+ ],
+ "waits": {
+  "count": 13,
+  "total_s": 1525.3,
+  "longest_s": 388.3,
+  "reasons": [
+   [
+    "external CPU 0.61 cores over 30 s > 0.6 (busiest now: Codex (Aperitif) 0.15, WindowServer 0.12, Codex (Aperitif Renderer) 0.05)"
+   ],
+   [
+    "external CPU 0.60 cores over 30 s > 0.6 (busiest now: Codex (Aperitif) 0.14, WindowServer 0.12, Codex (Aperitif Renderer) 0.05)"
+   ],
+   [
+    "external CPU 0.62 cores over 30 s > 0.6 (busiest now: WindowServer 0.03, identityservicesd 0.02, com.docker.backend 0.02)"
+   ],
+   [
+    "external CPU 0.60 cores over 30 s > 0.6 (busiest now: Codex (Aperitif) 0.15, WindowServer 0.14, Codex (Aperitif Renderer) 0.05)"
+   ],
+   [
+    "external CPU 0.60 cores over 30 s > 0.6 (busiest now: Codex (Aperitif) 0.14, WindowServer 0.13, Codex (Aperitif Renderer) 0.05)"
+   ]
+  ]
+ },
+ "telemetry": {
+  "samples": 6268,
+  "ext_cpu_cores": {
+   "p50": 0.33829533767187736,
+   "p99": 2.1689836647683483,
+   "max": 4.358061648924274
+  },
+  "context_user_inputs": 126,
+  "context_top_external_cpu_s": {
+   "WindowServer": 726.7391268796924,
+   "Codex (Aperitif)": 371.97003716254255,
+   "Codex (Aperitif Renderer)": 271.32408779811846,
+   "Google Chrome Helper (Aperitif Renderer)": 112.00544640445715,
+   "Claude Helper (Renderer)": 82.6496847350598,
+   "duetexpertd": 51.659722712993634,
+   "launchd": 35.306437181234365,
+   "Claude Helper": 31.754496653795226
+  }
+ }
+}
