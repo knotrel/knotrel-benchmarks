@@ -1,0 +1,758 @@
+{
+ "check": "T5",
+ "tolerance": 0.25,
+ "intervals_per_run": 30,
+ "p90_rank": 27,
+ "provenance": {
+  "order_seed": 50730,
+  "runs": 84,
+  "nodes": 100000,
+  "cycles": 600,
+  "churn_percent": 5,
+  "seed": 5000001,
+  "engine": "compact-bfs",
+  "warmup": 2,
+  "pairs": 12,
+  "topologies": [
+   "sparse",
+   "ring",
+   "hub"
+  ],
+  "binaries": {
+   "B": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.9.0-qualification-e827b2a-attempt2/targets/t5base-probes/release/core-lifecycle",
+    "sha256": "83bbd8f00395a42972a97afe58a1532687249ec2b1dbce82bc7cfdbbfb7ef99e"
+   },
+   "C": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v0.9.0-qualification-e827b2a-attempt2/targets/cand-probes/release/core-lifecycle",
+    "sha256": "b120bd536a9f05f24ff3675f0f6841dc08a207a2db2f5ee4110e9864a389d450"
+   }
+  }
+ },
+ "results": [
+  {
+   "metric": "P_max",
+   "pairs": 12,
+   "B_median": 15579291.5,
+   "C_median": 15586688.0,
+   "median_log_ratio": 0.023769934817939955,
+   "median_change_pct": 2.405469145791206,
+   "ratio_of_medians_change_pct": 0.04747648505067925,
+   "interval_log": [
+    -0.019057427323707996,
+    0.10442430098943442
+   ],
+   "interval_pct": [
+    -1.88769826441616,
+    11.007135938203083
+   ],
+   "tolerance_pct": 25,
+   "tolerance_log": 0.22314355131420976,
+   "lower_bound_exceeds_tolerance": false,
+   "median_exceeds_tolerance": false,
+   "status": "PASS",
+   "id": "T5-P_max-sparse",
+   "topology": "sparse",
+   "absolute_ms": {
+    "B": {
+     "median": 15.5792915,
+     "min": 14.781708,
+     "max": 17.909875
+    },
+    "C": {
+     "median": 15.586688,
+     "min": 14.931416,
+     "max": 17.702917
+    }
+   },
+   "pair_values_ms": [
+    {
+     "pair": 0,
+     "B": 15.623667,
+     "C": 17.66225
+    },
+    {
+     "pair": 1,
+     "B": 15.06925,
+     "C": 15.561375
+    },
+    {
+     "pair": 2,
+     "B": 15.285166,
+     "C": 16.967625
+    },
+    {
+     "pair": 3,
+     "B": 14.8535,
+     "C": 14.931416
+    },
+    {
+     "pair": 4,
+     "B": 16.876875,
+     "C": 15.577792
+    },
+    {
+     "pair": 5,
+     "B": 15.722375,
+     "C": 15.425584
+    },
+    {
+     "pair": 6,
+     "B": 16.732709,
+     "C": 16.992459
+    },
+    {
+     "pair": 7,
+     "B": 15.556833,
+     "C": 17.702917
+    },
+    {
+     "pair": 8,
+     "B": 14.781708,
+     "C": 15.595584
+    },
+    {
+     "pair": 9,
+     "B": 17.909875,
+     "C": 15.520125
+    },
+    {
+     "pair": 10,
+     "B": 15.305333,
+     "C": 15.516209
+    },
+    {
+     "pair": 11,
+     "B": 15.60175,
+     "C": 16.971083
+    }
+   ]
+  },
+  {
+   "metric": "P_90",
+   "pairs": 12,
+   "B_median": 14380229.0,
+   "C_median": 14383083.0,
+   "median_log_ratio": 0.004813342347654094,
+   "median_change_pct": 0.48249450884503275,
+   "ratio_of_medians_change_pct": 0.019846693679226313,
+   "interval_log": [
+    -0.024506027947666938,
+    0.014661771735663002
+   ],
+   "interval_pct": [
+    -2.4208193121266652,
+    1.4769782742856785
+   ],
+   "tolerance_pct": 25,
+   "tolerance_log": 0.22314355131420976,
+   "lower_bound_exceeds_tolerance": false,
+   "median_exceeds_tolerance": false,
+   "status": "PASS",
+   "id": "T5-P_90-sparse",
+   "topology": "sparse",
+   "absolute_ms": {
+    "B": {
+     "median": 14.380229,
+     "min": 14.140291,
+     "max": 14.680208
+    },
+    "C": {
+     "median": 14.383083,
+     "min": 14.039167,
+     "max": 14.773167
+    }
+   },
+   "pair_values_ms": [
+    {
+     "pair": 0,
+     "B": 14.427167,
+     "C": 14.539083
+    },
+    {
+     "pair": 1,
+     "B": 14.345167,
+     "C": 14.557042
+    },
+    {
+     "pair": 2,
+     "B": 14.140291,
+     "C": 14.386458
+    },
+    {
+     "pair": 3,
+     "B": 14.241209,
+     "C": 14.039167
+    },
+    {
+     "pair": 4,
+     "B": 14.361,
+     "C": 14.475375
+    },
+    {
+     "pair": 5,
+     "B": 14.433791,
+     "C": 14.084375
+    },
+    {
+     "pair": 6,
+     "B": 14.645,
+     "C": 14.057083
+    },
+    {
+     "pair": 7,
+     "B": 14.203792,
+     "C": 14.379708
+    },
+    {
+     "pair": 8,
+     "B": 14.292875,
+     "C": 14.115833
+    },
+    {
+     "pair": 9,
+     "B": 14.519875,
+     "C": 14.773167
+    },
+    {
+     "pair": 10,
+     "B": 14.680208,
+     "C": 14.212458
+    },
+    {
+     "pair": 11,
+     "B": 14.399458,
+     "C": 14.426833
+    }
+   ]
+  },
+  {
+   "metric": "P_max",
+   "pairs": 12,
+   "B_median": 12809666.5,
+   "C_median": 12777666.5,
+   "median_log_ratio": -0.002481885543800066,
+   "median_change_pct": -0.24788082122617627,
+   "ratio_of_medians_change_pct": -0.24981134364426838,
+   "interval_log": [
+    -0.027584092080223627,
+    0.0239377255504368
+   ],
+   "interval_pct": [
+    -2.7207125062664317,
+    2.4226532760994512
+   ],
+   "tolerance_pct": 25,
+   "tolerance_log": 0.22314355131420976,
+   "lower_bound_exceeds_tolerance": false,
+   "median_exceeds_tolerance": false,
+   "status": "PASS",
+   "id": "T5-P_max-ring",
+   "topology": "ring",
+   "absolute_ms": {
+    "B": {
+     "median": 12.809666499999999,
+     "min": 12.347,
+     "max": 13.6615
+    },
+    "C": {
+     "median": 12.777666499999999,
+     "min": 12.454375,
+     "max": 13.945375
+    }
+   },
+   "pair_values_ms": [
+    {
+     "pair": 0,
+     "B": 12.642875,
+     "C": 12.866167
+    },
+    {
+     "pair": 1,
+     "B": 13.079459,
+     "C": 12.454375
+    },
+    {
+     "pair": 2,
+     "B": 12.946792,
+     "C": 12.866875
+    },
+    {
+     "pair": 3,
+     "B": 12.347,
+     "C": 12.646125
+    },
+    {
+     "pair": 4,
+     "B": 12.545041,
+     "C": 13.945375
+    },
+    {
+     "pair": 5,
+     "B": 12.690208,
+     "C": 13.156792
+    },
+    {
+     "pair": 6,
+     "B": 12.904083,
+     "C": 12.553
+    },
+    {
+     "pair": 7,
+     "B": 12.967209,
+     "C": 12.653708
+    },
+    {
+     "pair": 8,
+     "B": 13.6615,
+     "C": 12.6135
+    },
+    {
+     "pair": 9,
+     "B": 12.526375,
+     "C": 12.828583
+    },
+    {
+     "pair": 10,
+     "B": 12.71525,
+     "C": 12.730875
+    },
+    {
+     "pair": 11,
+     "B": 13.058125,
+     "C": 12.824458
+    }
+   ]
+  },
+  {
+   "metric": "P_90",
+   "pairs": 12,
+   "B_median": 12421792.0,
+   "C_median": 12342416.5,
+   "median_log_ratio": -0.011560506681781624,
+   "median_change_pct": -1.1493940783177004,
+   "ratio_of_medians_change_pct": -0.6390020055077383,
+   "interval_log": [
+    -0.03249945019153206,
+    0.020830929707673067
+   ],
+   "interval_pct": [
+    -3.1977017941607566,
+    2.1049407921600594
+   ],
+   "tolerance_pct": 25,
+   "tolerance_log": 0.22314355131420976,
+   "lower_bound_exceeds_tolerance": false,
+   "median_exceeds_tolerance": false,
+   "status": "PASS",
+   "id": "T5-P_90-ring",
+   "topology": "ring",
+   "absolute_ms": {
+    "B": {
+     "median": 12.421792,
+     "min": 12.0885,
+     "max": 12.656458
+    },
+    "C": {
+     "median": 12.342416499999999,
+     "min": 11.844791,
+     "max": 12.619375
+    }
+   },
+   "pair_values_ms": [
+    {
+     "pair": 0,
+     "B": 12.474125,
+     "C": 12.328125
+    },
+    {
+     "pair": 1,
+     "B": 12.647083,
+     "C": 12.242667
+    },
+    {
+     "pair": 2,
+     "B": 12.656458,
+     "C": 12.45025
+    },
+    {
+     "pair": 3,
+     "B": 12.0885,
+     "C": 12.284833
+    },
+    {
+     "pair": 4,
+     "B": 12.338,
+     "C": 12.619375
+    },
+    {
+     "pair": 5,
+     "B": 12.245,
+     "C": 12.50275
+    },
+    {
+     "pair": 6,
+     "B": 12.598417,
+     "C": 12.0015
+    },
+    {
+     "pair": 7,
+     "B": 12.444334,
+     "C": 12.303917
+    },
+    {
+     "pair": 8,
+     "B": 12.39925,
+     "C": 11.844791
+    },
+    {
+     "pair": 9,
+     "B": 12.2125,
+     "C": 12.51125
+    },
+    {
+     "pair": 10,
+     "B": 12.545416,
+     "C": 12.365667
+    },
+    {
+     "pair": 11,
+     "B": 12.272666,
+     "C": 12.356708
+    }
+   ]
+  },
+  {
+   "metric": "P_max",
+   "pairs": 12,
+   "B_median": 15226604.5,
+   "C_median": 14966125.0,
+   "median_log_ratio": -0.012102692035450559,
+   "median_change_pct": -1.202974902368148,
+   "ratio_of_medians_change_pct": -1.7106867128518388,
+   "interval_log": [
+    -0.040134078403732155,
+    0.028874191062974574
+   ],
+   "interval_pct": [
+    -3.9339373326322313,
+    2.9295091807619356
+   ],
+   "tolerance_pct": 25,
+   "tolerance_log": 0.22314355131420976,
+   "lower_bound_exceeds_tolerance": false,
+   "median_exceeds_tolerance": false,
+   "status": "PASS",
+   "id": "T5-P_max-hub",
+   "topology": "hub",
+   "absolute_ms": {
+    "B": {
+     "median": 15.2266045,
+     "min": 14.479792,
+     "max": 15.877833
+    },
+    "C": {
+     "median": 14.966125000000002,
+     "min": 14.370542,
+     "max": 16.239125
+    }
+   },
+   "pair_values_ms": [
+    {
+     "pair": 0,
+     "B": 15.201625,
+     "C": 15.646958
+    },
+    {
+     "pair": 1,
+     "B": 15.086958,
+     "C": 15.780167
+    },
+    {
+     "pair": 2,
+     "B": 15.293167,
+     "C": 14.562958
+    },
+    {
+     "pair": 3,
+     "B": 15.877833,
+     "C": 15.253209
+    },
+    {
+     "pair": 4,
+     "B": 15.107833,
+     "C": 15.005167
+    },
+    {
+     "pair": 5,
+     "B": 15.650125,
+     "C": 14.799875
+    },
+    {
+     "pair": 6,
+     "B": 14.792417,
+     "C": 14.370542
+    },
+    {
+     "pair": 7,
+     "B": 14.766833,
+     "C": 14.782625
+    },
+    {
+     "pair": 8,
+     "B": 14.479792,
+     "C": 14.718667
+    },
+    {
+     "pair": 9,
+     "B": 15.256,
+     "C": 14.993042
+    },
+    {
+     "pair": 10,
+     "B": 15.251584,
+     "C": 16.239125
+    },
+    {
+     "pair": 11,
+     "B": 15.390125,
+     "C": 14.939208
+    }
+   ]
+  },
+  {
+   "metric": "P_90",
+   "pairs": 12,
+   "B_median": 14348625.0,
+   "C_median": 14276541.5,
+   "median_log_ratio": -0.006326350791563235,
+   "median_change_pct": -0.6306381567357966,
+   "ratio_of_medians_change_pct": -0.5023721785188506,
+   "interval_log": [
+    -0.027625339569189118,
+    0.010823938905876728
+   ],
+   "interval_pct": [
+    -2.72472494985172,
+    1.088272965696313
+   ],
+   "tolerance_pct": 25,
+   "tolerance_log": 0.22314355131420976,
+   "lower_bound_exceeds_tolerance": false,
+   "median_exceeds_tolerance": false,
+   "status": "PASS",
+   "id": "T5-P_90-hub",
+   "topology": "hub",
+   "absolute_ms": {
+    "B": {
+     "median": 14.348625,
+     "min": 14.00075,
+     "max": 14.681959
+    },
+    "C": {
+     "median": 14.2765415,
+     "min": 13.899167,
+     "max": 14.50225
+    }
+   },
+   "pair_values_ms": [
+    {
+     "pair": 0,
+     "B": 14.351125,
+     "C": 14.162917
+    },
+    {
+     "pair": 1,
+     "B": 14.566625,
+     "C": 14.125334
+    },
+    {
+     "pair": 2,
+     "B": 14.538416,
+     "C": 13.899167
+    },
+    {
+     "pair": 3,
+     "B": 14.681959,
+     "C": 14.281916
+    },
+    {
+     "pair": 4,
+     "B": 14.399375,
+     "C": 14.34125
+    },
+    {
+     "pair": 5,
+     "B": 14.346125,
+     "C": 14.50225
+    },
+    {
+     "pair": 6,
+     "B": 14.294417,
+     "C": 13.980833
+    },
+    {
+     "pair": 7,
+     "B": 14.289542,
+     "C": 14.446459
+    },
+    {
+     "pair": 8,
+     "B": 14.24575,
+     "C": 14.395792
+    },
+    {
+     "pair": 9,
+     "B": 14.394542,
+     "C": 14.271167
+    },
+    {
+     "pair": 10,
+     "B": 14.281208,
+     "C": 14.3335
+    },
+    {
+     "pair": 11,
+     "B": 14.00075,
+     "C": 14.165666
+    }
+   ]
+  }
+ ],
+ "absolute": {
+  "sparse": {
+   "B": {
+    "wall_ms": {
+     "median": 9319.0252085,
+     "min": 9253.307208,
+     "max": 9399.176
+    },
+    "timed_ms": {
+     "median": 8902.3089485,
+     "min": 8836.196463,
+     "max": 8982.176993
+    },
+    "mean_call_ns": {
+     "median": 593.4872632333334,
+     "min": 589.0797642,
+     "max": 598.8117995333333
+    },
+    "calls": 15000000,
+    "longest_call_kinds_in_compaction_cycles": [
+     "remove_node"
+    ]
+   },
+   "C": {
+    "wall_ms": {
+     "median": 9329.129,
+     "min": 9229.512875,
+     "max": 9431.520041
+    },
+    "timed_ms": {
+     "median": 8912.1439035,
+     "min": 8813.207666,
+     "max": 9014.722564
+    },
+    "mean_call_ns": {
+     "median": 594.1429269,
+     "min": 587.5471777333333,
+     "max": 600.9815042666667
+    },
+    "calls": 15000000,
+    "longest_call_kinds_in_compaction_cycles": [
+     "remove_node"
+    ]
+   }
+  },
+  "ring": {
+   "B": {
+    "wall_ms": {
+     "median": 6559.4456255000005,
+     "min": 6523.488334,
+     "max": 6687.684667
+    },
+    "timed_ms": {
+     "median": 6207.358898,
+     "min": 6171.65815,
+     "max": 6335.293213
+    },
+    "mean_call_ns": {
+     "median": 517.2799081666667,
+     "min": 514.3048458333334,
+     "max": 527.9411010833334
+    },
+    "calls": 12000000,
+    "longest_call_kinds_in_compaction_cycles": [
+     "remove_node"
+    ]
+   },
+   "C": {
+    "wall_ms": {
+     "median": 6559.330292000001,
+     "min": 6499.253084,
+     "max": 6679.87
+    },
+    "timed_ms": {
+     "median": 6207.167004,
+     "min": 6146.850355,
+     "max": 6327.725383
+    },
+    "mean_call_ns": {
+     "median": 517.263917,
+     "min": 512.2375295833333,
+     "max": 527.3104485833334
+    },
+    "calls": 12000000,
+    "longest_call_kinds_in_compaction_cycles": [
+     "remove_node"
+    ]
+   }
+  },
+  "hub": {
+   "B": {
+    "wall_ms": {
+     "median": 9370.798729,
+     "min": 9259.321917,
+     "max": 9448.805792
+    },
+    "timed_ms": {
+     "median": 8954.059997,
+     "min": 8842.397299,
+     "max": 9032.146973
+    },
+    "mean_call_ns": {
+     "median": 596.9373331333334,
+     "min": 589.4931532666667,
+     "max": 602.1431315333333
+    },
+    "calls": 15000000,
+    "longest_call_kinds_in_compaction_cycles": [
+     "remove_node"
+    ]
+   },
+   "C": {
+    "wall_ms": {
+     "median": 9322.587771499999,
+     "min": 9223.125542,
+     "max": 9439.6765
+    },
+    "timed_ms": {
+     "median": 8906.268645,
+     "min": 8806.803675,
+     "max": 9022.761701
+    },
+    "mean_call_ns": {
+     "median": 593.7512429999999,
+     "min": 587.120245,
+     "max": 601.5174467333334
+    },
+    "calls": 15000000,
+    "longest_call_kinds_in_compaction_cycles": [
+     "remove_node"
+    ]
+   }
+  }
+ },
+ "non_pass": [],
+ "base_probes_rev": "7116c32e7c3351a995048713032745117fc7df7b"
+}

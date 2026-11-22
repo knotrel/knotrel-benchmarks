@@ -1,0 +1,23 @@
+v0.9.0 qualification, attempt 2 analysis, run 2026-11-22 ~11:45-12:00Z after Parts 1-3 ended (Part 1 and
+Part 2 CONFORMING), from the frozen campaign source src/cand/knotrel-benchmarks @ 08cc3d99a4792ffe04584d76a8f5b3d4ab33f955 (clean).
+Outputs in the campaign directory: analysis/ (BC, T5, report, Part 2 comparison) and <exp>/analysis.json (R, Rmem, Mdesc, Mreg,
+part2/Mreg). A: A/final-decision-analysis.json (written by the runner). Part 3: part3/evaluation.json (written by run_part3.sh).
+
+1. analyze_lifecycle_qualification.py BC --expect-knotrel-rev e827b2a7... --expect-probes-rev 08cc3d99...
+   --expect-multipliers-sha256 d696dd93... --expect-lifecycle-engines compact-bfs --expect-equivalent-references
+   --json analysis/BC-analysis.json --markdown analysis/BC-analysis.md
+   First invocation exit 1 WITHOUT output: LIFECYCLE_QUALIFICATION_ROOTS was not exported (path confinement refused BC/).
+   Invocation error, no data read. Rerun with LIFECYCLE_QUALIFICATION_ROOTS=<campaign dir>: exit 0.
+2. analyze_v090q_t5.py T5 --expect-base-rev 9f933a78... --expect-cand-rev e827b2a7... --expect-base-probes-rev 7116c32e...
+   --expect-probes-rev 08cc3d99... --benchmarks src/cand/knotrel-benchmarks --json analysis/T5-analysis.json      exit 0
+3. report_v090q_bc.py analysis/BC-analysis.json analysis/T5-analysis.json > analysis/report.txt                   exit 0
+4. analyze_v090q.py r R --ref-rev 9f933a78... --cand-rev e827b2a7...                                             exit 0
+5. analyze_v090q.py rmem Rmem --ref-rev 9f933a78... --cand-rev e827b2a7...                                       exit 0
+6. analyze_v090q.py mdesc Mdesc                                                                                  exit 0
+7. analyze_v090q.py mreg Mreg                                                                                    exit 0
+8. analyze_v090q.py mreg part2/Mreg                                                                              exit 0
+9. compare_v090q_part2.py BC part2/BC --cand-rev e827b2a7... --cand-probes-rev 08cc3d99... --v080-rev e3fc7361...
+   --v080-probes-rev e843aae2... --expect-multipliers-sha256 d696dd93... --json analysis/part2-compare.json      exit 0
+Integrity: shasum -c logs/outputs-sha256.txt (1855 files) exit 0, 0 mismatches; part2: shasum -c logs/outputs-sha256.txt
+(419 files) 0 mismatches; shasum -c binaries-sha256.txt (20) all OK. Attempt 1: shasum -c logs/outputs-sha256.txt (1731 files)
+0 mismatches.
