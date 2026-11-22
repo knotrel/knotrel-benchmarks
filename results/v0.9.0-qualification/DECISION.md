@@ -63,6 +63,13 @@ The analyses are in `analysis/attempt2/` (commands in
   (`ANALYSIS-COMMANDS.txt`). As in q3, the first B/C invocation failed with
   no output because the path-confinement variable was not set; it was rerun
   with the variable set, and no data was read in between.
+- **Post-decision hardening (no effect on results).** For the repository's
+  security gate, `analyze_v090q_t5.py` now accepts only hexadecimal commit
+  ids and a confined `--benchmarks` path, and `evaluate_v090q_part3.py`
+  confines its two paths (`run_part3.sh` sets the confinement root). Rerun on
+  the attempt-2 evidence, both produce output byte-identical to the archived
+  `T5-analysis.json` and `part3/evaluation.json`. The campaign ran with, and
+  reproduces with, the frozen tooling at `08cc3d99`.
 
 ## 3. Part 1 results (deciding, candidate against v0.7.0)
 

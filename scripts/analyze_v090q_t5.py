@@ -17,15 +17,27 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import analyze_v070q3_t5 as frozen  # noqa: E402
+from cli_paths import confined  # noqa: E402
+
+REV = re.compile(r"[0-9a-f]{7,40}")
+
+
+def revision(value: str) -> str:
+    """A hexadecimal commit id, so that it can never be read by git as an option or a path."""
+    if not REV.fullmatch(value):
+        raise argparse.ArgumentTypeError(f"not a commit id: {value!r}")
+    return value
 
 
 def probe_source_equal(benchmarks: Path, base: str, cand: str) -> None:
+    benchmarks, base, cand = confined(benchmarks, "--benchmarks"), revision(base), revision(cand)
     diff = subprocess.run(["git", "-C", str(benchmarks), "diff", "--unified=0", base, cand, "--",
                            "tools/lifecycle-probes"], check=True, capture_output=True, text=True).stdout
     files = [line[6:] for line in diff.splitlines() if line.startswith("+++ b/")]
@@ -40,10 +52,10 @@ def probe_source_equal(benchmarks: Path, base: str, cand: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("directory", type=Path)
-    parser.add_argument("--expect-base-rev", required=True)
-    parser.add_argument("--expect-cand-rev", required=True)
-    parser.add_argument("--expect-base-probes-rev", required=True)
-    parser.add_argument("--expect-probes-rev", required=True)
+    parser.add_argument("--expect-base-rev", required=True, type=revision)
+    parser.add_argument("--expect-cand-rev", required=True, type=revision)
+    parser.add_argument("--expect-base-probes-rev", required=True, type=revision)
+    parser.add_argument("--expect-probes-rev", required=True, type=revision)
     parser.add_argument("--benchmarks", type=Path, required=True)
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()

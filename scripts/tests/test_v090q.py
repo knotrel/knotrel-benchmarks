@@ -198,7 +198,11 @@ class T5Test(unittest.TestCase):
         older = subprocess.run(["git", "-C", str(ROOT), "log", "-1", "--format=%H", "7116c32e", "--",
                                 "tools/lifecycle-probes/src"], capture_output=True, text=True, check=True).stdout.strip()
         with self.assertRaises(t5.frozen.Invalid):
-            t5.probe_source_equal(ROOT, f"{older}~1", "7116c32e7c3351a995048713032745117fc7df7b")
+            parent = subprocess.run(["git", "-C", str(ROOT), "rev-parse", f"{older}~1"], capture_output=True,
+                                    text=True, check=True).stdout.strip()
+            t5.probe_source_equal(ROOT, parent, "7116c32e7c3351a995048713032745117fc7df7b")
+        with self.assertRaises(Exception):
+            t5.probe_source_equal(ROOT, "--output=x", "7116c32e7c3351a995048713032745117fc7df7b")
 
 
 class Part3Test(unittest.TestCase):

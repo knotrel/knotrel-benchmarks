@@ -15,6 +15,10 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined  # noqa: E402
 
 BASELINE_SHA256 = "bc6e8c094c84a0942d24e4095259d0153f595cb416388afd69392faccc7ef0e6"
 DECIDING = ("Q1", "Q2", "Q4", "Q5")
@@ -24,12 +28,12 @@ def main(argv: list) -> int:
     if len(argv) != 3:
         print(__doc__, file=sys.stderr)
         return 2
-    with open(argv[2], "rb") as handle:
-        raw = handle.read()
+    summary_path, baseline_path = confined(argv[1], "summary"), confined(argv[2], "baseline")
+    raw = baseline_path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != BASELINE_SHA256:
         raise SystemExit("baseline summary differs from the approved protocol's")
     base = json.loads(raw)["summary"]["cells"]
-    run = json.load(open(argv[1]))
+    run = json.loads(summary_path.read_text())
     summary = run["summary"]
     criteria = dict(summary["criteria"])
     q5 = {"rule": "L1 G100k C=16 and C=64: median query_rps >= 90 % and median query_p99_ms <= 125 % of the v0.8.0 baseline",

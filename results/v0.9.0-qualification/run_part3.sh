@@ -39,6 +39,6 @@ env -u LOAD_REPS -u LOAD_WINDOW_SECS -u LOAD_BACKLOG -u LOAD_CELLS \
   /usr/bin/caffeinate -dimsu "$T/feeder/release/examples/load" > "$OUT/load.stdout" 2> "$OUT/load.stderr"
 echo "end $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$OUT/run.txt"
 host "$OUT/host-after.txt"
-python3 "$CAMP/src/cand/knotrel-benchmarks/scripts/evaluate_v090q_part3.py" "$OUT/summary.json" \
+LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 "$CAMP/src/cand/knotrel-benchmarks/scripts/evaluate_v090q_part3.py" "$OUT/summary.json" \
   "$K/docs/integrations/feeder-under-load/baseline-v0.8.0-summary.json" > "$OUT/evaluation.json"
 cat "$OUT/evaluation.json"
