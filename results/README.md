@@ -22,29 +22,32 @@ This directory contains recorded benchmark and performance evaluation reports. E
 - **Detailed Report**: [initialization/README.md](initialization/README.md)
 - **Scope**: Phase 0 instrumentation, timing bounds, calibration, and replication data for bulk graph construction (`try_from_edges`).
 
-### 4. Hot-Path Audit, v0.3.0 Candidate (`hot-path-audit-20261114/`)
-- **Detailed Report**: [hot-path-audit-20261114/README.md](hot-path-audit-20261114/README.md) (generated tables: [REPORT.md](hot-path-audit-20261114/REPORT.md))
-- **Scope**: Knotrel `e1e1181` (baseline) versus the hot-path audit change set (candidate code diff sha256 `8b579f7d…cc9d7`), with a same-binary A/A arm, 12 counterbalanced rounds, Rust 1.100.0, Apple M3. Core initialization and dynamic workloads, the in-process `knotrel-server` router probe, allocation counts and a separate end-to-end HTTP section.
-- **Key Results**:
-  - Results identical across arms; allocations per request fall 16.7% (single query) to 75.0% (100,000-node import).
-  - 13 confirmed timing improvements (router import about −21%, feeder −14% to −19%, batches −6% to −9%; core initialization −4% to −7%), 1 marginal regression on a code path the patch does not change, 28 inconclusive.
+### 4. Current Release Qualification, v0.9.0 (`v0.9.0-qualification/`)
+- **Decision Record**: [v0.9.0-qualification/DECISION.md](v0.9.0-qualification/DECISION.md) (protocol: [PROTOCOL.md](v0.9.0-qualification/PROTOCOL.md); frozen matrix: [MATRIX.json](v0.9.0-qualification/MATRIX.json))
+- **Scope**: Knotrel `e827b2a` against the published v0.7.0 (deciding reference) and v0.8.0 (descriptive reference), re-running the v0.7.0 qualification-3 method unchanged except where the protocol says.
+- **Key Results**: campaign execution VALID (attempt 2 CONFORMING); release ACCEPTED WITH EXCEPTIONS, for v0.9.0 only. Five deciding results are not PASS; the decision record lists them.
 
-### 5. M6.5 Metrics Overhead, v0.4.0 Candidate (`metrics-overhead-20261115/`)
-- **Detailed Report**: [metrics-overhead-20261115/README.md](metrics-overhead-20261115/README.md) (generated tables: [REPORT.md](metrics-overhead-20261115/REPORT.md))
-- **Scope**: Opt-in Prometheus metrics on versus off on one release build of the in-process router probe (v0.4.0 candidate tree, identity `6ec5f564…ae65c3c`), byte-identical A/A copy, 24 counterbalanced rounds, budget approved before measurement (median ≤ 3%, 95% CI upper ≤ 6%).
-- **Key Results**: 6/6 scenarios PASS; largest cost +1.28% [+0.60%, +1.59%] (batch of 1,024 queries).
-
-### 6. Hot-Path Regression Re-check (`hot-path-recheck-20261115/`)
-- **Detailed Report**: [hot-path-recheck-20261115/README.md](hot-path-recheck-20261115/README.md)
-- **Scope**: Pre-specified re-measurement of the hot-path audit's one marginal regression with the campaign's exact binaries, 24 counterbalanced rounds.
-- **Key Results**: `compact-bfs` dynamic `connected_total_ns` +0.83% [+0.10%, +1.78%] against an A/A bound of ±2.14%: inconclusive; the regression does not reproduce.
-
-### 7. Latest Performance Evaluation Summary (`perf_evaluation_latest.json`)
+### 5. Latest Performance Evaluation Summary (`perf_evaluation_latest.json`)
 - Continuous performance metrics and regression gate output.
 
-## Historical Evidence in Git
+## Earlier Release Evidence at Tags
 
-Prior milestone results, exploratory pilots, and campaign traces are archived in the Git repository history. To inspect historical data from earlier versions:
+Only the current release's qualification stays in the working tree. When a release is tagged, its
+evidence is committed with it, and the evidence of earlier releases leaves `main`; each campaign
+stays, unchanged, in the tree of the tag that closed it:
+
+| Campaign | Tag |
+| --- | --- |
+| [Hot-path audit, v0.3.0 candidate](https://github.com/knotrel/knotrel-benchmarks/tree/v0.4.0/results/hot-path-audit-20261114) | `v0.4.0` |
+| [Hot-path regression re-check](https://github.com/knotrel/knotrel-benchmarks/tree/v0.4.0/results/hot-path-recheck-20261115) | `v0.4.0` |
+| [Metrics overhead (M6.5), v0.4.0 candidate](https://github.com/knotrel/knotrel-benchmarks/tree/v0.4.0/results/metrics-overhead-20261115) and release-candidate reruns ([r1](https://github.com/knotrel/knotrel-benchmarks/tree/v0.4.0/results/metrics-overhead-rc-62c2cea), [r2](https://github.com/knotrel/knotrel-benchmarks/tree/v0.4.0/results/metrics-overhead-rc-62c2cea-r2)) | `v0.4.0` |
+| [v0.5.0 lifecycle qualification](https://github.com/knotrel/knotrel-benchmarks/tree/v0.5.0/results/lifecycle-qualification-v0.5.0) | `v0.5.0` |
+| [v0.6.0 qualification](https://github.com/knotrel/knotrel-benchmarks/tree/v0.6.0/results/v0.6.0-qualification) | `v0.6.0` |
+| [v0.7.0 qualification](https://github.com/knotrel/knotrel-benchmarks/tree/v0.7.0/results/v0.7.0-qualification), [re-qualification](https://github.com/knotrel/knotrel-benchmarks/tree/v0.7.0/results/v0.7.0-requalification) and [qualification 3](https://github.com/knotrel/knotrel-benchmarks/tree/v0.7.0/results/v0.7.0-qualification-3) | `v0.7.0` |
+
+Locally, `git show <tag>:results/<campaign>/<file>` or `git archive <tag> results/<campaign>` retrieves
+them. Frozen tooling that still binds these paths is tested against the tag copies
+(`scripts/tests/historical.py`). Earlier experiment runs and pilots remain in the commit history:
 
 ```sh
 git log --stat -- results/

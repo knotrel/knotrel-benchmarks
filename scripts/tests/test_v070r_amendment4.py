@@ -14,6 +14,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "scripts" / "tests"))
+import historical  # noqa: E402
+
+historical.ensure()  # earlier campaigns are read from their release tags
 
 import tempfile  # noqa: E402
 

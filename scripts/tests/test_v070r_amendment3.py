@@ -11,6 +11,9 @@ import unittest
 SCRIPTS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import historical  # noqa: E402
+
+historical.ensure()  # earlier campaigns are read from their release tags
 
 import conformance_monitor as cm  # noqa: E402
 from test_v070r_amendment2 import P, terminal_tree, CLAUDE_APP, CLAUDE_CLI, TERM  # noqa: E402
