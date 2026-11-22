@@ -2,3 +2,11 @@
 .interval-plots{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:1rem}.interval-plots figure{margin:0}.interval-plots figcaption{font-size:.85rem}.interval-plots svg{display:block;width:100%;height:auto}
 /* Icons support labels; only the familiar theme toggle is icon-only. */
 .icon{width:20px;height:20px;flex:none;vertical-align:middle}.button,.icon-link,nav a{display:inline-flex;align-items:center;gap:.55rem}.theme-button{display:grid;place-items:center;width:44px;height:44px;padding:10px;flex:none}.theme-button .icon{width:22px;height:22px}.icon-moon,:root[data-theme=light] .icon-sun{display:none}:root[data-theme=light] .icon-moon{display:block}.release h3 .icon{width:24px;height:24px}nav a .icon{width:17px;height:17px}nav a{min-height:44px}.theme-button:hover{border-color:var(--accent);color:var(--accent)}@media(max-width:600px){nav{justify-content:space-between;gap:.6rem}nav a{flex-direction:column;gap:.2rem;font-size:.7rem;justify-content:center}nav a .icon{width:20px;height:20px}.actions .button{min-height:48px}}
+/* Motion: short state transitions only (hover, focus, theme). No entrance,
+   scroll or data animation; measurements never move. */
+a,.button,.theme-button,.card,.release h3 span{transition:color .15s ease,border-color .15s ease,background-color .15s ease,transform .15s ease}
+body{transition:background-color .2s ease,color .2s ease}
+a.release:hover,a.release:focus-visible{transform:translateY(-2px)}
+a.release:hover h3 span,a.release:focus-visible h3 span{transform:translateX(3px)}
+.button:active,.theme-button:active{transform:translateY(1px)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}a.release:hover,a.release:focus-visible,a.release:hover h3 span,a.release:focus-visible h3 span{transform:none}}
