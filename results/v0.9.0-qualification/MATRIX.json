@@ -3,7 +3,7 @@
  "status": "v0.9.0 QUALIFICATION DRAFT (frozen when FREEZE.json is written); plan approved by the maintainer 2026-11-22 (knotrel docs/releases/v0.9.0-qualification-plan.md, roadmap 0.9.6)",
  "references": {
   "plan": "knotrel docs/releases/v0.9.0-qualification-plan.md (knotrel 23b5f27), approved by the maintainer 2026-11-22: 'Approved, run it'",
-  "method": "results/v0.7.0-qualification-3 (FREEZE.json revision 3), re-run unchanged in method; only the binaries, the campaign directory and the bindings of this directory change (PROTOCOL.md section 3)",
+  "method": "results/v0.7.0-qualification-3 (FREEZE.json revision 3), re-run unchanged in method; only the binaries, the campaign directory and the bindings of this directory change (PROTOCOL.md section 2)",
   "product_reference": "knotrel v0.7.0 (published, deciding): tag v0.7.0 = 9f933a783b043f9f44fd5de014c3c8a93c7922c3",
   "descriptive_reference": "knotrel v0.8.0 (published, descriptive, Part 2): tag v0.8.0 = e3fc7361caf2f29dcf6870e8018b96414ebd927b",
   "benchmarks_reference": "knotrel-benchmarks 7116c32e (origin/main at preparation): probe lockfile resolving knotrel 0.7.0; e843aae2: probe lockfile resolving knotrel 0.8.0; the freeze commit: knotrel 0.9.0. The probe source is identical in all three.",
@@ -2709,7 +2709,7 @@
   },
   "basis": "durations measured in the first campaign (A 26.7 with 4 extended cells, B/C 7.3, R 1.5, Rmem 0.1, M_desc 11.6, M_reg 13.0) plus about 973 gate checks x ~0.15 s, plus the 120 s grace and 300 s quiet periods; if every A cell needed the extension, about +15",
   "final_cap_minutes": 105,
-  "attempts_cap": 3,
+  "attempts_cap": 2,
   "optimization_candidates": 3,
   "candidates_in_qualification": [
    "0.7.4a shared read lock (parking_lot::RwLock)",
@@ -3009,13 +3009,13 @@
   "part2": {
    "question": "change from v0.8.0 in what changed after v0.8.0 (reserved feeder admission lanes, 0.9.3); descriptive, no verdict",
    "M_reg": "the frozen M_reg cells and estimators, ref = knotrel-server v0.8.0 e3fc7361caf2f29dcf6870e8018b96414ebd927b, cand = the candidate server of Part 1; classification computed by the same analyzer and reported as descriptive (no verdict)",
-   "B4_events": "the B4 cells (run_lifecycle_qualification.py --only B4, final profile, same order seed and window multipliers) with http-lifecycle built against v0.8.0; the six B4-http-events cells are compared with the same cells of Part 1 (the candidate), each with its own within-cell estimator; the comparison across the two runs is not paired and is reported as descriptive only; the other B4 cells are recorded but not reported as Part 2 results",
+   "B4_events": "the B4 cells (run_lifecycle_qualification.py --only B4, final profile, same order seed and window multipliers) with http-lifecycle built against v0.8.0; the six B4-http-events cells are compared with the same cells of Part 1 (the candidate), each with its own within-cell estimator; the comparison across the two runs is not paired and is reported as descriptive only; the other B4 cells are recorded but not reported as Part 2 results; --core-count is the v0.8.0 count-alloc build (targets/v080-probes-count), distinct from --core as the interference collector requires; all 37 B4 cells run (no per-cell filter exists), leaving a small margin in the 20-minute budget",
    "budget_minutes": 20
   },
   "part3": {
    "protocol": "knotrel docs/integrations/feeder-under-load.md (approved 2026-11-21), all cells, 3 observations, criteria unchanged",
    "server": "the candidate server of Part 1 (targets/cand-server)",
-   "feeder_and_load_tool": "integrations/postgres-feeder at the candidate commit, cargo build --release --locked --examples",
+   "feeder_and_load_tool": "integrations/postgres-feeder at the candidate commit: cargo +1.100.0 build --release --locked --offline --bin knotrel-pg-feeder --example load (targets/feeder)",
    "deciding": [
     "Q1",
     "Q2",
@@ -3024,7 +3024,8 @@
    ],
    "Q3": "declared limitation of v0.9.0 (maintainer decision 2026-11-21): reported again as measured, no threshold change",
    "Q5_baseline": "baseline-v0.8.0-summary.json of the approved protocol (2026-11-21), as for change A",
-   "budget_minutes": 30
+   "budget_minutes": 30,
+   "dependency": "runs after Part 2 has ended; requires Part 1 CONFORMING (Part 2 is descriptive)"
   },
   "decision_rule": [
    "Part 1: every cell PASS, INCONCLUSIVE, REGRESSION, FAIL or EXCEEDS_BUDGET with the disclosure categories of v0.7.0; v0.9.0 is qualified only if every deciding cell is PASS (disclosure categories reported as such); any other result goes to the maintainer as it is",

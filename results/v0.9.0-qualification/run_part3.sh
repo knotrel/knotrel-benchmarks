@@ -1,7 +1,7 @@
 #!/bin/sh
 # Part 3 of the v0.9.0 qualification (PROTOCOL.md section 4): the approved feeder-under-load
 # protocol (knotrel docs/integrations/feeder-under-load.md) on the candidate, all cells,
-# 3 observations, no smoke overrides (LOAD_* unset). Runs after Part 2 ended CONFORMING.
+# 3 observations, no smoke overrides (LOAD_* unset). Runs after Part 2 has ended; requires Part 1 CONFORMING.
 #
 # Usage: run_part3.sh CAMP
 # Writes CAMP/part3/: results.jsonl and summary.json (the load tool), host-before.txt and
@@ -15,7 +15,10 @@ OUT=$CAMP/part3
 K=$CAMP/src/cand/knotrel
 F=$K/integrations/postgres-feeder
 T=$CAMP/targets
-head -1 "$CAMP/part2/logs/CONFORMANCE.txt" | grep -q '^CONFORMING' || { echo "Part 2 is not CONFORMING" >&2; exit 3; }
+# Part 3 depends on Part 1 (a conforming deciding campaign on this candidate), not on Part 2,
+# which is descriptive; it runs after Part 2 has ended, whatever Part 2's status.
+head -1 "$CAMP/logs/CONFORMANCE.txt" | grep -q '^CONFORMING' || { echo "Part 1 is not CONFORMING" >&2; exit 3; }
+[ -f "$CAMP/part2/logs/CONFORMANCE.txt" ] || { echo "Part 2 has not ended" >&2; exit 3; }
 [ ! -e "$OUT" ] || { echo "refusing to reuse $OUT" >&2; exit 3; }
 pmset -g batt | head -1 | grep -q "AC Power" || { echo "not on AC power" >&2; exit 3; }
 grep -q "$(shasum -a 256 "$T/cand-server/release/knotrel-server" | cut -d' ' -f1)" "$CAMP/binaries-sha256.txt" || { echo "candidate server changed" >&2; exit 3; }

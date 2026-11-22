@@ -172,7 +172,7 @@ class Part2Runner(Part1Runner):
         t = self.targets
         self.run_step("BC", self.collect(
             "bc", "--out", str(self.camp / "BC"), "--profile", "final", "--core", str(t / "v080-probes/release/core-lifecycle"),
-            "--core-count", str(t / "v080-probes/release/core-lifecycle"), "--http",
+            "--core-count", str(t / "v080-probes-count/release/core-lifecycle"), "--http",
             str(t / "v080-probes/release/http-lifecycle"), "--order-seed", "50720", "--knotrel",
             str(self.root / "src/v080/knotrel"), "--lifecycle-engines", "compact-bfs", "--equivalent-references",
             "--only", "B4", "--window-multipliers", f"{V090}/window-multipliers-q3.json"), "BC")

@@ -92,6 +92,7 @@ P=tools/lifecycle-probes
 ( cd "$CAMP/src/ref/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/ref-probes cargo +1.100.0 build --release --locked --offline --bin release-cells ) > "$L/build-ref-probes.log" 2>&1
 ( cd "$CAMP/src/ref/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/ref-probes-peak cargo +1.100.0 build --release --locked --offline --features peak-alloc --bin memory-peak ) > "$L/build-ref-probes-peak.log" 2>&1
 ( cd "$CAMP/src/v080/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/v080-probes cargo +1.100.0 build --release --locked --offline --bin core-lifecycle --bin http-lifecycle ) > "$L/build-v080-probes.log" 2>&1
+( cd "$CAMP/src/v080/knotrel-benchmarks/$P" && CARGO_TARGET_DIR=$T/v080-probes-count cargo +1.100.0 build --release --locked --offline --features count-alloc --bin core-lifecycle ) > "$L/build-v080-probes-count.log" 2>&1
 ( cd "$CAMP/src/cand/knotrel-benchmarks/tools/contention-probe" && CARGO_TARGET_DIR=$T/contention cargo +1.100.0 build --release --locked --offline ) > "$L/build-contention.log" 2>&1
 ( cd "$CAMP/src/cand/knotrel/integrations/postgres-feeder" && CARGO_TARGET_DIR=$T/feeder cargo +1.100.0 build --release --locked --offline --bin knotrel-pg-feeder --example load ) > "$L/build-feeder.log" 2>&1
 

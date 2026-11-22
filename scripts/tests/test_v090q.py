@@ -136,6 +136,25 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(seen, {"q3": "results/v0.9.0-qualification", "outputs": ("BC", "Mreg", "gate")})
         self.assertEqual(q3runner.Q3, "results/v0.7.0-qualification-3")
 
+    def test_part2_bc_passes_the_interference_duplicate_check(self):
+        import run_lifecycle_qualification as lifecycle
+        with tempfile.TemporaryDirectory() as d:
+            camp = Path(d) / f"v0.9.0-qualification-{CAND[:7]}-attempt1"
+            _, calls = self.sequence(runner.Part2Runner, camp)
+            argv = calls[0][1][3:]
+            for flag in ("--core", "--core-count", "--http"):
+                path = Path(argv[argv.index(flag) + 1])
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("")
+            self.assertNotEqual(argv[argv.index("--core") + 1], argv[argv.index("--core-count") + 1])
+            binaries = {name: str(Path(argv[argv.index(flag) + 1]).resolve()) for name, flag in
+                        (("core", "--core"), ("core-count", "--core-count"), ("http", "--http"))}
+            seen = set()
+            for cell in lifecycle.matrix("final", "compact-bfs", True):
+                key = (binaries[cell["binary"]], *map(str, cell["args"]))
+                self.assertNotIn(key, seen, cell["id"])
+                seen.add(key)
+
     def test_part2_refuses_without_conforming_part1(self):
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d) / f"v0.9.0-qualification-{CAND[:7]}-attempt1"

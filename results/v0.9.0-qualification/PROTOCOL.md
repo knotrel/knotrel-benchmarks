@@ -72,7 +72,14 @@ same interference policy.
 1. **B4 cells.**
    - Run: `run_lifecycle_qualification.py --profile final --only B4
      --equivalent-references`, with the same order seed and window
-     multipliers, using `http-lifecycle` built against v0.8.0.
+     multipliers, using `http-lifecycle` built against v0.8.0. The
+     `--core-count` binary is the v0.8.0 count-alloc build; no core cell runs
+     under `--only B4`, but the interference collector requires distinct
+     binaries for core and core-count cells.
+   - The collector has no per-cell filter, so all 37 B4 cells run (about
+     4.4 minutes in q3-3). With M_reg (about 13.8 minutes) that leaves a
+     small margin in the 20-minute budget. If Part 2 ends without
+     conforming, it is reported as such and Part 3 still runs.
    - The six `B4-http-events-*` cells are compared with the same cells of
      Part 1 by `compare_v090q_part2.py`. It uses the frozen per-cell checks
      and estimator, plus the ratio of the two versions' lifecycle-arm
@@ -94,7 +101,9 @@ Part 2 states the change from v0.8.0. It is never a pass.
 - The approved protocol, knotrel `docs/integrations/feeder-under-load.md`:
   all seven cells, 3 observations, criteria Q1–Q5 unchanged.
 - The load tool runs with no `LOAD_*` override.
-- `run_part3.sh` runs it after Part 2 ends CONFORMING.
+- `run_part3.sh` runs it after Part 2 has ended. It requires Part 1 to be
+  CONFORMING, not Part 2: Part 2 is descriptive, and its status is reported
+  as it is.
 
 **Builds and PostgreSQL.**
 - Server: the candidate server of Part 1.
