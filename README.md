@@ -255,3 +255,17 @@ Follow the [product release procedure](https://github.com/knotrel/knotrel/blob/m
 for qualification and publication gates. A benchmark tag archives the report and
 reproduction tooling; it does not change this crate's package version or turn
 failed qualification results into passes.
+
+## Performance website
+
+The release performance site lives in [`docs/`](docs/index.html), starting with
+**1.0.0 compared with the latest released 0.9.x patch at campaign freeze**.
+The initial report is a plan, not measured evidence. Release pages are generated
+from validated JSON, with exact reference versions, confidence intervals and
+separate verdict/exception fields. See [site maintenance and GitHub Pages setup](docs/SITE.md).
+
+```sh
+python3 scripts/build_site.py
+python3 scripts/build_site.py --check
+python3 -m http.server 8000 --directory docs
+```

@@ -1,0 +1,29 @@
+name: Performance site
+on:
+  workflow_dispatch:
+  push:
+    paths: ['docs/**', 'scripts/build_site.py', 'scripts/tests/test_build_site.py', '.github/workflows/performance-site.yml']
+  pull_request:
+    paths: ['docs/**', 'scripts/build_site.py', 'scripts/tests/test_build_site.py', '.github/workflows/performance-site.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: python3 scripts/build_site.py --check
+      - run: python3 -m unittest discover -s scripts/tests -p 'test_build_site.py'
+      - name: Upload Pages-ready site for review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: performance-site
+          path: docs/
+          include-hidden-files: true
+          retention-days: 14
