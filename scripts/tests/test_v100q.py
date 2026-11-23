@@ -837,9 +837,9 @@ class ProbeCompatTest(unittest.TestCase):
                 "--cycles", "30", "--reps", "21", "--seed", "5000001"]
         out = pc.smaller(args)
         values = dict(zip(out[::2], out[1::2]))
-        self.assertEqual(values, {"--scenario": "events", "--nodes": "1000", "--requests": "2", "--pairs": "2",
+        self.assertEqual(values, {"--scenario": "events", "--nodes": "100000", "--requests": "2", "--pairs": "2",
                                   "--warmup": "0", "--cycles": "2", "--reps": "1", "--seed": "5000001"})
-        self.assertEqual(pc.smaller(["import-core", "--nodes", "10"]), ["import-core", "--nodes", "1000"])
+        self.assertEqual(pc.smaller(["import-core", "--nodes", "10"]), ["import-core", "--nodes", "10"])
 
 
 # -- site export ----------------------------------------------------------------------------------

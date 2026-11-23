@@ -8,18 +8,21 @@ oversized positions and event IDs, ``#[non_exhaustive]`` types must still compil
 labels ``knotrel_graph_jobs_outstanding`` by lane). Timings in the outputs are meaningless
 (tiny inputs, no gate, no order) and must not be reported.
 
+Inputs keep each cell's frozen graph size (``--nodes``) and only reduce repetitions: a
+smaller graph is not the same workload (at 1,000 nodes the ``events`` trace is refused with
+422 by v0.9.0 and the candidate alike, an artifact of the reduction, not of the server).
+
 - ``http-lifecycle`` (candidate build): every B4 cell's scenario and arguments with
-  ``--nodes 1000 --requests <= 2 --pairs 2 --warmup 0``. The probe asserts a success status on
+  ``--requests <= 2 --pairs 2 --warmup 0``. The probe asserts a success status on
   every request (``send``), so exit 0 means the server accepted every event and import body.
   Checked: exit 0, a ``build`` record of the candidate commit, pair records, and no
   ``answers_agree: false``.
-- ``core-lifecycle`` and its ``count-alloc`` build (candidate): one C cell each, 1,000 nodes,
-  2 cycles. Checked: exit 0 and checkpoint records.
+- ``core-lifecycle`` and its ``count-alloc`` build (candidate): one C cell each, 2 cycles. Checked: exit 0 and checkpoint records.
 - ``release-cells`` and ``memory-peak`` (candidate and reference builds): every R and Rmem
-  cell with 1,000 nodes (2 cycles, 1 rep, no warmup). Checked: exit 0 and the build record of
+  cell (2 cycles, 1 rep, no warmup). Checked: exit 0 and the build record of
   each arm's commit.
 - ``contention-probe`` against the candidate and the v0.9.0 server: every M_reg cell with
-  2,000 nodes and its frozen window. Checked: exit 0 and the frozen M_reg validity rule
+  its frozen size and window. Checked: exit 0 and the frozen M_reg validity rule
   (``analyze_v070r_a4.validity``: no errors, no item errors, no no-op mutations, background
   completed without failures or import starvation) plus status 200 only. The number of
   ``outstanding_jobs`` samples is reported: an empty series (expected on the candidate, whose
@@ -54,7 +57,6 @@ def replace(args: List[str], flag: str, value: str) -> List[str]:
 
 
 def smaller(args: List[str]) -> List[str]:
-    args = replace(args, "--nodes", "1000")
     args = replace(args, "--cycles", "2")
     args = replace(args, "--reps", "1")
     args = replace(args, "--warmup", "0")
@@ -148,7 +150,7 @@ def main(argv: List[str]) -> int:
             with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False) as handle:
                 handle.write(json.dumps(cell["config"]) + "\n")
             argv_ = [str(t / "contention/release/contention-probe"), "--server-bin", str(t / server / "release/knotrel-server"),
-                     "--mode", cell["mode"], "--lifecycle", str(cell["lifecycle"]).lower(), "--nodes", "2000",
+                     "--mode", cell["mode"], "--lifecycle", str(cell["lifecycle"]).lower(), "--nodes", str(cell["nodes"]),
                      "--seed", str(matrix["experiments"]["M_reg"]["seed"]), "--configs", handle.name]
 
             def mreg(recs, key=f"{cell['id']}[{side}]"):

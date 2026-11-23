@@ -179,9 +179,11 @@ comparison on the campaign's clean builds and stops if it differs.
    `prepare_campaign.sh CAND TOOLING --pre-freeze` on the intended candidate:
    clean clones, every build, the release-binary smoke tests, both A plans and
    their dry runs, the core-rule comparison, the probe compatibility check
-   (`probe_compat_v100q.py`, functional only: every probe once on a reduced
-   input against the candidate, and R, Rmem and M_reg probes against v0.9.0
-   too), and the launch environment check (every collector's dry run; the
+   (`probe_compat_v100q.py`, functional only: every probe of the perimeter
+   once with reduced repetitions at its frozen graph size against the
+   candidate, and the R, Rmem and M_reg probes against v0.9.0 too; an empty
+   `outstanding_jobs` series on the candidate must not fail the probe), and
+   the launch environment check (every collector's dry run; the
    runner must refuse because nothing is frozen).
 2. **Freeze.** Write `FREEZE.json` (revision 1) from `FREEZE.template.json`:
    the candidate and reference commits, the core-rule outcome and comparison
