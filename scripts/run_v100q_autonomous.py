@@ -8,8 +8,12 @@ records. What differs is the binding and the reduced chain of the approved plan 
 ``docs/releases/v1.0.0-qualification-plan.md`` sections 4, 5.3 and 13 item 3):
 
 - the freeze record is this directory's ``FREEZE.json`` (revision 1, campaign
-  "v1.0.0 qualification"); the preflight also requires its reference commit, its candidate
-  commit (a parameter of the campaign, never hard-coded) and its core-rule outcome;
+  "v1.0.0 qualification"); the preflight applies every check of ``freeze_check_v100q.py``
+  (candidate, reference ``REFERENCE``, core-rule outcome and comparison hash, the complete
+  hash list, the freeze commit as the only child of the tooling commit);
+- at its end it records the cause of a non-CONFORMING end (``part1_failures_v100q.py``:
+  product, infrastructure or conformance, in ``logs/failures.jsonl``, and the Part 1 outcome
+  in ``logs/part1-outcome.json``); a product failure never allows a second attempt;
 - collectors are bound to this directory's matrix (``run_v100q_collect.py``);
 - **A runs in two fixed blocks with no interim analysis** (plan section 5.3, option a):
   block 1 from ``A/plan`` into ``A/raw-main``, then block 2 from ``A/plan-block2`` into
@@ -42,12 +46,14 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 import run_v070q3_autonomous as base  # noqa: E402
 import run_v090q_autonomous as v090  # noqa: E402
+import freeze_check_v100q as fc  # noqa: E402
+import part1_failures_v100q as p1  # noqa: E402
 
 V100 = "results/v1.0.0-qualification"
-FREEZE_REVISION = 1
-CAMPAIGN = "v1.0.0 qualification"
-REFERENCE = "223f04c10b0af663b54e269e0970ee10ac1dc6b2"  # knotrel v0.9.0 (plan section 2)
-CORE_RULE_OUTCOMES = ("identical", "different")
+FREEZE_REVISION = fc.FREEZE_REVISION
+CAMPAIGN = fc.CAMPAIGN
+REFERENCE = fc.REFERENCE  # knotrel v0.9.0 (plan section 2); the preflight requires it
+CORE_RULE_OUTCOMES = fc.CORE_RULE_OUTCOMES
 Stop = base.Stop
 SHA = re.compile(r"[0-9a-f]{40}")
 OUTPUTS = ("A/raw-main", "A/extension", "BC", "T5", "R", "Rmem", "Mreg", "gate")
@@ -68,10 +74,23 @@ class Part1Runner(v090.Part1Runner):
             raise Stop("NOT STARTED", f"freeze core_rule.outcome is {outcome!r}, expected one of {CORE_RULE_OUTCOMES}")
         return outcome == "different"
 
+    def git(self, *args: str) -> str:
+        """Git in the campaign's tooling clone (a clone of the freeze commit, with its history)."""
+        return subprocess.run(["git", "-C", str(self.bench), *args], capture_output=True, text=True,
+                              check=True).stdout
+
+    def frozen_digest(self, path: str):
+        """SHA-256 of a file of the tooling clone, or None if it cannot be read."""
+        return fc.sha256_file(self.bench / path)
+
     def preflight(self) -> None:
         """The frozen preflight (``run_v090q_autonomous.Part1Runner.preflight``) with this
-        campaign's freeze record, plus the v1.0 freeze fields: a 40-character candidate equal to
-        the freeze record's, a 40-character reference commit and a core-rule outcome."""
+        campaign's freeze record and the v1.0 freeze guards of ``freeze_check_v100q.py``: the
+        record's identity, candidate and reference (``REFERENCE``), core-rule outcome; its hash
+        list equal to its hashed files and covering ``REQUIRED_FROZEN_PATHS``; every file's hash;
+        ``core_rule.comparison`` against this directory's ``logs/core-rule.json``; and the
+        freeze commit (the clone's HEAD) as the only child of ``tooling.commit``, adding only
+        FREEZE.json."""
         name = self.campaign_name()
         if f"-{self.cand[:7]}-" not in name:
             raise Stop("NOT STARTED", f"candidate {self.cand} does not match {name}")
@@ -84,20 +103,19 @@ class Part1Runner(v090.Part1Runner):
         if not path.exists():
             raise Stop("NOT STARTED", f"no {V100}/FREEZE.json: the campaign is not frozen")
         freeze = json.loads(path.read_text())
-        if freeze.get("revision") != FREEZE_REVISION or freeze.get("campaign") != CAMPAIGN:
-            raise Stop("NOT STARTED", f"freeze {freeze.get('campaign')!r} revision {freeze.get('revision')}, "
-                                      f"expected {CAMPAIGN!r} revision {FREEZE_REVISION}")
-        if not freeze.get("frozen_utc") or "NOT FROZEN" in str(freeze.get("status", "")):
-            raise Stop("NOT STARTED", "the freeze record is a draft (no frozen_utc, or status NOT FROZEN)")
-        if freeze.get("candidate", {}).get("commit") != self.cand:
-            raise Stop("NOT STARTED", f"freeze candidate {freeze.get('candidate', {}).get('commit')} is not {self.cand}")
-        reference = freeze.get("reference", {}).get("commit")
-        if not SHA.fullmatch(reference or ""):
-            raise Stop("NOT STARTED", f"freeze reference commit {reference!r} is not a 40-character commit")
-        self.core_rule_triggered()
-        bad = [p for p, h in freeze["file_sha256"].items() if base.sha256(self.bench / p) != h]
-        if bad:
-            raise Stop("NOT STARTED", f"frozen files differ: {bad[:5]}")
+        problems = fc.record_problems(freeze, self.cand, REFERENCE)
+        if not problems:
+            problems = fc.file_problems(freeze, self.frozen_digest)
+        if not problems:
+            problems = fc.core_rule_problems(freeze, self.campaign_root() / "logs" / "core-rule.json")
+        if not problems:
+            try:
+                head = self.git("rev-parse", "HEAD").strip()
+            except (OSError, subprocess.CalledProcessError) as error:
+                raise Stop("NOT STARTED", f"the tooling clone is not a Git checkout: {error}")
+            problems = fc.git_problems(freeze, head, self.git)
+        if problems:
+            raise Stop("NOT STARTED", "; ".join(problems))
         self.check_binaries("preflight")
         batt = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True).stdout
         if "AC Power" not in (batt.splitlines() or [""])[0]:
@@ -112,13 +130,25 @@ class Part1Runner(v090.Part1Runner):
         return [self.python, "scripts/run_v100q_collect.py", experiment, *args]
 
     def write_records(self) -> None:
-        """The frozen records with this directory's helper scripts and outputs (restored afterwards)."""
+        """The frozen records with this directory's helper scripts and outputs (restored
+        afterwards), preceded by the failure record of plan section 5.5
+        (``part1_failures_v100q.record``: ``logs/failures.jsonl`` classifies every cause of a
+        non-CONFORMING end as product, infrastructure or conformance, and
+        ``logs/part1-outcome.json`` lists FAIL and not-run cells). Each is attempted even if
+        the other fails."""
+        error = None
+        try:
+            p1.record(self.camp, self.status, self.cause)
+        except Exception as exc:  # noqa: BLE001 - the frozen records must still be written
+            error = exc
         saved = base.Q3, base.OUTPUTS
         base.Q3, base.OUTPUTS = V100, self.outputs
         try:
             base.Runner.write_records(self)
         finally:
             base.Q3, base.OUTPUTS = saved
+        if error is not None:
+            raise error
 
     def bc_args(self) -> List[str]:
         t = self.targets

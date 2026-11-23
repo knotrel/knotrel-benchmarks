@@ -27,9 +27,19 @@ run by its own load tool, built at the candidate commit, unchanged:
   the knotrel server or feeder, a readiness timeout, an HTTP error from the server). Anything
   else, including ambiguous evidence, is ``not_infrastructure`` (fail closed): the failed
   observation counts as measured, with its failure, and is never rerun. An infrastructure
-  failure allows **one** rerun of that observation (once per cell and side in the whole block,
-  recorded with its cause); a second failure is final. After a failure, the step's remaining
-  cells run in a continuation step, so no other observation is lost.
+  failure allows **one** rerun of that observation (once per round, side and cell, recorded
+  with its cause); a second infrastructure failure of the same observation loses it, and block
+  Q is then NONCONFORMING (``infrastructure_exhausted`` in ``run.json``), which allows the one
+  rerun of Q as a whole. After a failure, the step's remaining cells run in a continuation
+  step, so no other observation is lost.
+- **Second attempt of Q** (``--attempt2-gate DIR``, used by ``run_part3.sh CAMP 2``): allowed
+  only if the first ended other than COMPLETE, and only for the cap (NONCONFORMING), an
+  infrastructure failure whose rerun was used up (NONCONFORMING), or a runner or tooling error
+  (FAILED) with no product failure recorded. ``--write-marker`` then writes
+  ``superseded_by.json`` into the first attempt; the evaluator accepts only the final attempt.
+- **Cells** (``--check-cells LOAD_RS``, used by ``launch_env_check.sh``): every ``LOAD_CELLS``
+  value of the plan must be a cell key of the load tool (its ``CELLS`` table, in its order); the
+  tool silently skips an unknown key, so a typo would lose observations.
 
 The PostgreSQL admin URL comes from the environment (``KNOTREL_PG_ADMIN_URL``) and is never
 written. Outputs (``OUT``, which must not exist): one directory per step (the tool's
@@ -37,6 +47,8 @@ written. Outputs (``OUT``, which must not exist): one directory per step (the to
 ``host-*.txt`` and ``run.json`` (status, times, binaries and their SHA-256).
 
     run_v100q_q.py CAMP OUT [--cap-s 1800]
+    run_v100q_q.py --check-cells LOAD_RS
+    run_v100q_q.py --attempt2-gate PART3_DIR [--write-marker NEW_NAME]
 """
 
 from __future__ import annotations
@@ -52,7 +64,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cli_paths import confined, confined_directory  # noqa: E402
@@ -65,7 +77,7 @@ ROUNDS = ((1, ("candidate", "reference")), (2, ("reference", "candidate")), (3, 
 SIDES = {"candidate": ("cand-server", CANDIDATE_CELLS), "reference": ("ref-server", REFERENCE_CELLS)}
 #: Environment variables the protocol run must not set (tool defaults apply; no R2 variant).
 REMOVED_ENV = ("LOAD_REPS", "LOAD_CELLS", "LOAD_WINDOW_SECS", "LOAD_BACKLOG", "LOAD_ARM", "LOAD_CALIBRATION",
-               "LOAD_R2_DECIDE", "LOAD_BURN_DUTY", "LOAD_OUT")
+               "LOAD_R2_DECIDE", "LOAD_BURN_DUTY", "LOAD_OUT", "LOAD_PG_PROCESS_PATTERNS")
 REMOVED_PREFIXES = ("LOAD_REMOTE_",)
 
 #: Evidence patterns of plan section 5.5 (closed list). Matched case-insensitively.
@@ -120,10 +132,15 @@ def completed_cells(step_dir: Path) -> List[str]:
 
 
 def classify_failure(stderr_tail: str, before: Dict[str, Any], after: Dict[str, Any]) -> Dict[str, Any]:
-    """``infrastructure`` only for closed-list evidence with no product indication; else not."""
+    """``infrastructure`` only for closed-list evidence with no product indication; else not.
+
+    Power evidence is a ``pmset -g batt`` first line reading "Battery Power"; thermal evidence
+    a recorded thermal or performance warning level. Unavailable readings are no evidence."""
     reasons = []
     for state in (before, after):
-        if "AC Power" not in (str(state.get("power", "")).splitlines() or [""])[0]:
+        # Only a positive battery reading is power evidence; an unavailable or unparsable
+        # pmset output is no evidence (finding N5).
+        if "Battery Power" in (str(state.get("power", "")).splitlines() or [""])[0]:
             reasons.append(f"power: {str(state.get('power', ''))[:120]}")
         therm = str(state.get("therm", ""))
         if re.search(r"(thermal|performance) warning level", therm, re.I) and "No thermal warning level" not in therm:
@@ -143,6 +160,70 @@ def classify_failure(stderr_tail: str, before: Dict[str, Any], after: Dict[str, 
     return {"classification": "not_infrastructure", "evidence": reasons, "why": why}
 
 
+TOOL_CELL = re.compile(r'Cell\s*\{\s*scenario:\s*"(L\d)",\s*graph:\s*"(G\w+)",\s*clients:\s*(\d+),?\s*\}')
+
+
+def tool_cell_keys(load_rs: str) -> List[str]:
+    """Cell keys of the load tool's ``CELLS`` table (``examples/load.rs``), in its order."""
+    start = load_rs.find("const CELLS")
+    if start < 0:
+        return []
+    end = load_rs.find("];", start)
+    return [f"{a} {b} C={c}" for a, b, c in TOOL_CELL.findall(load_rs[start:end])]
+
+
+def cell_problems(load_rs: str) -> List[str]:
+    """Every ``LOAD_CELLS`` value of the three rounds must be a tool cell key, in tool order
+    (the failed observation of a step is the first planned cell without a result)."""
+    keys = tool_cell_keys(load_rs)
+    if not keys:
+        return ["no CELLS table in the load tool source"]
+    problems = []
+    for number, order in ROUNDS:
+        for side in order:
+            cells = list(SIDES[side][1])
+            unknown = [c for c in cells if c not in keys]
+            if unknown:
+                problems.append(f"round{number}-{side}: LOAD_CELLS {unknown} are not cells of the load tool {keys}")
+            elif cells != [k for k in keys if k in cells]:
+                problems.append(f"round{number}-{side}: LOAD_CELLS {cells} are not in the tool's order {keys}")
+    return problems
+
+
+def attempt2_gate(part3: Path) -> Tuple[bool, str]:
+    """Whether block Q may be run a second time after the attempt in ``part3`` (plan section 9).
+
+    Allowed only if that attempt did not end COMPLETE and its cause is the cap or an
+    infrastructure failure whose rerun was used up (both NONCONFORMING), or a runner or tooling
+    error (FAILED) with no product failure recorded in ``failures.jsonl``. A COMPLETE Q is
+    final whatever ``failures.jsonl`` holds; a result never buys a second attempt."""
+    try:
+        run = json.loads((part3 / "run.json").read_text())
+    except (OSError, ValueError) as error:
+        return False, f"no readable run.json in {part3}: {error}"
+    if (part3 / "superseded_by.json").exists():
+        return False, f"{part3} is already superseded"
+    status = run.get("status")
+    failures = []
+    path = part3 / "failures.jsonl"
+    if path.exists():
+        failures = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    product = [f for f in failures if f.get("failed_cell") and f.get("classification") != "infrastructure"]
+    if status == "COMPLETE":
+        return False, "Q ended COMPLETE: it is final, whatever failures.jsonl holds"
+    if status == "NONCONFORMING":
+        if run.get("cap_reached"):
+            return True, "the first Q exceeded its cap (NONCONFORMING)"
+        if run.get("infrastructure_exhausted"):
+            return True, f"infrastructure failure after its one rerun: {run['infrastructure_exhausted']}"
+        return False, f"NONCONFORMING without a recorded cap or exhausted infrastructure rerun: {run.get('cause')}"
+    if status == "FAILED":
+        if product:
+            return False, f"FAILED with a product failure recorded ({product[0].get('step')} {product[0].get('failed_cell')})"
+        return True, f"runner or tooling error with no product failure: {run.get('cause')}"
+    return False, f"status {status!r} allows no second attempt"
+
+
 class QRunner:
     """Runs the three rounds under the cap; ``launch`` is injectable for tests."""
 
@@ -153,8 +234,11 @@ class QRunner:
         self.state = state
         self.targets = camp / "targets"
         self.reruns: Dict[str, str] = {}
+        #: Observations lost to a second infrastructure failure (their one rerun used up).
+        self.infrastructure_exhausted: List[str] = []
         self.status, self.cause = "INCOMPLETE", "the runner ended before its last step"
         self.deadline = 0.0
+        self.cap_reached = False
 
     # -- environment -------------------------------------------------------------------
     def binaries(self) -> Dict[str, Path]:
@@ -201,7 +285,8 @@ class QRunner:
                   "cap_s": self.cap_s, "deadline_utc": utc(self.deadline), "seconds": round(self.clock() - started, 1),
                   "rounds": [{"round": r, "order": list(order)} for r, order in ROUNDS],
                   "cells": {side: list(cells) for side, (_, cells) in SIDES.items()},
-                  "reruns": self.reruns, "binaries": binaries,
+                  "reruns": self.reruns, "infrastructure_exhausted": self.infrastructure_exhausted,
+                  "cap_reached": self.cap_reached, "binaries": binaries,
                   "removed_env": list(REMOVED_ENV) + [p + "*" for p in REMOVED_PREFIXES]}
         (self.out / "run.json").write_text(json.dumps(record, indent=1) + "\n")
 
@@ -237,8 +322,12 @@ class QRunner:
             tail = "\n".join((step_dir / "load.stderr").read_text(errors="replace").splitlines()[-40:]) \
                 if (step_dir / "load.stderr").exists() else ""
             verdict = classify_failure(tail, before, after)
-            key = f"{side}:{failed}"
-            rerun = (verdict["classification"] == "infrastructure" and failed is not None and key not in self.reruns)
+            # One rerun per observation: the round, the side and the cell (finding N4).
+            key = f"{name}:{failed}"
+            infra = verdict["classification"] == "infrastructure" and failed is not None
+            rerun = infra and key not in self.reruns
+            if infra and not rerun:
+                self.infrastructure_exhausted.append(key)
             self.append("failures.jsonl", {"step": step_dir.name, "side": side, "utc": utc(), "exit": code,
                                            "failed_cell": failed, "completed": done, "stderr_tail": tail,
                                            "host_before": before, "host_after": after, **verdict,
@@ -267,8 +356,14 @@ class QRunner:
                     left = self.step(f"round{number}-{side}", side, SIDES[side][1])
                     if left:
                         unobserved[f"round{number}-{side}"] = left
+            self.cap_reached = bool(unobserved)
+            causes = []
             if unobserved:
-                self.status, self.cause = "NONCONFORMING", f"Q BUDGET EXHAUSTED ({self.cap_s / 60:.0f} min): unobserved {unobserved}"
+                causes.append(f"Q BUDGET EXHAUSTED ({self.cap_s / 60:.0f} min): unobserved {unobserved}")
+            if self.infrastructure_exhausted:
+                causes.append(f"INFRASTRUCTURE FAILURE after the one rerun: lost {self.infrastructure_exhausted}")
+            if causes:
+                self.status, self.cause = "NONCONFORMING", "; ".join(causes)
             else:
                 self.status, self.cause = "COMPLETE", "every planned observation ran within the cap"
         except BaseException as error:  # noqa: BLE001 - any stop still writes the run record
@@ -281,12 +376,38 @@ class QRunner:
         return 0 if self.status == "COMPLETE" else 1
 
 
+def gate_main(argv: Sequence[str]) -> int:
+    """``--check-cells LOAD_RS`` and ``--attempt2-gate DIR [--write-marker NAME]``."""
+    if argv[0] == "--check-cells" and len(argv) == 2:
+        problems = cell_problems(Path(argv[1]).read_text())
+        for p in problems:
+            print(p, file=sys.stderr)
+        if not problems:
+            print("Q cells ok: " + ", ".join(tool_cell_keys(Path(argv[1]).read_text())))
+        return 1 if problems else 0
+    if argv[0] == "--attempt2-gate" and len(argv) in (2, 4) and (len(argv) == 2 or argv[2] == "--write-marker"):
+        part3 = Path(argv[1])
+        allowed, reason = attempt2_gate(part3)
+        print(reason, file=sys.stdout if allowed else sys.stderr)
+        if allowed and len(argv) == 4:
+            (part3 / "superseded_by.json").write_text(json.dumps(
+                {"superseded_by": argv[3], "utc": utc(), "reason": reason,
+                 "rule": "plan section 9: Q rerun once as a whole; only the final attempt is evaluated and published"},
+                indent=1) + "\n")
+        return 0 if allowed else 1
+    print(__doc__, file=sys.stderr)
+    return 2
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    args_in = list(sys.argv[1:] if argv is None else argv)
+    if args_in and args_in[0] in ("--check-cells", "--attempt2-gate"):
+        return gate_main(args_in)
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("camp", type=Path)
     parser.add_argument("out", type=Path)
     parser.add_argument("--cap-s", type=float, default=CAP_S)
-    args = parser.parse_args(argv)
+    args = parser.parse_args(args_in)
     args.camp = confined_directory(args.camp, "CAMP")
     args.out = confined(args.out, "OUT")
     if args.out.exists():

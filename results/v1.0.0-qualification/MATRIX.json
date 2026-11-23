@@ -1225,8 +1225,12 @@
   "decision_rule": [
    "the campaign is valid when one Part 1 attempt is CONFORMING and Q completes under its protocol and cap",
    "v1.0.0 is qualified only if the campaign is valid and every deciding cell and criterion is PASS; any other result is reported as it is, for a maintainer decision",
-   "non-PASS results (REGRESSION, FAIL, INCONCLUSIVE, INCONCLUSIVE_DISCLOSED, UNRESOLVED, NOT_EQUIVALENT, INVALID, not run) need a recorded maintainer disposition before v1.0.0-rc.1; a disposition is recorded next to the verdict, never in place of it",
-   "disclosure categories (C4 EXCEEDS_BUDGET, the descriptive B4 frozen counterparts including import-high) and TIMER_LIMITED cells are published and listed, never converted, and do not block",
+   "a deciding REGRESSION or FAIL blocks v1.0.0-rc.1: it is fixed and re-measured; a disposition does not lift it; a disposition is always recorded next to the verdict, never in place of it",
+   "INCONCLUSIVE, INCONCLUSIVE_DISCLOSED and UNRESOLVED (and NOT_EQUIVALENT, plan section 7) need an explicit, recorded maintainer disposition before v1.0.0-rc.1: accepted for v1.0 with the classification kept and disclosed, assigned to v1.2.0 H2 with a criterion, or fixed and re-measured",
+   "INVALID, NONCONFORMING and not run follow plan section 5.5 and the attempt rules: a deciding cell without a valid verdict cannot be disposed as PASS; NONCONFORMING twice (Part 1 or Q) means no rc until the maintainer decides; a Part 1 product failure makes its cell FAIL and the rest of that experiment and every later step not run, and allows no second attempt",
+   "Q3, if not PASS, needs a disposition and a documented operational envelope; the absence of either blocks the rc",
+   "E6 stays explicitly unqualified and needs its own, separate disposition for 1.0; it never becomes PASS",
+   "disclosure categories (C4 EXCEEDS_BUDGET, the descriptive B4 frozen counterparts including import-high) and TIMER_LIMITED cells are published and listed, never converted, and do not block; no v0.9.0 or earlier acceptance is inherited",
    "no rule changes after collection, and no rerun is chosen by its result"
   ]
  }

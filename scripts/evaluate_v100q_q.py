@@ -20,9 +20,14 @@ C=64), one load-tool invocation per round and side.
   not rerun), or whose result lacks a value a criterion needs (for example a feeder that did
   not reach ``ready``), gives every criterion using it no passing value: that criterion is
   FAIL. The tool's own median would silently skip such a value; this rule does not.
-- **Cap.** If ``run.json`` says NONCONFORMING (the 30-minute cap), a criterion whose cells
+- **Cap.** If ``run.json`` says NONCONFORMING (the 30-minute cap, or an infrastructure
+  failure whose one rerun was used up, which loses that observation), a criterion whose cells
   lack their three observations gets no verdict (``null``) and does not count as PASS; Q is
-  then NONCONFORMING as a whole.
+  then NONCONFORMING as a whole. A failed candidate observation still makes its criteria FAIL.
+- **No verdict, never PASS:** a failed v0.9.0 reference observation, or a v0.9.0 median of 0,
+  gives Q5 no verdict with the reason (``no_verdict_reason``).
+- **Final attempt only.** ``part3`` marked ``superseded_by.json`` is refused; ``part3-attempt2``
+  carries the candidate's product failures of ``part3`` (never rerun, plan section 5.5).
 
 Deciding: Q1, Q2, Q4, Q5. Q3 is classified as measured (no acceptance carries over).
 
@@ -139,8 +144,8 @@ def tool_evaluate(results: List[Dict[str, Any]]) -> Dict[str, Any]:
         "Q2": {"pass": q2, "observations": q2_detail,
                "rule": "every L1 observation: last10 median <= 2 x first10 median + 50 ms, retained WAL end <= start + 16 MiB"},
         "Q3": {"pass": q3, "rate_c0": r0, "rate_c16": r16, "rate_c64": r64,
-               "ratio_c16": r16 / r0 if None not in (r16, r0) else None,
-               "ratio_c64": r64 / r0 if None not in (r64, r0) else None,
+               "ratio_c16": r16 / r0 if None not in (r16, r0) and r0 != 0 else None,  # serde: NaN/inf -> null
+               "ratio_c64": r64 / r0 if None not in (r64, r0) and r0 != 0 else None,
                "rule": "L2 G100k: C=16 >= 50 % and C=64 >= 25 % of C=0"},
         "Q4": {"pass": q4, "secs_to_ready_c64": t64, "rule": "L2 G100k C=64: time to ready <= 60 s"}}}
 
@@ -168,8 +173,69 @@ def check_port(step_dir: Path, records: List[Dict[str, Any]]) -> None:
                                      f"{mine[key].get(name, {}).get(field)}: the port is not faithful")
 
 
+def criterion_status(measured: Optional[bool], state: Dict[str, Any], nonconforming: bool,
+                     no_verdict: List[str]) -> Tuple[Optional[str], Optional[str]]:
+    """Status of one criterion and, when it has no verdict, why (never PASS without one).
+
+    A failed candidate observation is FAIL (plan section 5.5), even when block Q is
+    NONCONFORMING: a known FAIL stays visible. A failed v0.9.0 reference observation gives Q5
+    no verdict (it is not a candidate result). Missing observations of a NONCONFORMING block give
+    no verdict; of a COMPLETE block, FAIL. A ratio against a v0.9.0 median of 0 gives no verdict."""
+    if state["failed_observations"]:
+        return "FAIL", None
+    if state.get("reference_failed_observations"):
+        return None, "a v0.9.0 reference observation failed: Q5 has no verdict (PROTOCOL section 4)"
+    if state["missing_observations"] and nonconforming:
+        return None, "block Q did not conform and observations are missing"
+    if state["missing_observations"]:
+        return "FAIL", None
+    if no_verdict:
+        return None, "; ".join(no_verdict)
+    return ("PASS" if measured else "FAIL"), None
+
+
 # -- collection --------------------------------------------------------------------------
 STEP = re.compile(r"^round(?P<round>[1-3])-(?P<side>candidate|reference)(-cont\d+)?$")
+
+
+def product_failures(out: Path) -> Dict[str, List[Dict[str, Any]]]:
+    """Recorded failed observations that count as measured: not infrastructure, not rerun.
+
+    An infrastructure failure that was rerun is replaced by its rerun; one whose rerun was
+    used up loses the observation (it counts as missing, and block Q is NONCONFORMING)."""
+    failures: Dict[str, List[Dict[str, Any]]] = {"candidate": [], "reference": []}
+    path = out / "failures.jsonl"
+    for line in (path.read_text().splitlines() if path.exists() else []):
+        f = json.loads(line)
+        if f.get("failed_cell") and not f.get("rerun") and f.get("classification") != "infrastructure":
+            failures[f["side"]].append(f)
+    return failures
+
+
+def attempts(out: Path) -> Dict[str, Any]:
+    """Only the final attempt of Q is evaluated (plan section 9: Q rerun once, as a whole).
+
+    ``part3`` with a ``superseded_by.json`` marker is refused. ``part3-attempt2`` requires that
+    marker in ``part3``, naming it; the candidate's product failures of ``part3`` are carried
+    into this evaluation, because a product failure is never rerun and counts as measured
+    (plan section 5.5). The exporter must likewise read the final attempt's evaluation only."""
+    marker = out / "superseded_by.json"
+    if marker.exists():
+        raise SystemExit(f"{out.name} is superseded by {json.loads(marker.read_text()).get('superseded_by')}: "
+                         "only the final attempt of Q is evaluated")
+    if out.name == "part3":
+        return {"final_attempt": "part3", "superseded": [], "carried": []}
+    if out.name != "part3-attempt2":
+        raise SystemExit(f"unexpected Q directory name {out.name} (part3 or part3-attempt2)")
+    first = out.parent / "part3"
+    try:
+        named = json.loads((first / "superseded_by.json").read_text()).get("superseded_by")
+    except (OSError, ValueError):
+        named = None
+    if named != out.name:
+        raise SystemExit(f"{first} has no superseded_by.json naming {out.name}: run_part3.sh writes it")
+    carried = [dict(f, carried_from="part3") for f in product_failures(first)["candidate"]]
+    return {"final_attempt": out.name, "superseded": ["part3"], "carried": carried}
 
 
 def collect(out: Path) -> Dict[str, Any]:
@@ -186,46 +252,55 @@ def collect(out: Path) -> Dict[str, Any]:
         for r in flat:
             r["_round"] = int(match["round"])
         records[match["side"]] += flat
-    failures: Dict[str, List[Dict[str, Any]]] = {"candidate": [], "reference": []}
-    path = out / "failures.jsonl"
-    for line in (path.read_text().splitlines() if path.exists() else []):
-        f = json.loads(line)
-        if f.get("failed_cell") and not f.get("rerun"):
-            failures[f["side"]].append(f)
-    return {"run": run, "records": records, "failures": failures}
+    if (out / "superseded_by.json").exists():
+        raise SystemExit(f"{out.name} is superseded: only the final attempt of Q is evaluated")
+    return {"run": run, "records": records, "failures": product_failures(out), "carried": []}
 
 
 def criterion_state(name: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Observation completeness and failures for one criterion (plan sections 5.5 and 9)."""
+    """Observation completeness and failures for one criterion (plan sections 5.5 and 9).
+
+    ``failed_observations`` are the candidate's (they make the criterion FAIL);
+    ``reference_failed_observations`` are the v0.9.0 arm's (Q5 then has no verdict)."""
     cells, paths = USES[name]
     sides = ("candidate", "reference") if name == "Q5" else ("candidate",)
-    failed, missing = [], []
+    failed: Dict[str, List[str]] = {"candidate": [], "reference": []}
+    missing = []
     for side in sides:
         for cell in cells:
             obs = [r for r in data["records"][side] if q.cell_key(r) == cell]
             fails = [f for f in data["failures"][side] if f["failed_cell"] == cell]
             for f in fails:
-                failed.append(f"{side} {cell}: {f.get('step')} exit {f.get('exit')} ({f.get('classification')})")
+                failed[side].append(f"{side} {cell}: {f.get('step')} exit {f.get('exit')} ({f.get('classification')})")
             for r in obs:
                 for p in paths:
                     if get(r, p) is None:
-                        failed.append(f"{side} {cell} round {r['_round']}: no value for {'.'.join(p)}")
+                        failed[side].append(f"{side} {cell} round {r['_round']}: no value for {'.'.join(p)}")
+            if side == "candidate":
+                for f in data.get("carried", []):
+                    if f["failed_cell"] == cell:
+                        failed[side].append(f"{side} {cell}: {f.get('step')} exit {f.get('exit')} "
+                                            f"({f.get('classification')}, carried from superseded {f['carried_from']})")
             if len(obs) + len(fails) < OBSERVATIONS:
                 missing.append(f"{side} {cell}: {len(obs) + len(fails)} of {OBSERVATIONS} observations")
             if len(obs) + len(fails) > OBSERVATIONS:
                 raise SystemExit(f"{side} {cell}: {len(obs) + len(fails)} observations, more than {OBSERVATIONS}")
-    return {"failed_observations": failed, "missing_observations": missing}
+    return {"failed_observations": failed["candidate"], "reference_failed_observations": failed["reference"],
+            "missing_observations": missing}
 
 
 def evaluate(out: Path, baseline_v080: Optional[Path] = None) -> Dict[str, Any]:
+    chain = attempts(out)
     data = collect(out)
+    data["carried"] = chain["carried"]
     nonconforming = data["run"]["status"] != "COMPLETE"
     cand = tool_evaluate(data["records"]["candidate"])
     ref = tool_evaluate(data["records"]["reference"])
     criteria: Dict[str, Any] = {k: dict(v) for k, v in cand["criteria"].items()}
     q5: Dict[str, Any] = {"rule": "L1 G100k C=16 and C=64: candidate median query_rps >= 90 % and median query_p99_ms "
                                   "<= 125 % of the v0.9.0 medians of this session", "cells": {}}
-    q5_pass = True
+    q5_pass: Optional[bool] = True
+    no_verdict = []
     for key in Q5_CELLS:
         c, r = cand["cells"].get(key, {}), ref["cells"].get(key, {})
         values = [x.get(m, {}).get("median") for x in (r, c) for m in ("query_rps", "query_p99_ms")]
@@ -234,23 +309,29 @@ def evaluate(out: Path, baseline_v080: Optional[Path] = None) -> Dict[str, Any]:
             q5_pass = False
             continue
         ref_rps, ref_p99, cand_rps, cand_p99 = values
+        if ref_rps == 0 or ref_p99 == 0:
+            reason = f"a v0.9.0 median is 0 (query_rps {ref_rps}, query_p99_ms {ref_p99}): no ratio, no verdict"
+            q5["cells"][key] = {"query_rps": [ref_rps, cand_rps], "query_p99_ms": [ref_p99, cand_p99], "pass": None,
+                                "reason": reason}
+            no_verdict.append(f"{key}: {reason}")
+            if q5_pass is not False:
+                q5_pass = None
+            continue
         rps_ok, p99_ok = cand_rps / ref_rps >= 0.90, cand_p99 / ref_p99 <= 1.25
         q5["cells"][key] = {"query_rps": [ref_rps, cand_rps], "rps_ratio": cand_rps / ref_rps, "rps_pass": rps_ok,
                             "query_p99_ms": [ref_p99, cand_p99], "p99_ratio": cand_p99 / ref_p99, "p99_pass": p99_ok,
                             "pass": rps_ok and p99_ok}
-        q5_pass = q5_pass and rps_ok and p99_ok
+        if not (rps_ok and p99_ok):
+            q5_pass = False
     q5["pass"] = q5_pass
     criteria["Q5"] = q5
     for name in ("Q1", "Q2", "Q3", "Q4", "Q5"):
         state = criterion_state(name, data)
         criteria[name].update(state)
-        measured = bool(criteria[name]["pass"])
-        if state["missing_observations"] and nonconforming:
-            criteria[name]["status"] = None  # no verdict: block Q did not conform
-        elif state["failed_observations"] or state["missing_observations"]:
-            criteria[name]["status"] = "FAIL"  # no passing value (plan section 5.5)
-        else:
-            criteria[name]["status"] = "PASS" if measured else "FAIL"
+        status, reason = criterion_status(criteria[name]["pass"], state, nonconforming, no_verdict if name == "Q5" else [])
+        criteria[name]["status"] = status
+        if reason:
+            criteria[name]["no_verdict_reason"] = reason
     deciding = {k: criteria[k]["status"] for k in DECIDING}
     result: Dict[str, Any] = {
         "block": "Q", "run_status": data["run"]["status"], "run_cause": data["run"]["cause"],
@@ -259,7 +340,9 @@ def evaluate(out: Path, baseline_v080: Optional[Path] = None) -> Dict[str, Any]:
                          for side, s in (("candidate", cand), ("reference", ref))},
         "candidate_cells": cand["cells"], "reference_cells": ref["cells"], "criteria": criteria,
         "deciding": deciding,
-        "q_pass": (None if nonconforming else all(v == "PASS" for v in deciding.values())),
+        "q_pass": (False if "FAIL" in deciding.values() else
+                   None if nonconforming or None in deciding.values() else True),
+        "final_attempt": chain["final_attempt"], "superseded_attempts": chain["superseded"],
         "Q3": {"status": criteria["Q3"]["status"],
                "note": "classified as measured with unchanged thresholds; the v0.9.0 acceptance does not carry over; "
                        "if not PASS it needs a disposition and a documented operational envelope (plan section 8)"},

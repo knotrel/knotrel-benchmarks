@@ -4,7 +4,7 @@
 # an attempt can be used up. Derived from results/v0.9.0-qualification/launch_env_check.sh: the
 # same checks with this directory's bindings and the v1.0 chain (A block 1 and block 2, B4+C or
 # the full B/C if the core rule triggered, R, Rmem, M_reg; no M_desc, no Part 2), plus block Q's
-# binaries and the Q runner's arguments.
+# binaries, the Q runner's arguments and its LOAD_CELLS against the load tool's cell keys.
 #
 # Usage: launch_env_check.sh CAMP OUT
 # LAUNCH_ENV_MODE=prefreeze (set by prepare_campaign.sh --pre-freeze): there is no freeze record
@@ -81,5 +81,9 @@ for X in cand-server/release/knotrel-server ref-server/release/knotrel-server fe
 done
 python3 scripts/run_v100q_q.py --help > /dev/null 2>&1 || bad "Q runner does not start"
 python3 scripts/evaluate_v100q_q.py --help > /dev/null 2>&1 || bad "Q evaluator does not start"
+# Q dry run: every LOAD_CELLS value of the three rounds is a cell key of the load tool built at
+# the candidate (its CELLS table, in its order); the tool silently skips unknown keys.
+LOAD_RS=$CAMP/src/cand/knotrel/integrations/postgres-feeder/examples/load.rs
+run Q-cells python3 scripts/run_v100q_q.py --check-cells "$LOAD_RS"
 say "LAUNCH-ENV OK"
 echo "LAUNCH-ENV OK"
