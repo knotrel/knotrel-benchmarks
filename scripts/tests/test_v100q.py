@@ -887,10 +887,13 @@ def export_inputs(a_status="PASS"):
             timing.append(dict(metric("window_ns", 5e6, 5.1e6, 0.0, 0.04), id=cid, experiment="B4"))
             rows.append({"id": cid, "kind": "timing", "role": role, "status": "PASS"})
     sustained = [{"id": "C-heap-lifecycle-x", "metric": "net_heap_bytes", "late_over_early": 1.01, "C1": "PASS",
-                  "C2": "PASS", "C3": "PASS"}]
+                  "C2": "PASS", "C3": "PASS"},
+                 {"id": "C-rss-lifecycle-x", "metric": "net_rss_bytes", "late_over_early": 1.4, "C1": "PASS",
+                  "C2": "PASS", "C4": "EXCEEDS_BUDGET"}]
     rows += [{"id": "C-heap-lifecycle-x:C1", "kind": "C1", "role": "deciding", "status": "PASS"},
              {"id": "C-heap-lifecycle-x:C2", "kind": "C2", "role": "deciding", "status": "PASS"},
-             {"id": "C-heap-lifecycle-x:C3", "kind": "C3", "role": "deciding", "status": "PASS"}]
+             {"id": "C-heap-lifecycle-x:C3", "kind": "C3", "role": "deciding", "status": "PASS"},
+             {"id": "C-rss-lifecycle-x:C4", "kind": "C4", "role": "deciding", "status": "EXCEEDS_BUDGET"}]
     r = {"R-core-import-sparse-10k-20-10": dict(metric("observation_ns", 1e6, 0.98e6, -0.03, -0.01),
                                                 verdict="PASS (IMPROVED)")}
     rmem = {"Rmem-import-core-20-10": {"metrics": {"peak_after": {"ref": 100, "cand": 100, "change_pct": 0.0, "verdict": "PASS"},
@@ -908,22 +911,32 @@ def export_inputs(a_status="PASS"):
               "candidate": {"commit": CAND}, "reference": {"tag": "v0.9.0", "commit": REF}}
     return {"freeze": freeze, "a": {"pairs_per_cell": 24, "phase": "final", "cells": a_cells},
             "bc": {"timing": timing, "sustained": sustained}, "bc_report": {"rows": rows}, "r": r, "rmem": rmem,
-            "mreg": mreg, "q": {"criteria": crit, "Q5_v0_8_0": {"cells": {}}}}
+            "mreg": mreg, "q": {"q_status": "COMPLETE", "run_cause": None, "criteria": crit, "Q5_v0_8_0": {"cells": {}}}}
 
 
 class ExportTest(unittest.TestCase):
     URLS = {"campaign": "https://github.com/knotrel/knotrel-benchmarks/tree/x/results/v1.0.0-qualification",
             "evidence": "https://github.com/knotrel/knotrel-benchmarks/tree/x/results/v1.0.0-qualification/analysis"}
 
-    def test_rows_validate_and_keep_intervals_and_verdicts(self):
+    def export(self, inputs):
+        """Build the comparison and check it against the site schema 2."""
         import build_site
         import export_v100q_site as ex
-        comparison, excluded = ex.build(export_inputs(), self.URLS, "Apple M3 4P+4E, 16 GB")
-        data = {"schema_version": 1, "releases": [{"version": "1.0.0", "status": "published", "baseline_policy": "p",
-                                                    "comparisons": [comparison]}]}
-        build_site.validate(data)
+        comparison, excluded = ex.build(inputs, self.URLS, "Apple M3 4P+4E, 16 GB")
+        build_site.validate({"schema_version": 2, "releases": [{"version": "1.0.0", "status": "published",
+                                                                 "schema_version": 2, "baseline_policy": "p",
+                                                                 "comparisons": [comparison]}]})
+        return comparison["results"], excluded, comparison
+
+    def assert_unmeasured(self, r):
+        import build_site
+        self.assertTrue(r["status_reason"].strip())
+        self.assertFalse([k for k in build_site.MEASUREMENTS if r.get(k) is not None])
+
+    def test_rows_validate_and_keep_intervals_and_verdicts(self):
+        rows, excluded, comparison = self.export(export_inputs())
         self.assertEqual((comparison["reference_version"], comparison["reference_sha"]), ("0.9.0", REF))
-        rows = comparison["results"]
+        self.assertTrue(all(r["status"] == "completed" for r in rows))
         a_row = next(r for r in rows if r["experiment"] == "A")
         self.assertIn("97.73 %", a_row["ci_method"])
         self.assertIn("not a 95 % interval", a_row["ci_method"])
@@ -932,31 +945,210 @@ class ExportTest(unittest.TestCase):
         b4 = [r for r in rows if r.get("experiment") == "B4"]
         self.assertEqual(len(b4), 24)  # the 11 listed deciding + 13 descriptive; the 2 E6 cells are report-only
         self.assertTrue(all("96.14 %" in r["ci_method"] and "not v0.9.0" in r["ci_method"] for r in b4))
-        rmem = [r for r in rows if r["experiment"] == "Rmem"]
+        self.assertEqual(sorted({(r["role"] == "deciding", r["category"]) for r in b4}),
+                         [(False, "disclosure"), (True, "decisive")])
+        rmem = [r for r in rows if r["experiment"] == "Rmem" and r["metric"] == "peak_after"]
         self.assertEqual(len(rmem), 1)
         self.assertIsNone(rmem[0]["delta_ci95"])
         self.assertEqual(rmem[0]["ci_unavailable_reason"], "deterministic counts, one run per arm")
         q = [r for r in rows if r["experiment"] == "Q"]
-        self.assertTrue(all(r["ci_unavailable_reason"] == "3 observations; the protocol reports the median and range" for r in q))
-        self.assertIn("FAIL", [r["verdict"] for r in q if r["criterion"] == "Q3"])
+        self.assertTrue(all(r["ci_unavailable_reason"] == "3 observations; the protocol reports the median and range"
+                            for r in q if r["criterion"] != "Q2"))
+        self.assertEqual({r["verdict"] for r in q if r["criterion"] == "Q3"}, {"FAIL"})
+        self.assertEqual({r["category"] for r in q}, {"decisive"})
         mreg = next(r for r in rows if r["metric"] == "requests_per_s")
         self.assertEqual((mreg["candidate"], mreg["reference"], mreg["direction"]), (350.0, 340.0, "higher"))
         self.assertAlmostEqual(mreg["delta_ci95"][0], (math.exp(-0.02) - 1) * 100)
-        self.assertTrue(next(r for r in rows if r["experiment"] == "R")["improved"])
         ids = [e["id"] for e in excluded]
-        for expected in ("B4-http-ops-equivalent-compact-bfs-hub-10000", "C-heap-lifecycle-x:C1", "Q2",
-                         "Q5 against v0.8.0", "Rmem-import-core-20-10:live_after"):
-            self.assertIn(expected, ids)
-        self.assertTrue(any(i.endswith(":link_p99_ns") for i in ids))
+        e6 = MATRIX["experiments"]["B_C"]["equivalent_references"]["not_equivalent"]["cells"]
+        # Plan section 11: only E6 and Q5 against v0.8.0 stay in the campaign report (plus the A
+        # supporting metrics that the frozen analyzer marks REPORT_ONLY, which have no verdict).
+        self.assertEqual(sorted(i for i in ids if not i.endswith(":link_p99_ns")), sorted(e6 + ["Q5 against v0.8.0"]))
+        self.assertTrue(all(e["status"] == "REPORT_ONLY" for e in excluded if e["id"].endswith(":link_p99_ns")))
+        for scenario in ("C-heap-lifecycle-x C1 (rule at every checkpoint)", "C-heap-lifecycle-x C2 (rule at every checkpoint)",
+                         "Q2 L1 (rule on every observation)"):
+            r = next(x for x in rows if x["scenario"] == scenario)
+            self.assertEqual((r["verdict"], r["category"], r["status"], r["reference_kind"]),
+                             ("PASS", "decisive", "completed", "threshold"))
+            self.assertTrue(r["estimate_unavailable_reason"])
+            self.assertFalse([k for k in ("delta_pct", "delta_ci95", "candidate", "reference") if r.get(k) is not None])
+        self.assertFalse([r for r in rows if r["scenario"] in e6])  # E6: campaign report only (plan section 11)
 
-    def test_classes_outside_the_schema_are_never_mapped(self):
-        import export_v100q_site as ex
-        for status in ("INCONCLUSIVE_DISCLOSED", "UNRESOLVED"):
-            with self.subTest(status), self.assertRaisesRegex(ex.ExportError, status):
-                ex.build(export_inputs(status), self.URLS, "env")
+    def test_a_classes_are_published_verbatim(self):
+        for status in ("PASS", "REGRESSION", "INCONCLUSIVE_DISCLOSED", "UNRESOLVED"):
+            with self.subTest(status):
+                rows, _, _ = self.export(export_inputs(status))
+                a = [r for r in rows if r["experiment"] == "A" and r["role"] == "deciding"]
+                self.assertEqual(len(a), len(p0.QUALIFICATION_CELL_IDS))
+                self.assertEqual({(r["verdict"], r["category"], r["status"]) for r in a},
+                                 {(status, "decisive", "completed")})
+
+    def test_b4_classes_categories_and_not_equivalent(self):
         inputs = export_inputs()
-        inputs["bc_report"]["rows"][0]["status"] = "TIMER_LIMITED"
+        rows_in = inputs["bc_report"]["rows"]
+        deciding = [r for r in rows_in if r["kind"] == "timing" and r["role"] == "deciding"]
+        descriptive = [r for r in rows_in if r["kind"] == "timing" and r["role"] == "descriptive"]
+        deciding[0]["status"] = "TIMER_LIMITED"
+        deciding[1].update(status="NOT_EQUIVALENT", measured_status="PASS")
+        deciding[2]["status"] = "INCONCLUSIVE"
+        deciding[3]["status"] = "REGRESSION"
+        high = next(r for r in descriptive if "import-high" in r["id"])
+        high["status"] = "REGRESSION"
+        rows, _, _ = self.export(inputs)
+        by_id = {r["scenario"]: r for r in rows if r["experiment"] == "B4"}
+        for cell, verdict in ((deciding[0]["id"], "TIMER_LIMITED"), (deciding[1]["id"], "NOT_EQUIVALENT"),
+                              (deciding[2]["id"], "INCONCLUSIVE"), (deciding[3]["id"], "REGRESSION")):
+            self.assertEqual((by_id[cell]["verdict"], by_id[cell]["category"], by_id[cell]["status"]),
+                             (verdict, "decisive", "completed"))
+            self.assertIsNotNone(by_id[cell]["candidate"])  # TIMER_LIMITED keeps its numbers
+        self.assertEqual(by_id[deciding[1]["id"]]["measured_status"], "PASS")
+        h = by_id[f"{high['id']} (descriptive)"]
+        self.assertEqual((h["verdict"], h["category"], h["status"]), ("REGRESSION", "disclosure", "completed"))
+
+    def test_c3_decisive_and_c4_disclosure(self):
+        inputs = export_inputs()
+        next(r for r in inputs["bc_report"]["rows"] if r["kind"] == "C3")["status"] = "FAIL"
+        rows, _, _ = self.export(inputs)
+        c = {r["metric"].split(" ")[0]: r for r in rows if r["experiment"] == "C"}
+        self.assertEqual((c["net_heap_bytes"]["verdict"], c["net_heap_bytes"]["category"]), ("FAIL", "decisive"))
+        self.assertEqual((c["net_rss_bytes"]["verdict"], c["net_rss_bytes"]["category"], c["net_rss_bytes"]["status"]),
+                         ("EXCEEDS_BUDGET", "disclosure", "completed"))
+
+    def test_r_qualifier_and_rmem_regression(self):
+        inputs = export_inputs()
+        inputs["rmem"]["Rmem-import-core-20-10"]["metrics"]["peak_after"].update(cand=130, verdict="REGRESSION")
+        rows, _, _ = self.export(inputs)
+        r = next(x for x in rows if x["experiment"] == "R")
+        self.assertEqual((r["verdict"], r["metric_status"], r["category"]), ("PASS (IMPROVED)", "PASS", "decisive"))
+        self.assertTrue(r["improved"])
+        self.assertEqual(next(x for x in rows if x["experiment"] == "Rmem")["verdict"], "REGRESSION")
+        inputs = export_inputs()
+        inputs["r"]["R-core-import-sparse-10k-20-10"].update(status="INCONCLUSIVE", verdict="INCONCLUSIVE")
+        rows, _, _ = self.export(inputs)
+        self.assertEqual(next(x for x in rows if x["experiment"] == "R")["verdict"], "INCONCLUSIVE")
+
+    def test_mreg_invalid_cells(self):
+        inputs = export_inputs()
+        inputs["mreg"]["result"]["Mreg-bad"] = {"verdict": "INVALID", "invalid_observations": ["Mreg-bad-cand-3: import_starved=True"]}
+        inputs["mreg"]["result"]["Mreg-x"]["verdict"] = "INVALID"
+        rows, excluded, _ = self.export(inputs)
+        bad = next(r for r in rows if r["scenario"] == "Mreg-bad")
+        self.assertEqual((bad["verdict"], bad["category"], bad["status"]), ("INVALID", "decisive", "failed"))
+        self.assertIn("import_starved=True", bad["status_reason"])
+        self.assert_unmeasured(bad)
+        self.assertNotIn("Mreg-bad", [e["id"] for e in excluded])
+        self.assertEqual({(r["verdict"], r["status"]) for r in rows if r["scenario"] == "Mreg-x"}, {("INVALID", "completed")})
+
+    def test_q_nonconforming_and_failed_criteria(self):
+        inputs = export_inputs()
+        q = inputs["q"]
+        q.update(q_status="NONCONFORMING", run_cause="cap")
+        q["criteria"]["Q4"].update(status=None, missing_observations=["candidate L2 G100k C=64: 2 of 3 observations"])
+        q["criteria"]["Q1"].update(status="FAIL", marker_p99_ms=None, marker_max_ms=None,
+                                   failed_observations=["candidate L1 G100k C=16: run exit 101 (product)"])
+        q["criteria"]["Q5"].update(status=None, missing_observations=["reference L1 G100k C=64: 1 of 3 observations"])
+        q["criteria"]["Q5"]["cells"]["L1 G100k C=64"] = {"pass": False, "reason": "a median is missing"}
+        rows, _, _ = self.export(inputs)
+        q4 = next(r for r in rows if r.get("criterion") == "Q4")
+        self.assertEqual((q4["verdict"], q4["status"], q4["category"]), (None, "nonconforming", "decisive"))
+        self.assertIn("2 of 3 observations", q4["status_reason"])
+        self.assert_unmeasured(q4)
+        q1 = [r for r in rows if r.get("criterion") == "Q1"]
+        self.assertEqual({(r["verdict"], r["status"]) for r in q1}, {("FAIL", "failed")})
+        self.assertIn("exit 101", q1[0]["status_reason"])
+        for r in q1:
+            self.assert_unmeasured(r)
+        q5 = [r for r in rows if r.get("criterion") == "Q5"]
+        self.assertEqual(len(q5), 4)
+        self.assertEqual({(r["verdict"], r["status"]) for r in q5}, {(None, "nonconforming")})
+
+    def test_q_inconsistent_inputs_fail_closed(self):
+        import export_v100q_site as ex
+        inputs = export_inputs()
+        inputs["q"]["criteria"]["Q4"]["status"] = None  # no verdict although block Q is COMPLETE
+        with self.assertRaisesRegex(ex.ExportError, "no verdict"):
+            ex.build(inputs, self.URLS, "env")
+        inputs = export_inputs()
+        inputs["q"]["criteria"]["Q4"]["secs_to_ready_c64"] = None  # PASS without a value
+        with self.assertRaisesRegex(ex.ExportError, "without a value"):
+            ex.build(inputs, self.URLS, "env")
+
+    def test_deciding_rule_verdicts_are_published(self):
+        """N3: C2 FAIL, Q2 FAIL, an M_reg INVALID cell and an Rmem zero reference are site rows."""
+        inputs = export_inputs()
+        next(r for r in inputs["bc_report"]["rows"] if r["id"] == "C-heap-lifecycle-x:C2")["status"] = "FAIL"
+        inputs["q"]["criteria"]["Q2"].update(status="FAIL", failed_observations=["candidate L1 G100k C=16 round 2: lag over 3 s"])
+        inputs["mreg"]["result"]["Mreg-bad"] = {"verdict": "INVALID", "invalid_observations": ["Mreg-bad-ref-1: errors 3"]}
+        inputs["rmem"]["Rmem-import-core-20-10"]["metrics"]["live_after"].update(cand=64, verdict="REGRESSION")
+        rows, excluded, _ = self.export(inputs)
+        c2 = next(r for r in rows if r["scenario"] == "C-heap-lifecycle-x C2 (rule at every checkpoint)")
+        self.assertEqual((c2["verdict"], c2["category"], c2["status"]), ("FAIL", "decisive", "completed"))
+        q2 = next(r for r in rows if r.get("criterion") == "Q2")
+        self.assertEqual((q2["verdict"], q2["category"], q2["status"], q2["reference_kind"]),
+                         ("FAIL", "decisive", "completed", "threshold"))
+        self.assertIn("lag over 3 s", q2["estimate_unavailable_reason"])
+        bad = next(r for r in rows if r["scenario"] == "Mreg-bad")
+        self.assertEqual((bad["verdict"], bad["status"]), ("INVALID", "failed"))
+        live = next(r for r in rows if r["experiment"] == "Rmem" and r["metric"] == "live_after")
+        self.assertEqual((live["verdict"], live["category"], live["status"], live["candidate"], live["reference"]),
+                         ("REGRESSION", "decisive", "completed", 64, 0))
+        self.assertIsNone(live.get("delta_pct"))
+        self.assertIn("zero", live["estimate_unavailable_reason"])
+        for r in (c2, q2):
+            self.assertFalse([k for k in ("delta_pct", "delta_ci95", "candidate", "reference") if r.get(k) is not None])
+        ids = {e["id"] for e in excluded}
+        self.assertFalse(ids & {"C-heap-lifecycle-x:C2", "Q2", "Mreg-bad", "Rmem-import-core-20-10:live_after"})
+
+    def test_core_rule_rows_and_unknown_kinds(self):
+        import export_v100q_site as ex
+        inputs = export_inputs()
+        inputs["bc_report"]["rows"] += [{"id": "B5-x", "kind": "B5", "role": "deciding", "status": "FAIL"},
+                                        {"id": "T5-P_max-hub", "kind": "T5", "role": "deciding", "status": "INVALID",
+                                         "reason": "no build record"}]
+        rows, _, _ = self.export(inputs)
+        b5 = next(r for r in rows if r["scenario"] == "B5-x")
+        self.assertEqual((b5["verdict"], b5["status"]), ("FAIL", "completed"))
+        t5 = next(r for r in rows if r["scenario"] == "T5-P_max-hub")
+        self.assertEqual((t5["verdict"], t5["status"]), ("INVALID", "failed"))
+        inputs["bc_report"]["rows"].append({"id": "Z", "kind": "Z9", "role": "deciding", "status": "PASS"})
+        with self.assertRaisesRegex(ex.ExportError, "unknown B/C row kind"):
+            ex.build(inputs, self.URLS, "env")
+
+    def test_not_run_rows(self):
+        import export_v100q_site as ex
+        inputs = export_inputs()
+        inputs["not_run"] = [{"experiment": "R", "scenario": "R-core-churn-x", "metric": "observation_ns",
+                              "reason": "R stopped after the product failure of R-core-import-y (plan section 5.5)"}]
+        rows, _, _ = self.export(inputs)
+        nr = next(r for r in rows if r["scenario"] == "R-core-churn-x")
+        self.assertEqual((nr["verdict"], nr["category"], nr["status"]), ("NOT_RUN", "decisive", "not_run"))
+        self.assert_unmeasured(nr)
+        for bad, message in (({"reason": ""}, "needs a reason"), ({"reason": None}, "needs a reason"),
+                             ({"scenario": "R-core-import-sparse-10k-20-10"}, "classified"),
+                             ({"category": "optional"}, "unknown category"), ({"metric": " "}, "metric is required")):
+            entry = dict(inputs["not_run"][0], **bad)
+            with self.subTest(bad), self.assertRaisesRegex(ex.ExportError, message):
+                ex.build(dict(inputs, not_run=[entry]), self.URLS, "env")
+
+    def test_unknown_classes_still_fail_closed(self):
+        import export_v100q_site as ex
+        with self.assertRaisesRegex(ex.ExportError, "PASS_ISH"):
+            ex.build(export_inputs("PASS_ISH"), self.URLS, "env")
+        inputs = export_inputs()
+        inputs["bc_report"]["rows"][0]["status"] = "TIMER_LIMITED?"
         with self.assertRaisesRegex(ex.ExportError, "TIMER_LIMITED"):
+            ex.build(inputs, self.URLS, "env")
+        inputs = export_inputs()
+        inputs["r"]["R-core-import-sparse-10k-20-10"]["verdict"] = "PASS (FASTER)"
+        with self.assertRaisesRegex(ex.ExportError, "PASS \\(FASTER\\)"):
+            ex.build(inputs, self.URLS, "env")
+        inputs = export_inputs()
+        inputs["mreg"]["result"]["Mreg-bad"] = {"verdict": "PASS"}  # no metrics, yet not INVALID
+        with self.assertRaisesRegex(ex.ExportError, "impossible"):
+            ex.build(inputs, self.URLS, "env")
+        inputs = export_inputs()
+        inputs["bc_report"]["rows"][0]["role"] = "advisory"
+        with self.assertRaisesRegex(ex.ExportError, "unknown B4 role"):
             ex.build(inputs, self.URLS, "env")
 
     def test_cli_never_publishes(self):
@@ -974,6 +1166,9 @@ class ExportTest(unittest.TestCase):
                     "--evidence-url", self.URLS["evidence"], "--environment", "env",
                     "--releases", str(ROOT / "docs/data/releases.json"), "--decision", str(decision)]
             out = ["--out", str(root / "releases.json"), "--report-only", str(root / "excluded.json")]
+            not_run = root / "not_run.json"
+            not_run.write_text(json.dumps({"not_run": [{"experiment": "R", "scenario": "R-core-churn-x",
+                                                        "metric": "observation_ns", "reason": "chain stopped"}]}))
             with mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": ""}), self.assertRaisesRegex(SystemExit, "outside the allowed roots"):
                 ex.main(base + out)  # paths outside the allowed roots are refused
             roots = mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d})
@@ -986,11 +1181,13 @@ class ExportTest(unittest.TestCase):
                 ex.main(base + ["--out", str(ROOT / "docs/data/x.json"), "--report-only", str(root / "e.json")])
             before = (ROOT / "docs/data/releases.json").read_bytes()
             with mock.patch("sys.stdout"):
-                self.assertEqual(ex.main(base + out), 0)
+                self.assertEqual(ex.main(base + out + ["--not-run", str(not_run)]), 0)
             self.assertEqual((ROOT / "docs/data/releases.json").read_bytes(), before)
             data = json.loads((root / "releases.json").read_text())
         entry = next(r for r in data["releases"] if r["version"] == "1.0.0")
         self.assertEqual(entry["status"], "published")
+        self.assertEqual((data["schema_version"], entry["schema_version"]), (2, 2))
+        self.assertIn("R-core-churn-x", [r["scenario"] for r in entry["comparisons"][0]["results"]])
         self.assertEqual(json.loads(before)["releases"][0]["status"], "planned")
 
 
