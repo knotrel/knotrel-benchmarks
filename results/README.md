@@ -27,7 +27,12 @@ This directory contains recorded benchmark and performance evaluation reports. E
 - **Scope**: Knotrel `e827b2a` against the published v0.7.0 (deciding reference) and v0.8.0 (descriptive reference), re-running the v0.7.0 qualification-3 method unchanged except where the protocol says.
 - **Key Results**: campaign execution VALID (attempt 2 CONFORMING); release ACCEPTED WITH EXCEPTIONS, for v0.9.0 only. Five deciding results are not PASS; the decision record lists them.
 
-### 5. Latest Performance Evaluation Summary (`perf_evaluation_latest.json`)
+### 5. Next Release Qualification, v1.0.0 (`v1.0.0-qualification/`)
+- **Protocol (draft, not frozen)**: [v1.0.0-qualification/PROTOCOL.md](v1.0.0-qualification/PROTOCOL.md) (matrix: [MATRIX.json](v1.0.0-qualification/MATRIX.json); freeze template: [FREEZE.template.json](v1.0.0-qualification/FREEZE.template.json))
+- **Scope**: the candidate (chosen at the freeze) against the published v0.9.0 on the reduced perimeter approved by the maintainer (A at a fixed n = 24, B4, C, R, Rmem, M_reg, Q with a same-session Q5 v0.9.0 arm; block D excluded).
+- **Key Results**: none. Tooling only; nothing is frozen and nothing has been measured.
+
+### 6. Latest Performance Evaluation Summary (`perf_evaluation_latest.json`)
 - Continuous performance metrics and regression gate output.
 
 ## Earlier Release Evidence at Tags
