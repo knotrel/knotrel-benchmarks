@@ -1,7 +1,9 @@
 """Check publication integrity without running performance workloads."""
 import copy
 import importlib.util
+import html
 import json
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 import unittest
@@ -89,6 +91,193 @@ class SiteTests(unittest.TestCase):
         self.data['releases'][0]['status'] = 'planned'
         with self.assertRaises(AssertionError):
             site.validate(self.data)
+
+
+FIXTURE = Path(__file__).parent / 'fixtures' / 'site_all_outcomes.json'
+
+
+class SchemaTwoTests(unittest.TestCase):
+    """Schema 2: verdict, category and execution status as three separate fields."""
+
+    def setUp(self):
+        self.data = json.loads(FIXTURE.read_text())
+        self.rows = self.data['releases'][0]['comparisons'][0]['results']
+
+    def row(self, scenario):
+        return next(r for r in self.rows if r['scenario'] == scenario)
+
+    def rejects(self):
+        with self.assertRaises((AssertionError, KeyError)):
+            site.validate(self.data)
+
+    def test_fixture_holds_every_outcome_and_is_valid(self):
+        site.validate(self.data)
+        self.assertEqual({r['verdict'] for r in self.rows}, set(site.VERDICTS) | {None})
+        self.assertEqual({r['category'] for r in self.rows}, set(site.CATEGORIES))
+        self.assertEqual({r['status'] for r in self.rows}, set(site.STATUSES))
+
+    def test_every_verdict_accepted(self):
+        for verdict in site.MEASURED_VERDICTS:
+            with self.subTest(verdict):
+                self.row('fixture-pass')['verdict'] = verdict
+                site.validate(self.data)
+
+    def test_unknown_verdict_rejected(self):
+        for verdict in ('PASSED', 'pass', 'PASS(IMPROVED)', 'NOT RUN', '', 'IMPROVED'):
+            with self.subTest(verdict):
+                self.setUp()
+                self.row('fixture-pass')['verdict'] = verdict
+                self.rejects()
+        self.setUp()
+        del self.row('fixture-pass')['verdict']
+        self.rejects()
+
+    def test_category_and_status_enums_enforced(self):
+        for key, value in (('category', 'deciding'), ('category', None), ('status', 'done'), ('status', 'NOT_RUN')):
+            with self.subTest((key, value)):
+                self.setUp()
+                self.row('fixture-pass')[key] = value
+                self.rejects()
+        for key in ('category', 'status'):
+            with self.subTest(missing=key):
+                self.setUp()
+                del self.row('fixture-pass')[key]
+                self.rejects()
+
+    def test_verdict_must_match_status(self):
+        for scenario, verdict in (('fixture-pass', 'NOT_RUN'), ('fixture-pass', None), ('fixture-not-run', 'PASS'),
+                                  ('fixture-not-run', None), ('fixture-nonconforming', 'PASS'),
+                                  ('fixture-failed', 'PASS'), ('fixture-failed', 'NOT_RUN')):
+            with self.subTest((scenario, verdict)):
+                self.setUp()
+                self.row(scenario)['verdict'] = verdict
+                self.rejects()
+
+    def test_not_run_requires_reason(self):
+        for scenario in ('fixture-not-run', 'fixture-nonconforming', 'fixture-failed'):
+            for reason in (None, '', '   '):
+                with self.subTest((scenario, reason)):
+                    self.setUp()
+                    self.row(scenario)['status_reason'] = reason
+                    self.rejects()
+            with self.subTest((scenario, 'absent')):
+                self.setUp()
+                del self.row(scenario)['status_reason']
+                self.rejects()
+
+    def test_not_run_with_values_rejected(self):
+        values = {'candidate': 1, 'reference': 1, 'delta_pct': 0.0, 'delta_ci95': [-1, 1],
+                  'candidate_ci95': [0, 2], 'reference_ci95': [0, 2], 'runs': 3}
+        for scenario in ('fixture-not-run', 'fixture-nonconforming', 'fixture-failed'):
+            for key, value in values.items():
+                with self.subTest((scenario, key)):
+                    self.setUp()
+                    self.row(scenario)[key] = value
+                    self.rejects()
+        self.setUp()
+        self.row('fixture-not-run').update(candidate=None, reference=None, delta_pct=None, delta_ci95=None)
+        site.validate(self.data)  # null is the same as absent
+
+    def test_rule_rows_carry_no_estimate(self):
+        for key, value in (('delta_pct', 1.0), ('delta_ci95', [0, 1]), ('reference', -1), ('runs', 0)):
+            with self.subTest(key):
+                self.setUp()
+                self.row('fixture-rule')[key] = value
+                self.rejects()
+        self.setUp()
+        self.row('fixture-rule')['estimate_unavailable_reason'] = ' '
+        self.rejects()
+        self.setUp()
+        self.row('fixture-rule').update(candidate=64, reference=0)  # zero reference needs its unit
+        self.rejects()
+        self.row('fixture-rule')['unit'] = 'bytes'
+        site.validate(self.data)
+
+    def test_completed_rows_keep_schema_one_rules(self):
+        for key, value in (('delta_pct', 50.0), ('runs', True), ('reference', 0), ('ci_method', '')):
+            with self.subTest(key):
+                self.setUp()
+                self.row('fixture-pass')[key] = value
+                self.rejects()
+
+    def test_release_schema_versions(self):
+        self.data['schema_version'] = 1
+        self.rejects()  # a release cannot be newer than the dataset
+        self.setUp()
+        self.data['releases'][0]['schema_version'] = 3
+        self.rejects()
+        self.setUp()
+        self.data['schema_version'] = 3
+        self.rejects()
+
+    def test_old_entries_still_valid(self):
+        old = json.loads((site.DOCS / 'data/releases.json').read_text())
+        site.validate(old)
+        legacy = dict(scenario='legacy', metric='latency', unit='ms', direction='lower', candidate=11, reference=10,
+                      delta_pct=10, runs=12, verdict='REGRESSION', ci_method='paired bootstrap',
+                      candidate_ci95=[10, 12], reference_ci95=[9, 11], delta_ci95=[5, 15],
+                      evidence_url='https://example.org/legacy')
+        entry = dict(version='0.9.0', status='published', baseline_policy='legacy entry',
+                     comparisons=[dict(candidate_sha='c'*40, reference_sha='d'*40, reference_version='0.8.0',
+                                       environment='legacy', campaign_url='https://example.org/legacy',
+                                       results=[legacy])])
+        for version in (1, 2):  # unchanged in a schema 1 file and inside a schema 2 file
+            with self.subTest(version):
+                data = {'schema_version': version, 'releases': [copy.deepcopy(entry)]}
+                site.validate(data)
+                page = site.generate(data)['releases/0.9.0.html']
+                self.assertIn('>REGRESSION<', page)
+                self.assertIn('>decisive<', page)  # documented schema 1 defaults
+                self.assertIn('>completed<', page)
+                self.assertIn('95% CI', page)
+        bad = copy.deepcopy(entry)
+        bad['comparisons'][0]['results'][0]['verdict'] = 'UNRESOLVED'  # schema 1 keeps its six verdicts
+        with self.assertRaises(AssertionError):
+            site.validate({'schema_version': 2, 'releases': [bad]})
+
+    def test_rendering_shows_each_outcome_unchanged(self):
+        outputs = site.generate(self.data)
+        page = outputs['releases/1.0.0.html']
+        body = page.split('<tbody>', 1)[1].split('</tbody>', 1)[0]
+        trs = re.findall(r'<tr>(.*?)</tr>', body)
+        self.assertEqual(len(trs), len(self.rows))
+        for tr, row in zip(trs, self.rows):
+            with self.subTest(row['scenario']):
+                cells = re.findall(r'<td[^>]*>(.*?)</td>', tr)
+                text = [html.unescape(re.sub(r'<[^>]+>', '', c)) for c in cells]
+                self.assertEqual(text[0], row['scenario'])
+                self.assertEqual(text[3], 'No verdict' if row['verdict'] is None else row['verdict'])
+                self.assertEqual(text[4], row['category'])
+                self.assertEqual(text[5], row['status'].replace('_', ' '))
+                if row['status'] == 'completed':
+                    self.assertEqual(len(cells), len(site.COLUMNS))
+                    self.assertNotIn('No measurements', tr)
+                else:
+                    self.assertIn(f'colspan="{len(site.MEASURE_COLUMNS)}"', tr)
+                    self.assertIn(html.escape(row['status_reason']), tr)
+                    measure = text[6]
+                    self.assertTrue(measure.startswith('No measurements.'))
+                    self.assertFalse(re.search(r'\d', measure.replace(row['status_reason'], '')))
+                    self.assertFalse(re.search(r'\d', ''.join(text[:6] + text[7:-1]).replace(row['scenario'], '')))
+                    self.assertNotIn(row['scenario'], page.split('interval-plots', 1)[-1])
+        self.assertIn('class="verdict tone-ok verdict-pass-improved">PASS (IMPROVED)<', page)
+        self.assertIn('class="verdict tone-none verdict-not-run">NOT_RUN<', page)
+        self.assertIn('class="verdict tone-none verdict-no-verdict">No verdict<', page)
+        self.assertIn('fixture: a rule, no single estimate', page)
+        self.assertIn('Reading the tables', page)
+        self.assertNotIn('95% CI', page)  # schema 2 intervals carry their own coverage in ci_method
+        for name, output in outputs.items():
+            parser = Links()
+            parser.feed(output)
+            for link in parser.paths:
+                self.assertTrue((site.DOCS / name).parent.joinpath(link).exists(), (name, link))
+
+    def test_json_keeps_each_verdict_text(self):
+        site.generate(self.data)
+        dumped = json.dumps(self.data)
+        for verdict in site.VERDICTS:
+            self.assertIn(json.dumps(verdict), dumped)
+        self.assertEqual(json.loads(FIXTURE.read_text()), self.data)  # rendering never rewrites the data
 
 
 if __name__ == '__main__':

@@ -17,19 +17,144 @@ def esc(value):
     return html.escape(str(value), quote=True)
 
 
+#: Schema 1 verdicts. Schema 1 rows keep exactly these rules.
+VERDICTS_V1 = ('PASS', 'FAIL', 'REGRESSION', 'INCONCLUSIVE', 'INVALID', 'NOT_EQUIVALENT')
+#: Every measured class an analyzer of the v1.0.0 plan can emit (plan section 7), kept verbatim:
+#: none is converted into PASS or merged into another.
+MEASURED_VERDICTS = VERDICTS_V1 + ('PASS (IMPROVED)', 'INCONCLUSIVE_DISCLOSED', 'UNRESOLVED',
+                                   'TIMER_LIMITED', 'EXCEEDS_BUDGET')
+NOT_RUN = 'NOT_RUN'
+#: Schema 2 verdict tokens. JSON null (no verdict) is valid only with status ``nonconforming``.
+VERDICTS = MEASURED_VERDICTS + (NOT_RUN,)
+#: Role of a row in the campaign's decision rule (docs/SITE.md).
+CATEGORIES = ('decisive', 'descriptive', 'disclosure')
+#: Execution status -> the verdicts it admits (None = no verdict). Closed set (docs/SITE.md).
+STATUS_VERDICTS = {
+    'completed': MEASURED_VERDICTS,
+    'not_run': (NOT_RUN,),
+    'nonconforming': (None,),
+    'failed': ('FAIL', 'INVALID'),
+}
+STATUSES = tuple(STATUS_VERDICTS)
+#: How a schema 1 row is read. Schema 1 could only express complete rows that carry a campaign
+#: verdict with every estimate, so these defaults restate it; the stored row is never rewritten.
+LEGACY_DEFAULTS = {'category': 'decisive', 'status': 'completed'}
+#: Fields that hold measured values; a row that is not ``completed`` has none of them.
+MEASUREMENTS = ('candidate', 'reference', 'delta_pct', 'candidate_ci95', 'reference_ci95', 'delta_ci95', 'runs')
+EXACT_VERSION = r'\d+\.\d+\.\d+'
+
+
+def row_schema(release):
+    """Row schema of a release entry: its ``schema_version``, 1 when absent (older entries)."""
+    return release.get('schema_version', 1)
+
+
+def outcome(row, schema):
+    """(verdict, category, status) of a row, applying the documented schema 1 defaults."""
+    if schema == 1:
+        return row['verdict'], LEGACY_DEFAULTS['category'], LEGACY_DEFAULTS['status']
+    return row['verdict'], row['category'], row['status']
+
+
+def nonempty(value):
+    return isinstance(value, str) and value.strip() != ''
+
+
+def validate_measurements(row):
+    """Estimates, delta and intervals of a completed row (unchanged schema 1 rules)."""
+    assert isinstance(row['ci_method'], str) and row['ci_method']
+    assert isinstance(row['runs'], int) and row['runs'] > 0
+    for key in ('candidate', 'reference', 'delta_pct'):
+        assert isinstance(row[key], (int, float)) and math.isfinite(row[key])
+    assert row['candidate'] >= 0 and row['reference'] > 0
+    expected = 100 * (row['candidate'] / row['reference'] - 1)
+    assert abs(expected - row['delta_pct']) < 0.05, 'Delta disagrees with estimates'
+    for key in ('candidate_ci95', 'reference_ci95', 'delta_ci95'):
+        interval = row.get(key)
+        if interval is None:
+            assert row.get('ci_unavailable_reason'), 'Explain unavailable uncertainty'
+        else:
+            assert len(interval) == 2 and all(math.isfinite(x) for x in interval)
+            assert interval[0] <= interval[1]
+
+
+def validate_row_v1(row):
+    for key in ('scenario', 'metric', 'unit', 'direction', 'verdict', 'ci_method'):
+        assert isinstance(row[key], str) and row[key]
+    assert row['direction'] in ('lower', 'higher')
+    assert row['verdict'] in VERDICTS_V1, 'Unknown schema 1 verdict'
+    validate_measurements(row)
+
+
+def validate_row_v2(row):
+    for key in ('scenario', 'metric'):
+        assert nonempty(row[key])
+    verdict, category, status = row.get('verdict', 'missing'), row.get('category'), row.get('status')
+    assert verdict is None or verdict in VERDICTS, f'Unknown verdict {verdict!r}'
+    assert category in CATEGORIES, f'Unknown category {category!r}'
+    assert status in STATUSES, f'Unknown status {status!r}'
+    assert verdict in STATUS_VERDICTS[status], f'Verdict {verdict!r} is impossible with status {status}'
+    if row.get('direction') is not None:
+        assert row['direction'] in ('lower', 'higher')
+    if status == 'completed' and row.get('estimate_unavailable_reason') is not None:
+        validate_rule_row(row)
+    elif status == 'completed':
+        for key in ('unit', 'direction'):
+            assert nonempty(row[key])
+        assert not isinstance(row['runs'], bool)
+        validate_measurements(row)
+    else:
+        assert nonempty(row.get('status_reason')), f'A {status} row requires a status_reason'
+        measured = [key for key in MEASUREMENTS if row.get(key) is not None]
+        assert not measured, f'A {status} row cannot carry measurements: {measured}'
+
+
+def validate_rule_row(row):
+    """A completed row whose verdict has no ratio or interval (a rule, or a zero reference).
+
+    The reason is mandatory; no delta or interval may appear, and any value shown is finite."""
+    assert nonempty(row['estimate_unavailable_reason']), 'Explain the missing estimate'
+    present = [key for key in ('delta_pct', 'candidate_ci95', 'reference_ci95', 'delta_ci95') if row.get(key) is not None]
+    assert not present, f'A row without an estimate cannot carry {present}'
+    for key in ('candidate', 'reference'):
+        value = row.get(key)
+        if value is not None:
+            assert isinstance(value, (int, float)) and not isinstance(value, bool)
+            assert math.isfinite(value) and value >= 0
+    runs = row.get('runs')
+    if runs is not None:
+        assert isinstance(runs, int) and not isinstance(runs, bool) and runs > 0
+    if row.get('candidate') is not None or row.get('reference') is not None:
+        assert nonempty(row.get('unit')), 'A shown value needs its unit'
+
+
+def validate_comparison(comparison, schema):
+    for field in ('candidate_sha', 'reference_sha'):
+        assert re.fullmatch(r'[0-9a-f]{40}', comparison[field] or ''), field
+    assert re.fullmatch(EXACT_VERSION, comparison['reference_version'] or '')
+    assert comparison['environment'] and comparison['results']
+    assert comparison['campaign_url'].startswith('https://')
+    for row in comparison['results']:
+        (validate_row_v1 if schema == 1 else validate_row_v2)(row)
+        assert row['evidence_url'].startswith('https://')
+
+
 def validate(data):
     """Reject ambiguous identities and incomplete published evidence."""
     if not __debug__:
         raise RuntimeError('Validation requires Python without -O')
-    assert data['schema_version'] == 1, 'Unsupported schema'
+    assert data['schema_version'] in (1, 2), 'Unsupported schema'
     seen = set()
     for release in data['releases']:
         version = release['version']
-        assert re.fullmatch(r'\d+\.\d+\.\d+', version), 'Exact version required'
+        assert re.fullmatch(EXACT_VERSION, version), 'Exact version required'
         assert version not in seen, 'Duplicate version'
         seen.add(version)
         assert release['status'] in ('planned', 'published')
         assert isinstance(release['baseline_policy'], str)
+        schema = row_schema(release)
+        assert schema in (1, 2) and not isinstance(schema, bool), 'Unsupported release schema'
+        assert schema <= data['schema_version'], 'Release schema newer than the dataset schema'
         if release['status'] == 'planned':
             assert not release.get('comparisons'), 'Planned releases cannot contain measurements'
             continue
@@ -38,30 +163,7 @@ def validate(data):
         for comparison in release['comparisons']:
             assert comparison['reference_version'] not in references, 'Duplicate reference'
             references.add(comparison['reference_version'])
-            for field in ('candidate_sha', 'reference_sha'):
-                assert re.fullmatch(r'[0-9a-f]{40}', comparison[field] or ''), field
-            assert re.fullmatch(r'\d+\.\d+\.\d+', comparison['reference_version'] or '')
-            assert comparison['environment'] and comparison['results']
-            assert comparison['campaign_url'].startswith('https://')
-            for row in comparison['results']:
-                for key in ('scenario', 'metric', 'unit', 'direction', 'verdict', 'ci_method'):
-                    assert isinstance(row[key], str) and row[key]
-                assert row['direction'] in ('lower', 'higher')
-                assert row['verdict'] in ('PASS', 'FAIL', 'REGRESSION', 'INCONCLUSIVE', 'INVALID', 'NOT_EQUIVALENT')
-                assert isinstance(row['runs'], int) and row['runs'] > 0
-                for key in ('candidate', 'reference', 'delta_pct'):
-                    assert isinstance(row[key], (int, float)) and math.isfinite(row[key])
-                assert row['candidate'] >= 0 and row['reference'] > 0
-                expected = 100 * (row['candidate'] / row['reference'] - 1)
-                assert abs(expected - row['delta_pct']) < 0.05, 'Delta disagrees with estimates'
-                for key in ('candidate_ci95', 'reference_ci95', 'delta_ci95'):
-                    interval = row.get(key)
-                    if interval is None:
-                        assert row.get('ci_unavailable_reason'), 'Explain unavailable uncertainty'
-                    else:
-                        assert len(interval) == 2 and all(math.isfinite(x) for x in interval)
-                        assert interval[0] <= interval[1]
-                assert row['evidence_url'].startswith('https://')
+            validate_comparison(comparison, schema)
 
 
 def icon(name):
@@ -102,19 +204,89 @@ def interval(value):
     return 'Not available' if value is None else f'[{value[0]:.3g}, {value[1]:.3g}]'
 
 
-def confidence_plot(rows):
+TONES = {'PASS': 'ok', 'PASS (IMPROVED)': 'ok', 'FAIL': 'bad', 'REGRESSION': 'bad', 'INVALID': 'bad',
+         'NOT_EQUIVALENT': 'bad', 'INCONCLUSIVE': 'warn', 'INCONCLUSIVE_DISCLOSED': 'warn', 'UNRESOLVED': 'warn',
+         'TIMER_LIMITED': 'info', 'EXCEEDS_BUDGET': 'info', NOT_RUN: 'none', None: 'none'}
+MEASURE_COLUMNS = ('Reference', 'Reference CI', 'Candidate', 'Candidate CI', 'Change', 'Change CI', 'Runs')
+COLUMNS = ('Scenario', 'Metric', 'Direction', 'Verdict', 'Category', 'Status') + MEASURE_COLUMNS + (
+    'CI method', 'CI limitation', 'Disposition', 'Source')
+CATEGORY_TEXT = {
+    'decisive': 'Enters the campaign decision rule; a non-PASS verdict needs a recorded maintainer disposition.',
+    'descriptive': 'Reported for context; it does not enter the decision rule.',
+    'disclosure': 'Reported by rule and never converted; it does not block the release.',
+}
+STATUS_TEXT = {
+    'completed': 'Measured and analyzed. Estimates are shown; a rule verdict, or a ratio with a zero reference, shows "Not available" and says why.',
+    'not_run': 'Not measured (for example, after a product failure stopped its experiment). The reason is shown; there are no numbers.',
+    'nonconforming': 'Its block did not conform to the protocol (for example, a time cap). No verdict and no numbers.',
+    'failed': 'Ran without an analyzable result (a product failure or an invalid observation). The reason is shown; there are no numbers.',
+}
+
+
+def label(token):
+    """Readable text for a category or status token."""
+    return token.replace('_', ' ')
+
+
+def verdict_badge(verdict):
+    """The verdict exactly as measured; color only repeats what the text says."""
+    text = 'No verdict' if verdict is None else verdict
+    slug = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+    return f'<span class="verdict tone-{TONES[verdict]} verdict-{slug}">{esc(text)}</span>'
+
+
+def result_row(x, schema):
+    """One table row; a row that is not completed shows its reason instead of numbers."""
+    verdict, category, status = outcome(x, schema)
+    direction = f"{x['direction']} is better" if x.get('direction') else 'Not stated'
+    cells = [f'<td>{esc(v)}</td>' for v in (x['scenario'], x['metric'], direction)]
+    cells += [f'<td>{verdict_badge(verdict)}</td>', f'<td><span class="category">{esc(label(category))}</span></td>',
+              f'<td><span class="run-status status-{status}">{esc(label(status))}</span></td>']
+    if status == 'completed':
+        def value(key):
+            return 'Not available' if x.get(key) is None else f'{x[key]} {x["unit"]}'
+        change = 'Not available' if x.get('delta_pct') is None else f'{x["delta_pct"]:+.2f}%'
+        cells += [f'<td>{esc(v)}</td>' for v in (
+            value('reference'), interval(x.get('reference_ci95')), value('candidate'),
+            interval(x.get('candidate_ci95')), change, interval(x.get('delta_ci95')), x.get('runs') or 'Not stated')]
+    else:
+        cells.append(f'<td class="no-measure" colspan="{len(MEASURE_COLUMNS)}"><strong>No measurements.</strong> '
+                     f'{esc(label(status).capitalize())}: {esc(x["status_reason"])}</td>')
+    limitation = '; '.join(v for v in (x.get('estimate_unavailable_reason'), x.get('ci_unavailable_reason')) if v)
+    cells += [f'<td>{esc(v)}</td>' for v in (x.get('ci_method', ''), limitation,
+                                             x.get('disposition', 'None'))]
+    cells.append(f'<td><a href="{esc(x["evidence_url"])}">Evidence</a></td>')
+    return '<tr>' + ''.join(cells) + '</tr>'
+
+
+def legend():
+    """Definitions of the category and status labels used in the tables."""
+    items = ''.join(f'<div><dt><span class="category">{esc(label(k))}</span></dt><dd>{esc(v)}</dd></div>'
+                    for k, v in CATEGORY_TEXT.items())
+    items += ''.join(f'<div><dt><span class="run-status status-{k}">{esc(label(k))}</span></dt><dd>{esc(v)}</dd></div>'
+                     for k, v in STATUS_TEXT.items())
+    return ('<h2>Reading the tables</h2><p>Each row has three separate fields: the <strong>verdict</strong> exactly as '
+            'the campaign analyzer measured it, its <strong>category</strong> in the decision rule, and its '
+            '<strong>execution status</strong>. No verdict is converted into another.</p>'
+            f'<dl class="legend">{items}</dl>')
+
+
+def confidence_plot(rows, schema=1):
     """Render each relative estimate on its own labeled symmetric percent axis."""
     plots = []
     for row in rows:
         ci = row.get('delta_ci95')
-        if ci is None or row['verdict'] in ('INVALID', 'NOT_EQUIVALENT'):
+        verdict, _, status = outcome(row, schema)
+        if ci is None or status != 'completed' or verdict in ('INVALID', 'NOT_EQUIVALENT'):
             continue
         bound = max(1, abs(ci[0]), abs(ci[1]), abs(row['delta_pct'])) * 1.15
         def position(value):
             return 240 + value / bound * 200
-        label = f"{row['scenario']} / {row['metric']}: {row['delta_pct']:+.2f}%, 95% CI {interval(ci)}; {row['direction']} is better"
-        plots.append(f'''<figure class="card"><figcaption>{esc(label)}</figcaption>
-<svg viewBox="0 0 480 90" role="img" aria-label="{esc(label)}">
+        # Schema 2 intervals need not be 95 % intervals: their coverage is in ci_method.
+        name = '95% CI' if schema == 1 else 'interval (method in the table)'
+        caption = f"{row['scenario']} / {row['metric']}: {row['delta_pct']:+.2f}%, {name} {interval(ci)}; {row['direction']} is better"
+        plots.append(f'''<figure class="card"><figcaption>{esc(caption)}</figcaption>
+<svg viewBox="0 0 480 90" role="img" aria-label="{esc(caption)}">
 <line x1="40" x2="440" y1="36" y2="36" stroke="var(--line)"/>
 <line x1="240" x2="240" y1="16" y2="57" stroke="var(--muted)" stroke-dasharray="3 3"/>
 <line x1="{position(ci[0]):.2f}" x2="{position(ci[1]):.2f}" y1="36" y2="36" stroke="var(--accent)" stroke-width="4"/>
@@ -142,15 +314,15 @@ def generate(data):
             detail = '<div class="empty"><span class="badge">Awaiting campaign</span><h2>No measurements published yet.</h2><p>This is a comparison plan, not a performance verdict. Charts and estimates will appear only when validated evidence is available.</p></div>'
         else:
             detail = ''
+            schema = row_schema(r)
             for comparison in r['comparisons']:
-                rows = ''
-                for x in comparison['results']:
-                    rows += '<tr>' + ''.join(f'<td>{esc(v)}</td>' for v in (x['scenario'], x['metric'], x['direction'] + ' is better', f'{x["reference"]} {x["unit"]}', interval(x.get('reference_ci95')), f'{x["candidate"]} {x["unit"]}', interval(x.get('candidate_ci95')), f'{x["delta_pct"]:+.2f}%', interval(x.get('delta_ci95')), x['runs'], x['verdict'], x['ci_method'], x.get('ci_unavailable_reason', ''), x.get('disposition', 'None'))) + f'<td><a href="{esc(x["evidence_url"])}">Evidence</a></td></tr>'
-                detail += f'<h2>Compared with v{comparison["reference_version"]}</h2><p>Candidate: <code>{comparison["candidate_sha"]}</code><br>Reference: v{comparison["reference_version"]} <code>{comparison["reference_sha"]}</code></p><p>{esc(comparison["environment"])}</p><p><a href="{esc(comparison["campaign_url"])}">Campaign manifest and raw evidence ↗</a></p><div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable measurement table"><table><caption>Estimates and 95% confidence intervals. Verdicts are supplied by the campaign analyzer.</caption><thead><tr>'+''.join(f'<th scope="col">{x}</th>' for x in ('Scenario','Metric','Direction','Reference','Reference CI','Candidate','Candidate CI','Change','Change CI','Runs','Verdict','CI method','CI limitation','Disposition','Source'))+'</tr></thead><tbody>'+rows+'</tbody></table></div>'
-                detail += confidence_plot(comparison['results'])
+                rows = ''.join(result_row(x, schema) for x in comparison['results'])
+                detail += f'<h2>Compared with v{comparison["reference_version"]}</h2><p>Candidate: <code>{comparison["candidate_sha"]}</code><br>Reference: v{comparison["reference_version"]} <code>{comparison["reference_sha"]}</code></p><p>{esc(comparison["environment"])}</p><p><a href="{esc(comparison["campaign_url"])}">Campaign manifest and raw evidence ↗</a></p><div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable measurement table"><table><caption>Estimates and confidence intervals. Verdicts are supplied by the campaign analyzer and shown exactly as measured, with their category and execution status.</caption><thead><tr>'+''.join(f'<th scope="col">{x}</th>' for x in COLUMNS)+'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+                detail += confidence_plot(comparison['results'], schema)
+            detail += legend()
         outputs[f'releases/{r["version"]}.html'] = page(f'v{r["version"]}', f'<p class="eyebrow">RELEASE REPORT / {esc(r["status"])}</p><h1>Knotrel {r["version"]}</h1><p class="lead">{esc(r["baseline_policy"])}</p>{detail}<h2>What this comparison covers</h2><div class="grid"><article class="card"><h3>Response & capacity</h3><p>Latency distributions, throughput, failures and concurrent updates.</p></article><article class="card"><h3>Resource footprint</h3><p>Steady/peak memory and CPU cost with explicit measurement boundaries.</p></article><article class="card"><h3>Confidence & provenance</h3><p>Independent runs, interval methods, exact revisions and linked evidence.</p></article></div><p class="note">Missing coverage is not PASS. An accepted exception does not change a failed verdict.</p>', '../', 'Releases')
     outputs['competitors.html'] = page('External comparisons', '''<p class="eyebrow">EXTERNAL COMPARISONS / PLANNED</p><h1>Compare the service.<br>Account for the contract.</h1><p class="lead">The first Neo4j and PostgreSQL campaign follows Knotrel 1.1.0, Cluster Forest and any selected profiling optimizations.</p><div class="grid"><article class="card"><h2>PostgreSQL</h2><p>Direct connectivity queries against indexed authoritative graph tables.</p></article><article class="card"><h2>PostgreSQL + Knotrel</h2><p>Connectivity served by Knotrel, including feeder cost and source-to-query lag.</p></article><article class="card"><h2>Neo4j</h2><p>Reviewed reachability queries with explicit transaction and freshness guarantees.</p></article></div><h2>Periodic, versioned campaigns</h2><p>Review the need for a refresh quarterly or after a relevant minor release. Every campaign pins versions, configurations and hardware. Historical reports remain unchanged.</p><h2>Fair comparisons</h2><p>Use the same logical graph and trace, validate answers independently, include required synchronization or recomputation, and report full-stack resources. Non-equivalent cases are identified separately.</p><div class="empty"><h2>No competitor results published here yet.</h2><p>The experiment is tracked in <a href="https://github.com/knotrel/knotrel-benchmarks/issues/15">benchmark issue #15</a>.</p></div>''', active='Competitors')
-    outputs['methodology.html'] = page('Measurement methodology', '''<p class="eyebrow">METHODOLOGY</p><h1>Numbers need context.</h1><p class="lead">A reproducible comparison connects every estimate to its workload, environment and raw observations.</p><h2>01 / Freeze the experiment</h2><p>Pin candidate and reference revisions, binary hashes, backend, graph traces, seeds, resource budgets, warm-up, run order, sample counts, exclusions and analysis. Exploratory profiling does not enter the formal sample.</p><h2>02 / Compare equivalent work</h2><p>Match graph, lifecycle, visibility and atomicity semantics. Validate with an independent oracle. Measure all required work; classify incompatible arms as NOT_EQUIVALENT.</p><h2>03 / Quantify uncertainty</h2><p>Use independent repeated process runs and balanced or randomized ordering. Report 95% confidence intervals for absolute estimates and changes where supported, with the estimand, method and run count. Preserve paired designs and account for correlated observations.</p><p>A p99 describes a latency tail; its confidence interval describes uncertainty in that estimate. Millions of requests in one process are not millions of independent experiments. Deterministic byte counts need no artificial interval. Missing intervals require an explanation.</p><h2>04 / Interpret the whole system</h2><p>Show latency with successful throughput, errors and offered load; CPU with work completed; memory with process boundaries; feeder responses with freshness. Declare open-loop or closed-loop load and avoid coordinated omission.</p><h2>05 / Preserve unfavorable results</h2><p>Keep failed and invalid runs. Thresholds, multiple-comparison policy and rerun rules are declared in advance. Report practical effect sizes and uncertainty; statistical significance alone is not a regression budget.</p><div class="grid"><article class="card"><h3>PASS / FAIL / REGRESSION</h3><p>Campaign-defined verdicts, not recalculated by this website.</p></article><article class="card"><h3>INCONCLUSIVE / INVALID</h3><p>Insufficient precision or invalid evidence must remain visible.</p></article><article class="card"><h3>NOT_EQUIVALENT</h3><p>A contract mismatch cannot establish a comparative performance claim.</p></article></div><p class="note">An exception records a release decision. It never converts a failed measurement to PASS.</p><h2>Inspect the implementation</h2><p><a href="https://github.com/knotrel/knotrel-benchmarks/blob/main/docs/methodology.md">Harness methodology</a> · <a href="https://github.com/knotrel/knotrel-benchmarks/blob/main/AGENTS.md">Repository measurement rules</a></p>''', active='Methodology')
+    outputs['methodology.html'] = page('Measurement methodology', '''<p class="eyebrow">METHODOLOGY</p><h1>Numbers need context.</h1><p class="lead">A reproducible comparison connects every estimate to its workload, environment and raw observations.</p><h2>01 / Freeze the experiment</h2><p>Pin candidate and reference revisions, binary hashes, backend, graph traces, seeds, resource budgets, warm-up, run order, sample counts, exclusions and analysis. Exploratory profiling does not enter the formal sample.</p><h2>02 / Compare equivalent work</h2><p>Match graph, lifecycle, visibility and atomicity semantics. Validate with an independent oracle. Measure all required work; classify incompatible arms as NOT_EQUIVALENT.</p><h2>03 / Quantify uncertainty</h2><p>Use independent repeated process runs and balanced or randomized ordering. Report 95% confidence intervals for absolute estimates and changes where supported, with the estimand, method and run count. Preserve paired designs and account for correlated observations.</p><p>A p99 describes a latency tail; its confidence interval describes uncertainty in that estimate. Millions of requests in one process are not millions of independent experiments. Deterministic byte counts need no artificial interval. Missing intervals require an explanation.</p><h2>04 / Interpret the whole system</h2><p>Show latency with successful throughput, errors and offered load; CPU with work completed; memory with process boundaries; feeder responses with freshness. Declare open-loop or closed-loop load and avoid coordinated omission.</p><h2>05 / Preserve unfavorable results</h2><p>Keep failed and invalid runs. Thresholds, multiple-comparison policy and rerun rules are declared in advance. Report practical effect sizes and uncertainty; statistical significance alone is not a regression budget.</p><div class="grid"><article class="card"><h3>PASS / FAIL / REGRESSION</h3><p>Campaign-defined verdicts, not recalculated by this website. A qualifier such as PASS (IMPROVED) is kept as written.</p></article><article class="card"><h3>INCONCLUSIVE / UNRESOLVED / INVALID</h3><p>Insufficient precision (including INCONCLUSIVE_DISCLOSED) or invalid evidence must remain visible.</p></article><article class="card"><h3>NOT_EQUIVALENT</h3><p>A contract mismatch cannot establish a comparative performance claim.</p></article><article class="card"><h3>TIMER_LIMITED / EXCEEDS_BUDGET</h3><p>A timer-limited cell or a disclosure category is listed with its numbers, never converted.</p></article><article class="card"><h3>NOT_RUN / no verdict</h3><p>Unmeasured or nonconforming results show their reason and no numbers.</p></article><article class="card"><h3>Category and status</h3><p>Each row also states its role (decisive, descriptive, disclosure) and whether it completed.</p></article></div><p class="note">An exception records a release decision. It never converts a failed measurement to PASS.</p><h2>Inspect the implementation</h2><p><a href="https://github.com/knotrel/knotrel-benchmarks/blob/main/docs/methodology.md">Harness methodology</a> · <a href="https://github.com/knotrel/knotrel-benchmarks/blob/main/AGENTS.md">Repository measurement rules</a></p>''', active='Methodology')
     return outputs
 
 
