@@ -265,9 +265,13 @@ class RunnerTest(unittest.TestCase):
             (bench / "FREEZE.json").write_text(json.dumps(freeze))
 
     def test_preflight_requires_a_real_freeze_record(self):
+        paths = list(runner.fc.REQUIRED_FROZEN_PATHS)
         good = {"campaign": runner.CAMPAIGN, "revision": 1, "frozen_utc": "2026-11-30T00:00:00Z",
-                "candidate": {"commit": CAND}, "reference": {"commit": REF}, "core_rule": {"outcome": "identical"},
-                "file_sha256": {"results/v1.0.0-qualification/MATRIX.json": "0" * 64}}
+                "candidate": {"commit": CAND}, "reference": {"commit": REF},
+                "core_rule": {"outcome": "identical",
+                              "comparison": {"file": "v1.0.0-prefreeze-x/logs/core-rule.json", "sha256": "1" * 64}},
+                "tooling": {"commit": "2" * 40}, "file_sha256_paths": paths,
+                "file_sha256": {p: "0" * 64 for p in paths}}
         template = json.loads((V100 / "FREEZE.template.json").read_text())
         cases = {"absent": None, "template": template,
                  "v090": {**good, "campaign": "v0.9.0 qualification"},
@@ -719,11 +723,15 @@ class QTest(unittest.TestCase):
             out = ev.evaluate(Path(d) / "part3")
         self.assertEqual([f["classification"] for f in failures], ["infrastructure", "infrastructure"])
         self.assertEqual([f["rerun"] for f in failures], [True, False])
-        self.assertEqual(r.reruns, {"candidate:L1 G100k C=64": "round1-candidate"})
+        self.assertEqual(r.reruns, {"round1-candidate:L1 G100k C=64": "round1-candidate"})  # per observation (N4)
         steps = [c["step"] for c in tool.calls]
         self.assertEqual(steps[:3], ["round1-candidate", "round1-candidate-cont1", "round1-candidate-cont2"])
         self.assertEqual(tool.calls[2]["cells"], ["L1 G10k C=16", "L2 G100k C=0", "L2 G100k C=16", "L2 G100k C=64"])
-        self.assertEqual(out["criteria"]["Q2"]["status"], "FAIL")  # a failed L1 observation: no passing value
+        # The second infrastructure failure loses the observation: Q is NONCONFORMING (it allows the
+        # one rerun of Q), and the criterion using it has no verdict rather than FAIL (B4).
+        self.assertEqual(r.status, "NONCONFORMING")
+        self.assertEqual(r.infrastructure_exhausted, ["round1-candidate:L1 G100k C=64"])
+        self.assertIsNone(out["criteria"]["Q2"]["status"])
         self.assertEqual(out["criteria"]["Q1"]["status"], "PASS")  # C=16 observations unaffected
 
     def test_product_and_ambiguous_failures_are_not_infrastructure(self):

@@ -11,8 +11,15 @@
 #   - A: both blocks are planned here (block 1: A/plan, session seeds; block 2: A/plan-block2,
 #     the plan generator's extension phase with all nine cells, extension seeds), and both are
 #     dry-run; nothing in the chain reads A data (plan section 5.3);
-#   - the core rule (plan section 4.3) is computed from these builds (logs/core-rule.json) and
-#     must agree with FREEZE.json core_rule.outcome;
+#   - the core rule (plan section 4.3) is computed from these builds (logs/core-rule.json); its
+#     outcome and per-pair identical booleans must equal those of the pre-freeze file named by
+#     FREEZE.json core_rule.comparison (whose SHA-256 is checked); digests may differ, since the
+#     builds embed the campaign directory's path (logs/core-rule-agreement.json records both);
+#   - attempt mode checks the freeze record with the freeze commit's freeze_check_v100q.py and
+#     verifies the helpers it runs from its own directory against the record (N6); the attempt
+#     budget is attempt_budget.sh (series_budget.sh plus the plan section 5.5 failure rule);
+#   - the probe lockfile must name the candidate's Cargo.toml version (checked before the
+#     campaign directory is created);
 #   - the probe compatibility check (plan section 13 item 6, functional only) runs on these
 #     builds (logs/probe-compat/);
 #   - no v0.8.0 builds (no Part 2, no block D); Q uses the reference server targets/ref-server for
@@ -55,29 +62,60 @@ else
   MODE=attempt
   git -C "$BREPO" cat-file -e "$FREEZE:$DIR/FREEZE.json" 2>/dev/null \
     || { echo "FREEZE $FREEZE has no $DIR/FREEZE.json" >&2; exit 3; }
-  git -C "$BREPO" show "$FREEZE:$DIR/FREEZE.json" | python3 -c "
-import json, sys
-f = json.load(sys.stdin)
-cand, ref = sys.argv[1], sys.argv[2]
-problems = []
-if f.get('campaign') != 'v1.0.0 qualification' or f.get('revision') != 1: problems.append('not the v1.0.0 freeze record revision 1')
-if not f.get('frozen_utc') or 'NOT FROZEN' in str(f.get('status', '')): problems.append('a draft, not frozen')
-if f.get('candidate', {}).get('commit') != cand: problems.append('candidate %s is not %s' % (f.get('candidate', {}).get('commit'), cand))
-if f.get('reference', {}).get('commit') != ref: problems.append('reference %s is not %s (a newer 0.9.x needs this script updated before the freeze)' % (f.get('reference', {}).get('commit'), ref))
-if f.get('core_rule', {}).get('outcome') not in ('identical', 'different'): problems.append('no core_rule.outcome')
-for p in problems: print(p, file=sys.stderr)
-sys.exit(1 if problems else 0)
-" "$CAND" "$REF" || exit 3
+  # The freeze guards (scripts/freeze_check_v100q.py), run from the freeze commit itself: the
+  # record (candidate, reference, core-rule outcome, the pre-freeze core-rule.json and its
+  # SHA-256 under EVIDENCE_ROOT or KNOTREL_PREFREEZE_CORE_RULE, a hash list equal to
+  # its hashed files and covering the required files), every file's hash in the freeze tree,
+  # the freeze commit as the only child of tooling.commit adding only FREEZE.json, and the
+  # helpers this script runs from its own directory (finding N6) equal to the record.
+  FC=$(mktemp -d)
+  for X in freeze_check_v100q.py cli_paths.py; do
+    git -C "$BREPO" show "$FREEZE:scripts/$X" > "$FC/$X" 2>/dev/null \
+      || { echo "FREEZE $FREEZE has no scripts/$X" >&2; rm -rf "$FC"; exit 3; }
+  done
+  FCRC=0
+  LIFECYCLE_QUALIFICATION_ROOTS="$BREPO:$(cd "$HERE/../.." && pwd):$EVIDENCE" python3 "$FC/freeze_check_v100q.py" record \
+    --repo "$BREPO" --freeze "$FREEZE" --cand "$CAND" --evidence-root "$EVIDENCE" --local-root "$HERE/../.." --local "$DIR/prepare_campaign.sh" \
+    --local "$DIR/series_budget.sh" --local "$DIR/attempt_budget.sh" --local "$DIR/check_restored.sh" \
+    --local "$DIR/launch_command.sh" || FCRC=$?
+  rm -rf "$FC"
+  [ "$FCRC" -eq 0 ] || exit 3
   CAP=$(git -C "$BREPO" show "$FREEZE:$DIR/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['qualification_3']['attempts_cap'])")
   case "$ATTEMPT" in [1-9]) ;; *) echo "attempt must be 1-9" >&2; exit 3;; esac
   CAMP=$EVIDENCE/v1.0.0-qualification-$C7
-  sh "$HERE/series_budget.sh" attempt "$ATTEMPT" "$CAP" "$CAMP"-attempt[1-9] || exit 3
+  # series_budget.sh unchanged, then the v1.0 rule: no second attempt after a product failure.
+  sh "$HERE/attempt_budget.sh" attempt "$ATTEMPT" "$CAP" "$CAMP"-attempt[1-9] || exit 3
   sh "$HERE/check_restored.sh" || exit 3
   CAMP=$CAMP-attempt$ATTEMPT
 fi
 if [ -e "$CAMP" ]; then echo "refusing to reuse $CAMP" >&2; exit 3; fi
+# The probe lockfile of the tooling commit must name the candidate's knotrel version (the
+# workspace version of its Cargo.toml) for knotrel-core and knotrel-server, and in attempt mode
+# the freeze record's candidate.version must be that version too. Checked from Git, before the
+# campaign directory exists (finding S3: a refused prepare leaves no directory behind).
+CAND_VERSION=$(git -C "$KREPO" show "$CAND:Cargo.toml" | grep -m1 '^version' | cut -d'"' -f2)
+git -C "$BREPO" show "$FREEZE:tools/lifecycle-probes/Cargo.lock" | python3 -c "
+import json, re, subprocess, sys
+want, mode, repo, freeze = sys.argv[1:]
+lock = sys.stdin.read()
+problems = []
+for name in ('knotrel-core', 'knotrel-server'):
+    found = re.findall(r'name = \"%s\"\nversion = \"([^\"]+)\"' % name, lock)
+    if found != [want]:
+        problems.append('probe lockfile %s versions %s, expected the candidate version %s' % (name, found, want))
+if mode == 'attempt':
+    record = json.loads(subprocess.run(['git', '-C', repo, 'show', freeze + ':results/v1.0.0-qualification/FREEZE.json'],
+                                       capture_output=True, text=True, check=True).stdout)
+    if record.get('candidate', {}).get('version') != want:
+        problems.append('freeze candidate.version %s is not the candidate Cargo.toml version %s' % (record.get('candidate', {}).get('version'), want))
+for p in problems: print(p, file=sys.stderr)
+sys.exit(1 if problems else 0)
+" "$CAND_VERSION" "$MODE" "$BREPO" "$FREEZE" || exit 3
 mkdir -p "$CAMP/logs" "$CAMP/src/ref" "$CAMP/src/cand" "$CAMP/targets" "$CAMP/A/sources/B" "$CAMP/A/sources/C" "$CAMP/A/build-inputs/B" "$CAMP/A/build-inputs/C"
 L=$CAMP/logs
+# From here a failure leaves a directory that was never launched: record where it stopped
+# (PROTOCOL.md section 5, step 3, for the recovery).
+trap 'RC=$?; [ "$RC" -eq 0 ] || echo "prepare failed (exit $RC) at $(date -u +%Y-%m-%dT%H:%M:%SZ); never launched" > "$L/PREPARE-FAILED.txt"' EXIT
 echo "$MODE" > "$L/prepare-mode.txt"
 clone() { git clone --quiet "$1" "$2" && git -C "$2" checkout --quiet --detach "$3" && test "$(git -C "$2" rev-parse HEAD)" = "$3"; }
 
@@ -87,7 +125,7 @@ clone "$KREPO" "$CAMP/src/cand/knotrel" "$CAND"
 clone "$BREPO" "$CAMP/src/ref/knotrel-benchmarks" "$BASE_PROBES"
 clone "$BREPO" "$CAMP/src/cand/knotrel-benchmarks" "$FREEZE"
 # The two probe trees must be the same source; only the two knotrel version lines of the lockfile
-# may differ (0.9.0 in the reference tree, the candidate's version in the tooling tree).
+# may differ (0.9.0 in the reference tree, the candidate's version in the tooling tree, checked above).
 git -C "$CAMP/src/cand/knotrel-benchmarks" diff "$BASE_PROBES" "$FREEZE" -- tools/lifecycle-probes > "$L/probes-ref-vs-tooling.diff"
 test "$(grep -c '^[+-]version = "' "$L/probes-ref-vs-tooling.diff")" -eq 4
 test "$(grep '^[+-]' "$L/probes-ref-vs-tooling.diff" | grep -vc '^[+-][+-]')" -eq 4
@@ -174,8 +212,11 @@ LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 "$B/scripts/core_rule_v100q.py
 OUTCOME=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['outcome'])" "$L/core-rule.json")
 echo "core rule: $OUTCOME"
 if [ "$MODE" = attempt ]; then
-  FROZEN_OUTCOME=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['core_rule']['outcome'])" "$B/$DIR/FREEZE.json")
-  [ "$OUTCOME" = "$FROZEN_OUTCOME" ] || { echo "core rule $OUTCOME differs from the freeze record's $FROZEN_OUTCOME" >&2; exit 3; }
+  # Same outcome and per-pair identical booleans as the pre-freeze file (digests may differ);
+  # writes logs/core-rule-agreement.json with this attempt's core-rule.json SHA-256.
+  LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 "$B/scripts/freeze_check_v100q.py" core-rule "$CAMP" \
+    --evidence-root "$EVIDENCE" --write \
+    || { echo "core rule differs from the freeze record's" >&2; exit 3; }
 fi
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 scripts/probe_compat_v100q.py "$CAMP" "$L/probe-compat" ) > "$L/probe-compat.log" 2>&1 \
   || { echo "probe compatibility check failed (see $L/probe-compat.log)" >&2; exit 3; }
@@ -184,6 +225,7 @@ fi
 mkdir -p "$CAMP/bin" && ln -s "$(command -v python3)" "$CAMP/bin/python3"
 ln -s "$(command -v rustc)" "$CAMP/bin/rustc"
 env -i HOME="$HOME" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${TMPDIR:-/tmp}" LANG=C.UTF-8 \
+  ${KNOTREL_PREFREEZE_CORE_RULE:+KNOTREL_PREFREEZE_CORE_RULE="$KNOTREL_PREFREEZE_CORE_RULE"} \
   LAUNCH_ENV_MODE="$MODE" PATH="$CAMP/bin:/usr/bin:/bin:/usr/sbin:/sbin" /bin/sh "$B/$DIR/launch_env_check.sh" "$CAMP" "$L/launch-env-check.txt"
 sh "$HERE/launch_command.sh" "$CAMP" "$CAND" > "$CAMP/LAUNCH-COMMAND.txt"
 echo "PREPARED ($MODE) $CAMP"

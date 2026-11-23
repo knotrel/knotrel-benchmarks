@@ -3,7 +3,7 @@
  "frozen_utc": null,
  "campaign": "v1.0.0 qualification",
  "revision": 1,
- "plan": "knotrel docs/releases/v1.0.0-qualification-plan.md (knotrel origin/main d847283), approved by the maintainer 2026-11-23: perimeter of section 4.1 (A, B4, C, R, Rmem, M_reg, Q with the Q5 v0.9.0 reference arm); block D excluded; A at a fixed n = 24 with no interim look (section 5.3, option a); thresholds unchanged; Part 1 <= 105 min and Q <= 30 min (separate caps); one attempt, cap 2; failure rules of section 5.5",
+ "plan": "knotrel docs/releases/v1.0.0-qualification-plan.md (knotrel origin/main at the freeze, which records candidate 0c49b2a (1.0.0-rc.1); TBD: the plan commit), approved by the maintainer 2026-11-23: perimeter of section 4.1 (A, B4, C, R, Rmem, M_reg, Q with the Q5 v0.9.0 reference arm); block D excluded; A at a fixed n = 24 with no interim look (section 5.3, option a); thresholds unchanged; Part 1 <= 105 min and Q <= 30 min (separate caps); one attempt, cap 2; failure rules of section 5.5",
  "candidate": {
   "repository": "knotrel",
   "commit": "TBD: 40-character commit on main after the R3 changes and the version bump",
@@ -24,13 +24,16 @@
  },
  "core_rule": {
   "outcome": "TBD: identical | different (scripts/core_rule_v100q.py on the pre-freeze builds)",
-  "comparison": "TBD: path of core-rule.json and its SHA-256",
+  "comparison": {
+   "file": "TBD: the pre-freeze logs/core-rule.json, relative to EVIDENCE_ROOT (v1.0.0-prefreeze-<cand7>-<tooling7>/logs/core-rule.json)",
+   "sha256": "TBD: its SHA-256 (64 hex); prepare and the runner check it, then require the attempt's own core-rule.json to have the same outcome and per-pair identical booleans (not the same digests)"
+  },
   "consequence": "identical: B/C --only B4,C, no T5; different: full B/C and T5 (PROTOCOL.md section 3)"
  },
  "probe_compatibility": "TBD: probe_compat_v100q.py result on the pre-freeze builds (runs, failures, outstanding_jobs samples per arm)",
  "tooling": {
   "repository": "knotrel-benchmarks",
-  "commit": "TBD: the parent of the freeze commit",
+  "commit": "TBD: the parent of the freeze commit (40 hex); the runner and prepare require the freeze commit to have exactly this parent and to differ from it only in results/v1.0.0-qualification/FREEZE.json",
   "note": "the freeze commit is the child of this commit and adds only FREEZE.json"
  },
  "method": "results/v0.9.0-qualification FREEZE.json revision 1, unchanged except as PROTOCOL.md section 2 lists",
@@ -59,6 +62,7 @@
  "file_sha256_paths": [
   "results/v1.0.0-qualification/MATRIX.json",
   "results/v1.0.0-qualification/PROTOCOL.md",
+  "results/v1.0.0-qualification/attempt_budget.sh",
   "results/v1.0.0-qualification/check_restored.sh",
   "results/v1.0.0-qualification/launch_command.sh",
   "results/v1.0.0-qualification/launch_env_check.sh",
@@ -87,10 +91,12 @@
   "scripts/core_rule_v100q.py",
   "scripts/evaluate_v100q_q.py",
   "scripts/export_v100q_site.py",
+  "scripts/freeze_check_v100q.py",
   "scripts/interference_collect.py",
   "scripts/interference_gate.py",
   "scripts/interference_monitor.py",
   "scripts/launcher_audit.py",
+  "scripts/part1_failures_v100q.py",
   "scripts/prepare_bc_qualification.py",
   "scripts/probe_compat_v100q.py",
   "scripts/report_v070q3_bc.py",
@@ -108,6 +114,7 @@
   "scripts/run_v100q_collect.py",
   "scripts/run_v100q_q.py",
   "scripts/tests/test_v100q.py",
+  "scripts/tests/test_v100q_review.py",
   "tools/contention-probe/Cargo.lock",
   "tools/contention-probe/Cargo.toml",
   "tools/contention-probe/src/main.rs",
@@ -121,5 +128,5 @@
   "tools/lifecycle-probes/src/churn.rs",
   "tools/lifecycle-probes/src/lib.rs"
  ],
- "file_sha256": "TBD: {path: sha256} for every path of file_sha256_paths, computed at the tooling commit"
+ "file_sha256": "TBD: {path: sha256} for exactly the paths of file_sha256_paths (a superset of scripts/freeze_check_v100q.py REQUIRED_FROZEN_PATHS), computed at the tooling commit"
 }

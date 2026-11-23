@@ -6,8 +6,9 @@ not a freeze record and which no collector or runner accepts. **Nothing has
 been measured.** The candidate commit is chosen at the freeze.
 
 This protocol implements knotrel `docs/releases/v1.0.0-qualification-plan.md`
-(knotrel `origin/main` `d847283`), with the maintainer's decisions of
-2026-11-23:
+(knotrel `origin/main` at the freeze, which records candidate `0c49b2a`,
+1.0.0-rc.1; the plan commit is recorded in `FREEZE.json` `plan`), with the
+maintainer's decisions of 2026-11-23:
 
 - the perimeter of plan §4.1: A, B4 (all 37 cells), C, R, Rmem, M_reg and Q
   (7 cells plus the Q5 v0.9.0 reference arm in the same session);
@@ -26,12 +27,15 @@ as failed and is not reinterpreted.
 
 | Role | knotrel | Probes (knotrel-benchmarks) |
 |---|---|---|
-| Candidate | **chosen at the freeze**: the commit on `main` after the R3 changes and the version bump, recorded in `FREEZE.json` `candidate.commit`; every script takes it as `CAND_SHA` | the freeze commit (probe lockfile: knotrel 1.0.0) |
+| Candidate | **chosen at the freeze**: the commit on `main` after the R3 changes and the version bump, recorded in `FREEZE.json` `candidate.commit`; every script takes it as `CAND_SHA` | the freeze commit (probe lockfile: knotrel 1.0.0-rc.1, the candidate's `Cargo.toml` version) |
 | Reference | v0.9.0 = `223f04c10b0af663b54e269e0970ee10ac1dc6b2` (a newer 0.9.x replaces it only if published before the freeze, plan §2) | `53c50e96` (probe lockfile: knotrel 0.9.0) |
 
 - The two probe trees have **the same source**. Their only difference is the
   two knotrel version lines of `tools/lifecycle-probes/Cargo.lock`. The
-  prepare script checks this. The probes compile unchanged against knotrel
+  prepare script checks this, and, before it creates the campaign directory,
+  that both lines (`knotrel-core`, `knotrel-server`) equal the candidate's
+  `Cargo.toml` version and `FREEZE.json` `candidate.version`; a test pins the
+  lockfile against the freeze record. The probes compile unchanged against knotrel
   1.0 (`#[non_exhaustive]` types included): verified before the freeze
   (§5, step 1).
 - Each reference build comes from a **clean clone** at its commit; every
@@ -95,7 +99,11 @@ is removed.
   decision on 24 pairs) without its interim decision. The 24 log ratios of a
   cell form one sample; the block is recorded per pair, not a stratum.
   Interval `[r(7), r(18)]`, coverage 1 − 2·P(Bin(24, ½) ≤ 6) = **97.73 %**.
-  Classes: PASS, REGRESSION, INCONCLUSIVE_DISCLOSED, UNRESOLVED.
+  Classes: PASS, REGRESSION, INCONCLUSIVE_DISCLOSED, UNRESOLVED. As in
+  `MATRIX rules.A`: INCONCLUSIVE_DISCLOSED only for an INCONCLUSIVE primary
+  with median ≤ t and every supporting metric PASS; **an INCONCLUSIVE
+  primary with median > t is REGRESSION**; any other non-PASS gated metric
+  is UNRESOLVED.
 - The order-statistic intervals are not 95 % intervals: 97.73 % at n = 24,
   96.14 % at n = 12 (B4, R, M_reg).
 
@@ -127,9 +135,35 @@ against the reference.
   and thresholds: the runner runs the full B/C collector and T5
   (`run_v070q3_t5.py`, arm B `targets/t5base-probes`), within the Part 1 cap.
 
-`FREEZE.json` records the outcome and the comparison file's SHA-256. The
-runner refuses to start without it; `prepare_campaign.sh` recomputes the
-comparison on the campaign's clean builds and stops if it differs.
+`FREEZE.json` records the outcome and **provenance**: `core_rule.comparison`
+names the pre-freeze `logs/core-rule.json` (`file`, relative to
+EVIDENCE_ROOT) and its `sha256`. Prepare and the runner verify that file's
+SHA-256 and outcome; if it is missing they refuse, unless
+`KNOTREL_PREFREEZE_CORE_RULE` names it (inside EVIDENCE_ROOT).
+
+At each attempt, `prepare_campaign.sh` recomputes the rule on the attempt's
+clean builds and requires **agreement**, not equality: the same `outcome` and
+the same per-pair `identical` booleans as the pre-freeze file. The digests
+themselves are not compared across directories. The builds embed the campaign
+directory's absolute path in panic locations, so `__cstring`, and with it the
+`__text` digests, change with the path's length; the comparison within one
+directory (candidate against reference) is what decides. Prepare records the
+attempt's own `core-rule.json` and its SHA-256 in
+`logs/core-rule-agreement.json`, and the runner's preflight checks the
+agreement again. A different outcome or different per-pair booleans stop
+prepare before the launch, for a maintainer decision (never a result).
+
+**Known limit (path length within a directory).** The candidate probes link
+`src/cand/knotrel` and the reference probes `src/ref/knotrel`, so the
+embedded paths differ in length between the two arms of the probe pairs (the
+A harness uses the equal-length `B` and `C`). Path length alone can therefore
+make a probe pair "different". The error is in the safe direction: it adds
+B1–B3, B5 and T5 to the perimeter, within the Part 1 cap; it can never hide a
+change. For this campaign the pre-freeze analysis found real code-generation
+differences regardless, in the release `core-lifecycle`:
+`LifecycleGraph::connected` (384 → 444 bytes) and `GenericForest::balance`
+(684 → 624 bytes) (knotrel `docs/releases/v1.0.0-qualification-plan.md` §4.3,
+knotrel#140). `core_rule_v100q.py` and the build layout are unchanged.
 
 ## 4. Block Q: feeder under load
 
@@ -149,22 +183,46 @@ comparison on the campaign's clean builds and stops if it differs.
 - **Cap: 30 minutes.** A step that would start after the deadline does not
   start; a running step is stopped at the deadline. Block Q is then
   NONCONFORMING: completed observations are kept; criteria whose cells lack
-  their three observations get no verdict, and none counts as PASS. Q can be
-  rerun once, as a whole (`run_part3.sh CAMP 2`), only after this
-  non-conformance or an infrastructure failure, never because of a result.
+  their three observations get no verdict, and none counts as PASS; a
+  criterion with a failed candidate observation stays **FAIL**.
+- **Second attempt of Q** (`run_part3.sh CAMP 2`, once, as a whole), only if
+  the first did not end COMPLETE and its cause is the cap or an
+  infrastructure failure whose one rerun was used up (both NONCONFORMING), or
+  a runner or tooling error (FAILED) with no product failure. A COMPLETE Q is
+  final, whatever `failures.jsonl` holds; no rerun is chosen by a result.
+  Attempt 2 writes `superseded_by.json` into `part3`; the evaluator accepts
+  only the final attempt, and carries the candidate's product failures of the
+  superseded attempt (they are never rerun): the failures in its
+  `failures.jsonl` and its completed observations that lack a value a
+  criterion needs (a feeder not ready within 300 s writes `secs_to_ready`
+  null and exits 0, so it never reaches `failures.jsonl`). The gate's reason
+  and the marker state this. A FAILED first attempt with such an observation
+  is a product failure and allows no second attempt. The publication reads only the
+  final attempt's `evaluation.json`.
+- **PostgreSQL.** `run_part3.sh` sets its cleanup trap first, checks the
+  start script's exit status and its `postgres://` URL, and runs `pg_isready`
+  and `SELECT 1` in the container before step 1. A start failure is an
+  infrastructure failure, recorded in `logs/<Q directory>-postgres-start-failed-N.txt`;
+  it allows one more start of the same Q attempt.
 - **Failures (plan §5.5).** A failed tool invocation is recorded with its
   evidence (exit status, time, stderr tail, power, thermal state, free disk,
   Docker containers). It is an infrastructure failure only for closed-list
   evidence with no product indication; ambiguous evidence is not (fail
-  closed). An infrastructure failure allows one rerun of that observation; a
-  product failure counts as measured, and the criteria using it **FAIL**.
+  closed); an unavailable `pmset` reading is no evidence, and power evidence
+  is a positive "Battery Power" reading. An infrastructure failure allows one
+  rerun of that observation (per round, side and cell); if the rerun fails
+  too, the observation is lost and Q is NONCONFORMING. A product failure
+  counts as measured, and the criteria using it **FAIL**.
 - **Criteria (`evaluate_v100q_q.py`).** Q1–Q4 are computed by a line-by-line
   port of the tool's `evaluate` on the three rounds; every step's own
   `summary.json` is recomputed with the port and must match, so the port is
   checked on the campaign's own data. Q5: for each of `C` = 16 and 64, the
   candidate's median query throughput ≥ 90 % and its median client p99
-  ≤ 125 % of the v0.9.0 medians of this session. Q5 against the frozen
-  v0.8.0 baseline (SHA-256 `bc6e8c09…`) is reported, not deciding.
+  ≤ 125 % of the v0.9.0 medians of this session. A failed v0.9.0 reference
+  observation gives Q5 **no verdict, not FAIL** (it is not a candidate
+  result), with the reason; so does a v0.9.0 median of 0 (no ratio). Neither
+  is ever PASS. Q5 against the frozen v0.8.0 baseline (SHA-256 `bc6e8c09…`)
+  is reported, not deciding.
 - **Deciding:** Q1, Q2, Q4 and Q5. **Q3** is classified as measured; the
   v0.9.0 acceptance does not carry over; if not PASS it needs a disposition
   and a documented operational envelope (plan §8).
@@ -190,11 +248,29 @@ comparison on the campaign's clean builds and stops if it differs.
    hash, the probe compatibility result, the delta record of plan §3.5, the
    test results, the review, and the SHA-256 of every file listed in the
    template. Commit it alone (the freeze commit).
-3. Run `prepare_campaign.sh CAND FREEZE 1`. It clones and builds everything,
+3. Run `prepare_campaign.sh CAND FREEZE 1`. Before it creates the campaign
+   directory it checks the freeze record with the freeze commit's own
+   `freeze_check_v100q.py` (identity, candidate, reference, core-rule outcome
+   and hash, `file_sha256` keys equal to `file_sha256_paths`, which covers the
+   list held in that script, every file's hash, the freeze commit as the only
+   child of `tooling.commit` adding only `FREEZE.json`), the SHA-256 of the
+   helpers it runs from its own directory, the attempt budget
+   (`attempt_budget.sh`) and the probe lockfile version. Then it clones and builds everything,
    runs the smoke tests, records the checksums, recomputes the core rule
    (must equal the freeze record's), reruns the probe compatibility check,
-   runs the launch environment check (every collector's dry run and the
-   runner's preflight) and writes `LAUNCH-COMMAND.txt`.
+   runs the launch environment check (every collector's dry run, the
+   runner's preflight and the Q cells against the load tool's cell keys) and
+   writes `LAUNCH-COMMAND.txt`. **If prepare fails after creating the
+   directory** (a build, smoke test, core rule or probe check), it writes
+   `logs/PREPARE-FAILED.txt`; that directory was never launched (no
+   `CONFORMANCE.txt`, no `runner.log`) and the attempt budget refuses to
+   continue past it. Recovery is the maintainer's recorded decision: rename it
+   to `…-attemptN.prepare-failed-<utc>` (kept as evidence, outside the attempt
+   pattern) and rerun prepare with the same N.
+   **Attempt 2** is prepared only if attempt 1 is not CONFORMING
+   (`series_budget.sh`) and, if it ended FAILED, every cause in its
+   `logs/failures.jsonl` is infrastructure or conformance
+   (`attempt_budget.sh`; plan §5.5).
 4. One session: Part 1, then block Q (`run_part3.sh`) if Part 1 ended
    CONFORMING. Nothing else heavy runs on the host: no builds, no other
    benchmark.
@@ -222,24 +298,49 @@ comparison on the campaign's clean builds and stops if it differs.
 - **R and Rmem:** `analyze_v100q.py r|rmem DIR --ref-rev 223f04c…
   --cand-rev <cand>`.
 - **M_reg:** `analyze_v100q.py mreg Mreg`.
-- **Q:** `part3/evaluation.json` (written by `run_part3.sh`).
+- **Part 1 outcome after a failure:** `logs/part1-outcome.json` and
+  `logs/failures.jsonl` (written by the runner;
+  `part1_failures_v100q.py summary CAMP` prints them again).
+- **Q:** `part3/evaluation.json` (written by `run_part3.sh`), or
+  `part3-attempt2/evaluation.json` if Q was rerun (only the final attempt).
 
-## 7. Decision rule (plan §7–8, unchanged)
+## 7. Decision rule (plan §5.5, §7–8)
 
 - The campaign is **valid** when one Part 1 attempt is CONFORMING and Q
   completes under its protocol and cap.
 - v1.0.0 is **qualified** only if the campaign is valid and every deciding
   cell and criterion is PASS. Any other result is reported as it is, for a
-  maintainer decision.
-- Non-PASS results (REGRESSION, FAIL, INCONCLUSIVE, INCONCLUSIVE_DISCLOSED,
-  UNRESOLVED, NOT_EQUIVALENT, INVALID, not run) need a recorded maintainer
-  disposition before `v1.0.0-rc.1`. A disposition is recorded next to the
-  verdict, never in place of it.
-- Disclosure categories (C4 EXCEEDS_BUDGET, the descriptive B4 frozen
-  counterparts including `import-high`) and TIMER_LIMITED cells are listed,
-  never converted, and do not block.
-- No v0.9.0 or earlier exception carries over. No rule changes after
-  collection, and no rerun is chosen by its result.
+  maintainer decision. A disposition is recorded next to the verdict, never
+  in place of it.
+- **REGRESSION or FAIL** of a deciding cell or criterion **blocks**
+  `v1.0.0-rc.1`: it is fixed and re-measured (plan §8 rule 5); a disposition
+  does not lift it.
+- **Inconclusive** results (INCONCLUSIVE, INCONCLUSIVE_DISCLOSED,
+  UNRESOLVED) need an **explicit, recorded maintainer disposition**: accepted
+  for v1.0 with the classification kept and disclosed, assigned to v1.2.0 H2
+  with a criterion, or fixed and re-measured. NOT_EQUIVALENT needs a
+  disposition too (plan §7).
+- **INVALID, NONCONFORMING and not run** follow §5.5 of the plan and the
+  attempt rules (§5 step 3, §4): a deciding cell without a valid verdict
+  cannot be disposed as PASS; NONCONFORMING twice (Part 1 or Q) means no rc
+  until the maintainer decides.
+- **Part 1 product failure.** A collector child that fails on a product
+  failure ends the attempt FAILED: the failed cell is **FAIL**; the other
+  cells of that experiment and every later step are **not run**, each with
+  the reason (`logs/part1-outcome.json`). No second attempt follows. An
+  infrastructure failure of a child (closed-list evidence, no product
+  indication; ambiguous counts as product) allows one rerun, which in Part 1
+  is attempt 2; a conformance failure allows attempt 2 under the attempts
+  rule.
+- **Q3**, if not PASS, needs a disposition **and** a documented operational
+  envelope (plan §8 rule 2); the absence of either blocks the rc.
+- **E6** (the two not-equivalent hub 10k B4 cells) stays unqualified and
+  needs its own, **separate** disposition for 1.0; it never becomes PASS.
+- **Disclosures** (C4 EXCEEDS_BUDGET, the descriptive B4 frozen
+  counterparts including `import-high`) and TIMER_LIMITED cells are listed
+  and published, **never converted**, and do not block.
+- No v0.9.0 or earlier acceptance or exception is inherited. No rule changes
+  after collection, and no rerun is chosen by its result.
 
 ## 8. Publication (plan §11)
 
