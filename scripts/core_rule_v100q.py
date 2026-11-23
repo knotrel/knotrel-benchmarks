@@ -27,6 +27,9 @@ import sys
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_directory  # noqa: E402
+
 #: (name, candidate build, reference build), relative to CAMP/targets.
 PAIRS: Tuple[Tuple[str, str, str], ...] = (
     ("core-lifecycle (B/C core)", "cand-probes/release/core-lifecycle", "t5base-probes/release/core-lifecycle"),
@@ -62,10 +65,10 @@ def main(argv: List[str]) -> int:
     if len(argv) != 3:
         print(__doc__, file=sys.stderr)
         return 2
-    out = Path(argv[2])
+    out = confined(argv[2], "OUT")
     if out.exists():
         raise SystemExit(f"refusing to overwrite {out}")
-    result = compare(Path(argv[1]) / "targets")
+    result = compare(confined_directory(argv[1], "CAMP") / "targets")
     out.write_text(json.dumps(result, indent=1) + "\n")
     print(f"core rule: {result['outcome']}")
     return 0

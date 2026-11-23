@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Optional, Sequence
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 import analyze_bc_qualification as frozen  # noqa: E402
+from cli_paths import confined, confined_directory  # noqa: E402
 
 RULES = "v0.4.0"
 PAIRS_PER_BLOCK = frozen.MAIN_PAIRS_PER_CELL  # 12
@@ -117,6 +118,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--block2", type=Path, required=True, help="Block 2 raw directory (A/extension/raw-extension).")
     parser.add_argument("--output", type=Path, required=True, help="Output JSON file (must not exist).")
     args = parser.parse_args(argv)
+    args.block1 = confined_directory(args.block1, "--block1")
+    args.block2 = confined_directory(args.block2, "--block2")
+    args.output = confined(args.output, "--output")
     if args.output.exists():
         parser.error(f"{args.output} already exists")
     if not args.output.parent.is_dir():

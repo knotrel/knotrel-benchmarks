@@ -46,7 +46,7 @@ done
 URL=$(bash "$F/scripts/start-test-postgres.sh" 18 | tail -1)
 trap 'bash "$F/scripts/stop-test-postgres.sh" 18 > /dev/null 2>&1 || true' EXIT INT TERM
 RC=0
-KNOTREL_PG_ADMIN_URL="$URL" python3 "$B/scripts/run_v100q_q.py" "$CAMP" "$OUT" || RC=$?
+LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" KNOTREL_PG_ADMIN_URL="$URL" python3 "$B/scripts/run_v100q_q.py" "$CAMP" "$OUT" || RC=$?
 {
   echo "candidate $(git -C "$K" rev-parse HEAD)"
   echo "run_v100q_q exit $RC"

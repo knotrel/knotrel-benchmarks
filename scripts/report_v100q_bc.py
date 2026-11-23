@@ -22,6 +22,7 @@ from typing import List
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import report_v070q3_bc as frozen  # noqa: E402
+from cli_paths import confined  # noqa: E402
 
 frozen.MATRIX = Path(__file__).resolve().parent.parent / "results" / "v1.0.0-qualification" / "MATRIX.json"
 
@@ -48,9 +49,9 @@ def main(argv: List[str]) -> int:
             or (args[2] == "identical" and len(args) != 3) or (args[2] == "different" and len(args) != 4):
         print(__doc__, file=sys.stderr)
         return 2
-    analysis = json.loads(Path(args[0]).read_text())
+    analysis = json.loads(confined(args[0], "BC-analysis").read_text())
     matrix = json.loads(frozen.MATRIX.read_text())
-    t5 = json.loads(Path(args[3]).read_text()) if args[2] == "different" else None
+    t5 = json.loads(confined(args[3], "T5-analysis").read_text()) if args[2] == "different" else None
     print(json.dumps(report(analysis, matrix, t5), indent=1))
     return 0
 

@@ -54,6 +54,9 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_directory  # noqa: E402
+
 CAP_S = 30 * 60.0
 CANDIDATE_CELLS = ("L1 G100k C=0", "L1 G100k C=16", "L1 G100k C=64", "L1 G10k C=16",
                    "L2 G100k C=0", "L2 G100k C=16", "L2 G100k C=64")
@@ -284,6 +287,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("out", type=Path)
     parser.add_argument("--cap-s", type=float, default=CAP_S)
     args = parser.parse_args(argv)
+    args.camp = confined_directory(args.camp, "CAMP")
+    args.out = confined(args.out, "OUT")
     if args.out.exists():
         parser.error(f"refusing to reuse {args.out}")
     if args.cap_s != CAP_S:

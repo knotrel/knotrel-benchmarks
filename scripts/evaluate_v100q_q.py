@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_v100q_q as q  # noqa: E402
+from cli_paths import confined, confined_directory  # noqa: E402
 
 BASELINE_V080_SHA256 = "bc6e8c094c84a0942d24e4095259d0153f595cb416388afd69392faccc7ef0e6"
 DECIDING = ("Q1", "Q2", "Q4", "Q5")
@@ -286,7 +287,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("out", type=Path)
     parser.add_argument("--baseline-v080", type=Path)
     args = parser.parse_args(argv)
-    print(json.dumps(evaluate(args.out, args.baseline_v080), indent=1))
+    out = confined_directory(args.out, "OUT")
+    baseline = confined(args.baseline_v080, "--baseline-v080") if args.baseline_v080 else None
+    print(json.dumps(evaluate(out, baseline), indent=1))
     return 0
 
 

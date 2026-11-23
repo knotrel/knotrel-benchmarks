@@ -55,6 +55,7 @@ SCRIPTS = Path(__file__).resolve().parent
 REPO = SCRIPTS.parent
 sys.path.insert(0, str(SCRIPTS))
 import build_site  # noqa: E402
+from cli_paths import confined  # noqa: E402
 
 VERSION = "1.0.0"
 SITE_VERDICTS = ("PASS", "FAIL", "REGRESSION", "INCONCLUSIVE", "INVALID", "NOT_EQUIVALENT")
@@ -278,6 +279,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     for name in ("campaign-url", "evidence-url", "environment"):
         parser.add_argument(f"--{name}", required=True)
     args = parser.parse_args(argv)
+    for name in ("freeze", "decision", "a", "bc", "bc_report", "r", "rmem", "mreg", "q", "releases", "out",
+                 "report_only"):
+        setattr(args, name, confined(getattr(args, name), f"--{name.replace('_', '-')}"))
     if not args.decision.is_file() or not args.decision.read_text().strip():
         parser.error("the decision record does not exist: the 1.0.0 entry is published only after it (plan section 11)")
     docs = (REPO / "docs").resolve()

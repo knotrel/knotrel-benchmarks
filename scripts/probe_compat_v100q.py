@@ -44,6 +44,7 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 import analyze_v070r_a4 as a4  # noqa: E402
 import run_lifecycle_qualification as lifecycle  # noqa: E402
+from cli_paths import confined, confined_directory  # noqa: E402
 
 MATRIX = SCRIPTS.parent / "results" / "v1.0.0-qualification" / "MATRIX.json"
 
@@ -112,7 +113,7 @@ def main(argv: List[str]) -> int:
     if len(argv) != 3:
         print(__doc__, file=sys.stderr)
         return 2
-    camp, out = Path(argv[1]).resolve(), Path(argv[2]).resolve()
+    camp, out = confined_directory(argv[1], "CAMP"), confined(argv[2], "OUT_DIR")
     out.mkdir(parents=True)
     t = camp / "targets"
     rev = {side: subprocess.run(["git", "-C", str(camp / "src" / side / "knotrel"), "rev-parse", "HEAD"],

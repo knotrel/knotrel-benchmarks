@@ -426,6 +426,11 @@ class FixedTwentyFourTest(unittest.TestCase):
         import analyze_v100q_a as a
         b1, b2 = self.blocks()
         out = self.root / "A.json"
+        with mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": ""}), self.assertRaisesRegex(SystemExit, "outside the allowed roots"):
+            a.main(["--block1", str(b1), "--block2", str(b2), "--output", str(out)])  # tmp dir is not a root
+        roots = mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": str(self.root)})
+        roots.start()
+        self.addCleanup(roots.stop)
         with mock.patch("sys.stdout"):
             self.assertEqual(a.main(["--block1", str(b1), "--block2", str(b2), "--output", str(out)]), 0)
         self.assertEqual(json.loads(out.read_text())["design"][:15], "fixed n = 24 pe")
@@ -815,6 +820,28 @@ class QTest(unittest.TestCase):
 
 
 # -- core rule, probe compatibility ---------------------------------------------------------------
+class CliConfinementTest(unittest.TestCase):
+    """Every path taken from the command line is confined (cli_paths), as in v0.9.0."""
+
+    def test_paths_outside_the_allowed_roots_are_refused(self):
+        import core_rule_v100q as core
+        import evaluate_v100q_q as ev
+        import probe_compat_v100q as pc
+        import report_v100q_bc as report
+        import run_v100q_q as q
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": ""}):
+            calls = {"core rule": lambda: core.main(["x", d, f"{d}/o.json"]),
+                     "report": lambda: report.main(["x", f"{d}/a.json", "--core-rule", "identical"]),
+                     "evaluate": lambda: ev.main([d]),
+                     "Q runner": lambda: q.main([d, f"{d}/part3"]),
+                     "probe compat": lambda: pc.main(["x", d, f"{d}/o"])}
+            for name, call in calls.items():
+                with self.subTest(name), self.assertRaisesRegex(SystemExit, "outside the allowed roots"):
+                    call()
+            with self.subTest("option-like"), self.assertRaisesRegex(SystemExit, "invalid path"):
+                core.main(["x", d, "--output=x"])
+
+
 class CoreRuleTest(unittest.TestCase):
     def test_outcome(self):
         import core_rule_v100q as core
@@ -947,6 +974,11 @@ class ExportTest(unittest.TestCase):
                     "--evidence-url", self.URLS["evidence"], "--environment", "env",
                     "--releases", str(ROOT / "docs/data/releases.json"), "--decision", str(decision)]
             out = ["--out", str(root / "releases.json"), "--report-only", str(root / "excluded.json")]
+            with mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": ""}), self.assertRaisesRegex(SystemExit, "outside the allowed roots"):
+                ex.main(base + out)  # paths outside the allowed roots are refused
+            roots = mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d})
+            roots.start()
+            self.addCleanup(roots.stop)
             with self.assertRaises(SystemExit), mock.patch("sys.stderr"):
                 ex.main(base + out)  # no decision record yet
             decision.write_text("# decision\n")

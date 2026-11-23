@@ -170,7 +170,7 @@ CELLS=$(cd "$B" && python3 -c "import sys; sys.path.insert(0, 'scripts'); import
 ( cd "$CAMP" && find targets -type f -perm -u+x \( -path '*/release/*' \) ! -path '*/deps/*' ! -path '*/build/*' ! -name '*.d' -print0 | xargs -0 shasum -a 256 > binaries-sha256.txt )
 
 # --- Core rule (plan section 4.3) and probe compatibility (plan section 13 item 6) ---
-python3 "$B/scripts/core_rule_v100q.py" "$CAMP" "$L/core-rule.json" > "$L/core-rule.log" 2>&1
+LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 "$B/scripts/core_rule_v100q.py" "$CAMP" "$L/core-rule.json" > "$L/core-rule.log" 2>&1
 OUTCOME=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['outcome'])" "$L/core-rule.json")
 echo "core rule: $OUTCOME"
 if [ "$MODE" = attempt ]; then
