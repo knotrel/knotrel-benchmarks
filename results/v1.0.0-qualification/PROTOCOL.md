@@ -362,4 +362,12 @@ C1, C2 and Q2 are threshold-kind rows with their verdict and no ratio or
 interval, as is an Rmem metric whose reference is zero; an M_reg cell that is
 INVALID without metrics is a `failed` row with its reason. Not-run cells carry
 their reason and no values. A truly unknown measured class still stops the
-export instead of being mapped.
+export instead of being mapped. **Final Q attempt only:** the exporter derives
+the final Q attempt from the campaign directory's own records (`part3`, or
+`part3-attempt2` when `part3/superseded_by.json` names it and it carries no
+marker itself) and refuses a `--q` that is not that attempt's
+`evaluation.json`, an ambiguous layout (an attempt 2 without the marker, a
+marker naming a missing or different directory, an unknown `part3*`
+directory), a campaign directory of another candidate, and an evaluation whose
+`final_attempt` or `superseded_attempts` disagree. Every Q row records
+`q_attempt`.

@@ -52,6 +52,16 @@ class) stops the export and is named; nothing is mapped onto another verdict. A 
 without a reason, or one that names a measured row, stops it too. The output is validated with
 ``build_site.validate``.
 
+**Final Q attempt only.** ``--q`` must be ``<CAMP>/<attempt>/evaluation.json`` inside the campaign
+directory of the frozen candidate (``v1.0.0-qualification-<cand7>-attemptN``). The final Q attempt
+is derived from the campaign's own records, never from the argument: ``part3`` when it carries no
+``superseded_by.json`` and no ``part3-attempt2`` exists; ``part3-attempt2`` when ``part3``'s
+``superseded_by.json`` names it and it carries no marker itself. Any other layout (an attempt-2
+directory without the marker, a marker naming a missing or different directory, a marker in
+attempt 2, an unknown ``part3*`` directory) is ambiguous and refused, as is a ``--q`` naming a
+superseded attempt or an ``evaluation.json`` whose ``final_attempt`` or ``superseded_attempts``
+disagree. Every Q row records the attempt as ``q_attempt``.
+
 **Never publishes.** It requires the decision record (``--decision``) to exist, writes the
 whole dataset with the 1.0.0 entry ``published`` to ``--out``, which must lie outside
 ``docs/``, and the excluded items to ``--report-only``. Copying the result into
@@ -104,6 +114,69 @@ C_REASON = "one run per arm and cell; C3/C4 are rules on one 30-cycle series, no
 
 class ExportError(ValueError):
     """The inputs cannot be exported without changing a verdict or inventing a value."""
+
+
+Q_ATTEMPTS = ("part3", "part3-attempt2")
+
+
+def final_q_attempt(q_path: Path, candidate: str) -> str:
+    """The final Q attempt of the campaign holding ``q_path``; ``q_path`` must be its evaluation.
+
+    Derived from the campaign directory's records (``superseded_by.json`` written by the Q
+    attempt-2 gate), so a superseded or ambiguous input is refused instead of exported."""
+    q_path = Path(q_path).resolve()
+    if q_path.name != "evaluation.json":
+        raise ExportError(f"--q must be a Q attempt's evaluation.json, not {q_path.name}")
+    attempt_dir, camp = q_path.parent, q_path.parent.parent
+    prefix = f"v1.0.0-qualification-{candidate[:7]}-attempt"
+    if not (camp.name.startswith(prefix) and camp.name[len(prefix):].isdigit()):
+        raise ExportError(f"--q is not inside a campaign directory of the frozen candidate ({prefix}N): {camp.name}")
+    present = sorted(p.name for p in camp.iterdir() if p.is_dir() and p.name.startswith("part3"))
+    unknown = [n for n in present if n not in Q_ATTEMPTS]
+    if unknown or "part3" not in present:
+        raise ExportError(f"ambiguous Q attempts in {camp.name}: {present} (expected part3, optionally part3-attempt2)")
+
+    def marker(name: str) -> Optional[Dict[str, Any]]:
+        path = camp / name / "superseded_by.json"
+        if not path.exists():
+            return None
+        try:
+            data = json.loads(path.read_text())
+        except ValueError as error:
+            raise ExportError(f"{name}/superseded_by.json is unreadable: {error}") from error
+        if not isinstance(data, dict):
+            raise ExportError(f"{name}/superseded_by.json is not an object")
+        return data
+
+    first = marker("part3")
+    if "part3-attempt2" in present:
+        if first is None or first.get("superseded_by") != "part3-attempt2":
+            raise ExportError("ambiguous Q attempts: part3-attempt2 exists but part3/superseded_by.json does not name it")
+        if marker("part3-attempt2") is not None:
+            raise ExportError("ambiguous Q attempts: part3-attempt2 is itself marked superseded")
+        final = "part3-attempt2"
+    else:
+        if first is not None:
+            raise ExportError(f"ambiguous Q attempts: part3 is superseded by {first.get('superseded_by')!r}, "
+                              "which does not exist")
+        final = "part3"
+    if attempt_dir.name != final:
+        raise ExportError(f"--q names {attempt_dir.name}, but the final Q attempt of {camp.name} is {final}")
+    if not q_path.is_file():
+        raise ExportError(f"the final Q attempt {final} has no evaluation.json")
+    return final
+
+
+def check_q_attempt(q: Dict[str, Any], final: Any) -> None:
+    """The evaluation must be the one the evaluator wrote for the final attempt."""
+    if final not in Q_ATTEMPTS:
+        raise ExportError(f"the final Q attempt is not established ({final!r})")
+    if q.get("final_attempt") != final:
+        raise ExportError(f"the Q evaluation is for {q.get('final_attempt')!r}, not the final attempt {final!r}")
+    expected = [] if final == "part3" else ["part3"]
+    if q.get("superseded_attempts") != expected:
+        raise ExportError(f"the Q evaluation lists superseded attempts {q.get('superseded_attempts')!r}, "
+                          f"expected {expected!r}")
 
 
 def pct(log_value: float) -> float:
@@ -388,6 +461,10 @@ def build(inputs: Dict[str, Any], urls: Dict[str, str], environment: str) -> Tup
                  mreg_rows(inputs["mreg"], ev), q_rows(inputs["q"], ev)):
         rows += part[0]
         excluded += part[1]
+    check_q_attempt(inputs["q"], inputs.get("q_attempt"))
+    for r in rows:
+        if r.get("experiment") == "Q":
+            r["q_attempt"] = inputs["q_attempt"]
     rows += r_rows(inputs["r"], ev)
     not_run = not_run_rows(inputs.get("not_run", []), ev)
     measured = {(r["scenario"], r["metric"]) for r in rows}
@@ -432,6 +509,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if inputs["freeze"].get("campaign") != "v1.0.0 qualification" or not inputs["freeze"].get("frozen_utc"):
         parser.error("--freeze is not the frozen v1.0.0 freeze record")
     try:
+        inputs["q_attempt"] = final_q_attempt(args.q, inputs["freeze"]["candidate"]["commit"])
         comparison, excluded = build(inputs, {"campaign": args.campaign_url, "evidence": args.evidence_url}, args.environment)
     except (ExportError, KeyError, TypeError) as error:
         print(f"export refused: {error!r}", file=sys.stderr)

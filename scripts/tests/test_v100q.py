@@ -928,7 +928,9 @@ def export_inputs(a_status="PASS"):
               "candidate": {"commit": CAND}, "reference": {"tag": "v0.9.0", "commit": REF}}
     return {"freeze": freeze, "a": {"pairs_per_cell": 24, "phase": "final", "cells": a_cells},
             "bc": {"timing": timing, "sustained": sustained}, "bc_report": {"rows": rows}, "r": r, "rmem": rmem,
-            "mreg": mreg, "q": {"q_status": "COMPLETE", "run_cause": None, "criteria": crit, "Q5_v0_8_0": {"cells": {}}}}
+            "mreg": mreg, "q": {"q_status": "COMPLETE", "run_cause": None, "criteria": crit, "Q5_v0_8_0": {"cells": {}},
+                                "final_attempt": "part3", "superseded_attempts": []},
+            "q_attempt": "part3"}
 
 
 class ExportTest(unittest.TestCase):
@@ -1173,9 +1175,14 @@ class ExportTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             paths = {}
-            for key, value in export_inputs().items():
+            inputs = export_inputs()
+            for key, value in inputs.items():
                 paths[key] = root / f"{key}.json"
                 paths[key].write_text(json.dumps(value))
+            q_dir = root / f"v1.0.0-qualification-{CAND[:7]}-attempt1" / "part3"  # the final (only) Q attempt
+            q_dir.mkdir(parents=True)
+            paths["q"] = q_dir / "evaluation.json"
+            paths["q"].write_text(json.dumps(inputs["q"]))
             decision = root / "DECISION.md"
             base = ["--freeze", str(paths["freeze"]), "--a", str(paths["a"]), "--bc", str(paths["bc"]),
                     "--bc-report", str(paths["bc_report"]), "--r", str(paths["r"]), "--rmem", str(paths["rmem"]),
@@ -1206,7 +1213,111 @@ class ExportTest(unittest.TestCase):
         self.assertEqual((data["schema_version"], entry["schema_version"]), (2, 2))
         self.assertIn("R-core-churn-x", [r["scenario"] for r in entry["comparisons"][0]["results"]])
         self.assertEqual(json.loads(before)["releases"][0]["status"], "planned")
+        self.assertEqual({r["q_attempt"] for r in entry["comparisons"][0]["results"] if r["experiment"] == "Q"},
+                         {"part3"})
 
+
+class ExportFinalQAttemptTest(unittest.TestCase):
+    """NEW-2: the exporter publishes only the final Q attempt named by the campaign's own records."""
+
+    def campaign(self, root, layout, cand=CAND):
+        camp = Path(root) / f"v1.0.0-qualification-{cand[:7]}-attempt1"
+        for name, marker in layout.items():
+            (camp / name).mkdir(parents=True)
+            (camp / name / "evaluation.json").write_text("{}")
+            if marker is not None:
+                (camp / name / "superseded_by.json").write_text(json.dumps({"superseded_by": marker}))
+        return camp
+
+    def test_single_attempt_is_final(self):
+        import export_v100q_site as ex
+        with tempfile.TemporaryDirectory() as d:
+            camp = self.campaign(d, {"part3": None})
+            self.assertEqual(ex.final_q_attempt(camp / "part3" / "evaluation.json", CAND), "part3")
+
+    def test_superseded_attempt_is_refused(self):
+        import export_v100q_site as ex
+        with tempfile.TemporaryDirectory() as d:
+            camp = self.campaign(d, {"part3": "part3-attempt2", "part3-attempt2": None})
+            self.assertEqual(ex.final_q_attempt(camp / "part3-attempt2" / "evaluation.json", CAND), "part3-attempt2")
+            with self.assertRaisesRegex(ex.ExportError, "final Q attempt .* is part3-attempt2"):
+                ex.final_q_attempt(camp / "part3" / "evaluation.json", CAND)
+
+    def test_ambiguous_layouts_are_refused(self):
+        import export_v100q_site as ex
+        cases = {
+            "attempt 2 without the marker": ({"part3": None, "part3-attempt2": None}, "part3-attempt2"),
+            "marker naming another directory": ({"part3": "part3-attempt3", "part3-attempt2": None}, "part3-attempt2"),
+            "marker naming a missing attempt": ({"part3": "part3-attempt2"}, "part3"),
+            "attempt 2 marked superseded too": ({"part3": "part3-attempt2", "part3-attempt2": "part3"}, "part3-attempt2"),
+            "unknown attempt directory": ({"part3": "part3-attempt2", "part3-attempt2": None, "part3-attempt3": None},
+                                          "part3-attempt2"),
+            "no first attempt": ({"part3-attempt2": None}, "part3-attempt2"),
+        }
+        for name, (layout, q) in cases.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as d:
+                camp = self.campaign(d, layout)
+                with self.assertRaisesRegex(ex.ExportError, "ambiguous Q attempts"):
+                    ex.final_q_attempt(camp / q / "evaluation.json", CAND)
+
+    def test_input_outside_the_candidate_campaign_or_not_an_evaluation(self):
+        import export_v100q_site as ex
+        with tempfile.TemporaryDirectory() as d:
+            camp = self.campaign(d, {"part3": None}, cand="f" * 40)
+            with self.assertRaisesRegex(ex.ExportError, "frozen candidate"):
+                ex.final_q_attempt(camp / "part3" / "evaluation.json", CAND)
+            camp = self.campaign(Path(d) / "x", {"part3": None})
+            with self.assertRaisesRegex(ex.ExportError, "evaluation.json"):
+                ex.final_q_attempt(camp / "part3" / "run.json", CAND)
+
+    def test_evaluation_must_match_the_final_attempt(self):
+        import export_v100q_site as ex
+        for name, change in (("evaluation of the superseded attempt",
+                              {"q_attempt": "part3-attempt2"}),
+                             ("superseded list disagrees",
+                              {"q": {"final_attempt": "part3", "superseded_attempts": ["part3"]}}),
+                             ("attempt not established", {"q_attempt": None})):
+            with self.subTest(name):
+                inputs = export_inputs()
+                if "q" in change:
+                    inputs["q"].update(change["q"])
+                else:
+                    inputs["q_attempt"] = change["q_attempt"]
+                with self.assertRaises(ex.ExportError):
+                    ex.build(inputs, ExportTest.URLS, "env")
+
+    def test_q_rows_record_the_attempt(self):
+        rows, _, _ = ExportTest.export(ExportTest(), export_inputs())
+        q = [r for r in rows if r["experiment"] == "Q"]
+        self.assertTrue(q)
+        self.assertEqual({r["q_attempt"] for r in q}, {"part3"})
+        self.assertFalse([r for r in rows if r["experiment"] != "Q" and "q_attempt" in r])
+
+    def test_main_refuses_a_superseded_q(self):
+        import export_v100q_site as ex
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": str(Path(d).resolve())}):
+            root = Path(d).resolve()
+            camp = self.campaign(root, {"part3": "part3-attempt2", "part3-attempt2": None})
+            inputs = export_inputs()
+            paths = {}
+            for key in ("freeze", "a", "bc", "bc_report", "r", "rmem", "mreg"):
+                paths[key] = root / f"{key}.json"
+                paths[key].write_text(json.dumps(inputs[key]))
+            (camp / "part3" / "evaluation.json").write_text(json.dumps(inputs["q"]))
+            (root / "DECISION.md").write_text("decision\n")
+            releases = root / "releases.json"
+            releases.write_text(json.dumps({"schema_version": 1, "releases": [{"version": "1.0.0", "status": "planned",
+                                                                              "baseline_policy": "p"}]}))
+            argv = ["--freeze", str(paths["freeze"]), "--decision", str(root / "DECISION.md"), "--a", str(paths["a"]),
+                    "--bc", str(paths["bc"]), "--bc-report", str(paths["bc_report"]), "--r", str(paths["r"]),
+                    "--rmem", str(paths["rmem"]), "--mreg", str(paths["mreg"]),
+                    "--q", str(camp / "part3" / "evaluation.json"), "--campaign-url", "https://x", "--evidence-url",
+                    "https://x", "--environment", "env", "--releases", str(releases), "--out", str(root / "out.json"),
+                    "--report-only", str(root / "excluded.json")]
+            with mock.patch("sys.stderr"):
+                self.assertEqual(ex.main(argv), 2)
+            self.assertFalse((root / "out.json").exists())
 
 if __name__ == "__main__":
     unittest.main()
