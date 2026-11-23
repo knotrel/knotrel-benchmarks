@@ -497,6 +497,48 @@ class QAttemptTwoTest(unittest.TestCase):
         self.assertTrue(any("carried from superseded part3" in x for x in out["criteria"]["Q1"]["failed_observations"]))
         self.assertEqual(out["criteria"]["Q4"]["status"], "PASS")
 
+    def test_missing_value_of_a_capped_attempt_is_carried(self):
+        """NEW-1: a feeder not ready (secs_to_ready null, exit 0) in attempt 1, then the cap; attempt 2
+        clean: the final Q4 is FAIL, not lost with the superseded attempt."""
+        clock = base.Clock()
+        clock.deadline_hint = 1000.0 + 1800.0
+        values = {("candidate", "L2 G100k C=64"): {"ready": None}}
+        qt = base.QTest()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            r1, _ = qt.run_q(root, base.FakeTool(values=values, clock=clock, per_step=400.0), clock=clock)
+            self.assertEqual(r1.status, "NONCONFORMING")
+            self.assertEqual(json.loads((root / "part3/failures.jsonl").read_text().splitlines()[0]).get("failed_cell"), None)
+            allowed, reason = q.attempt2_gate(root / "part3")
+            self.assertTrue(allowed)
+            self.assertIn("carried into the final evaluation", reason)
+            with mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d}), mock.patch("sys.stdout"):
+                self.assertEqual(q.main(["--attempt2-gate", str(root / "part3"), "--write-marker", "part3-attempt2"]), 0)
+            self.assertIn("carried", json.loads((root / "part3/superseded_by.json").read_text()))
+            r2 = q.QRunner(qt.camp(root), root / "part3-attempt2", clock=base.Clock(), launch=base.FakeTool(),
+                           state=base.good_state)
+            with mock.patch.dict(os.environ, {"KNOTREL_PG_ADMIN_URL": "postgres://x"}), mock.patch("sys.stdout"):
+                self.assertEqual(r2.run(), 0)
+            out = ev.evaluate(root / "part3-attempt2")
+        self.assertEqual(out["q_status"], "COMPLETE")
+        self.assertEqual(out["criteria"]["Q4"]["status"], "FAIL")
+        self.assertTrue(any("no value for secs_to_ready" in x and "carried from superseded part3" in x
+                            for x in out["criteria"]["Q4"]["failed_observations"]))
+        self.assertEqual(out["criteria"]["Q3"]["status"], "PASS")  # events_per_sec was present
+        self.assertEqual(out["criteria"]["Q1"]["status"], "PASS")
+        self.assertFalse(out["q_pass"])
+
+    def test_failed_attempt_with_a_missing_value_allows_no_rerun(self):
+        values = {("candidate", "L2 G100k C=64"): {"ready": None}}
+        with tempfile.TemporaryDirectory() as d:
+            base.QTest().run_q(Path(d), base.FakeTool(values=values))
+            run = json.loads((Path(d) / "part3/run.json").read_text())
+            run.update(status="FAILED", cause="runner error: x")
+            (Path(d) / "part3/run.json").write_text(json.dumps(run))
+            allowed, reason = q.attempt2_gate(Path(d) / "part3")
+        self.assertFalse(allowed)
+        self.assertIn("product failure", reason)
+
     def test_run_part3_refuses_attempt2_after_complete(self):
         with tempfile.TemporaryDirectory() as d:
             camp = Path(d) / "camp"

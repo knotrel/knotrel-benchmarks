@@ -218,7 +218,9 @@ def attempts(out: Path) -> Dict[str, Any]:
     ``part3`` with a ``superseded_by.json`` marker is refused. ``part3-attempt2`` requires that
     marker in ``part3``, naming it; the candidate's product failures of ``part3`` are carried
     into this evaluation, because a product failure is never rerun and counts as measured
-    (plan section 5.5). The exporter must likewise read the final attempt's evaluation only."""
+    (plan section 5.5): the failures recorded in ``failures.jsonl`` and the completed
+    observations lacking a value a criterion needs (``missing_values``). The exporter must
+    likewise read the final attempt's evaluation only."""
     marker = out / "superseded_by.json"
     if marker.exists():
         raise SystemExit(f"{out.name} is superseded by {json.loads(marker.read_text()).get('superseded_by')}: "
@@ -235,7 +237,31 @@ def attempts(out: Path) -> Dict[str, Any]:
     if named != out.name:
         raise SystemExit(f"{first} has no superseded_by.json naming {out.name}: run_part3.sh writes it")
     carried = [dict(f, carried_from="part3") for f in product_failures(first)["candidate"]]
+    carried += [dict(m, carried_from="part3") for m in missing_values(first)]
     return {"final_attempt": out.name, "superseded": ["part3"], "carried": carried}
+
+
+def missing_values(out: Path) -> List[Dict[str, Any]]:
+    """Completed candidate observations of ``out`` lacking a value a criterion needs (the
+    ``criterion_state`` rule): product failures that are results, never rerun. A feeder that
+    does not reach ``ready`` within 300 s leaves a record with ``secs_to_ready`` null and a tool
+    exit 0, so nothing reaches ``failures.jsonl``; this keeps it when Q is rerun."""
+    found = []
+    for step_dir in sorted(p for p in out.iterdir() if p.is_dir()):
+        match = STEP.match(step_dir.name)
+        if not match or match["side"] != "candidate" or not (step_dir / "results.jsonl").exists():
+            continue
+        for line in (step_dir / "results.jsonl").read_text().splitlines():
+            if not line.strip():
+                continue
+            r = flatten(json.loads(line))
+            cell = q.cell_key(r)
+            for name, (cells, paths) in USES.items():
+                gaps = [".".join(p) for p in paths if cell in cells and get(r, p) is None]
+                if gaps:
+                    found.append({"step": step_dir.name, "side": "candidate", "failed_cell": cell, "criterion": name,
+                                  "exit": 0, "classification": "product: no value for " + ", ".join(gaps)})
+    return found
 
 
 def collect(out: Path) -> Dict[str, Any]:
@@ -278,7 +304,7 @@ def criterion_state(name: str, data: Dict[str, Any]) -> Dict[str, Any]:
                         failed[side].append(f"{side} {cell} round {r['_round']}: no value for {'.'.join(p)}")
             if side == "candidate":
                 for f in data.get("carried", []):
-                    if f["failed_cell"] == cell:
+                    if f["failed_cell"] == cell and f.get("criterion", name) == name:
                         failed[side].append(f"{side} {cell}: {f.get('step')} exit {f.get('exit')} "
                                             f"({f.get('classification')}, carried from superseded {f['carried_from']})")
             if len(obs) + len(fails) < OBSERVATIONS:

@@ -153,6 +153,18 @@ attempt's own `core-rule.json` and its SHA-256 in
 agreement again. A different outcome or different per-pair booleans stop
 prepare before the launch, for a maintainer decision (never a result).
 
+**Known limit (path length within a directory).** The candidate probes link
+`src/cand/knotrel` and the reference probes `src/ref/knotrel`, so the
+embedded paths differ in length between the two arms of the probe pairs (the
+A harness uses the equal-length `B` and `C`). Path length alone can therefore
+make a probe pair "different". The error is in the safe direction: it adds
+B1–B3, B5 and T5 to the perimeter, within the Part 1 cap; it can never hide a
+change. For this campaign the pre-freeze analysis found real code-generation
+differences regardless, in the release `core-lifecycle`:
+`LifecycleGraph::connected` (384 → 444 bytes) and `GenericForest::balance`
+(684 → 624 bytes) (knotrel `docs/releases/v1.0.0-qualification-plan.md` §4.3,
+knotrel#140). `core_rule_v100q.py` and the build layout are unchanged.
+
 ## 4. Block Q: feeder under load
 
 - **Protocol:** knotrel `docs/integrations/feeder-under-load.md`, all seven
@@ -180,7 +192,12 @@ prepare before the launch, for a maintainer decision (never a result).
   final, whatever `failures.jsonl` holds; no rerun is chosen by a result.
   Attempt 2 writes `superseded_by.json` into `part3`; the evaluator accepts
   only the final attempt, and carries the candidate's product failures of the
-  superseded attempt (they are never rerun). The publication reads only the
+  superseded attempt (they are never rerun): the failures in its
+  `failures.jsonl` and its completed observations that lack a value a
+  criterion needs (a feeder not ready within 300 s writes `secs_to_ready`
+  null and exits 0, so it never reaches `failures.jsonl`). The gate's reason
+  and the marker state this. A FAILED first attempt with such an observation
+  is a product failure and allows no second attempt. The publication reads only the
   final attempt's `evaluation.json`.
 - **PostgreSQL.** `run_part3.sh` sets its cleanup trap first, checks the
   start script's exit status and its `postgres://` URL, and runs `pg_isready`

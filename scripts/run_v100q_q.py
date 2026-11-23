@@ -195,8 +195,10 @@ def attempt2_gate(part3: Path) -> Tuple[bool, str]:
 
     Allowed only if that attempt did not end COMPLETE and its cause is the cap or an
     infrastructure failure whose rerun was used up (both NONCONFORMING), or a runner or tooling
-    error (FAILED) with no product failure recorded in ``failures.jsonl``. A COMPLETE Q is
-    final whatever ``failures.jsonl`` holds; a result never buys a second attempt."""
+    error (FAILED) with no product failure (in ``failures.jsonl``, or a completed observation
+    lacking a value a criterion needs). A COMPLETE Q is final whatever ``failures.jsonl`` holds;
+    a result never buys a second attempt. The reason states that the attempt's product failures
+    are carried into the final evaluation."""
     try:
         run = json.loads((part3 / "run.json").read_text())
     except (OSError, ValueError) as error:
@@ -211,16 +213,21 @@ def attempt2_gate(part3: Path) -> Tuple[bool, str]:
     product = [f for f in failures if f.get("failed_cell") and f.get("classification") != "infrastructure"]
     if status == "COMPLETE":
         return False, "Q ended COMPLETE: it is final, whatever failures.jsonl holds"
+    import evaluate_v100q_q as ev  # lazy: the evaluator imports this module
+    product += ev.missing_values(part3)  # completed observations lacking a needed value (exit 0)
+    carried = ("; the candidate's product failures of this attempt (failures.jsonl entries and completed "
+               f"observations lacking a value a criterion needs: {len(product)}) are carried into the final "
+               "evaluation, never rerun")
     if status == "NONCONFORMING":
         if run.get("cap_reached"):
-            return True, "the first Q exceeded its cap (NONCONFORMING)"
+            return True, "the first Q exceeded its cap (NONCONFORMING)" + carried
         if run.get("infrastructure_exhausted"):
-            return True, f"infrastructure failure after its one rerun: {run['infrastructure_exhausted']}"
+            return True, f"infrastructure failure after its one rerun: {run['infrastructure_exhausted']}" + carried
         return False, f"NONCONFORMING without a recorded cap or exhausted infrastructure rerun: {run.get('cause')}"
     if status == "FAILED":
         if product:
             return False, f"FAILED with a product failure recorded ({product[0].get('step')} {product[0].get('failed_cell')})"
-        return True, f"runner or tooling error with no product failure: {run.get('cause')}"
+        return True, f"runner or tooling error with no product failure: {run.get('cause')}" + carried
     return False, f"status {status!r} allows no second attempt"
 
 
@@ -393,6 +400,9 @@ def gate_main(argv: Sequence[str]) -> int:
         if allowed and len(argv) == 4:
             (part3 / "superseded_by.json").write_text(json.dumps(
                 {"superseded_by": argv[3], "utc": utc(), "reason": reason,
+                 "carried": "the candidate's product failures of this attempt (failures.jsonl entries not classified "
+                            "infrastructure, and completed observations lacking a value a criterion needs) count in "
+                            "the final evaluation; they are never rerun",
                  "rule": "plan section 9: Q rerun once as a whole; only the final attempt is evaluated and published"},
                 indent=1) + "\n")
         return 0 if allowed else 1
