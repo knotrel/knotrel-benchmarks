@@ -1184,11 +1184,14 @@ class ExportTest(unittest.TestCase):
             paths["q"] = q_dir / "evaluation.json"
             paths["q"].write_text(json.dumps(inputs["q"]))
             decision = root / "DECISION.md"
+            releases = root / "planned-releases.json"  # a fixed planned entry, not the live site data
+            releases.write_text(json.dumps({"schema_version": 1, "releases": [
+                {"version": "1.0.0", "status": "planned", "baseline_policy": "p", "comparisons": []}]}))
             base = ["--freeze", str(paths["freeze"]), "--a", str(paths["a"]), "--bc", str(paths["bc"]),
                     "--bc-report", str(paths["bc_report"]), "--r", str(paths["r"]), "--rmem", str(paths["rmem"]),
                     "--mreg", str(paths["mreg"]), "--q", str(paths["q"]), "--campaign-url", self.URLS["campaign"],
                     "--evidence-url", self.URLS["evidence"], "--environment", "env",
-                    "--releases", str(ROOT / "docs/data/releases.json"), "--decision", str(decision)]
+                    "--releases", str(releases), "--decision", str(decision)]
             out = ["--out", str(root / "releases.json"), "--report-only", str(root / "excluded.json")]
             not_run = root / "not_run.json"
             not_run.write_text(json.dumps({"not_run": [{"experiment": "R", "scenario": "R-core-churn-x",
@@ -1203,10 +1206,12 @@ class ExportTest(unittest.TestCase):
             decision.write_text("# decision\n")
             with self.assertRaises(SystemExit), mock.patch("sys.stderr"):
                 ex.main(base + ["--out", str(ROOT / "docs/data/x.json"), "--report-only", str(root / "e.json")])
-            before = (ROOT / "docs/data/releases.json").read_bytes()
+            before = releases.read_bytes()
+            live = (ROOT / "docs/data/releases.json").read_bytes()
             with mock.patch("sys.stdout"):
                 self.assertEqual(ex.main(base + out + ["--not-run", str(not_run)]), 0)
-            self.assertEqual((ROOT / "docs/data/releases.json").read_bytes(), before)
+            self.assertEqual(releases.read_bytes(), before)
+            self.assertEqual((ROOT / "docs/data/releases.json").read_bytes(), live)
             data = json.loads((root / "releases.json").read_text())
         entry = next(r for r in data["releases"] if r["version"] == "1.0.0")
         self.assertEqual(entry["status"], "published")

@@ -24,9 +24,18 @@ class Links(HTMLParser):
                 self.paths.append(value)
 
 
+# Schema 1 tests start from a fixed planned 1.0.0 entry, not from the live
+# docs/data/releases.json, so publishing results does not change what they test.
+PLANNED = {'schema_version': 1, 'releases': [{
+    'version': '1.0.0', 'status': 'planned',
+    'baseline_policy': 'Latest released 0.9.x patch at campaign freeze, frozen as the reference.',
+    'comparisons': []}]}
+
+
 class SiteTests(unittest.TestCase):
     def setUp(self):
-        self.data = json.loads((site.DOCS / 'data/releases.json').read_text())
+        self.live = json.loads((site.DOCS / 'data/releases.json').read_text())
+        self.data = copy.deepcopy(PLANNED)
 
     def published(self):
         row = dict(scenario='test-only', metric='latency', unit='ms', direction='lower',
@@ -42,7 +51,7 @@ class SiteTests(unittest.TestCase):
         return comparison, row
 
     def test_links_and_generated_files(self):
-        for name, output in site.generate(self.data).items():
+        for name, output in site.generate(self.live).items():
             self.assertEqual((site.DOCS / name).read_text(), output)
             parser = Links()
             parser.feed(output)
