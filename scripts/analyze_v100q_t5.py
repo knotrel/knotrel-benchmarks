@@ -3,10 +3,10 @@
 
 ``analyze_v090q_t5.py`` unchanged (``analyze_v070q3_t5.py`` with arm B built from a separate,
 clean probe revision), with one difference in its probe-source check: arm B links knotrel
-0.9.0 and arm C knotrel 1.0.0, so the two knotrel version lines of the probe lockfile change
+0.9.0 and arm C knotrel 1.0.0-rc.1, so the two knotrel version lines of the probe lockfile change
 major version, which the v0.9.0 check (``version = "0.`` only) refuses. Here the two commits may
 differ in ``tools/lifecycle-probes`` only in ``Cargo.lock``, in at most four changed lines, each
-a ``version = "<semver>"`` line of the ``knotrel-core`` or ``knotrel-server`` package. Every other
+a ``version = "<semver>"`` line (prerelease allowed) of the ``knotrel-core`` or ``knotrel-server`` package. Every other
 check is the frozen one. The installed check is restored when the command ends.
 
     analyze_v100q_t5.py T5_DIR --expect-base-rev SHA --expect-cand-rev SHA \\
@@ -23,7 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import analyze_v090q_t5 as v090  # noqa: E402
 
-VERSION_LINE = re.compile(r'^[+-]version = "\d+\.\d+\.\d+"$')
+# SemVer 2.0.0 version, prerelease identifiers allowed (the candidate is 1.0.0-rc.1); no build metadata.
+VERSION_LINE = re.compile(r'^[+-]version = "\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"$')
 FROZEN_CHECK = v090.probe_source_equal
 
 
