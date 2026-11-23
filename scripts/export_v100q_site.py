@@ -9,13 +9,15 @@ outputs, never raw data, and recomputes no verdict:
   and one row per gated supporting metric with that metric's class;
 - B4 (``analyze_v100q_bc.py`` numbers, ``report_v100q_bc.py`` roles and statuses): deciding
   cells and the descriptive frozen counterparts (``role``); the two not-equivalent cells (E6)
-  go to the campaign report only;
+  go to the campaign report only (plan section 11);
 - C (same files): C3 and C4 rows (late over early maximum of the lifecycle arm against the
-  1.25 budget); C1 and C2 (rules checked at every checkpoint, no single estimate) go to the
-  campaign report only;
-- R, Rmem, M_reg (``analyze_v100q.py``); Q1, Q3, Q4 and Q5 (``evaluate_v100q_q.py``); Q2 (a
-  rule on every observation) goes to the campaign report only, as do Q5 against v0.8.0 and
-  any criterion without a verdict.
+  1.25 budget); C1 and C2 (rules checked at every checkpoint) as threshold-kind rows with their
+  verdict and no ratio or interval; B5 and T5 rows (core rule different) with their verdict;
+- R, Rmem, M_reg (``analyze_v100q.py``; an Rmem metric with a zero reference keeps its verdict
+  and counts, with no ratio); Q1-Q5 (``evaluate_v100q_q.py``; Q2, a rule on every observation,
+  is a threshold-kind row without an estimate). Only E6 and Q5 against v0.8.0 (plan section 11)
+  and the A supporting metrics the frozen analyzer marks REPORT_ONLY (no verdict) go to the
+  campaign report; no deciding verdict is dropped.
 
 Intervals (plan section 11): ``delta_ci95`` holds the frozen order-statistic interval of the
 median paired change, converted to percent; ``ci_method`` names it exactly with its coverage
@@ -24,11 +26,31 @@ not make it one. Rmem and Q rows have no interval, with the plan's reason. B4 an
 that their reference is an arm of the candidate build, not v0.9.0. Rows whose reference
 column holds a threshold say so (``reference_kind: "threshold"``).
 
-**Fail closed.** The site schema (``scripts/build_site.py``) accepts the verdicts PASS, FAIL,
-REGRESSION, INCONCLUSIVE, INVALID and NOT_EQUIVALENT. A measured class outside that list
-(INCONCLUSIVE_DISCLOSED, UNRESOLVED, TIMER_LIMITED, EXCEEDS_BUDGET, not run, ...) is never
-mapped onto another verdict: the export stops and names it, so the schema is extended first
-(a maintainer decision). The output is validated with ``build_site.validate``.
+**Site schema 2** (``scripts/build_site.py``, ``docs/SITE.md``). Every row carries three
+separate fields: ``verdict``, the analyzer's class copied verbatim (PASS, "PASS (IMPROVED)",
+FAIL, REGRESSION, INCONCLUSIVE, INCONCLUSIVE_DISCLOSED, UNRESOLVED, TIMER_LIMITED,
+EXCEEDS_BUDGET, INVALID, NOT_EQUIVALENT; NOT_RUN; null for no verdict); ``category``
+(``decisive``, ``descriptive``, ``disclosure``: the row's role in plan section 7, never derived
+from its verdict); and ``status`` (``completed``, ``not_run``, ``nonconforming``, ``failed``). A
+row that is not ``completed`` has a ``status_reason`` and no measured value. Mapping:
+
+- A primary and gated supporting metrics, B4 deciding cells, C1-C3, B5 and T5 (core rule
+  different), R, Rmem, M_reg, Q1, Q2, Q4 and Q5: ``decisive``. Q3 ("classified as measured") is ``decisive`` too: a non-PASS Q3 needs a
+  disposition and an envelope and blocks the rc (plan section 8.2).
+- B4 descriptive frozen counterparts (including ``import-high``) and C4: ``disclosure`` (plan
+  section 7, "Disclosure categories").
+- An M_reg cell the analyzer made INVALID without metrics: ``failed``, its invalid
+  observations as the reason. A Q criterion that FAILs without a value (a failed observation):
+  ``failed``. A Q criterion with no verdict because block Q was NONCONFORMING: verdict null,
+  ``nonconforming``. Cells listed in the optional ``--not-run`` file (an experiment stopped by a
+  product failure, plan section 5.5): NOT_RUN, ``not_run``, with their mandatory reason.
+- C1, C2, Q2, B5/T5 and an Rmem metric with a zero reference: ``completed`` with their verdict and
+  an ``estimate_unavailable_reason``, without a ratio or an interval.
+
+**Fail closed.** A measured class outside ``build_site.MEASURED_VERDICTS`` (a truly unknown
+class) stops the export and is named; nothing is mapped onto another verdict. A not-run entry
+without a reason, or one that names a measured row, stops it too. The output is validated with
+``build_site.validate``.
 
 **Never publishes.** It requires the decision record (``--decision``) to exist, writes the
 whole dataset with the 1.0.0 entry ``published`` to ``--out``, which must lie outside
@@ -38,7 +60,11 @@ whole dataset with the 1.0.0 entry ``published`` to ``--out``, which must lie ou
     export_v100q_site.py --freeze FREEZE.json --decision DECISION.md --a A.json --bc BC.json \\
         --bc-report REPORT.json --r R.json --rmem RMEM.json --mreg MREG.json --q Q.json \\
         --campaign-url URL --evidence-url URL --environment TEXT \\
-        --releases docs/data/releases.json --out OUT.json --report-only EXCLUDED.json
+        --releases docs/data/releases.json --out OUT.json --report-only EXCLUDED.json \\
+        [--not-run NOT-RUN.json]
+
+``NOT-RUN.json``: ``{"not_run": [{"experiment": "R", "scenario": CELL, "metric": METRIC,
+"reason": TEXT, "category": "decisive"}]}`` (``category`` defaults to ``decisive``).
 """
 
 from __future__ import annotations
@@ -58,7 +84,9 @@ import build_site  # noqa: E402
 from cli_paths import confined  # noqa: E402
 
 VERSION = "1.0.0"
-SITE_VERDICTS = ("PASS", "FAIL", "REGRESSION", "INCONCLUSIVE", "INVALID", "NOT_EQUIVALENT")
+SITE_SCHEMA = 2
+DECISIVE, DESCRIPTIVE, DISCLOSURE = build_site.CATEGORIES
+COMPLETED, NOT_RUN_STATUS, NONCONFORMING, FAILED = build_site.STATUSES
 CI_24 = ("distribution-free interval for the median of 24 paired log ratios ln(C/B): one-based order "
          "statistics [r(7), r(18)], coverage 97.73 % (1 - 2 P(Bin(24, 1/2) <= 6)); not a 95 % interval; "
          "converted to percent")
@@ -68,6 +96,8 @@ CI_12 = ("distribution-free interval for the median of 12 paired log ratios ln(C
 WITHIN = "; the reference is an arm within the candidate build (lifecycle against its reference arm), not v0.9.0"
 NO_ABS = "the campaign estimates the paired relative change only; no interval is computed for the absolute medians"
 RMEM_REASON = "deterministic counts, one run per arm"
+C_RULES = {"C1": "engine_vertices <= 2 x nodes + 1024 at every checkpoint",
+           "C2": "logical counts equal the expected counts at every checkpoint"}
 Q_REASON = "3 observations; the protocol reports the median and range"
 C_REASON = "one run per arm and cell; C3/C4 are rules on one 30-cycle series, not estimates with an interval"
 
@@ -93,17 +123,52 @@ def unit_of(metric: str) -> str:
     return "value"
 
 
+def measured_class(verdict: Any, where: str) -> str:
+    """The analyzer's class, unchanged, if the site schema knows it; otherwise stop (fail closed)."""
+    if verdict not in build_site.MEASURED_VERDICTS:
+        raise ExportError(f"{where}: measured class {verdict!r} is unknown to the site schema "
+                          f"{build_site.MEASURED_VERDICTS}; it is never mapped onto another verdict")
+    return verdict
+
+
 def row(scenario: str, metric: str, unit: str, direction: str, candidate: float, reference: float, runs: int,
         verdict: Any, ci_method: str, evidence: str, delta_ci: Optional[Sequence[float]] = None,
-        reason: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
+        reason: Optional[str] = None, category: str = DECISIVE, **extra: Any) -> Dict[str, Any]:
+    """A ``completed`` row with its measured values."""
     out: Dict[str, Any] = {"scenario": scenario, "metric": metric, "unit": unit, "direction": direction,
                            "candidate": candidate, "reference": reference,
                            "delta_pct": 100.0 * (candidate / reference - 1.0) if reference else None,
                            "candidate_ci95": None, "reference_ci95": None,
                            "delta_ci95": list(delta_ci) if delta_ci is not None else None,
-                           "runs": runs, "verdict": verdict, "ci_method": ci_method, "evidence_url": evidence}
+                           "runs": runs, "verdict": measured_class(verdict, f"{scenario} {metric}"),
+                           "category": category, "status": COMPLETED, "ci_method": ci_method,
+                           "evidence_url": evidence}
     out["ci_unavailable_reason"] = reason or NO_ABS
     out.update(extra)
+    return out
+
+
+def rule_row(scenario: str, metric: str, verdict: Any, why: str, evidence: str, category: str = DECISIVE,
+             **extra: Any) -> Dict[str, Any]:
+    """A ``completed`` row whose verdict has no ratio or interval (a rule, or a zero reference): the verdict
+    is published, ``estimate_unavailable_reason`` says why no estimate is shown, and no value is invented."""
+    out: Dict[str, Any] = {"scenario": scenario, "metric": metric,
+                           "verdict": measured_class(verdict, f"{scenario} {metric}"), "category": category,
+                           "status": COMPLETED, "estimate_unavailable_reason": why, "evidence_url": evidence}
+    out.update({k: v for k, v in extra.items() if v is not None})
+    return out
+
+
+def unmeasured(scenario: str, metric: str, verdict: Any, status: str, status_reason: str, evidence: str,
+               category: str = DECISIVE, **extra: Any) -> Dict[str, Any]:
+    """A row without measured values (``not_run``, ``nonconforming`` or ``failed``) and its reason."""
+    if verdict not in build_site.STATUS_VERDICTS[status]:
+        raise ExportError(f"{scenario} {metric}: verdict {verdict!r} is impossible with status {status}")
+    if not isinstance(status_reason, str) or not status_reason.strip():
+        raise ExportError(f"{scenario} {metric}: a {status} row needs a reason")
+    out: Dict[str, Any] = {"scenario": scenario, "metric": metric, "verdict": verdict, "category": category,
+                           "status": status, "status_reason": status_reason, "evidence_url": evidence}
+    out.update({k: v for k, v in extra.items() if v is not None})
     return out
 
 
@@ -141,30 +206,47 @@ def bc_rows(bc: Dict[str, Any], report: Dict[str, Any], evidence: str) -> Tuple[
                 excluded.append({"id": r["id"], "status": "no verdict (E6, unqualified)", "measured_status": r["status"],
                                  "reason": "not equivalent: indicative evidence in the campaign report only"})
                 continue
-            role = "deciding" if r["role"] == "deciding" else "descriptive frozen counterpart (disclosure, no release verdict)"
-            rows.append(row(r["id"] if r["role"] == "deciding" else f"{r['id']} (descriptive)", "window_ns", "ns", "lower",
+            deciding = r["role"] == "deciding"
+            if not deciding and r["role"] != "descriptive":
+                raise ExportError(f"{r['id']}: unknown B4 role {r['role']!r}")
+            role = "deciding" if deciding else "descriptive frozen counterpart (disclosure, no release verdict)"
+            extra = {"measured_status": r["measured_status"]} if "measured_status" in r else {}
+            rows.append(row(r["id"] if deciding else f"{r['id']} (descriptive)", "window_ns", "ns", "lower",
                             t["C_median"], t["B_median"], t["pairs"], r["status"], CI_12 + WITHIN, evidence,
-                            t["interval_pct"], experiment=t["experiment"], role=role))
+                            t["interval_pct"], category=DECISIVE if deciding else DISCLOSURE,
+                            experiment=t["experiment"], role=role, **extra))
         elif r["kind"] in ("C3", "C4"):
             cell_id = r["id"].rsplit(":", 1)[0]
             s = sustained[cell_id]
             rows.append(row(f"{cell_id} {r['kind']} (late over early max; slope rule in the campaign report)",
                             f"{s['metric']} max(cycles 21-30) / max(cycles 1-10)", "ratio", "lower",
                             s["late_over_early"], 1.25, 1, r["status"], "none: " + C_REASON + WITHIN, evidence,
-                            None, C_REASON, experiment="C", role="deciding" if r["kind"] == "C3" else "disclosure (C4)",
+                            None, C_REASON, category=DECISIVE if r["kind"] == "C3" else DISCLOSURE,
+                            experiment="C", role="deciding" if r["kind"] == "C3" else "disclosure (C4)",
                             reference_kind="threshold"))
-        elif r["kind"] in ("C1", "C2"):
-            excluded.append({"id": r["id"], "status": r["status"],
-                             "reason": "rule checked at every checkpoint; no single numeric estimate (campaign report)"})
+        elif r["kind"] in C_RULES:
+            cell_id = r["id"].rsplit(":", 1)[0]
+            rows.append(rule_row(f"{cell_id} {r['kind']} (rule at every checkpoint)", C_RULES[r["kind"]], r["status"],
+                                 "a rule checked at every checkpoint: no single numeric estimate (checkpoints in the "
+                                 "campaign report)" + WITHIN, evidence, experiment="C", role="deciding",
+                                 reference_kind="threshold"))
+        elif r["kind"] == "T5" and r["status"] == "INVALID" and r.get("reason"):
+            rows.append(unmeasured(r["id"], "T5 tail latency", "INVALID", FAILED, f"T5 analysis invalid: {r['reason']}",
+                                   evidence, experiment="T5", role="deciding (core rule different)"))
+        elif r["kind"] in ("B5", "T5"):
+            rows.append(rule_row(r["id"], f"{r['kind']} (core rule different)", r["status"],
+                                 f"{r['kind']}: the frozen decision view copies the status only; its values are in the "
+                                 "campaign report", evidence, experiment=r["kind"], role="deciding (core rule different)"))
         else:
-            excluded.append({"id": r["id"], "status": r["status"], "reason": f"{r['kind']}: core-rule row, campaign report"})
+            raise ExportError(f"{r['id']}: unknown B/C row kind {r['kind']!r}")
     return rows, excluded
 
 
 def r_rows(r: Dict[str, Any], evidence: str) -> List[Dict[str, Any]]:
+    # ``verdict`` is the analyzer's class with its qualifier ("PASS (IMPROVED)"), published verbatim.
     return [row(cell_id, s["metric"], unit_of(s["metric"]), "lower", s["C_median"], s["B_median"], s["pairs"],
-                s["status"], CI_12, evidence, s["interval_pct"], experiment="R", role="deciding",
-                improved=s.get("verdict") == "PASS (IMPROVED)")
+                s.get("verdict", s["status"]), CI_12, evidence, s["interval_pct"], experiment="R", role="deciding",
+                metric_status=s["status"], improved=s.get("verdict") == "PASS (IMPROVED)")
             for cell_id, s in r.items()]
 
 
@@ -173,8 +255,10 @@ def rmem_rows(rmem: Dict[str, Any], evidence: str) -> Tuple[List[Dict[str, Any]]
     for cell_id, cell in rmem.items():
         for metric, m in cell["metrics"].items():
             if not m["ref"]:
-                excluded.append({"id": f"{cell_id}:{metric}", "status": m["verdict"],
-                                 "reason": "reference count is zero: no ratio (campaign report)"})
+                rows.append(rule_row(cell_id, metric, m["verdict"],
+                                     "the reference count is zero: no ratio; the rule is candidate > reference x 1.20",
+                                     evidence, experiment="Rmem", role="deciding", unit=unit_of(metric),
+                                     direction="lower", candidate=m["cand"], reference=m["ref"], runs=1))
                 continue
             rows.append(row(cell_id, metric, unit_of(metric), "lower", m["cand"], m["ref"], 1, m["verdict"],
                             "none: deterministic allocator counts, REGRESSION if candidate > reference x 1.20",
@@ -186,8 +270,11 @@ def mreg_rows(mreg: Dict[str, Any], evidence: str) -> Tuple[List[Dict[str, Any]]
     rows, excluded = [], []
     for cell_id, cell in mreg.get("result", mreg).items():
         if not cell.get("metrics"):
-            excluded.append({"id": cell_id, "status": cell.get("verdict"),
-                             "reason": "no metrics in the analysis (an invalid observation): campaign report"})
+            reasons = cell.get("invalid_observations") or []
+            rows.append(unmeasured(cell_id, "all M_reg metrics of the cell", cell.get("verdict"), FAILED,
+                                   "no analyzable metrics: " + ("; ".join(reasons) or "an observation is invalid")
+                                   + " (MATRIX rules.validity; observations in the campaign report)",
+                                   evidence, experiment="M_reg", role="deciding"))
             continue
         for metric, s in cell["metrics"].items():
             lo, hi = s["interval_log"]
@@ -196,10 +283,11 @@ def mreg_rows(mreg: Dict[str, Any], evidence: str) -> Tuple[List[Dict[str, Any]]
             else:
                 cand, ref, ci, direction = s["C_median"], s["B_median"], [pct(lo), pct(hi)], "lower"
             rows.append(row(cell_id, metric, unit_of(metric), direction, cand, ref, s["pairs"],
-                            cell["verdict"] if cell["verdict"] == "INVALID" else s["status"],
+                            cell["verdict"] if cell["verdict"] == "INVALID" else s.get("verdict", s["status"]),
                             CI_12 + " (for higher-is-better metrics the analyzed ratio is reference/candidate; "
                                     "shown here as candidate/reference)", evidence, ci,
-                            experiment="M_reg", role="deciding", cell_verdict=cell["verdict"]))
+                            experiment="M_reg", role="deciding", cell_verdict=cell["verdict"],
+                            metric_status=s["status"]))
     return rows, excluded
 
 
@@ -210,10 +298,26 @@ def q_rows(q: Dict[str, Any], evidence: str) -> Tuple[List[Dict[str, Any]], List
 
     def add(name: str, scenario: str, metric: str, unit: str, direction: str, cand: Any, ref: Any, verdict: Any,
             **extra: Any) -> None:
-        if verdict is None or cand is None or ref in (None, 0):
-            excluded.append({"id": f"{name}:{scenario}:{metric}", "status": verdict,
-                             "reason": "no verdict or no value (block Q NONCONFORMING or a failed observation)"})
+        state = crit[name]
+        if verdict is None:  # no verdict: legitimate only when block Q did not conform (protocol section 4)
+            if q.get("q_status") != "NONCONFORMING":
+                raise ExportError(f"{name} {scenario} {metric}: no verdict although block Q is {q.get('q_status')!r}")
+            missing = "; ".join(state.get("missing_observations") or []) or "observations missing"
+            rows.append(unmeasured(scenario, metric, None, NONCONFORMING,
+                                   f"block Q NONCONFORMING ({q.get('run_cause') or 'cause not recorded'}): {missing}; "
+                                   "no verdict, and it does not count as PASS (protocol section 4)", evidence,
+                                   experiment="Q", criterion=name, unit=unit, direction=direction, **extra))
             return
+        if cand is None or ref in (None, 0):
+            if verdict != "FAIL":
+                raise ExportError(f"{name} {scenario} {metric}: verdict {verdict!r} without a value")
+            why = (state.get("failed_observations") or []) + (state.get("missing_observations") or [])
+            rows.append(unmeasured(scenario, metric, "FAIL", FAILED,
+                                   "no passing value (plan section 5.5): " + ("; ".join(why) or extra.pop("missing_reason", None)
+                                                                          or "a value is missing"),
+                                   evidence, experiment="Q", criterion=name, unit=unit, direction=direction, **extra))
+            return
+        extra.pop("missing_reason", None)
         rows.append(row(scenario, metric, unit, direction, cand, ref, 3, verdict, method, evidence, None, Q_REASON,
                         experiment="Q", criterion=name, **extra))
 
@@ -222,8 +326,17 @@ def q_rows(q: Dict[str, Any], evidence: str) -> Tuple[List[Dict[str, Any]], List
         crit["Q1"].get("marker_p99_ms"), 1000.0, s1, reference_kind="threshold", role="deciding")
     add("Q1", "Q1 L1 G100k C=16 (reference = threshold)", "marker lag max (median of observations)", "ms", "lower",
         crit["Q1"].get("marker_max_ms"), 3000.0, s1, reference_kind="threshold", role="deciding")
-    excluded.append({"id": "Q2", "status": crit["Q2"]["status"],
-                     "reason": "a rule on every L1 observation (lag and retained WAL): campaign report"})
+    q2 = crit["Q2"]["status"]
+    q2_scenario, q2_metric = "Q2 L1 (rule on every observation)", "marker lag and retained WAL within limits"
+    if q2 is None:
+        add("Q2", q2_scenario, q2_metric, "rule", "lower", None, None, None, reference_kind="threshold", role="deciding")
+    else:
+        rows.append(rule_row(q2_scenario, q2_metric, q2,
+                             "a rule on every L1 observation (lag and retained WAL): no single estimate; "
+                             + ("; ".join((crit["Q2"].get("failed_observations") or [])
+                                          + (crit["Q2"].get("missing_observations") or []))
+                                or "observations in the campaign report"),
+                             evidence, experiment="Q", criterion="Q2", reference_kind="threshold", role="deciding"))
     s3 = crit["Q3"]["status"]
     add("Q3", "Q3 L2 G100k C=16 over C=0 (reference = threshold)", "catch-up rate ratio", "ratio", "higher",
         crit["Q3"].get("ratio_c16"), 0.5, s3, reference_kind="threshold", role="classified as measured")
@@ -234,19 +347,36 @@ def q_rows(q: Dict[str, Any], evidence: str) -> Tuple[List[Dict[str, Any]], List
     s5 = crit["Q5"]["status"]
     clean = not crit["Q5"].get("failed_observations") and not crit["Q5"].get("missing_observations")
     for key, cell in crit["Q5"]["cells"].items():
-        if "query_rps" not in cell:
-            excluded.append({"id": f"Q5:{key}", "status": s5, "reason": cell.get("reason", "missing median")})
-            continue
-        rps_v = ("PASS" if cell["rps_pass"] else "FAIL") if clean and s5 is not None else s5
-        p99_v = ("PASS" if cell["p99_pass"] else "FAIL") if clean and s5 is not None else s5
+        has_values = "query_rps" in cell
+        rps_v = ("PASS" if cell["rps_pass"] else "FAIL") if has_values and clean and s5 is not None else s5
+        p99_v = ("PASS" if cell["p99_pass"] else "FAIL") if has_values and clean and s5 is not None else s5
+        rps = cell.get("query_rps") or [None, None]
+        p99 = cell.get("query_p99_ms") or [None, None]
+        missing = {} if has_values else {"missing_reason": cell.get("reason", "missing median")}
         add("Q5", f"Q5 {key} (reference = v0.9.0, same session)", "query throughput (median)", "requests/s", "higher",
-            cell["query_rps"][1], cell["query_rps"][0], rps_v, role="deciding", threshold="candidate >= 90 % of reference")
+            rps[1], rps[0], rps_v, role="deciding", threshold="candidate >= 90 % of reference", **missing)
         add("Q5", f"Q5 {key} (reference = v0.9.0, same session)", "client p99 (median)", "ms", "lower",
-            cell["query_p99_ms"][1], cell["query_p99_ms"][0], p99_v, role="deciding", threshold="candidate <= 125 % of reference")
+            p99[1], p99[0], p99_v, role="deciding", threshold="candidate <= 125 % of reference", **missing)
     if "Q5_v0_8_0" in q:
         excluded.append({"id": "Q5 against v0.8.0", "status": "descriptive", "reason": "reported, not deciding (plan section 11)",
                          "values": q["Q5_v0_8_0"]})
     return rows, excluded
+
+
+def not_run_rows(entries: Sequence[Dict[str, Any]], evidence: str) -> List[Dict[str, Any]]:
+    """NOT_RUN rows for cells that an experiment stopped by a product failure never measured."""
+    rows = []
+    for entry in entries:
+        for key in ("experiment", "scenario", "metric"):
+            if not isinstance(entry.get(key), str) or not entry[key].strip():
+                raise ExportError(f"not-run entry {entry!r}: {key} is required")
+        category = entry.get("category", DECISIVE)
+        if category not in build_site.CATEGORIES:
+            raise ExportError(f"not-run entry {entry['scenario']}: unknown category {category!r}")
+        rows.append(unmeasured(entry["scenario"], entry["metric"], build_site.NOT_RUN, NOT_RUN_STATUS,
+                               entry.get("reason"), evidence, category, experiment=entry["experiment"],
+                               unit=entry.get("unit"), direction=entry.get("direction")))
+    return rows
 
 
 def build(inputs: Dict[str, Any], urls: Dict[str, str], environment: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
@@ -259,11 +389,12 @@ def build(inputs: Dict[str, Any], urls: Dict[str, str], environment: str) -> Tup
         rows += part[0]
         excluded += part[1]
     rows += r_rows(inputs["r"], ev)
-    outside = sorted({str(r["verdict"]) for r in rows if r["verdict"] not in SITE_VERDICTS})
-    if outside:
-        raise ExportError(f"measured classes outside the site schema's verdicts {SITE_VERDICTS}: {outside} "
-                          f"(rows: {[r['scenario'] for r in rows if r['verdict'] not in SITE_VERDICTS][:8]}); "
-                          "they are never mapped onto another verdict: extend the schema first (maintainer decision)")
+    not_run = not_run_rows(inputs.get("not_run", []), ev)
+    measured = {(r["scenario"], r["metric"]) for r in rows}
+    clash = [(r["scenario"], r["metric"]) for r in not_run if (r["scenario"], r["metric"]) in measured]
+    if clash:
+        raise ExportError(f"not-run entries name rows the analyzers classified: {clash}")
+    rows += not_run
     ref = freeze["reference"]
     version = str(ref.get("tag", "")).lstrip("v")
     comparison = {"candidate_sha": freeze["candidate"]["commit"], "reference_version": version,
@@ -278,7 +409,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         parser.add_argument(f"--{name}", type=Path, required=True)
     for name in ("campaign-url", "evidence-url", "environment"):
         parser.add_argument(f"--{name}", required=True)
+    parser.add_argument("--not-run", type=Path, help="cells not run, each with its reason (see the module docstring)")
     args = parser.parse_args(argv)
+    if args.not_run is not None:
+        args.not_run = confined(args.not_run, "--not-run")
     for name in ("freeze", "decision", "a", "bc", "bc_report", "r", "rmem", "mreg", "q", "releases", "out",
                  "report_only"):
         setattr(args, name, confined(getattr(args, name), f"--{name.replace('_', '-')}"))
@@ -293,7 +427,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             parser.error(f"{out} already exists")
     load = lambda p: json.loads(p.read_text())  # noqa: E731
     inputs = {"freeze": load(args.freeze), "a": load(args.a), "bc": load(args.bc), "bc_report": load(args.bc_report),
-              "r": load(args.r), "rmem": load(args.rmem), "mreg": load(args.mreg), "q": load(args.q)}
+              "r": load(args.r), "rmem": load(args.rmem), "mreg": load(args.mreg), "q": load(args.q),
+              "not_run": load(args.not_run)["not_run"] if args.not_run is not None else []}
     if inputs["freeze"].get("campaign") != "v1.0.0 qualification" or not inputs["freeze"].get("frozen_utc"):
         parser.error("--freeze is not the frozen v1.0.0 freeze record")
     try:
@@ -306,7 +441,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if len(entries) != 1:
         print(f"export refused: {args.releases} has {len(entries)} {VERSION} entries", file=sys.stderr)
         return 2
+    data["schema_version"] = max(data["schema_version"], SITE_SCHEMA)  # older entries keep their own schema
     entries[0]["status"] = "published"
+    entries[0]["schema_version"] = SITE_SCHEMA
     entries[0]["comparisons"] = [comparison]
     try:
         build_site.validate(data)

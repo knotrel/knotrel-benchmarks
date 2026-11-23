@@ -249,8 +249,16 @@ separate file and never edits `docs/`; copying the result is a separate,
 reviewed change. `delta_ci95` holds the order-statistic interval in percent,
 and `ci_method` names it with its coverage (it is not a 95 % interval). Rmem
 and Q rows have no interval, with the plan's reasons. B4 and C rows state that
-their reference is an arm of the candidate build. E6, Q2, C1–C2 and Q5 against
-v0.8.0 go to the campaign report only. A measured class outside the site's
-verdict list (INCONCLUSIVE_DISCLOSED, UNRESOLVED, TIMER_LIMITED,
-EXCEEDS_BUDGET, not run) stops the export instead of being mapped: the site
-schema must be extended first (maintainer decision).
+their reference is an arm of the candidate build. As in the plan, only E6 and
+Q5 against v0.8.0 go to the campaign report only; every other classified cell
+and criterion is a site row, and no deciding verdict is dropped. The rows use
+site schema 2 (`docs/SITE.md`): the verdict exactly as measured (PASS,
+PASS (IMPROVED), FAIL, REGRESSION, INCONCLUSIVE, INCONCLUSIVE_DISCLOSED,
+UNRESOLVED, TIMER_LIMITED, EXCEEDS_BUDGET, INVALID, NOT_EQUIVALENT, NOT_RUN,
+or none), a category (decisive, descriptive, disclosure) and an execution
+status (completed, not_run, nonconforming, failed), never converted or merged.
+C1, C2 and Q2 are threshold-kind rows with their verdict and no ratio or
+interval, as is an Rmem metric whose reference is zero; an M_reg cell that is
+INVALID without metrics is a `failed` row with its reason. Not-run cells carry
+their reason and no values. A truly unknown measured class still stops the
+export instead of being mapped.
