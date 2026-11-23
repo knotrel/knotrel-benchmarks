@@ -1,0 +1,119 @@
+{
+ "status": "CONFORMING",
+ "cause": "every unit valid under the revision-3 policy; counts and binaries verified",
+ "started_utc": "2026-11-23T18:31:35Z",
+ "ended_utc": "2026-11-23T19:49:14Z",
+ "duration_min": 77.6,
+ "limits": {
+  "budget_s": 6300.0,
+  "a_block_restarts": 1,
+  "monitor_start_s": 20.0,
+  "monitor_check_samples": 6,
+  "min_free_bytes": 3221225472
+ },
+ "rules": {
+  "sample_s": 1.0,
+  "gap_s": 2.5,
+  "status_age_s": 3.0,
+  "monitor_lost_s": 30.0,
+  "after_s": 0.0,
+  "invalid_window_s": 10.0,
+  "invalid_cpu": 1.5,
+  "ready_window_s": 30.0,
+  "ready_cpu": 0.6,
+  "pressure_max": 1,
+  "sleep_jump_s": 2.0,
+  "wait_limit_s": 600.0,
+  "retries": 2
+ },
+ "steps": [
+  {
+   "step": "A-block1",
+   "block": "A-block1#0",
+   "exit": 0,
+   "seconds": 997.9
+  },
+  {
+   "step": "A-block2",
+   "block": "A-block2#0",
+   "exit": 75,
+   "seconds": 88.7
+  },
+  {
+   "step": "A-block2",
+   "block": "A-block2#1",
+   "exit": 0,
+   "seconds": 1003.1
+  },
+  {
+   "step": "BC",
+   "block": "BC#0",
+   "exit": 0,
+   "seconds": 632.2
+  },
+  {
+   "step": "T5",
+   "block": "T5#0",
+   "exit": 0,
+   "seconds": 945.3
+  },
+  {
+   "step": "R",
+   "block": "R#0",
+   "exit": 0,
+   "seconds": 155.5
+  },
+  {
+   "step": "Rmem",
+   "block": "Rmem#0",
+   "exit": 0,
+   "seconds": 10.1
+  },
+  {
+   "step": "Mreg",
+   "block": "Mreg#0",
+   "exit": 0,
+   "seconds": 818.4
+  }
+ ],
+ "units": 891,
+ "invalidated_units": [
+  {
+   "block": "A-block2#0",
+   "unit": "A:/Users/rt/workspace/knotrel/evidence/v1.0.0-qualification-0c49b2a-attempt1/targets/A-C-harness/release/knotrel-benchmarks --workload sustained-churn-path-v1 --nodes 10000 --rounds 20 --seed 42 --engin",
+   "attempt": 0,
+   "reasons": [
+    "external CPU 1.75 cores over 10 s > 1.5 (busiest: Claude Helper (Renderer) 1.06, Claude 0.77, fseventsd 0.63)"
+   ]
+  }
+ ],
+ "waits": {
+  "count": 1,
+  "total_s": 5.0,
+  "longest_s": 5.0,
+  "reasons": [
+   [
+    "external CPU 0.61 cores over 30 s > 0.6 (busiest now: Claude Helper (Renderer) 0.03, claude 0.02, WindowServer 0.02)"
+   ]
+  ]
+ },
+ "telemetry": {
+  "samples": 4617,
+  "ext_cpu_cores": {
+   "p50": 0.03960223131227137,
+   "p99": 0.7760491709991563,
+   "max": 5.779138841201474
+  },
+  "context_user_inputs": 9,
+  "context_top_external_cpu_s": {
+   "WindowServer": 39.75985216808306,
+   "launchd": 30.421059030771225,
+   "CursorUIViewService": 22.043708039999057,
+   "Claude Helper (Renderer)": 16.517044395923612,
+   "duetexpertd": 12.583548347473148,
+   "locationd": 12.035874779462809,
+   "fseventsd": 8.939182368755347,
+   "airportd": 8.611899919986724
+  }
+ }
+}
