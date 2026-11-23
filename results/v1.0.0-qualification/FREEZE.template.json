@@ -25,8 +25,8 @@
  "core_rule": {
   "outcome": "TBD: identical | different (scripts/core_rule_v100q.py on the pre-freeze builds)",
   "comparison": {
-   "file": "TBD: absolute path of logs/core-rule.json of the pre-freeze directory",
-   "sha256": "TBD: its SHA-256 (64 hex); prepare and the runner require the campaign's logs/core-rule.json to have it"
+   "file": "TBD: the pre-freeze logs/core-rule.json, relative to EVIDENCE_ROOT (v1.0.0-prefreeze-<cand7>-<tooling7>/logs/core-rule.json)",
+   "sha256": "TBD: its SHA-256 (64 hex); prepare and the runner check it, then require the attempt's own core-rule.json to have the same outcome and per-pair identical booleans (not the same digests)"
   },
   "consequence": "identical: B/C --only B4,C, no T5; different: full B/C and T5 (PROTOCOL.md section 3)"
  },

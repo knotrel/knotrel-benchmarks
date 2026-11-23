@@ -135,14 +135,23 @@ against the reference.
   and thresholds: the runner runs the full B/C collector and T5
   (`run_v070q3_t5.py`, arm B `targets/t5base-probes`), within the Part 1 cap.
 
-`FREEZE.json` records the outcome and the comparison file's SHA-256
-(`core_rule.comparison.sha256`). The runner refuses to start without them;
-`prepare_campaign.sh` recomputes the comparison on the campaign's clean
-builds and stops if its outcome or its SHA-256 differs, and the runner's
-preflight checks the SHA-256 of the campaign's `logs/core-rule.json` again.
-This requires the `__TEXT,__text` digests to be reproducible across campaign
-directories; if they are not, prepare stops before the launch and the
-maintainer decides (it is never a result).
+`FREEZE.json` records the outcome and **provenance**: `core_rule.comparison`
+names the pre-freeze `logs/core-rule.json` (`file`, relative to
+EVIDENCE_ROOT) and its `sha256`. Prepare and the runner verify that file's
+SHA-256 and outcome; if it is missing they refuse, unless
+`KNOTREL_PREFREEZE_CORE_RULE` names it (inside EVIDENCE_ROOT).
+
+At each attempt, `prepare_campaign.sh` recomputes the rule on the attempt's
+clean builds and requires **agreement**, not equality: the same `outcome` and
+the same per-pair `identical` booleans as the pre-freeze file. The digests
+themselves are not compared across directories. The builds embed the campaign
+directory's absolute path in panic locations, so `__cstring`, and with it the
+`__text` digests, change with the path's length; the comparison within one
+directory (candidate against reference) is what decides. Prepare records the
+attempt's own `core-rule.json` and its SHA-256 in
+`logs/core-rule-agreement.json`, and the runner's preflight checks the
+agreement again. A different outcome or different per-pair booleans stop
+prepare before the launch, for a maintainer decision (never a result).
 
 ## 4. Block Q: feeder under load
 

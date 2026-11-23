@@ -11,8 +11,10 @@
 #   - A: both blocks are planned here (block 1: A/plan, session seeds; block 2: A/plan-block2,
 #     the plan generator's extension phase with all nine cells, extension seeds), and both are
 #     dry-run; nothing in the chain reads A data (plan section 5.3);
-#   - the core rule (plan section 4.3) is computed from these builds (logs/core-rule.json) and
-#     its outcome and SHA-256 must equal FREEZE.json core_rule;
+#   - the core rule (plan section 4.3) is computed from these builds (logs/core-rule.json); its
+#     outcome and per-pair identical booleans must equal those of the pre-freeze file named by
+#     FREEZE.json core_rule.comparison (whose SHA-256 is checked); digests may differ, since the
+#     builds embed the campaign directory's path (logs/core-rule-agreement.json records both);
 #   - attempt mode checks the freeze record with the freeze commit's freeze_check_v100q.py and
 #     verifies the helpers it runs from its own directory against the record (N6); the attempt
 #     budget is attempt_budget.sh (series_budget.sh plus the plan section 5.5 failure rule);
@@ -61,7 +63,8 @@ else
   git -C "$BREPO" cat-file -e "$FREEZE:$DIR/FREEZE.json" 2>/dev/null \
     || { echo "FREEZE $FREEZE has no $DIR/FREEZE.json" >&2; exit 3; }
   # The freeze guards (scripts/freeze_check_v100q.py), run from the freeze commit itself: the
-  # record (candidate, reference, core-rule outcome and comparison hash, a hash list equal to
+  # record (candidate, reference, core-rule outcome, the pre-freeze core-rule.json and its
+  # SHA-256 under EVIDENCE_ROOT or KNOTREL_PREFREEZE_CORE_RULE, a hash list equal to
   # its hashed files and covering the required files), every file's hash in the freeze tree,
   # the freeze commit as the only child of tooling.commit adding only FREEZE.json, and the
   # helpers this script runs from its own directory (finding N6) equal to the record.
@@ -71,8 +74,8 @@ else
       || { echo "FREEZE $FREEZE has no scripts/$X" >&2; rm -rf "$FC"; exit 3; }
   done
   FCRC=0
-  LIFECYCLE_QUALIFICATION_ROOTS="$BREPO:$(cd "$HERE/../.." && pwd)" python3 "$FC/freeze_check_v100q.py" record \
-    --repo "$BREPO" --freeze "$FREEZE" --cand "$CAND" --local-root "$HERE/../.." --local "$DIR/prepare_campaign.sh" \
+  LIFECYCLE_QUALIFICATION_ROOTS="$BREPO:$(cd "$HERE/../.." && pwd):$EVIDENCE" python3 "$FC/freeze_check_v100q.py" record \
+    --repo "$BREPO" --freeze "$FREEZE" --cand "$CAND" --evidence-root "$EVIDENCE" --local-root "$HERE/../.." --local "$DIR/prepare_campaign.sh" \
     --local "$DIR/series_budget.sh" --local "$DIR/attempt_budget.sh" --local "$DIR/check_restored.sh" \
     --local "$DIR/launch_command.sh" || FCRC=$?
   rm -rf "$FC"
@@ -209,8 +212,10 @@ LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 "$B/scripts/core_rule_v100q.py
 OUTCOME=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['outcome'])" "$L/core-rule.json")
 echo "core rule: $OUTCOME"
 if [ "$MODE" = attempt ]; then
-  # The outcome and the SHA-256 of logs/core-rule.json must be the freeze record's.
+  # Same outcome and per-pair identical booleans as the pre-freeze file (digests may differ);
+  # writes logs/core-rule-agreement.json with this attempt's core-rule.json SHA-256.
   LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 "$B/scripts/freeze_check_v100q.py" core-rule "$CAMP" \
+    --evidence-root "$EVIDENCE" --write \
     || { echo "core rule differs from the freeze record's" >&2; exit 3; }
 fi
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 scripts/probe_compat_v100q.py "$CAMP" "$L/probe-compat" ) > "$L/probe-compat.log" 2>&1 \
@@ -220,6 +225,7 @@ fi
 mkdir -p "$CAMP/bin" && ln -s "$(command -v python3)" "$CAMP/bin/python3"
 ln -s "$(command -v rustc)" "$CAMP/bin/rustc"
 env -i HOME="$HOME" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${TMPDIR:-/tmp}" LANG=C.UTF-8 \
+  ${KNOTREL_PREFREEZE_CORE_RULE:+KNOTREL_PREFREEZE_CORE_RULE="$KNOTREL_PREFREEZE_CORE_RULE"} \
   LAUNCH_ENV_MODE="$MODE" PATH="$CAMP/bin:/usr/bin:/bin:/usr/sbin:/sbin" /bin/sh "$B/$DIR/launch_env_check.sh" "$CAMP" "$L/launch-env-check.txt"
 sh "$HERE/launch_command.sh" "$CAMP" "$CAND" > "$CAMP/LAUNCH-COMMAND.txt"
 echo "PREPARED ($MODE) $CAMP"

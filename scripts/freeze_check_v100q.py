@@ -10,9 +10,14 @@ directory) instead of a working tree that may differ from them. Command-line pat
 - it is the v1.0.0 record, revision 1, frozen (``frozen_utc`` set, no "NOT FROZEN" status);
 - its candidate is the campaign's 40-character commit and its reference commit is
   ``REFERENCE`` (knotrel v0.9.0, plan section 2);
-- its core-rule outcome is ``identical`` or ``different`` and ``core_rule.comparison`` holds a
-  64-hex ``sha256`` (checked against ``logs/core-rule.json`` of the campaign directory once
-  prepare has written it);
+- its core-rule outcome is ``identical`` or ``different`` and ``core_rule.comparison`` names
+  the pre-freeze ``logs/core-rule.json`` (``file``, relative to EVIDENCE_ROOT) with its
+  ``sha256``. **Provenance:** that file must exist (or be named by ``KNOTREL_PREFREEZE_CORE_RULE``,
+  inside EVIDENCE_ROOT), have that SHA-256 and the record's outcome. **Agreement:** the
+  attempt's own ``logs/core-rule.json`` (recomputed by prepare on the attempt's builds) must
+  have the same outcome and the same per-pair ``identical`` booleans. Equal digests or equal
+  bytes are **not** required: the builds embed the campaign directory's absolute path in panic
+  locations, so ``__cstring`` and the ``__text`` digests change with its length;
 - ``set(file_sha256) == set(file_sha256_paths)`` and that list contains every path of
   ``REQUIRED_FROZEN_PATHS``, so no executed file can be dropped from the hash check;
 - every listed file has its recorded SHA-256 (on disk for the runner; in the freeze commit's
@@ -21,8 +26,10 @@ directory) instead of a working tree that may differ from them. Command-line pat
   ``results/v1.0.0-qualification/FREEZE.json`` (the freeze commit adds only the record).
 
     freeze_check_v100q.py record --repo BREPO --freeze FREEZE_SHA --cand CAND_SHA
-                                 [--local-root DIR --local PATH ...]
-    freeze_check_v100q.py core-rule CAMP   # CAMP/logs/core-rule.json against the clone's FREEZE.json
+                                 [--evidence-root DIR] [--local-root DIR --local PATH ...]
+    freeze_check_v100q.py core-rule CAMP --evidence-root DIR [--write]
+        # agreement of CAMP/logs/core-rule.json with the pre-freeze file; --write records it,
+        # with the attempt file's SHA-256, in CAMP/logs/core-rule-agreement.json
 
 Exit 0 if every check passes; otherwise 1, one problem per line on stderr.
 """
@@ -32,11 +39,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 V100 = "results/v1.0.0-qualification"
 FREEZE_PATH = f"{V100}/FREEZE.json"
@@ -46,6 +54,9 @@ REFERENCE = "223f04c10b0af663b54e269e0970ee10ac1dc6b2"  # knotrel v0.9.0 (plan s
 CORE_RULE_OUTCOMES = ("identical", "different")
 SHA = re.compile(r"[0-9a-f]{40}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
+REL_PATH = re.compile(r"[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*")
+#: Names the pre-freeze core-rule.json when it is not at ``core_rule.comparison.file``.
+PREFREEZE_OVERRIDE_ENV = "KNOTREL_PREFREEZE_CORE_RULE"
 
 #: Files whose hash every freeze record must carry: the v1.0 bindings and helpers, every frozen
 #: module they import, and the probe sources. ``file_sha256_paths`` may list more, never fewer.
@@ -164,7 +175,10 @@ def record_problems(freeze: Dict[str, Any], cand: str, reference: str = REFERENC
         problems.append(f"freeze core_rule.outcome is {core.get('outcome')!r}, expected one of {CORE_RULE_OUTCOMES}")
     comparison = core.get("comparison")
     if not isinstance(comparison, dict) or not SHA256.fullmatch(str(comparison.get("sha256", ""))):
-        problems.append("freeze core_rule.comparison has no 64-hex sha256 of core-rule.json")
+        problems.append("freeze core_rule.comparison has no 64-hex sha256 of the pre-freeze core-rule.json")
+    elif not REL_PATH.fullmatch(str(comparison.get("file", ""))) or ".." in str(comparison["file"]).split("/"):
+        problems.append(f"freeze core_rule.comparison.file {comparison.get('file')!r} is not a path relative to "
+                        "EVIDENCE_ROOT")
     tooling = (freeze.get("tooling") or {}).get("commit")
     if not SHA.fullmatch(str(tooling or "")):
         problems.append(f"freeze tooling.commit {tooling!r} is not a 40-character commit")
@@ -236,24 +250,90 @@ def git_problems(freeze: Dict[str, Any], freeze_commit: str, git: Callable[..., 
     return problems
 
 
-def core_rule_problems(freeze: Dict[str, Any], core_rule_json: Path) -> List[str]:
-    """``core_rule.comparison.sha256`` must be the SHA-256 of the campaign's ``logs/core-rule.json``,
-    and that file's outcome the record's."""
+def prefreeze_path(freeze: Dict[str, Any], evidence_root: Path,
+                   env: Optional[Dict[str, str]] = None) -> Tuple[Optional[Path], List[str]]:
+    """The pre-freeze core-rule.json: ``KNOTREL_PREFREEZE_CORE_RULE`` if set, else
+    ``EVIDENCE_ROOT / core_rule.comparison.file``; it must resolve inside EVIDENCE_ROOT."""
+    env = os.environ if env is None else env
+    comparison = (freeze.get("core_rule") or {}).get("comparison")
+    root = Path(evidence_root).resolve()
+    override = env.get(PREFREEZE_OVERRIDE_ENV)
+    if override:
+        path = Path(override).resolve()
+    elif isinstance(comparison, dict) and REL_PATH.fullmatch(str(comparison.get("file", ""))):
+        path = (root / str(comparison["file"])).resolve()
+    else:
+        return None, ["freeze core_rule.comparison.file is not a path relative to EVIDENCE_ROOT"]
+    if not path.is_relative_to(root):
+        return None, [f"pre-freeze core-rule file {path} is outside EVIDENCE_ROOT {root}"]
+    return path, []
+
+
+def prefreeze_problems(freeze: Dict[str, Any], evidence_root: Path,
+                       env: Optional[Dict[str, str]] = None) -> Tuple[List[str], Optional[Dict[str, Any]]]:
+    """Freeze-time provenance: the pre-freeze core-rule.json exists, has the recorded SHA-256 and
+    the record's outcome. Returns the problems and the file's content."""
+    path, problems = prefreeze_path(freeze, evidence_root, env)
+    if path is None:
+        return problems, None
     core = freeze.get("core_rule") or {}
     recorded = (core.get("comparison") or {}).get("sha256") if isinstance(core.get("comparison"), dict) else None
-    actual = sha256_file(core_rule_json)
+    actual = sha256_file(path)
     if actual is None:
-        return [f"no {core_rule_json}: prepare_campaign.sh writes it"]
-    problems = []
+        return [f"pre-freeze core-rule file {path} is missing (set {PREFREEZE_OVERRIDE_ENV} to name it)"], None
     if actual != recorded:
-        problems.append(f"{core_rule_json} SHA-256 {actual} is not the freeze record's core_rule.comparison {recorded}")
+        return [f"pre-freeze core-rule file {path} SHA-256 {actual} is not the freeze record's {recorded}"], None
     try:
-        outcome = json.loads(Path(core_rule_json).read_text()).get("outcome")
+        content = json.loads(path.read_text())
     except ValueError:
-        outcome = None
-    if outcome != core.get("outcome"):
-        problems.append(f"{core_rule_json} outcome {outcome!r} differs from the freeze record's {core.get('outcome')!r}")
+        return [f"pre-freeze core-rule file {path} is not JSON"], None
+    if content.get("outcome") != core.get("outcome"):
+        return [f"pre-freeze core-rule outcome {content.get('outcome')!r} differs from the freeze record's "
+                f"{core.get('outcome')!r}"], None
+    return [], content
+
+
+def pair_states(content: Dict[str, Any]) -> Dict[str, bool]:
+    """``{binary: identical}`` of a core-rule.json (digests deliberately left out)."""
+    return {str(p.get("binary")): bool(p.get("identical")) for p in content.get("pairs", [])}
+
+
+def agreement_problems(freeze: Dict[str, Any], recorded: Dict[str, Any], attempt_json: Path) -> List[str]:
+    """Attempt-time agreement: same outcome and same per-pair ``identical`` booleans as the
+    pre-freeze file. Digests and bytes may differ (they depend on the directory path)."""
+    try:
+        attempt = json.loads(Path(attempt_json).read_text())
+    except (OSError, ValueError) as error:
+        return [f"no readable {attempt_json} ({error}): prepare_campaign.sh writes it"]
+    problems = []
+    outcome = (freeze.get("core_rule") or {}).get("outcome")
+    if attempt.get("outcome") != outcome:
+        problems.append(f"{attempt_json} outcome {attempt.get('outcome')!r} differs from the freeze record's {outcome!r}")
+    if pair_states(attempt) != pair_states(recorded):
+        problems.append(f"{attempt_json} per-pair identical {pair_states(attempt)} differs from the pre-freeze "
+                        f"{pair_states(recorded)}")
     return problems
+
+
+def core_rule_problems(freeze: Dict[str, Any], evidence_root: Path, attempt_json: Path,
+                       env: Optional[Dict[str, str]] = None) -> List[str]:
+    """Provenance of the pre-freeze file, then agreement of the attempt's file with it."""
+    problems, recorded = prefreeze_problems(freeze, evidence_root, env)
+    if recorded is None:
+        return problems
+    return agreement_problems(freeze, recorded, attempt_json)
+
+
+def agreement_record(freeze: Dict[str, Any], evidence_root: Path, attempt_json: Path,
+                     env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """What prepare records in ``logs/core-rule-agreement.json``."""
+    path, _ = prefreeze_path(freeze, evidence_root, env)
+    attempt = json.loads(Path(attempt_json).read_text())
+    return {"attempt_file": "logs/core-rule.json", "attempt_sha256": sha256_file(attempt_json),
+            "prefreeze_file": str(path), "prefreeze_sha256": sha256_file(path) if path else None,
+            "outcome": attempt.get("outcome"), "pairs": pair_states(attempt),
+            "rule": "same outcome and same per-pair identical booleans as the pre-freeze file; digests may differ "
+                    "(the builds embed the campaign directory's path)"}
 
 
 def git_runner(repo: Path) -> Callable[..., str]:
@@ -270,7 +350,7 @@ def git_blob_digest(repo: Path, commit: str) -> Callable[[str], Optional[str]]:
 
 
 def check_commit(repo: Path, freeze_commit: str, cand: str, local_root: Optional[Path] = None,
-                 local: Sequence[str] = ()) -> List[str]:
+                 local: Sequence[str] = (), evidence_root: Optional[Path] = None) -> List[str]:
     """Every check of a freeze commit in ``repo`` (prepare_campaign.sh, before any clone)."""
     git = git_runner(repo)
     try:
@@ -282,6 +362,8 @@ def check_commit(repo: Path, freeze_commit: str, cand: str, local_root: Optional
     problems += git_problems(freeze, freeze_commit, git)
     if local_root is not None:
         problems += local_problems(freeze, local_root, local)
+    if evidence_root is not None and not problems:
+        problems += prefreeze_problems(freeze, evidence_root)[0]
     return problems
 
 
@@ -296,8 +378,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rec.add_argument("--cand", required=True)
     rec.add_argument("--local-root", type=Path)
     rec.add_argument("--local", action="append", default=[])
+    rec.add_argument("--evidence-root", type=Path)
     core = sub.add_parser("core-rule")
     core.add_argument("camp", type=Path)
+    core.add_argument("--evidence-root", type=Path, required=True)
+    core.add_argument("--write", action="store_true")
     args = parser.parse_args(argv)
     if args.command == "record":
         if args.local and args.local_root is None:
@@ -306,11 +391,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             parser.error("--freeze must be a 40-character commit")
         repo = confined_directory(args.repo, "--repo")
         local_root = confined_directory(args.local_root, "--local-root") if args.local_root else None
-        problems = check_commit(repo, args.freeze, args.cand, local_root, args.local)
+        evidence = confined_directory(args.evidence_root, "--evidence-root") if args.evidence_root else None
+        problems = check_commit(repo, args.freeze, args.cand, local_root, args.local, evidence)
     else:
         camp = confined_directory(args.camp, "CAMP")
+        evidence = confined_directory(args.evidence_root, "--evidence-root")
         freeze = json.loads((camp / "src/cand/knotrel-benchmarks" / FREEZE_PATH).read_text())
-        problems = core_rule_problems(freeze, camp / "logs" / "core-rule.json")
+        attempt = camp / "logs" / "core-rule.json"
+        problems = core_rule_problems(freeze, evidence, attempt)
+        if not problems and args.write:
+            (camp / "logs" / "core-rule-agreement.json").write_text(
+                json.dumps(agreement_record(freeze, evidence, attempt), indent=1) + "\n")
     for p in problems:
         print(p, file=sys.stderr)
     return 1 if problems else 0

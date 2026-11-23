@@ -9,7 +9,7 @@ records. What differs is the binding and the reduced chain of the approved plan 
 
 - the freeze record is this directory's ``FREEZE.json`` (revision 1, campaign
   "v1.0.0 qualification"); the preflight applies every check of ``freeze_check_v100q.py``
-  (candidate, reference ``REFERENCE``, core-rule outcome and comparison hash, the complete
+  (candidate, reference ``REFERENCE``, core-rule outcome and provenance, the complete
   hash list, the freeze commit as the only child of the tooling commit);
 - at its end it records the cause of a non-CONFORMING end (``part1_failures_v100q.py``:
   product, infrastructure or conformance, in ``logs/failures.jsonl``, and the Part 1 outcome
@@ -88,7 +88,9 @@ class Part1Runner(v090.Part1Runner):
         campaign's freeze record and the v1.0 freeze guards of ``freeze_check_v100q.py``: the
         record's identity, candidate and reference (``REFERENCE``), core-rule outcome; its hash
         list equal to its hashed files and covering ``REQUIRED_FROZEN_PATHS``; every file's hash;
-        ``core_rule.comparison`` against this directory's ``logs/core-rule.json``; and the
+        the pre-freeze ``core-rule.json`` (``core_rule.comparison``, under EVIDENCE_ROOT, the
+        campaign directory's parent) with its SHA-256, and this directory's
+        ``logs/core-rule.json`` agreeing with it (outcome, per-pair booleans); and the
         freeze commit (the clone's HEAD) as the only child of ``tooling.commit``, adding only
         FREEZE.json."""
         name = self.campaign_name()
@@ -107,7 +109,8 @@ class Part1Runner(v090.Part1Runner):
         if not problems:
             problems = fc.file_problems(freeze, self.frozen_digest)
         if not problems:
-            problems = fc.core_rule_problems(freeze, self.campaign_root() / "logs" / "core-rule.json")
+            problems = fc.core_rule_problems(freeze, self.campaign_root().parent,
+                                             self.campaign_root() / "logs" / "core-rule.json")
         if not problems:
             try:
                 head = self.git("rev-parse", "HEAD").strip()

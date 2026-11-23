@@ -268,7 +268,8 @@ class RunnerTest(unittest.TestCase):
         paths = list(runner.fc.REQUIRED_FROZEN_PATHS)
         good = {"campaign": runner.CAMPAIGN, "revision": 1, "frozen_utc": "2026-11-30T00:00:00Z",
                 "candidate": {"commit": CAND}, "reference": {"commit": REF},
-                "core_rule": {"outcome": "identical", "comparison": {"sha256": "1" * 64}},
+                "core_rule": {"outcome": "identical",
+                              "comparison": {"file": "v1.0.0-prefreeze-x/logs/core-rule.json", "sha256": "1" * 64}},
                 "tooling": {"commit": "2" * 40}, "file_sha256_paths": paths,
                 "file_sha256": {p: "0" * 64 for p in paths}}
         template = json.loads((V100 / "FREEZE.template.json").read_text())

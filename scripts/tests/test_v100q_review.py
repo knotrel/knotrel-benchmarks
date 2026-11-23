@@ -47,10 +47,20 @@ def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+PREFREEZE = "v1.0.0-prefreeze-0c49b2a-de6ecb3/logs/core-rule.json"
+
+
+def core_rule_doc(digest="a", identical=(True, True, True), outcome=None):
+    names = ("core-lifecycle (B/C core)", "core-lifecycle count-alloc (B/C core-count)", "A core harness")
+    pairs = [{"binary": n, "candidate_text_sha256": digest + n, "reference_text_sha256": (digest if same else "z") + n,
+              "identical": same} for n, same in zip(names, identical)]
+    return {"outcome": outcome or ("identical" if all(identical) else "different"), "pairs": pairs}
+
+
 def good_freeze(paths, hashes, tooling, core_sha="1" * 64):
     return {"campaign": fc.CAMPAIGN, "revision": 1, "frozen_utc": "2026-11-30T00:00:00Z",
             "candidate": {"commit": CAND, "version": "1.0.0-rc.1"}, "reference": {"commit": REF},
-            "core_rule": {"outcome": "identical", "comparison": {"file": "x", "sha256": core_sha}},
+            "core_rule": {"outcome": "identical", "comparison": {"file": PREFREEZE, "sha256": core_sha}},
             "tooling": {"commit": tooling}, "file_sha256_paths": list(paths), "file_sha256": dict(hashes)}
 
 
@@ -132,17 +142,82 @@ class FreezeGuardTest(unittest.TestCase):
                 self.assertTrue(fc.record_problems(record, CAND))
         self.assertIn("reference", fc.record_problems(cases["reference"], CAND)[0])
 
-    def test_core_rule_hash(self):
+    def core_setup(self, d, prefreeze_doc, attempt_doc, recorded_sha=None):
+        root = Path(d)
+        pre = root / PREFREEZE
+        pre.parent.mkdir(parents=True)
+        pre.write_text(json.dumps(prefreeze_doc))
+        attempt = root / "attempt" / "core-rule.json"
+        attempt.parent.mkdir()
+        attempt.write_text(json.dumps(attempt_doc))
+        freeze = {"core_rule": {"outcome": prefreeze_doc["outcome"],
+                                "comparison": {"file": PREFREEZE, "sha256": recorded_sha or sha(pre.read_bytes())}}}
+        return root, freeze, attempt
+
+    def test_core_rule_agreement_not_equal_digests(self):
+        """Same outcome with different digests: accepted (the path changes __cstring)."""
         with tempfile.TemporaryDirectory() as d:
-            path = Path(d) / "core-rule.json"
-            path.write_text(json.dumps({"outcome": "identical"}))
-            good = {"core_rule": {"outcome": "identical", "comparison": {"sha256": sha(path.read_bytes())}}}
-            self.assertEqual(fc.core_rule_problems(good, path), [])
-            bad = {"core_rule": {"outcome": "identical", "comparison": {"sha256": "0" * 64}}}
-            self.assertIn("SHA-256", fc.core_rule_problems(bad, path)[0])
-            self.assertTrue(fc.core_rule_problems(good, Path(d) / "absent.json"))
-            other = {"core_rule": {"outcome": "different", "comparison": {"sha256": sha(path.read_bytes())}}}
-            self.assertIn("outcome", fc.core_rule_problems(other, path)[0])
+            root, freeze, attempt = self.core_setup(d, core_rule_doc("a"), core_rule_doc("b"))
+            self.assertNotEqual(sha(attempt.read_bytes()), freeze["core_rule"]["comparison"]["sha256"])
+            self.assertEqual(fc.core_rule_problems(freeze, root, attempt, env={}), [])
+            record = fc.agreement_record(freeze, root, attempt, env={})
+            self.assertEqual(record["attempt_sha256"], sha(attempt.read_bytes()))
+            self.assertEqual(record["prefreeze_sha256"], freeze["core_rule"]["comparison"]["sha256"])
+
+    def test_core_rule_different_outcome_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            root, freeze, attempt = self.core_setup(d, core_rule_doc("a"), core_rule_doc("a", (True, False, True)))
+            problems = fc.core_rule_problems(freeze, root, attempt, env={})
+            self.assertTrue(any("outcome" in p for p in problems), problems)
+            self.assertTrue(any("per-pair" in p for p in problems), problems)
+        with tempfile.TemporaryDirectory() as d:  # same outcome, a different pair differs
+            root, freeze, attempt = self.core_setup(d, core_rule_doc("a", (False, True, True)),
+                                                    core_rule_doc("a", (True, False, True)))
+            self.assertIn("per-pair", fc.core_rule_problems(freeze, root, attempt, env={})[0])
+
+    def test_prefreeze_provenance(self):
+        with tempfile.TemporaryDirectory() as d:
+            root, freeze, attempt = self.core_setup(d, core_rule_doc("a"), core_rule_doc("a"), recorded_sha="0" * 64)
+            self.assertIn("SHA-256", fc.core_rule_problems(freeze, root, attempt, env={})[0])
+        with tempfile.TemporaryDirectory() as d:
+            root, freeze, attempt = self.core_setup(d, core_rule_doc("a"), core_rule_doc("a"))
+            moved = root / "moved-core-rule.json"
+            (root / PREFREEZE).rename(moved)
+            self.assertIn("missing", fc.core_rule_problems(freeze, root, attempt, env={})[0])
+            env = {fc.PREFREEZE_OVERRIDE_ENV: str(moved)}
+            self.assertEqual(fc.core_rule_problems(freeze, root, attempt, env=env), [])
+            outside = {fc.PREFREEZE_OVERRIDE_ENV: "/etc/hosts"}
+            self.assertIn("outside", fc.core_rule_problems(freeze, root, attempt, env=outside)[0])
+        bad = {"core_rule": {"outcome": "identical", "comparison": {"file": "../x", "sha256": "0" * 64}}}
+        self.assertTrue(fc.prefreeze_problems(bad, Path("/e"), env={})[0])
+        paths = list(fc.REQUIRED_FROZEN_PATHS)
+        record = good_freeze(paths, {p: "0" * 64 for p in paths}, "2" * 40)
+        record["core_rule"]["comparison"]["file"] = "/abs/core-rule.json"
+        self.assertTrue(any("relative" in p for p in fc.record_problems(record, CAND)))
+
+    def test_core_rule_cli_writes_the_agreement(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            camp = base.camp_dir(root)
+            (camp / "logs").mkdir(parents=True)
+            (camp / "logs/core-rule.json").write_text(json.dumps(core_rule_doc("b")))
+            pre = root / PREFREEZE
+            pre.parent.mkdir(parents=True)
+            pre.write_text(json.dumps(core_rule_doc("a")))
+            freeze_path = camp / "src/cand/knotrel-benchmarks" / fc.FREEZE_PATH
+            freeze_path.parent.mkdir(parents=True)
+            freeze_path.write_text(json.dumps({"core_rule": {"outcome": "identical", "comparison": {
+                "file": PREFREEZE, "sha256": sha(pre.read_bytes())}}}))
+            env = {k: v for k, v in os.environ.items() if k != fc.PREFREEZE_OVERRIDE_ENV}
+            proc = subprocess.run([sys.executable, str(ROOT / "scripts/freeze_check_v100q.py"), "core-rule", str(camp),
+                                   "--evidence-root", d, "--write"], capture_output=True, text=True,
+                                  env={**env, "LIFECYCLE_QUALIFICATION_ROOTS": d})
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            record = json.loads((camp / "logs/core-rule-agreement.json").read_text())
+        self.assertEqual(record["outcome"], "identical")
+        self.assertRegex(record["attempt_sha256"], "^[0-9a-f]{64}$")
+        self.assertIn('--evidence-root "$EVIDENCE" --write', PREPARE)
+        self.assertIn('--evidence-root "$EVIDENCE" --local-root', PREPARE)
 
     def test_freeze_commit_child_of_tooling_adding_only_freeze(self):
         with tempfile.TemporaryDirectory() as d:
@@ -167,11 +242,14 @@ class FreezeGuardTest(unittest.TestCase):
             problems = fc.git_problems(freeze, later, fc.git_runner(grand))
             self.assertTrue(any("parents" in p for p in problems), problems)
 
-    def setup_camp(self, d, core_sha=None, mutate=None):
+    def setup_camp(self, d, core_sha=None, mutate=None, attempt_doc=None):
         camp = base.camp_dir(Path(d))
         (camp / "logs").mkdir(parents=True)
-        (camp / "logs" / "core-rule.json").write_text(json.dumps({"outcome": "identical"}))
-        digest = core_sha or sha((camp / "logs" / "core-rule.json").read_bytes())
+        (camp / "logs" / "core-rule.json").write_text(json.dumps(attempt_doc or core_rule_doc("attempt")))
+        pre = Path(d) / PREFREEZE
+        pre.parent.mkdir(parents=True)
+        pre.write_text(json.dumps(core_rule_doc("prefreeze")))
+        digest = core_sha or sha(pre.read_bytes())
         frozen_repo(camp / "src/cand/knotrel-benchmarks", mutate=mutate, core_sha=digest)
         return camp
 
@@ -188,12 +266,19 @@ class FreezeGuardTest(unittest.TestCase):
         cases = {
             "reference": (None, lambda r, f: f["reference"].update(commit="3" * 40), "reference"),
             "path set": (None, lambda r, f: f["file_sha256_paths"].pop(), "file_sha256"),
-            "core rule hash": ("0" * 64, None, "core_rule.comparison"),
+            "pre-freeze hash": ("0" * 64, None, "pre-freeze core-rule file"),
             "extra change": (None, lambda r, f: (r / "scripts/cli_paths.py").write_text("x\n"), "frozen files differ"),
         }
         for name, (core, mutate, needle) in cases.items():
             with self.subTest(name), tempfile.TemporaryDirectory() as d:
                 self.assertIn(needle, self.preflight(self.setup_camp(d, core, mutate)))
+
+    def test_runner_preflight_core_rule_agreement(self):
+        with tempfile.TemporaryDirectory() as d:  # different digests in the attempt: accepted
+            self.assertEqual(self.preflight(self.setup_camp(d, attempt_doc=core_rule_doc("other"))), "REACHED BINARIES")
+        with tempfile.TemporaryDirectory() as d:
+            camp = self.setup_camp(d, attempt_doc=core_rule_doc("a", (True, False, True)))
+            self.assertIn("outcome", self.preflight(camp))
 
     def test_runner_preflight_refuses_a_freeze_not_child_of_tooling(self):
         with tempfile.TemporaryDirectory() as d:
