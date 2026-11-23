@@ -1,0 +1,81 @@
+{
+ "status": "COMPLETE",
+ "cause": "every planned observation ran within the cap",
+ "started_utc": "2026-11-23T20:33:14Z",
+ "ended_utc": "2026-11-23T21:00:46Z",
+ "cap_s": 1800.0,
+ "deadline_utc": "2026-11-23T21:03:14Z",
+ "seconds": 1652.4,
+ "rounds": [
+  {
+   "round": 1,
+   "order": [
+    "candidate",
+    "reference"
+   ]
+  },
+  {
+   "round": 2,
+   "order": [
+    "reference",
+    "candidate"
+   ]
+  },
+  {
+   "round": 3,
+   "order": [
+    "candidate",
+    "reference"
+   ]
+  }
+ ],
+ "cells": {
+  "candidate": [
+   "L1 G100k C=0",
+   "L1 G100k C=16",
+   "L1 G100k C=64",
+   "L1 G10k C=16",
+   "L2 G100k C=0",
+   "L2 G100k C=16",
+   "L2 G100k C=64"
+  ],
+  "reference": [
+   "L1 G100k C=16",
+   "L1 G100k C=64"
+  ]
+ },
+ "reruns": {},
+ "infrastructure_exhausted": [],
+ "cap_reached": false,
+ "binaries": {
+  "cand-server": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v1.0.0-qualification-0c49b2a-attempt1/targets/cand-server/release/knotrel-server",
+   "sha256": "dc193162848f0bc54dc67386de61bc4019862ae80ab2d42ddd2d16cfe1b6c370"
+  },
+  "ref-server": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v1.0.0-qualification-0c49b2a-attempt1/targets/ref-server/release/knotrel-server",
+   "sha256": "04df296cd0dcf02cff2895f5df55f97fcc7715fc3af73d9b2ee81bf6a0f1a639"
+  },
+  "feeder": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v1.0.0-qualification-0c49b2a-attempt1/targets/feeder/release/knotrel-pg-feeder",
+   "sha256": "1f2790bb7af62c77489d0e1c328209fa0e52dc44d9bdeb8cd0660272d13cc8c2"
+  },
+  "load": {
+   "path": "/Users/rt/workspace/knotrel/evidence/v1.0.0-qualification-0c49b2a-attempt1/targets/feeder/release/examples/load",
+   "sha256": "3d2effc1fc0854e577229aa13d99504958fa83d17ffaa7da53edb50d42f9d94c"
+  }
+ },
+ "removed_env": [
+  "LOAD_REPS",
+  "LOAD_CELLS",
+  "LOAD_WINDOW_SECS",
+  "LOAD_BACKLOG",
+  "LOAD_ARM",
+  "LOAD_CALIBRATION",
+  "LOAD_R2_DECIDE",
+  "LOAD_BURN_DUTY",
+  "LOAD_OUT",
+  "LOAD_PG_PROCESS_PATTERNS",
+  "LOAD_REMOTE_*"
+ ]
+}

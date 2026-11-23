@@ -1,0 +1,31 @@
+{
+ "rule": "plan section 4.3: identical __TEXT,__text apart from the knotrel-core version, decided at the freeze",
+ "outcome": "different",
+ "pairs": [
+  {
+   "binary": "core-lifecycle (B/C core)",
+   "candidate": "cand-probes/release/core-lifecycle",
+   "reference": "t5base-probes/release/core-lifecycle",
+   "candidate_text_sha256": "b73c274d311ff74954b1ffb03b4e93f6ed3b0120494e1cb613b9c801a1d9e2a7",
+   "reference_text_sha256": "1a36e7dd8faa1ff6a7f79c59e9e82de6ded2873216dcaffb9820939a104ea980",
+   "identical": false
+  },
+  {
+   "binary": "core-lifecycle count-alloc (B/C core-count)",
+   "candidate": "cand-probes-count/release/core-lifecycle",
+   "reference": "ref-probes-count/release/core-lifecycle",
+   "candidate_text_sha256": "54fd143d297fcbb4ab27fa4cd744751d89742a17a192e00509f741af2c73576a",
+   "reference_text_sha256": "5a80c050e50791fe5a634d79092dedf7f792c34f6260c3617d5927c12ab3c829",
+   "identical": false
+  },
+  {
+   "binary": "A core harness",
+   "candidate": "A-C-harness/release/knotrel-benchmarks",
+   "reference": "A-B-harness/release/knotrel-benchmarks",
+   "candidate_text_sha256": "b35c9019c60bcfb4aad4a5578963bc82f01fb8cffc7c0bcffb5026f9b35edd5f",
+   "reference_text_sha256": "2704b515959a31855cbe436edfee89055fbeed35418a6878f9205c2d707cb3c3",
+   "identical": false
+  }
+ ],
+ "consequence": "B1-B3, B5 and T5 join the perimeter (full B/C collector, T5)"
+}

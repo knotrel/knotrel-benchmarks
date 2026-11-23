@@ -1,0 +1,20 @@
+v1.0.0 qualification, attempt 1 analysis, run 2026-11-23 ~21:08Z after Part 1 (CONFORMING) and block Q (COMPLETE),
+from the frozen campaign source src/cand/knotrel-benchmarks @ 115a9524438ae5cc9d06cb7d2142dd184e2e45b9 (freeze revision 1, clean).
+Environment: LIFECYCLE_QUALIFICATION_ROOTS=<campaign dir>:<evidence root>. Outputs in the campaign directory: analysis/ (A, BC,
+T5, report) and <exp>/analysis.json (R, Rmem, Mreg). Part 1 outcome: logs/part1-outcome.json (written by the runner).
+Block Q: part3/evaluation.json (written by run_part3.sh; final attempt part3, no attempt superseded).
+
+1. analyze_v100q_a.py --block1 A/raw-main --block2 A/extension/raw-extension --output analysis/A-final-decision-analysis.json   exit 0
+2. analyze_v100q_bc.py BC --expect-only full --expect-knotrel-rev 0c49b2a6... --expect-probes-rev 115a9524...
+   --expect-multipliers-sha256 <sha256 of window-multipliers-q3.json> --expect-lifecycle-engines compact-bfs
+   --expect-equivalent-references --json analysis/BC-analysis.json --markdown analysis/BC-analysis.md                 exit 0
+   (--expect-only full: the core rule is "different", PROTOCOL section 3)
+3. analyze_v100q_t5.py T5 --expect-base-rev 223f04c1... --expect-cand-rev 0c49b2a6... --expect-base-probes-rev 53c50e96...
+   --expect-probes-rev 115a9524... --benchmarks src/cand/knotrel-benchmarks --json analysis/T5-analysis.json            exit 0
+4. report_v100q_bc.py analysis/BC-analysis.json --core-rule different analysis/T5-analysis.json                     exit 0
+   (stdout archived as decision-report.json)
+5. analyze_v100q.py r R --ref-rev 223f04c1... --cand-rev 0c49b2a6...                                                exit 0
+6. analyze_v100q.py rmem Rmem --ref-rev 223f04c1... --cand-rev 0c49b2a6...                                          exit 0
+7. analyze_v100q.py mreg Mreg                                                                                      exit 0
+Integrity: shasum -a 256 -c logs/outputs-sha256.txt (1951 files) 0 mismatches; shasum -a 256 -c binaries-sha256.txt (17) all OK.
+No analyzer was run before both parts of the campaign had ended; every analyzer ran once.
