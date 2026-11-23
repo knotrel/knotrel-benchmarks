@@ -550,8 +550,8 @@ class T5Test(unittest.TestCase):
 
     def test_probe_source_check_allows_only_the_knotrel_version_lines(self):
         import analyze_v100q_t5 as t5
-        major = lambda body: body.replace('"knotrel-core"\nversion = "0.9.0"', '"knotrel-core"\nversion = "1.0.0"').replace(  # noqa: E731
-            '"knotrel-server"\nversion = "0.9.0"', '"knotrel-server"\nversion = "1.0.0"')
+        major = lambda body, v="1.0.0-rc.1": body.replace('"knotrel-core"\nversion = "0.9.0"', f'"knotrel-core"\nversion = "{v}"').replace(  # noqa: E731
+            '"knotrel-server"\nversion = "0.9.0"', f'"knotrel-server"\nversion = "{v}"')
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d}):
             root = Path(d) / "ok"
             root.mkdir()
@@ -572,6 +572,15 @@ class T5Test(unittest.TestCase):
                 with self.assertRaises(t5.v090.frozen.Invalid):
                     t5.probe_source_equal(root, base, cand)
         self.assertIs(t5.v090.probe_source_equal, t5.FROZEN_CHECK)
+
+    def test_probe_source_check_semver_forms(self):
+        """1.0.0 and 1.0.0-rc.1 lines pass; build metadata and malformed versions do not."""
+        import analyze_v100q_t5 as t5
+        for line, ok in (('+version = "1.0.0"', True), ('+version = "1.0.0-rc.1"', True), ('-version = "0.9.0"', True),
+                         ('+version = "1.0.0-rc.1+build.5"', False), ('+version = "1.0.0-"', False),
+                         ('+version = "1.0.0-rc..1"', False), ('+version = "1.0"', False)):
+            with self.subTest(line):
+                self.assertEqual(bool(t5.VERSION_LINE.match(line)), ok)
 
 
 # -- Q -------------------------------------------------------------------------------------------
