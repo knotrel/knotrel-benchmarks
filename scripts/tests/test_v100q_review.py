@@ -215,15 +215,18 @@ class PrepareHelpersTest(unittest.TestCase):
             problems = fc.check_commit(repo, head, CAND, repo, helpers)
             self.assertEqual(len(problems), 1)
             self.assertIn(helpers[1], problems[0])
+            self.assertTrue(fc.local_problems({}, repo, ["../../etc/passwd"]))  # only the named helpers
             proc = subprocess.run([sys.executable, str(ROOT / "scripts/freeze_check_v100q.py"), "record", "--repo",
                                    str(repo), "--freeze", head, "--cand", CAND, "--local-root", str(repo),
-                                   *sum((["--local", h] for h in helpers), [])], capture_output=True, text=True)
+                                   *sum((["--local", h] for h in helpers), [])], capture_output=True, text=True,
+                                  env={**os.environ, "LIFECYCLE_QUALIFICATION_ROOTS": d})
             self.assertEqual(proc.returncode, 1)
             self.assertIn("differs from the freeze record", proc.stderr)
 
     def test_prepare_checks_helpers_from_the_freeze_commit_before_running_them(self):
-        check = PREPARE.index('show "$FREEZE:scripts/freeze_check_v100q.py" | python3 - record')
-        self.assertLess(PREPARE.index('cat-file -e "$FREEZE:scripts/freeze_check_v100q.py"'), check)
+        check = PREPARE.index('python3 "$FC/freeze_check_v100q.py" record')
+        self.assertLess(PREPARE.index('git -C "$BREPO" show "$FREEZE:scripts/$X"'), check)
+        self.assertIn("for X in freeze_check_v100q.py cli_paths.py", PREPARE)
         for helper in ("prepare_campaign.sh", "series_budget.sh", "attempt_budget.sh", "check_restored.sh",
                        "launch_command.sh"):
             self.assertIn(f'--local "$DIR/{helper}"', PREPARE)
@@ -377,7 +380,11 @@ class QAttemptTwoTest(unittest.TestCase):
     def test_marker_and_final_attempt_only(self):
         with tempfile.TemporaryDirectory() as d:
             part3 = self.part3(Path(d), {"status": "NONCONFORMING", "cap_reached": True})
+            roots = mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d})
+            roots.start()
+            self.addCleanup(roots.stop)
             with mock.patch("sys.stdout"):
+                self.assertEqual(q.main(["--attempt2-gate", str(part3), "--write-marker", "other"]), 2)
                 self.assertEqual(q.main(["--attempt2-gate", str(part3), "--write-marker", "part3-attempt2"]), 0)
             marker = json.loads((part3 / "superseded_by.json").read_text())
             self.assertEqual(marker["superseded_by"], "part3-attempt2")
@@ -510,7 +517,7 @@ class QVerdictTest(unittest.TestCase):
 class PrepareDirectoryTest(unittest.TestCase):
     def test_checks_before_the_campaign_directory_and_failure_marker(self):
         mkdir = PREPARE.index('mkdir -p "$CAMP/logs"')
-        for check in ("freeze_check_v100q.py\" | python3 - record", 'attempt_budget.sh" attempt',
+        for check in ('freeze_check_v100q.py" record', 'attempt_budget.sh" attempt',
                       'check_restored.sh" || exit 3', "CAND_VERSION="):
             self.assertLess(PREPARE.index(check), mkdir, check)
         self.assertIn("PREPARE-FAILED.txt", PREPARE)
@@ -556,7 +563,7 @@ class QCellsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "load.rs"
             path.write_text(LOAD_RS)
-            with mock.patch("sys.stdout"):
+            with mock.patch("sys.stdout"), mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d}):
                 self.assertEqual(q.main(["--check-cells", str(path)]), 0)
 
     def test_launch_env_check_runs_it(self):

@@ -2,9 +2,10 @@
 """Freeze-record checks of the v1.0.0 qualification (results/v1.0.0-qualification/PROTOCOL.md §5).
 
 One implementation, used by the Part 1 runner's preflight (``run_v100q_autonomous.py``) and by
-``prepare_campaign.sh``. Standard library only, so prepare can run the copy held by the
-freeze commit (``git show FREEZE:scripts/freeze_check_v100q.py | python3 - ...``) instead of a
-working tree that may differ from it. A freeze record is accepted only if:
+``prepare_campaign.sh``. It depends only on the standard library and ``cli_paths.py``, so prepare
+runs the copies held by the freeze commit (extracted with ``git show`` into a temporary
+directory) instead of a working tree that may differ from them. Command-line paths are confined
+(``cli_paths``). A freeze record is accepted only if:
 
 - it is the v1.0.0 record, revision 1, frozen (``frozen_utc`` set, no "NOT FROZEN" status);
 - its candidate is the campaign's 40-character commit and its reference commit is
@@ -21,7 +22,7 @@ working tree that may differ from it. A freeze record is accepted only if:
 
     freeze_check_v100q.py record --repo BREPO --freeze FREEZE_SHA --cand CAND_SHA
                                  [--local-root DIR --local PATH ...]
-    freeze_check_v100q.py core-rule FREEZE.json CORE-RULE.json
+    freeze_check_v100q.py core-rule CAMP   # CAMP/logs/core-rule.json against the clone's FREEZE.json
 
 Exit 0 if every check passes; otherwise 1, one problem per line on stderr.
 """
@@ -204,11 +205,15 @@ def file_problems(freeze: Dict[str, Any], digest: Callable[[str], Optional[str]]
 def local_problems(freeze: Dict[str, Any], root: Path, paths: Sequence[str]) -> List[str]:
     """Files run from outside the frozen clone (prepare's helpers) must equal the record."""
     hashes = freeze.get("file_sha256") or {}
+    base = Path(root).resolve()
     problems = []
     for path in paths:
-        if path not in hashes:
+        target = (base / path).resolve()
+        if path not in PREPARE_HELPERS or not target.is_relative_to(base):
+            problems.append(f"{path} is not one of the prepare helpers {PREPARE_HELPERS}")
+        elif path not in hashes:
             problems.append(f"{path} is not in the freeze record's file_sha256")
-        elif sha256_file(Path(root) / path) != hashes[path]:
+        elif sha256_file(target) != hashes[path]:
             problems.append(f"{Path(root) / path} differs from the freeze record (run prepare from the freeze commit)")
     return problems
 
@@ -281,6 +286,8 @@ def check_commit(repo: Path, freeze_commit: str, cand: str, local_root: Optional
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from cli_paths import confined_directory
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
     rec = sub.add_parser("record")
@@ -290,15 +297,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rec.add_argument("--local-root", type=Path)
     rec.add_argument("--local", action="append", default=[])
     core = sub.add_parser("core-rule")
-    core.add_argument("freeze_json", type=Path)
-    core.add_argument("core_rule_json", type=Path)
+    core.add_argument("camp", type=Path)
     args = parser.parse_args(argv)
     if args.command == "record":
         if args.local and args.local_root is None:
             parser.error("--local needs --local-root")
-        problems = check_commit(args.repo, args.freeze, args.cand, args.local_root, args.local)
+        if not SHA.fullmatch(args.freeze):
+            parser.error("--freeze must be a 40-character commit")
+        repo = confined_directory(args.repo, "--repo")
+        local_root = confined_directory(args.local_root, "--local-root") if args.local_root else None
+        problems = check_commit(repo, args.freeze, args.cand, local_root, args.local)
     else:
-        problems = core_rule_problems(json.loads(args.freeze_json.read_text()), args.core_rule_json)
+        camp = confined_directory(args.camp, "CAMP")
+        freeze = json.loads((camp / "src/cand/knotrel-benchmarks" / FREEZE_PATH).read_text())
+        problems = core_rule_problems(freeze, camp / "logs" / "core-rule.json")
     for p in problems:
         print(p, file=sys.stderr)
     return 1 if problems else 0

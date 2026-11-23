@@ -32,7 +32,7 @@ case "$QATTEMPT" in
   1) OUT=$CAMP/part3 ;;
   2) OUT=$CAMP/part3-attempt2
      [ -f "$CAMP/part3/run.json" ] || { echo "no first Q to repeat" >&2; exit 3; }
-     python3 "$B/scripts/run_v100q_q.py" --attempt2-gate "$CAMP/part3" \
+     LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 "$B/scripts/run_v100q_q.py" --attempt2-gate "$CAMP/part3" \
        || { echo "Q attempt 2 is not allowed (see the reason above)" >&2; exit 3; }
      ;;
   *) echo "QATTEMPT must be 1 or 2" >&2; exit 3 ;;
@@ -82,7 +82,8 @@ if [ -n "$PGWHY" ]; then
   exit 4
 fi
 if [ "$QATTEMPT" = 2 ]; then
-  python3 "$B/scripts/run_v100q_q.py" --attempt2-gate "$CAMP/part3" --write-marker part3-attempt2 > /dev/null \
+  LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 "$B/scripts/run_v100q_q.py" --attempt2-gate "$CAMP/part3" \
+    --write-marker part3-attempt2 > /dev/null \
     || { echo "Q attempt 2 is not allowed" >&2; exit 3; }
 fi
 RC=0

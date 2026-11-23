@@ -48,7 +48,7 @@ written. Outputs (``OUT``, which must not exist): one directory per step (the to
 
     run_v100q_q.py CAMP OUT [--cap-s 1800]
     run_v100q_q.py --check-cells LOAD_RS
-    run_v100q_q.py --attempt2-gate PART3_DIR [--write-marker NEW_NAME]
+    run_v100q_q.py --attempt2-gate PART3_DIR [--write-marker part3-attempt2]
 """
 
 from __future__ import annotations
@@ -379,14 +379,15 @@ class QRunner:
 def gate_main(argv: Sequence[str]) -> int:
     """``--check-cells LOAD_RS`` and ``--attempt2-gate DIR [--write-marker NAME]``."""
     if argv[0] == "--check-cells" and len(argv) == 2:
-        problems = cell_problems(Path(argv[1]).read_text())
+        source = confined(argv[1], "LOAD_RS").read_text()
+        problems = cell_problems(source)
         for p in problems:
             print(p, file=sys.stderr)
         if not problems:
-            print("Q cells ok: " + ", ".join(tool_cell_keys(Path(argv[1]).read_text())))
+            print("Q cells ok: " + ", ".join(tool_cell_keys(source)))
         return 1 if problems else 0
-    if argv[0] == "--attempt2-gate" and len(argv) in (2, 4) and (len(argv) == 2 or argv[2] == "--write-marker"):
-        part3 = Path(argv[1])
+    if argv[0] == "--attempt2-gate" and (len(argv) == 2 or argv[2:] == ["--write-marker", "part3-attempt2"]):
+        part3 = confined_directory(argv[1], "PART3_DIR")
         allowed, reason = attempt2_gate(part3)
         print(reason, file=sys.stdout if allowed else sys.stderr)
         if allowed and len(argv) == 4:

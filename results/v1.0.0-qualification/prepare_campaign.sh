@@ -65,12 +65,18 @@ else
   # its hashed files and covering the required files), every file's hash in the freeze tree,
   # the freeze commit as the only child of tooling.commit adding only FREEZE.json, and the
   # helpers this script runs from its own directory (finding N6) equal to the record.
-  git -C "$BREPO" cat-file -e "$FREEZE:scripts/freeze_check_v100q.py" 2>/dev/null \
-    || { echo "FREEZE $FREEZE has no scripts/freeze_check_v100q.py" >&2; exit 3; }
-  git -C "$BREPO" show "$FREEZE:scripts/freeze_check_v100q.py" | python3 - record --repo "$BREPO" \
-    --freeze "$FREEZE" --cand "$CAND" --local-root "$HERE/../.." --local "$DIR/prepare_campaign.sh" \
+  FC=$(mktemp -d)
+  for X in freeze_check_v100q.py cli_paths.py; do
+    git -C "$BREPO" show "$FREEZE:scripts/$X" > "$FC/$X" 2>/dev/null \
+      || { echo "FREEZE $FREEZE has no scripts/$X" >&2; rm -rf "$FC"; exit 3; }
+  done
+  FCRC=0
+  LIFECYCLE_QUALIFICATION_ROOTS="$BREPO:$(cd "$HERE/../.." && pwd)" python3 "$FC/freeze_check_v100q.py" record \
+    --repo "$BREPO" --freeze "$FREEZE" --cand "$CAND" --local-root "$HERE/../.." --local "$DIR/prepare_campaign.sh" \
     --local "$DIR/series_budget.sh" --local "$DIR/attempt_budget.sh" --local "$DIR/check_restored.sh" \
-    --local "$DIR/launch_command.sh" || exit 3
+    --local "$DIR/launch_command.sh" || FCRC=$?
+  rm -rf "$FC"
+  [ "$FCRC" -eq 0 ] || exit 3
   CAP=$(git -C "$BREPO" show "$FREEZE:$DIR/MATRIX.json" | python3 -c "import json,sys;print(json.load(sys.stdin)['conformance']['qualification_3']['attempts_cap'])")
   case "$ATTEMPT" in [1-9]) ;; *) echo "attempt must be 1-9" >&2; exit 3;; esac
   CAMP=$EVIDENCE/v1.0.0-qualification-$C7
@@ -204,7 +210,7 @@ OUTCOME=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['outcom
 echo "core rule: $OUTCOME"
 if [ "$MODE" = attempt ]; then
   # The outcome and the SHA-256 of logs/core-rule.json must be the freeze record's.
-  python3 "$B/scripts/freeze_check_v100q.py" core-rule "$B/$DIR/FREEZE.json" "$L/core-rule.json" \
+  LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 "$B/scripts/freeze_check_v100q.py" core-rule "$CAMP" \
     || { echo "core rule differs from the freeze record's" >&2; exit 3; }
 fi
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$EVIDENCE" python3 scripts/probe_compat_v100q.py "$CAMP" "$L/probe-compat" ) > "$L/probe-compat.log" 2>&1 \
