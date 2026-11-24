@@ -190,6 +190,9 @@ L2_ARGS="--profile final --core $T/cand-probes/release/core-lifecycle --core-cou
 # shellcheck disable=SC2086 # L2_ARGS holds paths without spaces
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 scripts/run_lifecycle_qualification.py --out "$CAMP/L2-dry" $L2_ARGS --dry-run ) > "$L/L2-dry-run.log" 2>&1
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 scripts/run_cf5_s3.py run "$CAMP" "$CAMP/S3" --dry-run ) > "$L/S3-dry-run.log" 2>&1
+# S3 prerequisites: Docker Desktop, the pinned PostgreSQL image (pulled by digest if absent) and
+# one container cycle (start, SELECT 1, removal); Docker Desktop is left as it was. No measurement.
+sh "$B/results/v1.1.0-cf5/run_s3.sh" "$CAMP" --prepare > "$L/S3-prepare.out" 2>&1
 
 # --- Tool map ---
 python3 - "$CAMP" "$L2_ARGS" <<'PY'
@@ -212,10 +215,11 @@ tools = {
         "V1": {"argv": ["/bin/sh", f"{camp}/delegated/V1.sh", "{run}"], "cwd": b},
         "L2": {"argv": ["python3", "scripts/run_lifecycle_qualification.py", "--out", "{run}/L2"] + shlex.split(l2), "cwd": b,
                "env": {"LIFECYCLE_QUALIFICATION_ROOTS": camp}},
-        # Exit 1: S3 NONCONFORMING by its own 90-minute cap (cells cut by a cap).
-        "S3": {"argv": ["python3", "scripts/run_cf5_s3.py", "run", camp, "{run}/S3"], "cwd": b,
-               "env": {"LIFECYCLE_QUALIFICATION_ROOTS": camp},
-               "requires_env": ["KNOTREL_PG_ADMIN_URL"], "incomplete_exit": [1]},
+        # run_s3.sh: Docker Desktop and PostgreSQL exist only while S3 runs (as v1.0.0 block Q);
+        # the URL is generated at S3 time and never written. Exit 1: S3 NONCONFORMING by its own
+        # 90-minute cap (cells cut by a cap); 4: Docker or PostgreSQL unavailable (rerun once).
+        "S3": {"argv": ["/bin/sh", f"{b}/results/v1.1.0-cf5/run_s3.sh", camp, "{run}"], "cwd": b,
+               "incomplete_exit": [1]},
     },
     "_freeze": f"{b}/results/v1.1.0-cf5/FREEZE.json",
     "_checkouts": {"candidate": f"{camp}/src/cand/knotrel", "benchmarks": b,

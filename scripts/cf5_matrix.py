@@ -397,7 +397,9 @@ def delegated() -> List[Dict[str, Any]]:
                       "--lifecycle-engines cluster-forest --order-seed 51240; "
                       "analyze_lifecycle_qualification.py C1-C4"},
         {"id": "S3", "block": "S3", "tier": 2, "kind": "delegated", "comparisons": 7,
-         "collector": "run_cf5_s3.py run (v1.0.0 Q runner, both sides on the candidate server, "
+         "collector": "run_s3.sh (Docker Desktop and the pinned PostgreSQL 18.7 container exist "
+                      "only while S3 runs, URL never written) -> "
+                      "run_cf5_s3.py run (v1.0.0 Q runner, both sides on the candidate server, "
                       "LOAD_ENGINE cluster-forest / compact-bfs, 3 observations each, 90-minute "
                       "cap); run_cf5_s3.py evaluate: Q1-Q4 on CF, Q5-style on the 3 L1 query cells"},
     ]
