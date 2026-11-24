@@ -1,0 +1,118 @@
+{
+ "schema": "cf5-record-2",
+ "preparatory": true,
+ "session": 1,
+ "order_seed": 1,
+ "order_seed_derived": false,
+ "matrix_sha256": "fa92029694107499a6bb14a41b3e56db3b3c07eab570dfcf25590480e940a159",
+ "tools": {
+  "harness": [
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks"
+  ],
+  "cf5_core": [
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/cf5-core"
+  ],
+  "memory_peak": [
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/target/release/memory-peak"
+  ],
+  "release_cells": [
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/target/release/release-cells"
+  ],
+  "http_lifecycle": [
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/target/release/http-lifecycle"
+  ],
+  "contention": [
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/contention-probe/target/release/contention-probe",
+   "--server-bin",
+   "/Users/rt/workspace/knotrel/knotrel/target/release/knotrel-server"
+  ],
+  "_checkouts": {
+   "candidate": "/Users/rt/workspace/knotrel/knotrel",
+   "benchmarks": "/Users/rt/workspace/knotrel/knotrel-benchmarks"
+  },
+  "_lockfiles": [
+   "/Users/rt/workspace/knotrel/knotrel/Cargo.lock",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/Cargo.lock",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/Cargo.lock"
+  ]
+ },
+ "provenance": {
+  "executables": {
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/knotrel-benchmarks": "56b300af8ee36f641dfb623e54a9fc441850a1bec6cfda86d46bf70f3f44dfe3",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/target/release/cf5-core": "0d02b35a9f4fd7ba8a7f0f8450b46e49dc11c7f6f1e9ca21df4515f01c29f94e",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/target/release/memory-peak": "e58401d4d1ce8fb42b5b7bd54202490d0213065dc46328fcb3dd95b238e3140c",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/target/release/release-cells": "ec6ef3b47126cf6f80b39c599e7eac796a853ec76a7e0607348331b1991ca89c",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/target/release/http-lifecycle": "4b435cd43da3e50de445ed98d18566cb292efdef53fd45e405d518846f56696c",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/contention-probe/target/release/contention-probe": "6053905dd78324503423990ebfd902aa2c44cb304462784b3dea439352c0514c",
+   "/Users/rt/workspace/knotrel/knotrel/target/release/knotrel-server": "5c24726c0f081c4bca62a1254c15650e2e37e7dc226a1fea17814106b12ef4b3"
+  },
+  "checkouts": {
+   "candidate": {
+    "path": "/Users/rt/workspace/knotrel/knotrel",
+    "sha": "855774154d99fc5d3e308f357a27b48186925c82",
+    "dirty": true
+   },
+   "benchmarks": {
+    "path": "/Users/rt/workspace/knotrel/knotrel-benchmarks",
+    "sha": "ea8bbb59ede60d56fdbd22f10f9ad46aacbfc662",
+    "dirty": true
+   }
+  },
+  "lockfiles": {
+   "/Users/rt/workspace/knotrel/knotrel/Cargo.lock": "f17eaf936fb4f80cb2b31aec4773fbc1d868a2593ecb6512447c671fefb26ad7",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/Cargo.lock": "7e31c3838c24ff4233add10011578fb28d318c53a7ee953e694d4b9485ebccff",
+   "/Users/rt/workspace/knotrel/knotrel-benchmarks/tools/lifecycle-probes/Cargo.lock": "4cea783732fa281a35dc578f2f092f131aa40a32ea7e8d333efd05ea36413662"
+  }
+ },
+ "pairs": 1,
+ "warmup_pairs": 0,
+ "cap_hours": 2.0,
+ "cells": [
+  "L4-Rmem-import-core-20-10",
+  "L4-Rmem-import-http-create-20-10",
+  "L4-Rmem-import-core-60-30",
+  "L4-Rmem-import-http-create-60-30",
+  "L4-Rmem-import-http-replace-20-10",
+  "L4-Rmem-churn-fresh-sparse",
+  "L4-Rmem-churn-fresh-ring",
+  "L4-Rmem-churn-fresh-hub",
+  "L4-Rmem-churn-same-sparse",
+  "L4-Rmem-churn-toggle-sparse",
+  "S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-compact-bfs",
+  "S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-ett",
+  "S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-hdt",
+  "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-compact-bfs",
+  "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-ett",
+  "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-hdt",
+  "S1-Mreg-standalone-off-read95-b1-c4-10k-none-vs-compact-bfs",
+  "S1-Mreg-standalone-off-read95-b1-c4-10k-none-vs-ett",
+  "S1-Mreg-standalone-off-read95-b1-c4-10k-none-vs-hdt",
+  "S1-Mreg-standalone-on-lifecycle50-b8-c16-100k-none-vs-compact-bfs",
+  "S1-Mreg-source-managed-off-read100-b8-c16-100k-import-vs-compact-bfs",
+  "S1-Mreg-source-managed-off-read100-b8-c16-100k-import-vs-ett",
+  "S1-Mreg-source-managed-off-read100-b8-c16-100k-import-vs-hdt",
+  "S1-Mreg-source-managed-on-read100-b8-c16-100k-events-vs-compact-bfs"
+ ],
+ "host": {
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "kernel": "Darwin 192.168.68.111 25.5.0 Darwin Kernel Version 25.5.0: Tue Jun  9 22:19:21 PDT 2026; root:xnu-12377.121.10~1/RELEASE_ARM64_T8122 arm64",
+  "python": "3.12.10",
+  "cpu": "Apple M3",
+  "cores": 8,
+  "memory_bytes": "17179869184",
+  "frequency_policy": "System-wide power settings:\nCurrently in use:\n standby              1\n Sleep On Power Button 1\n hibernatefile        /var/vm/sleepimage\n powernap             1\n networkoversleep     0\n disksleep            10\n sleep                0 (sleep prevented by powerd, Claude)\n hibernatemode        3\n ttyskeepawake        1\n displaysleep         0\n tcpkeepalive         1\n lowpowermode         0\n womp                 1"
+ },
+ "resume_from": null,
+ "start": {
+  "label": "start",
+  "time": 1795530979.4890409,
+  "loadavg": [
+   3.74658203125,
+   3.72216796875,
+   3.19677734375
+  ],
+  "swap": "total = 2048.00M  used = 738.25M  free = 1309.75M  (encrypted)",
+  "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+ }
+}
