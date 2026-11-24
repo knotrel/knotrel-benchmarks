@@ -7,7 +7,8 @@
 use crate::ett_baseline::ForestGraph as BaselineForest;
 use crate::hdt_baseline::HdtGraph as BaselineHdt;
 use knotrel_core::{
-    BfsWorkspace, ForestGraph, ForestStats, Graph, GraphError, HdtGraph, HdtStats, ReferenceGraph,
+    BfsWorkspace, ConnectivityGraph, EngineConfig, ForestGraph, ForestStats, Graph, GraphError,
+    HdtGraph, HdtStats, ReferenceGraph,
 };
 use outils::prelude::{DynamicConnectivity, DynamicGraph, Edge, EmptyWeight, VertexIndex};
 use petgraph::{
@@ -54,6 +55,14 @@ pub enum EngineKind {
     Petgraph,
     /// outils 0.3.0 HDT with an adapter for simple-graph semantics.
     Outils,
+    /// `compact-bfs` through the product API `ConnectivityGraph` (CF5).
+    ConnectivityCompact,
+    /// `ett` through `ConnectivityGraph` (CF5).
+    ConnectivityEtt,
+    /// `hdt` through `ConnectivityGraph` (CF5).
+    ConnectivityHdt,
+    /// `cluster-forest` through `ConnectivityGraph`, its only public path (CF5).
+    ConnectivityClusterForest,
 }
 impl EngineKind {
     /// Stable default comparison order; collectors should rotate this order.
@@ -71,6 +80,14 @@ impl EngineKind {
         Self::DenseBfs,
         Self::Petgraph,
         Self::Outils,
+    ];
+    /// The CF5 engines, all through `ConnectivityGraph` (explicit only, not
+    /// part of `ALL`).
+    pub const CONNECTIVITY: [Self; 4] = [
+        Self::ConnectivityCompact,
+        Self::ConnectivityEtt,
+        Self::ConnectivityHdt,
+        Self::ConnectivityClusterForest,
     ];
     /// CLI selector, also recorded in comparison manifests.
     #[must_use]
@@ -91,6 +108,21 @@ impl EngineKind {
             Self::DenseBfs => "dense-bfs",
             Self::Petgraph => "petgraph-dfs",
             Self::Outils => "outils-hdt",
+            Self::ConnectivityCompact => "connectivity-compact-bfs",
+            Self::ConnectivityEtt => "connectivity-ett",
+            Self::ConnectivityHdt => "connectivity-hdt",
+            Self::ConnectivityClusterForest => "connectivity-cluster-forest",
+        }
+    }
+    /// The product engine behind a `connectivity-*` kind, if any.
+    #[must_use]
+    pub fn connectivity_engine(self) -> Option<EngineConfig> {
+        match self {
+            Self::ConnectivityCompact => Some(EngineConfig::CompactBfs),
+            Self::ConnectivityEtt => Some(EngineConfig::EulerTour),
+            Self::ConnectivityHdt => Some(EngineConfig::Hdt),
+            Self::ConnectivityClusterForest => Some(EngineConfig::ClusterForest),
+            _ => None,
         }
     }
     /// Versioned backend identity for measurement reports.
@@ -112,6 +144,10 @@ impl EngineKind {
             Self::DenseBfs => "knotrel-benchmarks/dense-bfs-v1",
             Self::Petgraph => "petgraph-0.8.3/dfs",
             Self::Outils => "outils-0.3.0/hdt",
+            Self::ConnectivityCompact => "knotrel-core/connectivity-graph/compact-bfs",
+            Self::ConnectivityEtt => "knotrel-core/connectivity-graph/ett",
+            Self::ConnectivityHdt => "knotrel-core/connectivity-graph/hdt",
+            Self::ConnectivityClusterForest => "knotrel-core/connectivity-graph/cluster-forest-v1",
         }
     }
     /// Parse an explicit selector without silently falling back.
@@ -125,6 +161,7 @@ impl EngineKind {
                 Self::TraversalBitsetFreshVec,
                 Self::TraversalBitsetFreshDeque,
             ])
+            .chain(Self::CONNECTIVITY)
             .find(|kind| kind.key() == name)
             .ok_or("unknown engine")
     }
@@ -170,6 +207,7 @@ enum Storage {
     Hdt(HdtGraph),
     HdtV2(BaselineHdt),
     EttBaseline(BaselineForest),
+    Connectivity(ConnectivityGraph),
     Indexed(Box<Indexed>),
 }
 struct Indexed {
@@ -343,6 +381,18 @@ impl Engine {
                 storage: Storage::HdtV2(graph),
             });
         }
+        if let Some(engine) = kind.connectivity_engine() {
+            let mut graph = ConnectivityGraph::new(engine);
+            for &node in nodes {
+                graph
+                    .add_node(node)
+                    .map_err(|_| "engine rejected a vertex")?;
+            }
+            observe(ConstructionBoundary::Registered);
+            return Ok(Self {
+                storage: Storage::Connectivity(graph),
+            });
+        }
         if kind == EngineKind::EttBaseline {
             let mut graph = BaselineForest::new();
             for &node in nodes {
@@ -382,7 +432,11 @@ impl Engine {
             | EngineKind::Hdt
             | EngineKind::HdtV2
             | EngineKind::EttScan
-            | EngineKind::EttBaseline => unreachable!(),
+            | EngineKind::EttBaseline
+            | EngineKind::ConnectivityCompact
+            | EngineKind::ConnectivityEtt
+            | EngineKind::ConnectivityHdt
+            | EngineKind::ConnectivityClusterForest => unreachable!(),
         };
         observe(ConstructionBoundary::Registered);
         Ok(Self {
@@ -496,6 +550,7 @@ impl Engine {
             Storage::Hdt(graph) => return graph.connected(source, target),
             Storage::HdtV2(graph) => return graph.connected(source, target),
             Storage::EttBaseline(graph) => return graph.connected(source, target),
+            Storage::Connectivity(graph) => return graph.connected(source, target),
             Storage::Indexed(indexed) => indexed,
         };
         let (a, b) = indexed.endpoints(source, target)?;
@@ -599,6 +654,13 @@ impl Engine {
                 };
             }
             Storage::EttBaseline(graph) => {
+                return if insert {
+                    graph.link(source, target)
+                } else {
+                    graph.cut(source, target)
+                };
+            }
+            Storage::Connectivity(graph) => {
                 return if insert {
                     graph.link(source, target)
                 } else {

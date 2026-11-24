@@ -77,6 +77,7 @@ pub fn parse_engine(name: &str) -> Option<EngineConfig> {
         "compact-bfs" => EngineConfig::CompactBfs,
         "ett" => EngineConfig::EulerTour,
         "hdt" => EngineConfig::Hdt,
+        "cluster-forest" => EngineConfig::ClusterForest,
         _ => return None,
     })
 }

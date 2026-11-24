@@ -126,5 +126,6 @@ pub fn chain_workload(config: Config) -> Result<Workload, &'static str> {
 
 mod ett_baseline;
 
+pub mod cf5;
 /// Frozen HDT v2 implementation for controlled comparisons.
 pub mod hdt_baseline;

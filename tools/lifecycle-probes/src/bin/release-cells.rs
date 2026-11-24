@@ -73,6 +73,17 @@ impl Args {
     }
 }
 
+/// The lifecycle engine of a cell: `--engine` (CF5 arms), `compact-bfs`
+/// when absent (the frozen v0.9.0/v1.0.0 cells pass no engine).
+fn engine_arg(args: &Args) -> Result<knotrel_core::EngineConfig, String> {
+    match args.0.get("engine") {
+        None => Ok(knotrel_core::EngineConfig::CompactBfs),
+        Some(name) => lifecycle_probes::parse_engine(name)
+            .filter(|engine| knotrel_core::LifecycleGraph::supports_engine(*engine))
+            .ok_or_else(|| format!("--engine {name} is not a lifecycle engine")),
+    }
+}
+
 /// Median of a nonempty sample (lower median for even sizes).
 fn median(values: &mut [u64]) -> u64 {
     values.sort_unstable();
@@ -129,7 +140,7 @@ fn core_import(args: &Args) -> Result<Value, String> {
             enabled: !off,
         })
         .collect();
-    let engine = knotrel_core::EngineConfig::CompactBfs;
+    let engine = engine_arg(args)?;
     let mut times = Vec::with_capacity(reps);
     let mut counts = None;
     for rep in 0..warmup + reps {
@@ -155,7 +166,7 @@ fn core_import(args: &Args) -> Result<Value, String> {
     }
     let observation = median(&mut times.clone());
     Ok(
-        json!({"kind":"core-import","observation_ns":observation,"times_ns":times,
+        json!({"kind":"core-import","engine":engine.as_str(),"observation_ns":observation,"times_ns":times,
               "counts":counts,"rss_bytes":rss_bytes()}),
     )
 }
@@ -204,18 +215,14 @@ async fn send(app: &Router, request: Request<Body>) -> (StatusCode, Vec<u8>) {
 
 /// A fresh lifecycle router with a feeder session; returns it and its
 /// instance ID.
-async fn fresh_router() -> Result<(Router, String), String> {
-    let config = ServerConfig::new(
-        "127.0.0.1:0".parse().unwrap(),
-        knotrel_core::EngineConfig::CompactBfs,
-        32,
-    )
-    .map_err(|e| e.to_string())?
-    .with_mode(ServerMode::SourceManaged)
-    .with_topology_lifecycle(true)
-    .map_err(|e| e.to_string())?
-    .with_metrics_enabled(false)
-    .with_graph_limits(GraphLimits::default());
+async fn fresh_router(engine: knotrel_core::EngineConfig) -> Result<(Router, String), String> {
+    let config = ServerConfig::new("127.0.0.1:0".parse().unwrap(), engine, 32)
+        .map_err(|e| e.to_string())?
+        .with_mode(ServerMode::SourceManaged)
+        .with_topology_lifecycle(true)
+        .map_err(|e| e.to_string())?
+        .with_metrics_enabled(false)
+        .with_graph_limits(GraphLimits::default());
     let app = router_with_config(config);
     let (_, info) = send(&app, Request::get("/v1/info").body(Body::empty()).unwrap()).await;
     let info: Value = serde_json::from_slice(&info).map_err(|e| e.to_string())?;
@@ -240,6 +247,7 @@ async fn fresh_router() -> Result<(Router, String), String> {
 }
 
 async fn http_import(args: &Args) -> Result<Value, String> {
+    let engine = engine_arg(args)?;
     let input = flagged(args)?;
     let warmup: usize = args.num("warmup")?;
     let reps: usize = args.num("reps")?;
@@ -247,7 +255,7 @@ async fn http_import(args: &Args) -> Result<Value, String> {
     let mut body_bytes = 0;
     let mut reply_counts: Option<Value> = None;
     for rep in 0..warmup + reps {
-        let (app, instance) = fresh_router().await?;
+        let (app, instance) = fresh_router(engine).await?;
         let body = import_body(&instance, &input);
         body_bytes = body.len();
         let request = Request::post("/v1/feeder/import")
@@ -282,7 +290,7 @@ async fn http_import(args: &Args) -> Result<Value, String> {
     }
     let observation = median(&mut times.clone());
     Ok(
-        json!({"kind":"http-import","observation_ns":observation,"times_ns":times,
+        json!({"kind":"http-import","engine":engine.as_str(),"observation_ns":observation,"times_ns":times,
               "body_bytes":body_bytes,"counts":reply_counts,"rss_bytes":rss_bytes()}),
     )
 }
@@ -296,7 +304,7 @@ fn churn(args: &Args) -> Result<Value, String> {
     let reuse = args.get("reuse")?;
     let edges = generate(topology, n, seed);
     let (plan, expected) = schedule(n, &edges, reuse, cycles, percent, seed)?;
-    let engine = knotrel_core::EngineConfig::CompactBfs;
+    let engine = engine_arg(args)?;
     let mut graph = <LifecycleGraph as Subject>::build(engine, n, &edges);
     let mut total: u64 = 0;
     let mut slowest: u64 = 0;
@@ -329,7 +337,7 @@ fn churn(args: &Args) -> Result<Value, String> {
         }
     }
     Ok(
-        json!({"kind":"churn","observation_ns":total,"cycle_ns":cycle_ns,"slowest_op_ns":slowest,
+        json!({"kind":"churn","engine":engine.as_str(),"observation_ns":total,"cycle_ns":cycle_ns,"slowest_op_ns":slowest,
               "operations":operations,"compactions":compactions,
               "engine_vertices":graph.engine_vertex_count(),"nodes":graph.node_count(),
               "rss_bytes":rss_bytes()}),

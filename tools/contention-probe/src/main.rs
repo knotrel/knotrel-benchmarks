@@ -8,7 +8,11 @@
 //! ```text
 //! contention-probe --server-bin PATH --mode standalone|source-managed
 //!     --lifecycle true|false --nodes N --seed S --configs FILE [--port P]
+//!     [--engine compact-bfs|ett|hdt|cluster-forest]
 //! ```
+//!
+//! `--engine` sets `KNOTREL_ENGINE` for the server (default `compact-bfs`, the
+//! only engine of the campaigns before CF5).
 //!
 //! `FILE` holds one JSON object per line:
 //! `{"id":..,"mix":"read100|read95|mixed50|lifecycle50","batch":B,"clients":C,
@@ -274,12 +278,13 @@ fn start_server(
     mode: &str,
     lifecycle: bool,
     max_nodes: u64,
+    engine: &str,
 ) -> Result<Child, String> {
     let child = Command::new(bin)
         .env_clear()
         .env("KNOTREL_ADDR", format!("127.0.0.1:{port}"))
         .env("KNOTREL_MODE", mode)
-        .env("KNOTREL_ENGINE", "compact-bfs")
+        .env("KNOTREL_ENGINE", engine)
         .env("KNOTREL_TOPOLOGY_LIFECYCLE", lifecycle.to_string())
         .env("KNOTREL_METRICS_ENABLED", "true")
         .env("KNOTREL_MAX_NODES", max_nodes.to_string())
@@ -1283,6 +1288,14 @@ fn main() {
     let lifecycle: bool = get("lifecycle").parse().expect("--lifecycle true|false");
     let n: u64 = get("nodes").parse().expect("--nodes");
     let seed: u64 = get("seed").parse().expect("--seed");
+    let engine = args
+        .get("engine")
+        .cloned()
+        .unwrap_or_else(|| "compact-bfs".to_owned());
+    assert!(
+        ["compact-bfs", "ett", "hdt", "cluster-forest"].contains(&engine.as_str()),
+        "--engine must be compact-bfs, ett, hdt or cluster-forest"
+    );
     let configs: Vec<Value> = std::fs::read_to_string(get("configs"))
         .expect("read --configs")
         .lines()
@@ -1295,10 +1308,10 @@ fn main() {
         .unwrap_or_else(free_port);
     println!(
         "{}",
-        json!({"kind": "start", "probe_revision": PROBE_REVISION, "server_bin": bin, "mode": mode, "lifecycle": lifecycle, "nodes": n, "max_nodes": n + NODE_HEADROOM, "seed": seed, "configs": configs.len()})
+        json!({"kind": "start", "probe_revision": PROBE_REVISION, "server_bin": bin, "mode": mode, "engine": engine, "lifecycle": lifecycle, "nodes": n, "max_nodes": n + NODE_HEADROOM, "seed": seed, "configs": configs.len()})
     );
     let max_nodes = n + NODE_HEADROOM;
-    let mut child = match start_server(&bin, port, &mode, lifecycle, max_nodes) {
+    let mut child = match start_server(&bin, port, &mode, lifecycle, max_nodes, &engine) {
         Ok(child) => child,
         Err(error) => {
             eprintln!("contention-probe: {error}");

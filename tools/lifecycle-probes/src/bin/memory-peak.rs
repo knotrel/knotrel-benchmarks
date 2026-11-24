@@ -19,7 +19,13 @@
 //!     --inactive-percent I --disabled-percent D --seed S
 //! memory-peak import-http --engine E --topology T --nodes N
 //!     --inactive-percent I --disabled-percent D --seed S --mode create|replace
+//! memory-peak cf5-random --engine E --vertices V --degree D --seed S
 //! ```
+//!
+//! `cf5-random` is CF5 block K4: the K2 graph and staged orders
+//! (`knotrel_benchmarks::cf5`), all insertions then all deletions through
+//! `ConnectivityGraph`, with live bytes after registration, after the
+//! insertions and after the deletions, and the high-water mark.
 //!
 //! `churn` replays the exact `core-lifecycle resources` schedule (`lifecycle_probes::churn`; the
 //! logical counts it prints must equal run 3's) on the lifecycle arm. `hdt-levels` applies the same
@@ -303,6 +309,49 @@ fn import_core(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
+/// CF5 K4 (see the module documentation). Inputs are generated before the
+/// baseline reading; the measured phases allocate only inside the engine.
+fn cf5_random(args: &Args) -> Result<(), String> {
+    use knotrel_benchmarks::cf5::{STAGED_SALT, fingerprint, orders, random_graph};
+    let engine = parse_engine(args.get("engine")?).ok_or("unknown --engine")?;
+    let vertices: u64 = args.num("vertices")?;
+    let degree: u64 = args.num("degree")?;
+    let seed: u64 = args.num("seed")?;
+    let edges = random_graph(vertices, degree, seed)?;
+    let (_, insert, delete) = orders(&edges, seed, STAGED_SALT);
+    let (live_before, peak_before) = heap();
+    let mut graph = knotrel_core::ConnectivityGraph::new(engine);
+    for node in 0..vertices {
+        graph.add_node(node).map_err(|e| e.to_string())?;
+    }
+    let (after_construction, _) = heap();
+    for &(a, b) in &insert {
+        graph.link(a, b).map_err(|e| e.to_string())?;
+    }
+    let (after_inserts, _) = heap();
+    for &(a, b) in &delete {
+        graph.cut(a, b).map_err(|e| e.to_string())?;
+    }
+    let (after_deletes, peak_after) = heap();
+    if graph.edge_count() != 0 {
+        return Err("edges left after delete-all".into());
+    }
+    let net = |live: usize| live as i64 - live_before as i64;
+    println!(
+        "{}",
+        json!({"kind":"cf5-random","engine":engine.as_str(),"vertices":vertices,
+               "degree":degree,"edges":edges.len(),"seed":seed,
+               "edges_fingerprint":fingerprint(&edges),
+               "live_after_construction":net(after_construction),
+               "live_after_inserts":net(after_inserts),
+               "live_after_deletes":net(after_deletes),
+               "peak":net(peak_after),"peak_exact":peak_after > peak_before,
+               "rss_bytes":rss_bytes()})
+    );
+    drop(graph);
+    Ok(())
+}
+
 fn import_body(mode: &str, instance: &str, n: u64, edges: &[(u64, u64)], flags: &Flags) -> Bytes {
     let mut body = String::with_capacity(64 * edges.len() + 32 * n as usize + 512);
     write!(
@@ -434,13 +483,15 @@ fn main() -> ExitCode {
         "churn" => churn(&args),
         "hdt-levels" => hdt_levels(&args),
         "import-core" => import_core(&args),
+        "cf5-random" => cf5_random(&args),
         "import-http" => tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .map_err(|e| e.to_string())
             .and_then(|rt| rt.block_on(import_http(&args))),
         _ => Err(
-            "usage: memory-peak churn|hdt-levels|import-core|import-http --flag value ...".into(),
+            "usage: memory-peak churn|hdt-levels|import-core|import-http|cf5-random --flag value ..."
+                .into(),
         ),
     });
     match result {
