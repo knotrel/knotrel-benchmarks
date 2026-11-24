@@ -925,7 +925,7 @@ def export_inputs(a_status="PASS"):
                 c: {"query_rps": [1000.0, 990.0], "rps_pass": True, "query_p99_ms": [100.0, 101.0], "p99_pass": True}
                 for c in ("L1 G100k C=16", "L1 G100k C=64")}}}
     freeze = {"campaign": "v1.0.0 qualification", "frozen_utc": "2026-11-30T00:00:00Z",
-              "candidate": {"commit": CAND}, "reference": {"tag": "v0.9.0", "commit": REF}}
+              "candidate": {"commit": CAND, "version": "1.0.0-rc.1"}, "reference": {"tag": "v0.9.0", "commit": REF}}
     return {"freeze": freeze, "a": {"pairs_per_cell": 24, "phase": "final", "cells": a_cells},
             "bc": {"timing": timing, "sustained": sustained}, "bc_report": {"rows": rows}, "r": r, "rmem": rmem,
             "mreg": mreg, "q": {"q_status": "COMPLETE", "run_cause": None, "criteria": crit, "Q5_v0_8_0": {"cells": {}},
@@ -944,6 +944,9 @@ class ExportTest(unittest.TestCase):
         comparison, excluded = ex.build(inputs, self.URLS, "Apple M3 4P+4E, 16 GB")
         build_site.validate({"schema_version": 2, "releases": [{"version": "1.0.0", "status": "published",
                                                                  "schema_version": 2, "baseline_policy": "p",
+                                                                 "release_label": "1.0.0-rc.1",
+                                                                 "qualification_decision": "accepted with exceptions",
+                                                                 "decision_url": "https://example.invalid/DECISION.md",
                                                                  "comparisons": [comparison]}]})
         return comparison["results"], excluded, comparison
 
@@ -1191,7 +1194,9 @@ class ExportTest(unittest.TestCase):
                     "--bc-report", str(paths["bc_report"]), "--r", str(paths["r"]), "--rmem", str(paths["rmem"]),
                     "--mreg", str(paths["mreg"]), "--q", str(paths["q"]), "--campaign-url", self.URLS["campaign"],
                     "--evidence-url", self.URLS["evidence"], "--environment", "env",
-                    "--releases", str(releases), "--decision", str(decision)]
+                    "--releases", str(releases), "--decision", str(decision),
+                    "--qualification-decision", "accepted with exceptions",
+                    "--decision-url", "https://example.invalid/DECISION.md"]
             out = ["--out", str(root / "releases.json"), "--report-only", str(root / "excluded.json")]
             not_run = root / "not_run.json"
             not_run.write_text(json.dumps({"not_run": [{"experiment": "R", "scenario": "R-core-churn-x",
@@ -1215,6 +1220,9 @@ class ExportTest(unittest.TestCase):
             data = json.loads((root / "releases.json").read_text())
         entry = next(r for r in data["releases"] if r["version"] == "1.0.0")
         self.assertEqual(entry["status"], "published")
+        self.assertEqual((entry["release_label"], entry["qualification_decision"], entry["decision_url"]),
+                         (inputs["freeze"]["candidate"]["version"], "accepted with exceptions",
+                          "https://example.invalid/DECISION.md"))
         self.assertEqual((data["schema_version"], entry["schema_version"]), (2, 2))
         self.assertIn("R-core-churn-x", [r["scenario"] for r in entry["comparisons"][0]["results"]])
         self.assertEqual(json.loads(before)["releases"][0]["status"], "planned")
@@ -1319,6 +1327,7 @@ class ExportFinalQAttemptTest(unittest.TestCase):
                     "--rmem", str(paths["rmem"]), "--mreg", str(paths["mreg"]),
                     "--q", str(camp / "part3" / "evaluation.json"), "--campaign-url", "https://x", "--evidence-url",
                     "https://x", "--environment", "env", "--releases", str(releases), "--out", str(root / "out.json"),
+                    "--qualification-decision", "accepted with exceptions", "--decision-url", "https://x",
                     "--report-only", str(root / "excluded.json")]
             with mock.patch("sys.stderr"):
                 self.assertEqual(ex.main(argv), 2)

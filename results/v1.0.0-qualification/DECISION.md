@@ -217,6 +217,20 @@ fields, with an identical `__TEXT,__text` of the `knotrel-server` release
 build (FREEZE.json, `candidate.note`). On 2026-11-23 knotrel `main` equals
 the candidate in those paths.
 
+**Addendum, 2026-11-24: transfer to 1.0.0 under a waiver.** The maintainer
+decided to release 1.0.0 directly, without publishing a release candidate.
+Changing only the version from `1.0.0-rc.1` to `1.0.0` changes
+`__TEXT,__text` of the `knotrel-server` release build (45,427 of 596,048
+instructions; a control build of `main` at version `1.0.0-rc.1` is identical
+to the candidate). The maintainer waived the identity requirement for this
+step only, after verifying that the delta is limited to the four version
+lines in `crates/`, `Cargo.toml`, `Cargo.lock` and `rust-toolchain.toml`, with
+the same resolved dependencies and build configuration (knotrel
+`docs/releases/v1.0.0-text-identity-waiver.md`). This decision applies to
+1.0.0 unchanged, with every verdict, disposition, exception and limitation
+above. The campaign was not repeated; binary identity with the measured build
+and a new measurement of 1.0.0 are not claimed.
+
 ## 7. Not claimed
 
 - No complete qualification, and no "all gates PASS".
@@ -226,4 +240,5 @@ the candidate in those paths.
 - No catch-up guarantee outside the Q3 envelope, and no claim that Q3 did not
   regress.
 - No result on hardware other than the measurement host.
-- This decision authorizes no tag and no publication.
+- This decision authorizes no tag and no publication; the 1.0.0 publication
+  was authorized separately by the maintainer on 2026-11-24.

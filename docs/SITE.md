@@ -50,6 +50,29 @@ versioned campaign manifests, raw observations, and analysis.
 
 ### Schema 2: verdict, category and execution status
 
+A published schema 2 release entry also states which exact release it
+describes and the maintainer's release-level decision, so a report on a
+release candidate is never read as a stable release or as "all gates PASS":
+
+- `release_label`: the exact release, for example `1.0.0-rc.1` for the `1.0.0`
+  entry; its `X.Y.Z` must equal `version`. A label with a prerelease suffix is
+  shown as a prerelease (release candidate), never as a stable release.
+- `qualification_decision`: `accepted`, `accepted with exceptions` or
+  `not accepted`, as written in the decision record. It never changes a row
+  verdict.
+- `decision_url`: the permanent HTTPS URL of the decision record.
+- `qualification_note` (optional): nonempty text shown with the decision, for
+  example when a qualification measured on a candidate is transferred to the
+  release under a recorded waiver.
+
+The exporter sets `release_label` from the freeze record's candidate version and
+takes the other two from `--qualification-decision` and `--decision-url`.
+For 1.0.0 the exporter's label (`1.0.0-rc.1`, the measured candidate's
+version) was changed by hand to `1.0.0`, with a `qualification_note`, when the
+maintainer released 1.0.0 directly and transferred the qualification under a
+waiver (2026-11-24, `results/v1.0.0-qualification/DECISION.md` section 6). No
+measurement or verdict was changed.
+
 Schema 2 adds outcomes that schema 1 cannot express. A dataset with
 `schema_version: 2` may contain release entries with `schema_version: 2`. A
 release entry without `schema_version` is a schema 1 entry and keeps exactly

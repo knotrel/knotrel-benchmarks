@@ -486,6 +486,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         parser.add_argument(f"--{name}", type=Path, required=True)
     for name in ("campaign-url", "evidence-url", "environment"):
         parser.add_argument(f"--{name}", required=True)
+    parser.add_argument("--qualification-decision", required=True, choices=build_site.DECISIONS,
+                        help="the maintainer's decision in the decision record (site schema 2, release level)")
+    parser.add_argument("--decision-url", required=True, help="permanent HTTPS URL of the decision record")
     parser.add_argument("--not-run", type=Path, help="cells not run, each with its reason (see the module docstring)")
     args = parser.parse_args(argv)
     if args.not_run is not None:
@@ -523,6 +526,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     entries[0]["status"] = "published"
     entries[0]["schema_version"] = SITE_SCHEMA
     entries[0]["comparisons"] = [comparison]
+    entries[0]["release_label"] = inputs["freeze"]["candidate"]["version"]
+    entries[0]["qualification_decision"] = args.qualification_decision
+    entries[0]["decision_url"] = args.decision_url
     try:
         build_site.validate(data)
     except (AssertionError, KeyError, TypeError) as error:

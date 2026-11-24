@@ -139,6 +139,33 @@ def validate_comparison(comparison, schema):
         assert row['evidence_url'].startswith('https://')
 
 
+#: Release-level qualification decisions (docs/SITE.md). Closed set; a decision never changes a row verdict.
+DECISIONS = ('accepted', 'accepted with exceptions', 'not accepted')
+#: The exact release a report describes, e.g. 1.0.0-rc.1 for the 1.0.0 entry.
+RELEASE_LABEL = r'(\d+\.\d+\.\d+)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?'
+
+
+def validate_release_decision(release):
+    """A published schema 2 entry names its exact release and the maintainer's qualification decision."""
+    match = re.fullmatch(RELEASE_LABEL, str(release.get('release_label', '')))
+    assert match, 'A published schema 2 release requires an exact release_label'
+    assert match.group(1) == release['version'], 'release_label must belong to the entry version'
+    assert release.get('qualification_decision') in DECISIONS, 'Unknown or missing qualification_decision'
+    url = release.get('decision_url')
+    assert isinstance(url, str) and url.startswith('https://'), 'A published schema 2 release requires an HTTPS decision_url'
+    note = release.get('qualification_note')
+    assert note is None or (isinstance(note, str) and note.strip()), 'qualification_note must be nonempty text'
+
+
+def release_label(release):
+    """The exact release a report describes (the entry version for schema 1 and planned entries)."""
+    return release.get('release_label') or release['version']
+
+
+def is_prerelease(release):
+    return '-' in release_label(release)
+
+
 def validate(data):
     """Reject ambiguous identities and incomplete published evidence."""
     if not __debug__:
@@ -159,6 +186,8 @@ def validate(data):
             assert not release.get('comparisons'), 'Planned releases cannot contain measurements'
             continue
         assert release['comparisons'], 'Published release requires comparisons'
+        if schema == 2:
+            validate_release_decision(release)
         references = set()
         for comparison in release['comparisons']:
             assert comparison['reference_version'] not in references, 'Duplicate reference'
@@ -196,8 +225,30 @@ def page(title, content, prefix='', active='Overview'):
 <main id="main">{content}</main><footer><div><strong>Knotrel Performance</strong><p>Measurements with context. Evidence you can inspect.</p></div><div><a href="https://knotrel.github.io/knotrel/">Knotrel documentation ↗</a><a href="{REPO}">Benchmark repository ↗</a><a href="{prefix}data/releases.json">Release data · JSON</a></div></footer></body></html>'''
 
 
+def badges(r):
+    """Status, prerelease and qualification decision badges of a release entry."""
+    out = f'<span class="badge">{esc(r["status"])}</span>'
+    if is_prerelease(r):
+        out += ' <span class="badge">prerelease</span>'
+    if r.get('qualification_decision'):
+        out += f' <span class="badge">qualification {esc(r["qualification_decision"])}</span>'
+    return out
+
+
+def decision_note(r, link=True):
+    """One sentence stating the release kind and the qualification decision, with its record."""
+    if r['status'] != 'published' or not r.get('qualification_decision'):
+        return ''
+    kind = ('a release candidate (prerelease), not a stable release' if is_prerelease(r) else 'a stable release')
+    return (f'<p class="note">Knotrel {esc(release_label(r))} is {kind}. Performance qualification: '
+            f'<strong>{esc(r["qualification_decision"])}</strong>'
+            + (f' (<a href="{esc(r["decision_url"])}">decision record ↗</a>)' if link else '') + '. '
+            'Every verdict below is shown as measured; an exception does not change it.'
+            + (f' {esc(r["qualification_note"])}' if r.get('qualification_note') else '') + '</p>')
+
+
 def cards(releases):
-    return ''.join(f'<a class="card release" href="releases/{r["version"]}.html"><span class="badge">{esc(r["status"])}</span><h3>v{r["version"]} <span>{icon("arrow")}</span></h3><p>{esc(r["baseline_policy"])}</p></a>' for r in releases)
+    return ''.join(f'<a class="card release" href="releases/{r["version"]}.html">{badges(r)}<h3>v{esc(release_label(r))} <span>{icon("arrow")}</span></h3><p>{esc(r["baseline_policy"])}</p>{decision_note(r, link=False)}</a>' for r in releases)
 
 
 def interval(value):
@@ -297,6 +348,13 @@ def confidence_plot(rows, schema=1):
     return '<div class="interval-plots">' + ''.join(plots) + '</div>' if plots else ''
 
 
+def hero_link(releases):
+    first = next((r for r in releases if r['version'] == '1.0.0'), None)
+    if first is not None and first['status'] == 'published':
+        return f'Explore the {release_label(first)} results'
+    return 'Explore the 1.0.0 plan'
+
+
 def generate(data):
     """Build deterministic pages without running any benchmarks."""
     validate(data)
@@ -304,7 +362,7 @@ def generate(data):
     published = sum(r['status'] == 'published' for r in releases)
     outputs = {}
     outputs['index.html'] = page('Performance, in context', f'''
-<section class="hero"><p class="eyebrow">KNOTREL / BENCHMARK OBSERVATORY</p><h1>Performance.<br><em>With the evidence.</em></h1><p class="lead">Explore how Knotrel changes across releases. Response times, memory and CPU, with uncertainty and reproducible comparisons.</p><div class="actions"><a class="button primary" href="releases/1.0.0.html">{icon("chart")}<span>Explore the 1.0.0 plan</span>{icon("arrow")}</a><a class="button" href="methodology.html">{icon("measure")}<span>How we measure</span></a></div><div class="summary"><div><strong>{published:02}</strong><span>Published release reports</span></div><div><strong>1.0.0</strong><span>First release in this series</span></div><div><strong>95%</strong><span>Target confidence level</span></div></div></section>
+<section class="hero"><p class="eyebrow">KNOTREL / BENCHMARK OBSERVATORY</p><h1>Performance.<br><em>With the evidence.</em></h1><p class="lead">Explore how Knotrel changes across releases. Response times, memory and CPU, with uncertainty and reproducible comparisons.</p><div class="actions"><a class="button primary" href="releases/1.0.0.html">{icon("chart")}<span>{esc(hero_link(releases))}</span>{icon("arrow")}</a><a class="button" href="methodology.html">{icon("measure")}<span>How we measure</span></a></div><div class="summary"><div><strong>{published:02}</strong><span>Published release reports</span></div><div><strong>1.0.0</strong><span>First release in this series</span></div><div><strong>95%</strong><span>Target confidence level</span></div></div></section>
 <section><div class="section-title"><div><p class="eyebrow">RELEASE TRACKER</p><h2>A baseline for every change.</h2></div><a href="releases.html" class="icon-link">All releases {icon("arrow")}</a></div><div class="grid">{cards(releases)}</div><p class="note">The public series starts at 1.0.0 against a frozen 0.9.x reference. Planned reports contain no measurements. Published reports link to their campaign evidence.</p></section>
 <section><p class="eyebrow">THREE VIEWS, ONE WORKLOAD</p><h2>Speed is only part of the story.</h2><div class="grid"><article class="card"><span class="number">01 / LATENCY</span><h3>How long do answers take?</h3><p>p50, p95 and p99 alongside throughput, failures and update visibility.</p></article><article class="card"><span class="number">02 / MEMORY</span><h3>What does the graph cost?</h3><p>Steady and peak memory. Heap and RSS, with process boundaries made explicit.</p></article><article class="card"><span class="number">03 / CPU</span><h3>How much work gets done?</h3><p>CPU time and utilization, interpreted against successful operations and offered load.</p></article></div></section>
 <section class="callout"><p class="eyebrow">EXTERNAL COMPARISONS</p><h2>Same question. Different systems.</h2><p>Neo4j and PostgreSQL comparisons are planned after 1.1.0 and selected profiling work. Freshness, atomicity and full-stack costs are part of the comparison.</p><a href="competitors.html" class="icon-link">{icon("compare")}View the experiment scope {icon("arrow")}</a></section>''')
@@ -320,7 +378,7 @@ def generate(data):
                 detail += f'<h2>Compared with v{comparison["reference_version"]}</h2><p>Candidate: <code>{comparison["candidate_sha"]}</code><br>Reference: v{comparison["reference_version"]} <code>{comparison["reference_sha"]}</code></p><p>{esc(comparison["environment"])}</p><p><a href="{esc(comparison["campaign_url"])}">Campaign manifest and raw evidence ↗</a></p><div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable measurement table"><table><caption>Estimates and confidence intervals. Verdicts are supplied by the campaign analyzer and shown exactly as measured, with their category and execution status.</caption><thead><tr>'+''.join(f'<th scope="col">{x}</th>' for x in COLUMNS)+'</tr></thead><tbody>'+rows+'</tbody></table></div>'
                 detail += confidence_plot(comparison['results'], schema)
             detail += legend()
-        outputs[f'releases/{r["version"]}.html'] = page(f'v{r["version"]}', f'<p class="eyebrow">RELEASE REPORT / {esc(r["status"])}</p><h1>Knotrel {r["version"]}</h1><p class="lead">{esc(r["baseline_policy"])}</p>{detail}<h2>What this comparison covers</h2><div class="grid"><article class="card"><h3>Response & capacity</h3><p>Latency distributions, throughput, failures and concurrent updates.</p></article><article class="card"><h3>Resource footprint</h3><p>Steady/peak memory and CPU cost with explicit measurement boundaries.</p></article><article class="card"><h3>Confidence & provenance</h3><p>Independent runs, interval methods, exact revisions and linked evidence.</p></article></div><p class="note">Missing coverage is not PASS. An accepted exception does not change a failed verdict.</p>', '../', 'Releases')
+        outputs[f'releases/{r["version"]}.html'] = page(f'v{release_label(r)}', f'<p class="eyebrow">RELEASE REPORT / {esc(r["status"])}{" / PRERELEASE" if is_prerelease(r) else ""}</p><h1>Knotrel {esc(release_label(r))}</h1><p class="lead">{esc(r["baseline_policy"])}</p>{decision_note(r)}{detail}<h2>What this comparison covers</h2><div class="grid"><article class="card"><h3>Response & capacity</h3><p>Latency distributions, throughput, failures and concurrent updates.</p></article><article class="card"><h3>Resource footprint</h3><p>Steady/peak memory and CPU cost with explicit measurement boundaries.</p></article><article class="card"><h3>Confidence & provenance</h3><p>Independent runs, interval methods, exact revisions and linked evidence.</p></article></div><p class="note">Missing coverage is not PASS. An accepted exception does not change a failed verdict.</p>', '../', 'Releases')
     outputs['competitors.html'] = page('External comparisons', '''<p class="eyebrow">EXTERNAL COMPARISONS / PLANNED</p><h1>Compare the service.<br>Account for the contract.</h1><p class="lead">The first Neo4j and PostgreSQL campaign follows Knotrel 1.1.0, Cluster Forest and any selected profiling optimizations.</p><div class="grid"><article class="card"><h2>PostgreSQL</h2><p>Direct connectivity queries against indexed authoritative graph tables.</p></article><article class="card"><h2>PostgreSQL + Knotrel</h2><p>Connectivity served by Knotrel, including feeder cost and source-to-query lag.</p></article><article class="card"><h2>Neo4j</h2><p>Reviewed reachability queries with explicit transaction and freshness guarantees.</p></article></div><h2>Periodic, versioned campaigns</h2><p>Review the need for a refresh quarterly or after a relevant minor release. Every campaign pins versions, configurations and hardware. Historical reports remain unchanged.</p><h2>Fair comparisons</h2><p>Use the same logical graph and trace, validate answers independently, include required synchronization or recomputation, and report full-stack resources. Non-equivalent cases are identified separately.</p><div class="empty"><h2>No competitor results published here yet.</h2><p>The experiment is tracked in <a href="https://github.com/knotrel/knotrel-benchmarks/issues/15">benchmark issue #15</a>.</p></div>''', active='Competitors')
     outputs['methodology.html'] = page('Measurement methodology', '''<p class="eyebrow">METHODOLOGY</p><h1>Numbers need context.</h1><p class="lead">A reproducible comparison connects every estimate to its workload, environment and raw observations.</p><h2>01 / Freeze the experiment</h2><p>Pin candidate and reference revisions, binary hashes, backend, graph traces, seeds, resource budgets, warm-up, run order, sample counts, exclusions and analysis. Exploratory profiling does not enter the formal sample.</p><h2>02 / Compare equivalent work</h2><p>Match graph, lifecycle, visibility and atomicity semantics. Validate with an independent oracle. Measure all required work; classify incompatible arms as NOT_EQUIVALENT.</p><h2>03 / Quantify uncertainty</h2><p>Use independent repeated process runs and balanced or randomized ordering. Report 95% confidence intervals for absolute estimates and changes where supported, with the estimand, method and run count. Preserve paired designs and account for correlated observations.</p><p>A p99 describes a latency tail; its confidence interval describes uncertainty in that estimate. Millions of requests in one process are not millions of independent experiments. Deterministic byte counts need no artificial interval. Missing intervals require an explanation.</p><h2>04 / Interpret the whole system</h2><p>Show latency with successful throughput, errors and offered load; CPU with work completed; memory with process boundaries; feeder responses with freshness. Declare open-loop or closed-loop load and avoid coordinated omission.</p><h2>05 / Preserve unfavorable results</h2><p>Keep failed and invalid runs. Thresholds, multiple-comparison policy and rerun rules are declared in advance. Report practical effect sizes and uncertainty; statistical significance alone is not a regression budget.</p><div class="grid"><article class="card"><h3>PASS / FAIL / REGRESSION</h3><p>Campaign-defined verdicts, not recalculated by this website. A qualifier such as PASS (IMPROVED) is kept as written.</p></article><article class="card"><h3>INCONCLUSIVE / UNRESOLVED / INVALID</h3><p>Insufficient precision (including INCONCLUSIVE_DISCLOSED) or invalid evidence must remain visible.</p></article><article class="card"><h3>NOT_EQUIVALENT</h3><p>A contract mismatch cannot establish a comparative performance claim.</p></article><article class="card"><h3>TIMER_LIMITED / EXCEEDS_BUDGET</h3><p>A timer-limited cell or a disclosure category is listed with its numbers, never converted.</p></article><article class="card"><h3>NOT_RUN / no verdict</h3><p>Unmeasured or nonconforming results show their reason and no numbers.</p></article><article class="card"><h3>Category and status</h3><p>Each row also states its role (decisive, descriptive, disclosure) and whether it completed.</p></article></div><p class="note">An exception records a release decision. It never converts a failed measurement to PASS.</p><h2>Inspect the implementation</h2><p><a href="https://github.com/knotrel/knotrel-benchmarks/blob/main/docs/methodology.md">Harness methodology</a> · <a href="https://github.com/knotrel/knotrel-benchmarks/blob/main/AGENTS.md">Repository measurement rules</a></p>''', active='Methodology')
     return outputs
