@@ -232,7 +232,13 @@ def attempt2_gate(part3: Path) -> Tuple[bool, str]:
 
 
 class QRunner:
-    """Runs the three rounds under the cap; ``launch`` is injectable for tests."""
+    """Runs the three rounds under the cap; ``launch`` is injectable for tests.
+
+    ``SIDES`` and ``ROUNDS`` are class attributes so that a rebinding (CF5 block S3,
+    ``run_cf5_s3.py``) can change the sides without changing this protocol's."""
+
+    SIDES = SIDES
+    ROUNDS = ROUNDS
 
     def __init__(self, camp: Path, out: Path, cap_s: float = CAP_S, clock: Callable[[], float] = time.time,
                  launch: Optional[Callable[..., int]] = None, state: Callable[[Path], Dict[str, Any]] = host_state):
@@ -290,8 +296,8 @@ class QRunner:
         binaries = {k: {"path": str(p), "sha256": sha256(p) if p.exists() else None} for k, p in self.binaries().items()}
         record = {"status": self.status, "cause": self.cause, "started_utc": utc(started), "ended_utc": utc(),
                   "cap_s": self.cap_s, "deadline_utc": utc(self.deadline), "seconds": round(self.clock() - started, 1),
-                  "rounds": [{"round": r, "order": list(order)} for r, order in ROUNDS],
-                  "cells": {side: list(cells) for side, (_, cells) in SIDES.items()},
+                  "rounds": [{"round": r, "order": list(order)} for r, order in self.ROUNDS],
+                  "cells": {side: list(cells) for side, (_, cells, *_rest) in self.SIDES.items()},
                   "reruns": self.reruns, "infrastructure_exhausted": self.infrastructure_exhausted,
                   "cap_reached": self.cap_reached, "binaries": binaries,
                   "removed_env": list(REMOVED_ENV) + [p + "*" for p in REMOVED_PREFIXES]}
@@ -301,7 +307,7 @@ class QRunner:
     def step(self, name: str, side: str, cells: Sequence[str]) -> List[str]:
         """Runs ``cells`` of ``side`` in one tool invocation (with continuations after a failure).
         Returns the cells that were never observed because the cap was reached."""
-        server = self.binaries()[SIDES[side][0]]
+        server = self.binaries()[self.SIDES[side][0]]
         pending, attempt = list(cells), 0
         while pending:
             remaining = self.deadline - self.clock()
@@ -358,9 +364,9 @@ class QRunner:
         self.deadline = started + self.cap_s
         unobserved: Dict[str, List[str]] = {}
         try:
-            for number, order in ROUNDS:
+            for number, order in self.ROUNDS:
                 for side in order:
-                    left = self.step(f"round{number}-{side}", side, SIDES[side][1])
+                    left = self.step(f"round{number}-{side}", side, self.SIDES[side][1])
                     if left:
                         unobserved[f"round{number}-{side}"] = left
             self.cap_reached = bool(unobserved)

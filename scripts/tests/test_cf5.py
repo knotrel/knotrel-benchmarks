@@ -267,5 +267,138 @@ class ClassTest(unittest.TestCase):
         self.assertEqual(an.deterministic(-5.0, -10.0, 0.2), "UNDEFINED")
 
 
+# -- S3 (run_cf5_s3.py) --------------------------------------------------------------------------
+class S3Tool:
+    """Stands in for the load tool; the side comes from LOAD_ENGINE, as in the real rebinding."""
+
+    def __init__(self, values=None, fail=None, wrong_engine=None):
+        self.calls, self.values, self.fail = [], values or {}, fail or {}
+        self.wrong_engine = wrong_engine
+
+    def __call__(self, argv, env, step_dir, timeout_s):
+        import evaluate_v100q_q as ev
+        from test_v100q import q_record
+        engine = env["LOAD_ENGINE"]
+        self.calls.append({"step": step_dir.name, "engine": engine, "bin": env["KNOTREL_BIN"],
+                           "cells": env["LOAD_CELLS"].split(",")})
+        records, code = [], 0
+        for cell in env["LOAD_CELLS"].split(","):
+            if (step_dir.name, cell) in self.fail:
+                (step_dir / "load.stderr").write_text(self.fail[(step_dir.name, cell)])
+                code = 101
+                break
+            record = q_record(cell, **self.values.get((engine, cell), {}))
+            record["engine"] = self.wrong_engine if self.wrong_engine and \
+                step_dir.name == "round2-candidate" else engine
+            records.append(record)
+        with open(step_dir / "results.jsonl", "w") as handle:
+            for r in records:
+                handle.write(json.dumps(r) + "\n")
+        if code == 0:
+            summary = ev.tool_evaluate([ev.flatten(r) for r in records])
+            (step_dir / "summary.json").write_text(json.dumps({"measurement_secs": 1.0,
+                                                               "summary": summary}))
+        return code
+
+
+class S3Test(unittest.TestCase):
+    def run_s3(self, root: Path, tool) -> int:
+        import os
+        from unittest import mock
+        import run_cf5_s3
+        camp = root / "camp"
+        for p in ("cand-server/release/knotrel-server", "feeder/release/knotrel-pg-feeder",
+                  "feeder/release/examples/load"):
+            (camp / "targets" / p).parent.mkdir(parents=True, exist_ok=True)
+            (camp / "targets" / p).write_text("x")
+        runner = run_cf5_s3.S3Runner(camp, root / "S3", launch=tool,
+                                     state=lambda _o: {"free_bytes": 10 ** 11})
+        with mock.patch.dict(os.environ, {"KNOTREL_PG_ADMIN_URL": "postgres://x",
+                                          "LOAD_ENGINE": "hdt"}), mock.patch("sys.stdout"):
+            return runner.run()
+
+    def test_sides_share_the_candidate_server_and_differ_by_engine(self):
+        import run_v100q_q as q
+        tool = S3Tool()
+        with tempfile.TemporaryDirectory() as d:
+            code = self.run_s3(Path(d), tool)
+            run = json.loads((Path(d) / "S3" / "run.json").read_text())
+            import run_cf5_s3
+            result = run_cf5_s3.evaluate(Path(d) / "S3")
+        self.assertEqual(code, 0)
+        self.assertEqual(run["cf5_block"], "S3")
+        self.assertEqual(run["cap_s"], 90 * 60.0)
+        self.assertNotIn("ref-server", run["binaries"])
+        self.assertEqual([c["step"] for c in tool.calls],
+                         ["round1-candidate", "round1-reference", "round2-reference",
+                          "round2-candidate", "round3-candidate", "round3-reference"])
+        for call in tool.calls:
+            self.assertTrue(call["bin"].endswith("cand-server/release/knotrel-server"))
+            self.assertEqual(tuple(call["cells"]), q.CANDIDATE_CELLS)
+            self.assertEqual(call["engine"], "cluster-forest" if call["step"].endswith("candidate")
+                             else "compact-bfs")
+        # The v1.0.0 runner itself is unchanged by the rebinding.
+        self.assertEqual(q.QRunner.SIDES["reference"], ("ref-server", q.REFERENCE_CELLS))
+        self.assertEqual(len(result["comparisons"]), 7)
+        self.assertEqual({c["status"] for c in result["comparisons"].values()}, {"PASS"})
+
+    def test_q5_style_thresholds_against_compact_bfs(self):
+        values = {("cluster-forest", "L1 G100k C=16"): {"rps": 899.0},
+                  ("cluster-forest", "L1 G100k C=64"): {"p99": 126.0},
+                  ("cluster-forest", "L1 G10k C=16"): {"rps": 900.0, "p99": 125.0}}
+        with tempfile.TemporaryDirectory() as d:
+            self.run_s3(Path(d), S3Tool(values=values))
+            import run_cf5_s3
+            result = run_cf5_s3.evaluate(Path(d) / "S3")["comparisons"]
+        self.assertEqual(result["Q5-style L1 G100k C=16"]["status"], "FAIL")
+        self.assertEqual(result["Q5-style L1 G100k C=64"]["status"], "FAIL")
+        self.assertEqual(result["Q5-style L1 G10k C=16"]["status"], "PASS")
+
+    def test_engine_mismatch_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.run_s3(Path(d), S3Tool(wrong_engine="compact-bfs"))
+            import run_cf5_s3
+            with self.assertRaises(SystemExit) as raised:
+                run_cf5_s3.evaluate(Path(d) / "S3")
+        self.assertIn("engine mismatch", str(raised.exception))
+
+    def test_a_product_failure_fails_its_comparisons_never_passes(self):
+        fail = {("round2-reference", "L1 G100k C=16"): "thread 'main' panicked in knotrel-server"}
+        with tempfile.TemporaryDirectory() as d:
+            self.run_s3(Path(d), S3Tool(fail=fail))
+            import run_cf5_s3
+            result = run_cf5_s3.evaluate(Path(d) / "S3")["comparisons"]
+        self.assertEqual(result["Q5-style L1 G100k C=16"]["status"], "FAIL")
+        self.assertEqual(result["Q1"]["status"], "PASS")  # Q1 reads the CF side only
+
+
+class DelegatedTest(unittest.TestCase):
+    def test_unset_required_environment_stops_before_the_record(self):
+        import os
+        from unittest import mock
+        steps = [{"cell": "S3", "kind": "delegated"}, {"cell": "V1", "kind": "delegated"}]
+        tools = {"_delegated": {"S3": {"argv": ["true"], "requires_env": ["KNOTREL_PG_ADMIN_URL"]},
+                                "V1": {"argv": ["true"]}}}
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(run_cf5.missing_delegated_env(steps, tools),
+                             ["S3: KNOTREL_PG_ADMIN_URL"])
+        with mock.patch.dict(os.environ, {"KNOTREL_PG_ADMIN_URL": "postgres://x"}):
+            self.assertEqual(run_cf5.missing_delegated_env(steps, tools), [])
+
+    def test_delegated_collector_files_are_hashed(self):
+        with tempfile.TemporaryDirectory() as d:
+            script = Path(d) / "V1.sh"
+            script.write_text("echo one\n")
+            tools = {"_delegated": {"V1": {"argv": ["/bin/sh", str(script)]},
+                                    "L2": {"argv": ["python3", "rel.py"], "cwd": d}}}
+            (Path(d) / "rel.py").write_text("x")
+            first = run_cf5.provenance(tools)["delegated"]
+            script.write_text("echo two\n")
+            second = run_cf5.provenance(tools)["delegated"]
+        self.assertIn(str(script), first["V1"])
+        self.assertIn("rel.py", first["L2"])
+        self.assertNotEqual(first["V1"][str(script)], second["V1"][str(script)])
+
+
 if __name__ == "__main__":
     unittest.main()

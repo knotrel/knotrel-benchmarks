@@ -282,7 +282,31 @@ def provenance(tools: Dict[str, Any]) -> Dict[str, Any]:
                                                       "--porcelain"]))}
                  for name, path in tools.get("_checkouts", {}).items()}
     lockfiles = {path: sha256_file(Path(path)) for path in tools.get("_lockfiles", [])}
-    return {"executables": executables, "checkouts": checkouts, "lockfiles": lockfiles}
+    # Delegated collectors: every argv element that names a file (absolute, or relative to
+    # the collector's cwd) is hashed, so a session 2 with another collector script is refused.
+    delegated = {}
+    for cell_id, spec in sorted(tools.get("_delegated", {}).items()):
+        files = {}
+        for item in spec.get("argv", []):
+            path = Path(item) if os.path.isabs(item) else Path(spec.get("cwd") or ".") / item
+            if path.is_file():
+                files[item] = sha256_file(path)
+        delegated[cell_id] = files
+    return {"executables": executables, "checkouts": checkouts, "lockfiles": lockfiles,
+            "delegated": delegated}
+
+
+def missing_delegated_env(steps: List[Dict[str, Any]], tools: Dict[str, Any]) -> List[str]:
+    """Environment variables a scheduled delegated collector needs (``requires_env``) and
+    that are unset: the session does not start (checked before ``record.json``)."""
+    missing = []
+    for step in steps:
+        if step.get("kind") != "delegated":
+            continue
+        spec = tools.get("_delegated", {}).get(step["cell"], {})
+        missing += [f"{step['cell']}: {name}" for name in spec.get("requires_env", [])
+                    if not os.environ.get(name)]
+    return missing
 
 
 def derived_seed(matrix_sha: str, candidate_sha: Optional[str]) -> int:
@@ -389,7 +413,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         if record1["matrix_sha256"] != matrix_sha:
             parser.error("the matrix differs from session 1's")
         if record1["provenance"]["executables"] != prov["executables"] or \
-                record1["provenance"]["checkouts"] != prov["checkouts"]:
+                record1["provenance"]["checkouts"] != prov["checkouts"] or \
+                record1["provenance"].get("delegated") != prov["delegated"]:
             parser.error("binaries or checkouts differ from session 1's")
         if time.time() - record1["start"]["time"] > SECOND_SESSION_DAYS * 86_400:
             parser.error("more than 14 days after session 1")
@@ -401,8 +426,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     elif args.resume_from:
         parser.error("--resume-from is for --session 2")
 
-    args.out.mkdir(parents=True, exist_ok=False)
-    scratch = Path(tempfile.mkdtemp(prefix="cf5-"))
     if first_steps is not None:
         ids = {c["id"] for c in cells}
         steps = [s for s in first_steps if s.get("kind") == "smoke" or s.get("cell") in ids]
@@ -410,6 +433,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         steps = schedule(cells, seed, pairs, warmup, order)
     if args.no_smoke:
         steps = [s for s in steps if s["kind"] != "smoke"]
+    missing_env = missing_delegated_env(steps, tools)
+    if missing_env:
+        parser.error("NOT STARTED: unset environment for delegated collectors: "
+                     + ", ".join(missing_env))
+    args.out.mkdir(parents=True, exist_ok=False)
+    scratch = Path(tempfile.mkdtemp(prefix="cf5-"))
     record = {"schema": "cf5-record-2", "preparatory": args.preparatory,
               "session": args.session, "order_seed": seed,
               "order_seed_derived": args.order_seed is None and args.session == 1,
