@@ -288,6 +288,51 @@ class SchemaTwoTests(unittest.TestCase):
             self.assertIn(json.dumps(verdict), dumped)
         self.assertEqual(json.loads(FIXTURE.read_text()), self.data)  # rendering never rewrites the data
 
+    def release(self):
+        return self.data['releases'][0]
+
+    def test_published_schema_two_release_requires_its_decision(self):
+        for key in ('release_label', 'qualification_decision', 'decision_url'):
+            with self.subTest(missing=key):
+                self.setUp()
+                del self.release()[key]
+                self.rejects()
+        for key, value in (('release_label', '1.0.1-rc.1'), ('release_label', '1.0'), ('release_label', 'v1.0.0-rc.1'),
+                           ('qualification_decision', 'all gates PASS'), ('qualification_decision', 'accepted with exception'),
+                           ('decision_url', 'http://example.invalid/DECISION.md'), ('decision_url', '')):
+            with self.subTest(**{key: value}):
+                self.setUp()
+                self.release()[key] = value
+                self.rejects()
+        for decision in site.DECISIONS:
+            with self.subTest(decision=decision):
+                self.setUp()
+                self.release()['qualification_decision'] = decision
+                site.validate(self.data)
+
+    def test_release_candidate_is_labelled_prerelease_with_its_decision(self):
+        outputs = site.generate(self.data)
+        page, index = outputs['releases/1.0.0.html'], outputs['index.html']
+        self.assertIn('<h1>Knotrel 1.0.0-rc.1</h1>', page)
+        self.assertIn('RELEASE REPORT / published / PRERELEASE', page)
+        self.assertIn('a release candidate (prerelease), not a stable release', page)
+        self.assertIn('<strong>accepted with exceptions</strong>', page)
+        self.assertIn('href="https://example.invalid/DECISION.md"', page)
+        for name in ('index.html', 'releases.html'):
+            self.assertIn('<span class="badge">prerelease</span>', outputs[name])
+            self.assertIn('qualification accepted with exceptions', outputs[name])
+            self.assertIn('v1.0.0-rc.1', outputs[name])
+            self.assertNotIn('<h3>v1.0.0 <span>', outputs[name])
+        self.assertIn('Explore the 1.0.0-rc.1 results', index)
+        self.assertNotIn('all gates PASS', page)
+
+    def test_stable_release_is_not_labelled_prerelease(self):
+        self.release()['release_label'] = '1.0.0'
+        outputs = site.generate(self.data)
+        self.assertIn('a stable release', outputs['releases/1.0.0.html'])
+        self.assertNotIn('PRERELEASE', outputs['releases/1.0.0.html'])
+        self.assertNotIn('<span class="badge">prerelease</span>', outputs['releases.html'])
+
 
 if __name__ == '__main__':
     unittest.main()
