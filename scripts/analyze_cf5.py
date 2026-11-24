@@ -11,17 +11,21 @@ Refuses preparatory runs and runs whose recorded matrix hash differs from ``--ma
   higher-is-better metrics), interval ``[r(7), r(18)]`` (coverage 97.73 %).
   ``two_sided``: FASTER / SLOWER / EQUIVALENT / INCONCLUSIVE; ``regression`` (V2):
   PASS / REGRESSION / INCONCLUSIVE, never merged. TIMER_LIMITED (no class) when an arm's
-  median of a ``_ns`` metric, as recorded (a sum for K2's ``query_ns``), is below 1 ms.
+  median of a time metric (margin kind ``time`` or ``tail``, all recorded in ns; a sum for
+  K2's ``query_ns``; a client p99 such as ``latency_ns.p99``) is below 1 ms.
 - Deterministic cells: ``q = cf / ref``: SMALLER / LARGER / SIMILAR; UNDEFINED (no class)
   when the reference value is not positive.
 - INCOMPLETE cells are published with their pairs' medians and no class; session-1
   partial pairs of a cell completed in session 2 are kept, labelled, and not combined.
 - Family statements (section 12), per family and reference engine, from the matrix's
   ``family`` and ``role``: P = the first-metric class (or state) of each primary cell,
-  A = every metric class (or state) of every cell. In order: insufficient evidence, mixed
-  results, prefer cluster-forest, prefer the reference, no difference beyond the margins,
-  isolated differences. Cells that disagree with the statement's direction are named.
-  No statement is produced when a session failed the correctness gate.
+  A = every metric class (or state) of every cell. In order: mixed results, insufficient
+  evidence, prefer cluster-forest, prefer the reference, no difference beyond the margins,
+  isolated differences. Named cells: those against a preference; for mixed results, every
+  cell with a favourable or unfavourable class; for insufficient evidence, every cell
+  without evidence. No statement is produced when a session failed the correctness gate.
+- Refused: a NONCONFORMING session (interrupted or runner error, section 9); a second run
+  that is not the session 2 resumed from the first run.
 """
 
 from __future__ import annotations
@@ -41,6 +45,7 @@ FAVOURABLE = {"FASTER", "SMALLER"}
 UNFAVOURABLE = {"SLOWER", "LARGER"}
 NEUTRAL = {"EQUIVALENT", "SIMILAR"}
 NO_EVIDENCE = {"INCONCLUSIVE", "INCOMPLETE", "NOT_RUN", "TIMER_LIMITED", "FAILED", "UNDEFINED"}
+TIME_KINDS = {"time", "tail"}
 
 
 def interval(ratios: List[float]) -> Optional[List[float]]:
@@ -96,7 +101,8 @@ def classify_paired(cell: Dict[str, Any], pairs: List[Dict[str, Any]]) -> Dict[s
     for metric in cell["metrics"]:
         name = metric["name"]
         result = out[name]
-        if name.endswith("_ns") and min(result["cf_median"], result["ref_median"]) < TIMER_LIMIT_NS:
+        if metric.get("margin_kind") in TIME_KINDS and \
+                min(result["cf_median"], result["ref_median"]) < TIMER_LIMIT_NS:
             result["class"] = "TIMER_LIMITED"
             continue
         ratios = [log_ratio(p["cf"]["metrics"][name], p["ref"]["metrics"][name],
@@ -141,8 +147,22 @@ def load_run(run: Path, matrix_sha: Optional[str] = None) -> Dict[str, Any]:
         raise SystemExit(f"{run} is a preparatory run; it is never classified")
     if matrix_sha and record.get("matrix_sha256") != matrix_sha:
         raise SystemExit(f"{run} was collected with another matrix")
+    if status.get("campaign") == "nonconforming":
+        raise SystemExit(f"{run} is NONCONFORMING ({status.get('end_cause')}): no classes")
     raw = [json.loads(line) for line in (run / "raw.jsonl").read_text().splitlines() if line]
-    return {"status": status, "record": record, "raw": raw}
+    return {"status": status, "record": record, "raw": raw, "path": run.resolve()}
+
+
+def check_sessions(runs: List[Dict[str, Any]]) -> None:
+    """The first run is a session 1; a second run is the session 2 resumed from it."""
+    if runs[0]["record"].get("session") != 1:
+        raise SystemExit("the first --run must be a session 1")
+    if len(runs) == 2:
+        second = runs[1]["record"]
+        resumed = second.get("resume_from")
+        if second.get("session") != 2 or not resumed or \
+                Path(resumed).resolve() != runs[0]["path"]:
+            raise SystemExit("the second --run must be the session 2 resumed from the first")
 
 
 def analyze(matrix: Dict[str, Any], runs: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -207,12 +227,13 @@ def analyze(matrix: Dict[str, Any], runs: List[Dict[str, Any]]) -> Dict[str, Any
                     primary.append(classes[0])
                 directions[cell_id] = classes
             statement = family_statement(primary, every)
-            against = FAVOURABLE if statement == "prefer reference" else UNFAVOURABLE \
-                if statement == "prefer cluster-forest" else set()
+            named_classes = {"prefer reference": FAVOURABLE,
+                             "prefer cluster-forest": UNFAVOURABLE,
+                             "mixed results": FAVOURABLE | UNFAVOURABLE,
+                             "isolated differences": FAVOURABLE | UNFAVOURABLE,
+                             "insufficient evidence": NO_EVIDENCE}.get(statement, set())
             named = sorted(cid for cid, classes in directions.items()
-                           if (against and any(c in against for c in classes))
-                           or (statement == "isolated differences"
-                               and any(c in FAVOURABLE | UNFAVOURABLE for c in classes)))
+                           if any(c in named_classes for c in classes))
             statements.setdefault(family, {})[reference] = {"statement": statement,
                                                             "named_cells": named}
     return {"schema": "cf5-analysis-2", "campaign_failed": failed, "cells": cells_out,
@@ -229,7 +250,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.error("at most two sessions")
     text = args.matrix.read_bytes()
     sha = hashlib.sha256(text).hexdigest()
-    result = analyze(json.loads(text), [load_run(r, sha) for r in args.run])
+    runs = [load_run(r, sha) for r in args.run]
+    check_sessions(runs)
+    result = analyze(json.loads(text), runs)
     out = json.dumps(result, indent=1, sort_keys=True)
     if args.out:
         args.out.write_text(out + "\n")

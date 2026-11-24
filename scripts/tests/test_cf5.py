@@ -25,7 +25,8 @@ if engine == "boom":
     sys.exit(3)
 value = {"cf": 70.0e6, "ref": 100.0e6, "same": 100.0e6}[engine]
 print(json.dumps({"kind": "build"}))
-print(json.dumps({"kind": "pair", "t_ns": value, "ok": engine != "bad", "trace": "x"}))
+trace = args[args.index("--trace") + 1] if "--trace" in args else "x"
+print(json.dumps({"kind": "pair", "t_ns": value, "ok": engine != "bad", "trace": trace}))
 """
 
 
@@ -55,11 +56,34 @@ class Fixture(unittest.TestCase):
         fake = self.dir / "fake.py"
         fake.write_text(FAKE)
         self.tools = self.dir / "tools.json"
-        self.tools.write_text(json.dumps({"fake": [sys.executable, str(fake)]}))
+        # A clean candidate checkout and a freeze record: a non-preparatory session refuses
+        # to start without them.
+        import subprocess
+        self.cand = self.dir / "cand"
+        self.cand.mkdir()
+        git = ["git", "-C", str(self.cand), "-c", "user.name=t", "-c", "user.email=t@t"]
+        subprocess.run(git[:3] + ["init", "-q"], check=True)
+        subprocess.run(git + ["commit", "-q", "--allow-empty", "-m", "c"], check=True)
+        self.cand_sha = subprocess.run(git[:3] + ["rev-parse", "HEAD"], capture_output=True,
+                                       text=True, check=True).stdout.strip()
+        self.freeze = self.dir / "FREEZE.json"
+        self.write_tools()
+
+    def write_tools(self, **extra):
+        tools = {"fake": [sys.executable, str(self.dir / "fake.py")],
+                 "_checkouts": {"candidate": str(self.cand)}, "_freeze": str(self.freeze)}
+        tools.update(extra)
+        self.tools.write_text(json.dumps(tools))
+
+    def freeze_matrix(self, path, candidate=None):
+        self.freeze.write_text(json.dumps({
+            "candidate": candidate or self.cand_sha,
+            "matrix_sha256": run_cf5.sha256_bytes(path.read_bytes())}))
 
     def run_matrix(self, matrix, out, *extra):
         path = self.dir / f"m-{out}.json"
         path.write_text(json.dumps(matrix))
+        self.freeze_matrix(path)
         code = run_cf5.main(["--matrix", str(path), "--tools", str(self.tools), "--out",
                              str(self.dir / out), *extra])
         return code, path
@@ -180,12 +204,13 @@ class RunnerTest(Fixture):
         self.assertEqual(result["cells"]["C1"]["metrics"]["t_ns"]["n"], 24)
 
     def test_session_two_never_repeats_complete_cells(self):
+        # A complete session 1 leaves nothing to complete: no second session at all.
         code, path = self.run_matrix(tiny_matrix(), "c1")
-        code = run_cf5.main(["--matrix", str(path), "--tools", str(self.tools), "--out",
-                             str(self.dir / "c2"), "--session", "2",
-                             "--resume-from", str(self.dir / "c1")])
-        record = json.loads((self.dir / "c2" / "record.json").read_text())
-        self.assertEqual(record["cells"], [])
+        with self.assertRaises(SystemExit):
+            run_cf5.main(["--matrix", str(path), "--tools", str(self.tools), "--out",
+                          str(self.dir / "c2"), "--session", "2",
+                          "--resume-from", str(self.dir / "c1")])
+        self.assertFalse((self.dir / "c2").exists())
 
     def test_session_two_refused_after_a_gate_failure_or_another_matrix(self):
         self.run_matrix(tiny_matrix(cf_engine="boom"), "f1")
@@ -288,7 +313,8 @@ class S3Tool:
                 code = 101
                 break
             record = q_record(cell, **self.values.get((engine, cell), {}))
-            record["engine"] = self.wrong_engine if self.wrong_engine and \
+            record["engine"] = engine
+            record["server_engine"] = self.wrong_engine if self.wrong_engine and \
                 step_dir.name == "round2-candidate" else engine
             records.append(record)
         with open(step_dir / "results.jsonl", "w") as handle:
@@ -409,9 +435,147 @@ class DelegatedTest(unittest.TestCase):
                 "env": {"ROOTS_X": "ok"}}}}
             state = run_cf5.run_delegated({"id": "L2"}, tools, Path(d))
             tools["_delegated"]["L2"].pop("env")
-            failed = run_cf5.run_delegated({"id": "L2"}, tools, Path(d))
+            with self.assertRaises(run_cf5.GateFailure):
+                run_cf5.run_delegated({"id": "L2"}, tools, Path(d))
         self.assertEqual(state["state"], "DELEGATED_DONE")
-        self.assertEqual(failed["state"], "DELEGATED_FAILED")
+
+class ReviewRegressionTest(Fixture):
+    """One deterministic regression per finding of the independent tooling review."""
+
+    def det_matrix(self, cf_trace, ref_trace, cross=False):
+        m = tiny_matrix(check={"same_trace": "trace"})
+        det = m["cells"][1]
+        det["arms"]["cf"]["args"] += ["--trace", cf_trace]
+        det["arms"]["ref"]["args"] += ["--trace", ref_trace]
+        det["check"] = {"same_trace": "trace"}
+        if cross:
+            det["check"]["same_trace_as"] = "C1"
+        return m
+
+    def test_b1_client_p99_below_1ms_is_timer_limited(self):
+        cell = {"rule": "two_sided", "metrics": [
+            {"name": "latency_ns.p99", "margin_kind": "tail", "margin": 0.25,
+             "direction": "lower_is_better"}]}
+        pairs = [{"cf": {"metrics": {"latency_ns.p99": 500_000.0}},
+                  "ref": {"metrics": {"latency_ns.p99": 400_000.0}}}] * 24
+        self.assertEqual(an.classify_paired(cell, pairs)["latency_ns.p99"]["class"],
+                         "TIMER_LIMITED")
+
+    def test_b2_deterministic_arms_must_run_the_same_input(self):
+        code, _ = self.run_matrix(self.det_matrix("x", "y"), "d1")
+        status = json.loads((self.dir / "d1" / "status.json").read_text())
+        self.assertEqual((code, status["campaign"]), (1, "failed"))
+        self.assertEqual(status["cells"]["D1"]["state"], "FAILED")
+
+    def test_b2_k4_input_must_equal_its_k2_cell(self):
+        code, _ = self.run_matrix(self.det_matrix("y", "y", cross=True), "d2")
+        status = json.loads((self.dir / "d2" / "status.json").read_text())
+        self.assertEqual(status["campaign"], "failed")
+        self.assertIn("input differs from C1", status["cells"]["D1"]["reason"])
+        code, _ = self.run_matrix(self.det_matrix("x", "x", cross=True), "d3")
+        self.assertEqual(json.loads((self.dir / "d3" / "status.json").read_text())["campaign"],
+                         "complete")
+
+    def capped(self, out):
+        m = tiny_matrix()
+        m["rules"]["cap_hours"] = 0.0000001
+        return self.run_matrix(m, out)[1]
+
+    def session2(self, path, out, resume):
+        return run_cf5.main(["--matrix", str(path), "--tools", str(self.tools), "--out",
+                             str(self.dir / out), "--session", "2",
+                             "--resume-from", str(self.dir / resume)])
+
+    def test_s1_no_third_session(self):
+        path = self.capped("t1")
+        self.assertEqual(self.session2(path, "t2", "t1"), 0)
+        with self.assertRaises(SystemExit):   # a second session 2 from the same session 1
+            self.session2(path, "t2b", "t1")
+        with self.assertRaises(SystemExit):   # resuming from a session 2
+            self.session2(path, "t3", "t2")
+        runs = [an.load_run(self.dir / "t2"), an.load_run(self.dir / "t1")]
+        with self.assertRaises(SystemExit):
+            an.check_sessions(runs)
+        an.check_sessions([an.load_run(self.dir / "t1"), an.load_run(self.dir / "t2")])
+
+    def test_s2_delegated_outcomes(self):
+        with tempfile.TemporaryDirectory() as d:
+            marker = Path(d) / "first-failed"
+            flaky = (f"import os, sys; p = {str(marker)!r}\n"
+                     "if not os.path.exists(p): open(p, 'w').close(); sys.exit(9)\n")
+            tools = {"_delegated": {
+                "S3": {"argv": [sys.executable, "-c", "import sys; sys.exit(1)"],
+                       "incomplete_exit": [1]},
+                "V1": {"argv": [sys.executable, "-c", flaky]},
+                "L2": {"argv": [sys.executable, "-c", "import sys; print(sys.argv[1])", "{run}"]}}}
+            s3 = run_cf5.run_delegated({"id": "S3"}, tools, Path(d))
+            v1 = run_cf5.run_delegated({"id": "V1"}, tools, Path(d))
+            l2 = run_cf5.run_delegated({"id": "L2"}, tools, Path(d))
+            l2_log = Path(l2["attempts"][0]["log"]).read_text()
+        self.assertEqual(s3["state"], "INCOMPLETE")
+        self.assertEqual((v1["state"], [a["exit"] for a in v1["attempts"]]),
+                         ("DELEGATED_DONE", [9, 0]))
+        self.assertIn("delegated/L2-attempt1", l2_log)
+        self.assertEqual(run_cf5.missing_delegated_env([{"cell": "V1", "kind": "delegated"}],
+                                                       {"_delegated": {}}),
+                         ["V1: no collector command in the tool map"])
+
+    def test_s3_interruption_is_nonconforming_not_a_cap(self):
+        from unittest import mock
+        path = self.dir / "m-i1.json"
+        path.write_text(json.dumps(tiny_matrix()))
+        self.freeze_matrix(path)
+        with mock.patch.object(run_cf5, "run_arm_retrying", side_effect=KeyboardInterrupt):
+            code = run_cf5.main(["--matrix", str(path), "--tools", str(self.tools), "--out",
+                                 str(self.dir / "i1")])
+        status = json.loads((self.dir / "i1" / "status.json").read_text())
+        self.assertEqual((code, status["campaign"], status["end_cause"]),
+                         (1, "nonconforming", "interrupted"))
+        with self.assertRaises(SystemExit):
+            self.session2(path, "i2", "i1")
+        with self.assertRaises(SystemExit):
+            an.load_run(self.dir / "i1")
+
+    def test_s6_session_refused_without_matching_freeze(self):
+        path = self.dir / "m-z.json"
+        path.write_text(json.dumps(tiny_matrix()))
+        self.freeze_matrix(path, candidate="0" * 40)
+        with self.assertRaises(SystemExit):
+            run_cf5.main(["--matrix", str(path), "--tools", str(self.tools), "--out",
+                          str(self.dir / "z1")])
+        self.freeze.write_text(json.dumps({"candidate": self.cand_sha, "matrix_sha256": "0"}))
+        with self.assertRaises(SystemExit):
+            run_cf5.main(["--matrix", str(path), "--tools", str(self.tools), "--out",
+                          str(self.dir / "z2")])
+        self.assertFalse((self.dir / "z1").exists() or (self.dir / "z2").exists())
+
+    def test_s8_dirty_or_missing_candidate_is_refused(self):
+        (self.cand / "dirt").write_text("x")
+        with self.assertRaises(SystemExit):
+            self.run_matrix(tiny_matrix(), "y1")
+        (self.cand / "dirt").unlink()
+        self.write_tools(_checkouts={})
+        with self.assertRaises(SystemExit):
+            self.run_matrix(tiny_matrix(), "y2")
+
+    def test_nit_mixed_and_insufficient_statements_name_their_cells(self):
+        matrix = {"cells": [
+            {"id": "A", "block": "K1", "family": "F", "role": "primary", "reference": "r",
+             "kind": "deterministic", "metrics": [{"name": "m", "margin": 0.2}]},
+            {"id": "B", "block": "K1", "family": "F", "role": "primary", "reference": "r",
+             "kind": "deterministic", "metrics": [{"name": "m", "margin": 0.2}]},
+            {"id": "C", "block": "K1", "family": "F", "role": "veto", "reference": "r",
+             "kind": "deterministic", "metrics": [{"name": "m", "margin": 0.2}]}]}
+        raw = [{"cell": "A", "arm": "cf", "metrics": {"m": 1.0}},
+               {"cell": "A", "arm": "ref", "metrics": {"m": 2.0}},
+               {"cell": "B", "arm": "cf", "metrics": {"m": 2.0}},
+               {"cell": "B", "arm": "ref", "metrics": {"m": 1.0}}]
+        run = {"status": {"campaign": "incomplete",
+                          "cells": {"A": {"state": "COMPLETE"}, "B": {"state": "COMPLETE"},
+                                    "C": {"state": "NOT_RUN"}}}, "raw": raw}
+        result = an.analyze(matrix, [run])["family_statements"]["F"]["r"]
+        self.assertEqual(result, {"statement": "mixed results", "named_cells": ["A", "B"]})
+
 
 if __name__ == "__main__":
     unittest.main()

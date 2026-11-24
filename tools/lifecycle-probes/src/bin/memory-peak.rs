@@ -100,7 +100,7 @@ fn churn(args: &Args) -> Result<(), String> {
     let (base_live, base_peak) = heap();
     println!(
         "{}",
-        json!({"kind":"baseline","live_heap_bytes":base_live,"peak_heap_bytes":base_peak,"rss_bytes":rss_bytes()})
+        json!({"kind":"baseline","engine":engine.as_str(),"live_heap_bytes":base_live,"peak_heap_bytes":base_peak,"rss_bytes":rss_bytes()})
     );
     let mut graph = <LifecycleGraph as Subject>::build(engine, n, &edges);
     let mut previous_peak = base_peak;
@@ -116,7 +116,7 @@ fn churn(args: &Args) -> Result<(), String> {
         let vertices = storage.engine_vertices;
         println!(
             "{}",
-            json!({"kind":"checkpoint","cycle":cycle,
+            json!({"kind":"checkpoint","engine":engine.as_str(),"cycle":cycle,
                    "logical":[graph.node_count(), graph.edge_count(), graph.active_node_count(),
                               graph.enabled_edge_count(), graph.effective_edge_count()],
                    "expected": expected[cycle],
@@ -296,7 +296,7 @@ fn import_core(args: &Args) -> Result<(), String> {
     let storage = graph.storage_stats();
     println!(
         "{}",
-        json!({"kind":"import-core","live_before":live_before,"peak_before":peak_before,
+        json!({"kind":"import-core","engine":engine.as_str(),"live_before":live_before,"peak_before":peak_before,
                "live_after":live_after,"peak_after":peak_after,
                "peak_exact": peak_after > peak_before,
                "transient_over_final": peak_after as i64 - live_after as i64,
@@ -465,7 +465,7 @@ async fn import_http(args: &Args) -> Result<(), String> {
     }
     println!(
         "{}",
-        json!({"kind":"import-http","mode":mode,"status":status.as_u16(),"body_bytes":body_bytes,
+        json!({"kind":"import-http","engine":engine.as_str(),"mode":mode,"status":status.as_u16(),"body_bytes":body_bytes,
                "live_before":live_before,"peak_before":peak_before,"live_after":live_after,"peak_after":peak_after,
                "peak_exact": peak_after > peak_before,
                "transient_over_final": peak_after as i64 - live_after as i64,

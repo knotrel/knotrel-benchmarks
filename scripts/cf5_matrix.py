@@ -91,6 +91,14 @@ HARNESS_IDENTITY = {
     "cluster-forest": "knotrel-core/connectivity-graph/cluster-forest-v1",
 }
 
+#: Engine identities the v1.0.0 A harness (df635a1e) reports, for the V2 and V3 core cells.
+A_IDENTITY = {
+    "ett-scan": "knotrel-core/ett-pruned-v2",
+    "hdt": "knotrel-core/hdt-sparse-levels-v3",
+    "compact-bfs": "knotrel-core/compact-bfs-v1",
+    "compact-workspace": "knotrel-core/compact-workspace-v2",
+}
+
 
 def k1() -> List[Dict[str, Any]]:
     cells = []
@@ -107,7 +115,8 @@ def k1() -> List[Dict[str, Any]]:
                 cells.append(paired(f"K1-{workload}-{nodes}-vs-{ref}", "K1", 2, workload,
                                     harness("cluster-forest"), harness(ref), ref,
                                     [metric("workload_wall_ns", "repetitions.0.workload_wall_ns",
-                                            "time")]))
+                                            "time")],
+                                    check={"same_trace": "trace_fingerprint_fnv1a64"}))
     return cells
 
 
@@ -159,7 +168,9 @@ def k4() -> List[Dict[str, Any]]:
                               "role": "veto",
                               "reference": ref, "rule": "deterministic",
                               "arms": {"cf": tool("cluster-forest"), "ref": tool(ref)},
-                              "check": {"same_trace": "edges_fingerprint"},
+                              # Section 4.1: the K4 graph must be the K2 cell's graph.
+                              "check": {"same_trace": "edges_fingerprint",
+                                        "same_trace_as": f"K2-d{degree}-{vertices}-vs-{ref}"},
                               "metrics": [metric(n, n, "memory") for n in names]})
     return cells
 
@@ -196,7 +207,8 @@ def l1() -> List[Dict[str, Any]]:
             args[args.index("--pairs") + 1] = "1"
             args[args.index("--warmup") + 1] = "1"
             return arm("http_lifecycle", args + ["--reference-engine", "compact-bfs"],
-                       "kind=pair")
+                       "kind=pair", [{"path": "engine", "equals": engine},
+                                     {"path": "reference_engine", "equals": "compact-bfs"}])
         # The metric is a window wall time: the time margin (10 %), not the B4
         # tolerance, which bounded lifecycle overhead against plain mode.
         cells.append(paired(f"L1-{cell_id}", "L1", 2, "L", probe("cluster-forest"),
@@ -214,7 +226,12 @@ def l3() -> List[Dict[str, Any]]:
                                 "last", engine_check("engine", "cluster-forest")),
                             arm("release_cells", with_engine(cell["args"], "compact-bfs"),
                                 "last", engine_check("engine", "compact-bfs")),
-                            "compact-bfs", [metric("observation_ns", "observation_ns", "time")]))
+                            "compact-bfs", [metric("observation_ns", "observation_ns", "time")],
+                            # release-cells emits no fingerprint: its churn cells report the
+                            # operation count (equal counts checked); its import cells build the
+                            # same seeded topology from identical argv but the engine.
+                            check={"same_trace": "operations"}
+                            if cell["args"][0] == "churn" else None))
     return cells
 
 
@@ -226,10 +243,11 @@ def l4() -> List[Dict[str, Any]]:
                       "kind": "deterministic", "family": "L", "role": "veto",
                       "reference": "compact-bfs",
                       "rule": "deterministic",
-                      "arms": {"cf": arm("memory_peak", with_engine(cell["args"],
-                                                                    "cluster-forest"), line),
-                               "ref": arm("memory_peak", with_engine(cell["args"],
-                                                                     "compact-bfs"), line)},
+                      "arms": {e: arm("memory_peak", with_engine(cell["args"], engine), line,
+                                      engine_check("engine", engine, "kind=baseline"
+                                                   if cell["args"][0] == "churn" else None))
+                               for e, engine in (("cf", "cluster-forest"),
+                                                 ("ref", "compact-bfs"))},
                       "metrics": [metric(n, n, "memory") for n in cell["metrics"]]})
     return cells
 
@@ -272,20 +290,23 @@ def v2_v3() -> List[Dict[str, Any]]:
             def h(tool: str) -> Dict[str, Any]:
                 return arm(tool, ["--workload", workload, "--nodes", 100_000, "--rounds", rounds,
                                   "--seed", SEED, "--engine", engine, "--warmup", 1,
-                                  "--repetitions", 1])
+                                  "--repetitions", 1],
+                           checks=engine_check("engine", A_IDENTITY[engine]))
             cells.append(paired(f"V2-{workload}-100000-{engine}", "V2", 1, None,
                                 h("harness_a_candidate"), h("harness_a_v100"), "v1.0.0",
                                 [metric("workload_wall_ns", "repetitions.0.workload_wall_ns",
-                                        "time")], rule="regression"))
+                                        "time")], rule="regression",
+                                check={"same_trace": "trace_fingerprint_fnv1a64"}))
     for workload, rounds in (("chain-split-rejoin-v1", 100), ("sustained-churn-path-v1", 20)):
         for engine in ("compact-bfs", "compact-workspace"):
-            def a(tool: str, kind: str) -> Dict[str, Any]:
+            def a(tool: str, kind: str, identity: str) -> Dict[str, Any]:
                 return arm(tool, ["--workload", workload, "--nodes", 10_000, "--rounds", rounds,
                                   "--seed", SEED, "--engine", kind, "--warmup", 1,
-                                  "--repetitions", 1])
+                                  "--repetitions", 1], checks=engine_check("engine", identity))
             cells.append(paired(f"V3-{workload}-10000-vs-v100-{engine}", "V3", 3, None,
-                                a("harness", CONNECTIVITY["cluster-forest"]),
-                                a("harness_a_v100", engine), f"v1.0.0 {engine}",
+                                a("harness", CONNECTIVITY["cluster-forest"],
+                                  HARNESS_IDENTITY["cluster-forest"]),
+                                a("harness_a_v100", engine, A_IDENTITY[engine]), f"v1.0.0 {engine}",
                                 [metric("workload_wall_ns", "repetitions.0.workload_wall_ns",
                                         "time")],
                                 check={"same_trace": "trace_fingerprint_fnv1a64"}))

@@ -13,8 +13,9 @@ only changes the sides:
 
 Each side gets 3 observations per cell, over three rounds, and the side that goes first
 alternates (cluster-forest first in rounds 1 and 3). Feeder, load tool and PostgreSQL are the
-same for both sides. The load tool, built at the candidate commit, records the engine of every
-observation. The evaluation refuses any observation whose recorded engine is not its side's.
+same for both sides. The load tool, built at the candidate commit, records per observation
+the engine it requested and the engine the server reports (``knotrel_build_info``). The
+evaluation refuses any observation where either is not its side's engine.
 
     run_cf5_s3.py run CAMP OUT [--cap-s S]      # CAMP/targets/{cand-server,feeder}
     run_cf5_s3.py evaluate OUT [--out FILE]
@@ -101,9 +102,12 @@ def engine_problems(records: Dict[str, List[Dict[str, Any]]]) -> List[str]:
     problems = []
     for side, engine in ENGINES.items():
         for r in records[side]:
-            if r.get("engine") != engine:
-                problems.append(f"{side} {q.cell_key(r)} round {r.get('_round')}: engine "
-                                f"{r.get('engine')!r}, expected {engine!r}")
+            # ``engine`` is what the load tool asked for (LOAD_ENGINE); ``server_engine`` is
+            # what the server reports in ``knotrel_build_info``, read back per observation.
+            for key in ("engine", "server_engine"):
+                if r.get(key) != engine:
+                    problems.append(f"{side} {q.cell_key(r)} round {r.get('_round')}: {key} "
+                                    f"{r.get(key)!r}, expected {engine!r}")
     return problems
 
 

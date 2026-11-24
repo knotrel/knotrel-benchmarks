@@ -202,6 +202,21 @@ def same_trace(cell: Dict[str, Any], cf: Dict[str, Any], ref: Dict[str, Any]) ->
         raise GateFailure(f"{cell['id']}: arms ran different inputs ({field}: {a!r}, {b!r})")
 
 
+def same_trace_as(cell: Dict[str, Any], cf: Dict[str, Any],
+                  fingerprints: Dict[str, Any]) -> None:
+    """Cross-cell input identity (K4 against its K2 cell, plan section 4.1). The referenced
+    cell runs earlier in the order; if it never ran (cut by the cap), there is nothing to
+    compare and the check is skipped (the K2 cell is then NOT_RUN and reported as such)."""
+    other = cell.get("check", {}).get("same_trace_as")
+    if not other or other not in fingerprints:
+        return
+    field = cell["check"]["same_trace"]
+    mine = cf["object"].get(field)
+    if mine is None or mine != fingerprints[other]:
+        raise GateFailure(f"{cell['id']}: input differs from {other} "
+                          f"({field}: {mine!r}, {fingerprints[other]!r})")
+
+
 def block_order(matrix: Dict[str, Any]) -> List[str]:
     return [b for tier in matrix["rules"]["block_order"] for b in tier]
 
@@ -303,7 +318,10 @@ def missing_delegated_env(steps: List[Dict[str, Any]], tools: Dict[str, Any]) ->
     for step in steps:
         if step.get("kind") != "delegated":
             continue
-        spec = tools.get("_delegated", {}).get(step["cell"], {})
+        spec = tools.get("_delegated", {}).get(step["cell"])
+        if not spec:
+            missing.append(f"{step['cell']}: no collector command in the tool map")
+            continue
         missing += [f"{step['cell']}: {name}" for name in spec.get("requires_env", [])
                     if not os.environ.get(name)]
     return missing
@@ -339,17 +357,35 @@ def smoke(cells: List[Dict[str, Any]], tools: Dict[str, Any], scratch: Path, log
 
 
 def run_delegated(cell: Dict[str, Any], tools: Dict[str, Any], out: Path) -> Dict[str, Any]:
-    spec = tools.get("_delegated", {}).get(cell["id"])
-    if not spec:
-        return {"state": "NOT_RUN", "reason": "no collector command in the tool map"}
-    log = out / f"delegated-{cell['id']}.log"
-    start = time.monotonic()
-    with log.open("w") as handle:
-        done = subprocess.run(spec["argv"], cwd=spec.get("cwd"), stdout=handle,
-                              stderr=subprocess.STDOUT,
-                              env={**os.environ, **spec.get("env", {})})
-    return {"state": "DELEGATED_DONE" if done.returncode == 0 else "DELEGATED_FAILED",
-            "exit": done.returncode, "wall_s": time.monotonic() - start, "log": str(log)}
+    """Runs a delegated collector. ``{run}`` in its argv is replaced by a fresh directory under
+    this session's output (``delegated/<cell>-attempt<k>``), so sessions and reruns never share
+    outputs. Exit 0: DELEGATED_DONE. An exit listed in ``incomplete_exit`` (S3: its own cap
+    reached): INCOMPLETE, which a second session may redo. Any other exit is a crashed
+    collector (section 9): one rerun from scratch; a second failure stops the campaign."""
+    spec = tools["_delegated"][cell["id"]]
+    attempts = []
+    for attempt in (1, 2):
+        run_dir = out / "delegated" / f"{cell['id']}-attempt{attempt}"
+        run_dir.parent.mkdir(exist_ok=True)
+        argv = [item.replace("{run}", str(run_dir)) for item in spec["argv"]]
+        log = out / "delegated" / f"{cell['id']}-attempt{attempt}.log"
+        start = time.monotonic()
+        with log.open("w") as handle:
+            done = subprocess.run(argv, cwd=spec.get("cwd"), stdout=handle,
+                                  stderr=subprocess.STDOUT,
+                                  env={**os.environ, **spec.get("env", {})})
+        attempts.append({"attempt": attempt, "argv": argv, "exit": done.returncode,
+                         "wall_s": time.monotonic() - start, "log": str(log),
+                         "run_dir": str(run_dir)})
+        if done.returncode == 0:
+            return {"state": "DELEGATED_DONE", "attempts": attempts}
+        if done.returncode in spec.get("incomplete_exit", []):
+            return {"state": "INCOMPLETE", "reason": "the collector's own cap",
+                    "attempts": attempts}
+    failure = GateFailure(f"{cell['id']}: delegated collector failed twice "
+                          f"(exits {[a['exit'] for a in attempts]})")
+    failure.record = attempts  # type: ignore[attr-defined]
+    raise failure
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -381,6 +417,24 @@ def main(argv: Optional[List[str]] = None) -> int:
     tools = json.loads(args.tools.read_text())
     prov = provenance(tools)
     candidate_sha = prov["checkouts"].get("candidate", {}).get("sha")
+    if not args.preparatory:
+        problems = []
+        if not candidate_sha:
+            problems.append("no candidate checkout SHA (tool map _checkouts.candidate)")
+        problems += [f"checkout {name} is dirty" for name, c in prov["checkouts"].items()
+                     if c["dirty"]]
+        freeze_path = tools.get("_freeze")
+        if not freeze_path or not Path(freeze_path).is_file():
+            problems.append("no freeze record (tool map _freeze)")
+        else:
+            freeze = json.loads(Path(freeze_path).read_text())
+            if freeze.get("candidate") != candidate_sha:
+                problems.append(f"freeze candidate {freeze.get('candidate')} is not "
+                                f"{candidate_sha}")
+            if freeze.get("matrix_sha256") != matrix_sha:
+                problems.append("the matrix is not the frozen one")
+        if problems:
+            parser.error("NOT STARTED: " + "; ".join(problems))
     pairs = args.pairs if args.pairs is not None else PAIRS
     warmup = args.warmup if args.warmup is not None else WARMUP
     seed = args.order_seed if args.order_seed is not None else derived_seed(matrix_sha,
@@ -409,13 +463,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         record1 = json.loads((args.resume_from / "record.json").read_text())
         if status1.get("preparatory") or record1.get("preparatory"):
             parser.error("cannot resume from a preparatory run")
+        if record1.get("session") != 1:
+            parser.error("--resume-from must be a session 1 directory: no third session")
         if status1["campaign"] == "failed":
             parser.error("session 1 failed the correctness gate: no second session")
+        if status1["campaign"] != "incomplete" or \
+                not str(status1.get("end_cause", "")).startswith("cap"):
+            parser.error(f"session 1 ended {status1['campaign']} ({status1.get('end_cause')}); "
+                         "only cells cut by the cap go to a second session")
         if record1["matrix_sha256"] != matrix_sha:
             parser.error("the matrix differs from session 1's")
         if record1["provenance"]["executables"] != prov["executables"] or \
                 record1["provenance"]["checkouts"] != prov["checkouts"] or \
-                record1["provenance"].get("delegated") != prov["delegated"]:
+                record1["provenance"].get("delegated") != prov["delegated"] or \
+                record1["tools"].get("_delegated") != tools.get("_delegated"):
             parser.error("binaries or checkouts differ from session 1's")
         if time.time() - record1["start"]["time"] > SECOND_SESSION_DAYS * 86_400:
             parser.error("more than 14 days after session 1")
@@ -439,6 +500,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.error("NOT STARTED: unset environment for delegated collectors: "
                      + ", ".join(missing_env))
     args.out.mkdir(parents=True, exist_ok=False)
+    if args.session == 2:
+        try:
+            with (args.resume_from / "second-session.json").open("x") as marker:
+                marker.write(json.dumps({"out": str(args.out.resolve())}) + "\n")
+        except FileExistsError:
+            args.out.rmdir()
+            parser.error("session 1 already has a second session: no third session")
     scratch = Path(tempfile.mkdtemp(prefix="cf5-"))
     record = {"schema": "cf5-record-2", "preparatory": args.preparatory,
               "session": args.session, "order_seed": seed,
@@ -459,6 +527,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     snapshots: List[Dict[str, Any]] = []
     current_block = None
     raw = (args.out / "raw.jsonl").open("w")
+    fingerprints: Dict[str, Any] = {}
+    end_cause = "all steps ran"
     smoke_log = (args.out / "smoke.jsonl").open("w")
     try:
         for step in steps:
@@ -469,6 +539,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 current_block = step["block"]
             if time.monotonic() > deadline:
                 campaign = "incomplete"
+                end_cause = "cap"
                 break
             if step["kind"] == "smoke":
                 smoke(cells, tools, scratch, smoke_log)
@@ -478,15 +549,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                 state[cell["id"]] = run_delegated(cell, tools, args.out)
                 continue
             if step["kind"] == "deterministic":
+                obs = {}
                 for arm_name in ("cf", "ref"):
-                    obs = run_arm_retrying(cell, arm_name, tools, scratch)
-                    raw.write(json.dumps({"cell": cell["id"], **obs}) + "\n")
-                state[cell["id"]] = {"state": "COMPLETE", "pairs": 1}
+                    obs[arm_name] = run_arm_retrying(cell, arm_name, tools, scratch)
+                    raw.write(json.dumps({"cell": cell["id"], **obs[arm_name]}) + "\n")
                 raw.flush()
+                same_trace(cell, obs["cf"], obs["ref"])
+                same_trace_as(cell, obs["cf"], fingerprints)
+                state[cell["id"]] = {"state": "COMPLETE", "pairs": 1}
                 continue
             order_arms = ("cf", "ref") if step["cf_first"] else ("ref", "cf")
             observed = {a: run_arm_retrying(cell, a, tools, scratch) for a in order_arms}
             same_trace(cell, observed["cf"], observed["ref"])
+            field = cell.get("check", {}).get("same_trace")
+            if field:
+                fingerprints[cell["id"]] = observed["cf"]["object"].get(field)
             raw.write(json.dumps({"cell": cell["id"], "pair": step["pair"],
                                   "warmup": step["warmup"], "cf_first": step["cf_first"],
                                   "cf": observed["cf"], "ref": observed["ref"]}) + "\n")
@@ -506,24 +583,32 @@ def main(argv: Optional[List[str]] = None) -> int:
         raw.write(json.dumps({"cell": cell_id, "failed_observation": failed,
                               "reason": str(failure)}) + "\n")
         snapshots.append(host_snapshot(f"failure {cell_id}"))
+        end_cause = f"correctness gate: {failure}"
     except KeyboardInterrupt:
-        campaign = "incomplete"
+        # Section 9: an interruption is not the cap. The session is NONCONFORMING: no
+        # classes, and no second session may complete it.
+        campaign, end_cause = "nonconforming", "interrupted"
         snapshots.append(host_snapshot("interrupted"))
+    except BaseException as error:
+        campaign, end_cause = "nonconforming", f"runner error: {error!r}"
+        snapshots.append(host_snapshot("runner error"))
+        raise
     finally:
         raw.close()
         smoke_log.close()
         snapshots.append(host_snapshot("end"))
         if campaign == "complete" and any(s["state"] in ("INCOMPLETE", "NOT_RUN")
                                           for s in state.values()):
-            campaign = "incomplete"
-        status = {"schema": "cf5-status-2", "preparatory": args.preparatory,
-                  "session": args.session, "campaign": campaign, "cells": state,
-                  "snapshots": snapshots}
+            # Every step ran, so only a delegated collector's own cap (S3) left cells open.
+            campaign, end_cause = "incomplete", "cap (a delegated collector's own cap)"
+        status = {"schema": "cf5-status-3", "preparatory": args.preparatory,
+                  "session": args.session, "campaign": campaign, "end_cause": end_cause,
+                  "cells": state, "snapshots": snapshots}
         (args.out / "status.json").write_text(json.dumps(status, indent=1) + "\n")
         shutil.rmtree(scratch, ignore_errors=True)
     print(json.dumps({"campaign": campaign, "preparatory": args.preparatory,
                       "out": str(args.out)}))
-    return 0 if campaign != "failed" else 1
+    return 0 if campaign in ("complete", "incomplete") else 1
 
 
 if __name__ == "__main__":

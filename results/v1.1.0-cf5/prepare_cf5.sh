@@ -4,7 +4,15 @@
 # with their dry runs. It never measures.
 #
 # Usage: prepare_cf5.sh CAND_SHA TOOLING_SHA --pre-freeze
-#        prepare_cf5.sh CAND_SHA FREEZE_SHA SESSION        (SESSION: 1 or 2)
+#        prepare_cf5.sh CAND_SHA FREEZE_SHA ATTEMPT        (ATTEMPT: 1 or 2, plan section 9)
+#
+# An attempt directory serves session 1 and, if needed, session 2 (plan section 8.1): session 2
+# runs run_cf5.py --session 2 with this directory's tools.json and binaries, which its guard
+# requires to be unchanged; it is never prepared anew.
+# Attempt mode verifies the freeze first: FREEZE_SHA's only change from its parent adds
+# results/v1.1.0-cf5/FREEZE.json, which names CAND_SHA (candidate), the parent (tooling) and the
+# SHA-256 of results/v1.1.0-cf5/cf5-matrix.json at FREEZE_SHA (matrix_sha256). run_cf5.py checks
+# the candidate checkout and the matrix against the same record before its first observation.
 #
 # Builds, one target directory each, with toolchain 1.100.0, --release --locked --offline
 # (same flags as v1.0.0's prepare_campaign.sh):
@@ -43,11 +51,41 @@ for X in "$CAND" "$TOOLING"; do
 done
 case "$MODE" in
   --pre-freeze) LABEL=prefreeze ;;
-  1|2) LABEL=session$MODE
-       git -C "$BREPO" cat-file -e "$TOOLING:results/v1.1.0-cf5/FREEZE.json" 2>/dev/null \
-         || { echo "$TOOLING has no results/v1.1.0-cf5/FREEZE.json" >&2; exit 3; } ;;
+  1|2) LABEL=attempt$MODE
+       F=results/v1.1.0-cf5/FREEZE.json
+       git -C "$BREPO" cat-file -e "$TOOLING:$F" 2>/dev/null \
+         || { echo "$TOOLING has no $F" >&2; exit 3; }
+       CHANGED=$(git -C "$BREPO" diff --name-status "$TOOLING^" "$TOOLING")
+       [ "$CHANGED" = "$(printf 'A\t%s' "$F")" ] \
+         || { echo "the freeze commit must only add $F; it changes: $CHANGED" >&2; exit 3; }
+       git -C "$BREPO" show "$TOOLING:$F" | python3 -c "
+import hashlib, json, subprocess, sys
+cand, freeze, parent, repo = sys.argv[1:]
+record = json.load(sys.stdin)
+matrix = subprocess.run(['git', '-C', repo, 'show', freeze + ':results/v1.1.0-cf5/cf5-matrix.json'],
+                        capture_output=True, check=True).stdout
+problems = []
+if record.get('candidate') != cand:
+    problems.append('freeze candidate %s is not %s' % (record.get('candidate'), cand))
+if record.get('tooling') != parent:
+    problems.append('freeze tooling %s is not the parent %s' % (record.get('tooling'), parent))
+if record.get('matrix_sha256') != hashlib.sha256(matrix).hexdigest():
+    problems.append('freeze matrix_sha256 is not the matrix at the freeze commit')
+for p in problems: print(p, file=sys.stderr)
+sys.exit(1 if problems else 0)
+" "$CAND" "$TOOLING" "$(git -C "$BREPO" rev-parse "$TOOLING^")" "$BREPO" || exit 3 ;;
   *) echo "third argument: --pre-freeze, 1 or 2" >&2; exit 3 ;;
 esac
+# The tooling's probe lockfile must name the candidate's knotrel version (a --locked build would
+# fail later otherwise; checked before the campaign directory exists).
+CAND_VERSION=$(git -C "$KREPO" show "$CAND:Cargo.toml" | grep -m1 '^version' | cut -d'"' -f2)
+git -C "$BREPO" show "$TOOLING:tools/lifecycle-probes/Cargo.lock" | python3 -c "
+import re, sys
+want = sys.argv[1]
+found = re.findall(r'name = \"knotrel-core\"\nversion = \"([^\"]+)\"', sys.stdin.read())
+if found != [want]:
+    sys.exit('probe lockfile knotrel-core %s, expected the candidate version %s' % (found, want))
+" "$CAND_VERSION" || exit 3
 [ "$(shasum -a 256 "$SOURCE_MANIFEST" | cut -d' ' -f1)" = "$SOURCE_MANIFEST_SHA256" ] \
   || { echo "A source manifest $SOURCE_MANIFEST missing or not the recorded one" >&2; exit 3; }
 # S3 needs the candidate's load tool to honour LOAD_ENGINE (knotrel#152).
@@ -142,10 +180,11 @@ CELLS=$(cd "$B" && python3 -c "import sys; sys.path.insert(0, 'scripts'); import
 cat > "$CAMP/delegated/V1.sh" <<EOF
 #!/bin/sh
 # V1: the v1.0.0 A procedure, n = 24 fixed (two blocks of 12 pairs, no interim analysis).
+# \$1: the fresh output directory run_cf5.py gives this attempt ({run}).
 set -eu
 cd "$B"
-python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan/manifest.json" --schedule "$CAMP/A/plan/schedule.json" --execute "$CAMP/A/raw-main"
-python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan-block2/manifest.json" --schedule "$CAMP/A/plan-block2/schedule.json" --execute "$CAMP/A/extension/raw-extension"
+python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan/manifest.json" --schedule "$CAMP/A/plan/schedule.json" --execute "\$1/raw-main"
+python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan-block2/manifest.json" --schedule "$CAMP/A/plan-block2/schedule.json" --execute "\$1/extension/raw-extension"
 EOF
 L2_ARGS="--profile final --core $T/cand-probes/release/core-lifecycle --core-count $T/cand-probes-count/release/core-lifecycle --http $T/cand-probes/release/http-lifecycle --order-seed 51240 --knotrel $CAMP/src/cand/knotrel --only C --lifecycle-engines cluster-forest"
 # shellcheck disable=SC2086 # L2_ARGS holds paths without spaces
@@ -169,12 +208,15 @@ tools = {
     "harness_a_candidate": [f"{t}/A-C-harness/release/knotrel-benchmarks"],
     "harness_a_v100": [f"{t}/A-B-harness/release/knotrel-benchmarks"],
     "_delegated": {
-        "V1": {"argv": ["/bin/sh", f"{camp}/delegated/V1.sh"], "cwd": b},
-        "L2": {"argv": ["python3", "scripts/run_lifecycle_qualification.py", "--out", f"{camp}/L2"] + shlex.split(l2), "cwd": b,
+        # {run}: a fresh directory per session and attempt, under run_cf5.py's --out.
+        "V1": {"argv": ["/bin/sh", f"{camp}/delegated/V1.sh", "{run}"], "cwd": b},
+        "L2": {"argv": ["python3", "scripts/run_lifecycle_qualification.py", "--out", "{run}/L2"] + shlex.split(l2), "cwd": b,
                "env": {"LIFECYCLE_QUALIFICATION_ROOTS": camp}},
-        "S3": {"argv": ["python3", "scripts/run_cf5_s3.py", "run", camp, f"{camp}/S3"], "cwd": b,
-               "requires_env": ["KNOTREL_PG_ADMIN_URL"]},
+        # Exit 1: S3 NONCONFORMING by its own 90-minute cap (cells cut by a cap).
+        "S3": {"argv": ["python3", "scripts/run_cf5_s3.py", "run", camp, "{run}/S3"], "cwd": b,
+               "requires_env": ["KNOTREL_PG_ADMIN_URL"], "incomplete_exit": [1]},
     },
+    "_freeze": f"{b}/results/v1.1.0-cf5/FREEZE.json",
     "_checkouts": {"candidate": f"{camp}/src/cand/knotrel", "benchmarks": b,
                    "v100": f"{camp}/A/sources/B/knotrel", "harness_a": f"{camp}/A/sources/knotrel-benchmarks"},
     "_lockfiles": [f"{camp}/src/cand/knotrel/Cargo.lock", f"{b}/Cargo.lock", f"{b}/tools/lifecycle-probes/Cargo.lock",

@@ -1543,7 +1543,8 @@ async fn main_async() -> Result<(), String> {
         let mut record = json!({"kind": if pair < 0 {"warmup"} else {"pair"}, "pair": pair, "scenario": scenario,
                "candidate_first": candidate_first, "candidate_ns": c as u64, "reference_ns": r as u64,
                "candidate_requests": candidate.calls.len(), "reference_requests": reference.calls.len(),
-               "answers_agree": agree});
+               "answers_agree": agree, "engine": plan.engine.as_str(),
+               "reference_engine": reference_plan.as_ref().map_or(plan.engine.as_str(), |p| p.engine.as_str())});
         // Qualification 3, revision 2: whether the planner reference offered
         // the candidate's isolation (one plain request per lifecycle chunk).
         if let Some(a) = reference.atomicity {
