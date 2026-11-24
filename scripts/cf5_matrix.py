@@ -298,18 +298,20 @@ def v2_v3() -> List[Dict[str, Any]]:
 
 
 def delegated() -> List[Dict[str, Any]]:
+    # Commands and declared seeds: results/v1.1.0-cf5/prepare_cf5.sh (tool map ``_delegated``).
     return [
         {"id": "V1", "block": "V1", "tier": 1, "kind": "delegated", "comparisons": 9,
-         "collector": "prepare_bc_qualification.py + run_p0_aa.py (B = v1.0.0, C = candidate), "
-                      "the v1.0.0 A procedure with n = 24 fixed; analyze_v100q_a.py rules"},
+         "collector": "run_p0_aa.py --execute on the two plans of prepare_bc_qualification.py "
+                      "(B = v1.0.0, C = candidate; seeds 141240-141242 and 141250-141252), "
+                      "n = 24 fixed; analyze_v100q_a.py rules"},
         {"id": "L2", "block": "L2", "tier": 3, "kind": "delegated", "comparisons": 15,
          "collector": "run_lifecycle_qualification.py --profile final --only C "
-                      "--lifecycle-engines cluster-forest; analyze_lifecycle_qualification.py "
-                      "C1-C4"},
+                      "--lifecycle-engines cluster-forest --order-seed 51240; "
+                      "analyze_lifecycle_qualification.py C1-C4"},
         {"id": "S3", "block": "S3", "tier": 2, "kind": "delegated", "comparisons": 7,
-         "collector": "run_v100q_q.py rebound to CF5: the seven feeder-under-load cells with "
-                      "LOAD_ENGINE=cluster-forest and the compact-bfs arm in the same session, "
-                      "3 observations each; evaluate_v100q_q.py Q1-Q4, Q5-style comparison"},
+         "collector": "run_cf5_s3.py run (v1.0.0 Q runner, both sides on the candidate server, "
+                      "LOAD_ENGINE cluster-forest / compact-bfs, 3 observations each, 90-minute "
+                      "cap); run_cf5_s3.py evaluate: Q1-Q4 on CF, Q5-style on the 3 L1 query cells"},
     ]
 
 

@@ -399,6 +399,19 @@ class DelegatedTest(unittest.TestCase):
         self.assertIn("rel.py", first["L2"])
         self.assertNotEqual(first["V1"][str(script)], second["V1"][str(script)])
 
+    def test_delegated_collector_receives_its_environment(self):
+        # Regression: the L2 collector needs LIFECYCLE_QUALIFICATION_ROOTS (path confinement);
+        # without it the collector refuses its --out and the cell is DELEGATED_FAILED.
+        with tempfile.TemporaryDirectory() as d:
+            tools = {"_delegated": {"L2": {
+                "argv": [sys.executable, "-c",
+                         "import os, sys; sys.exit(0 if os.environ.get('ROOTS_X') == 'ok' else 4)"],
+                "env": {"ROOTS_X": "ok"}}}}
+            state = run_cf5.run_delegated({"id": "L2"}, tools, Path(d))
+            tools["_delegated"]["L2"].pop("env")
+            failed = run_cf5.run_delegated({"id": "L2"}, tools, Path(d))
+        self.assertEqual(state["state"], "DELEGATED_DONE")
+        self.assertEqual(failed["state"], "DELEGATED_FAILED")
 
 if __name__ == "__main__":
     unittest.main()

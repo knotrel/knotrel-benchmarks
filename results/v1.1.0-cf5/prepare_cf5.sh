@@ -149,7 +149,7 @@ python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan-block2/manifest.json" --sc
 EOF
 L2_ARGS="--profile final --core $T/cand-probes/release/core-lifecycle --core-count $T/cand-probes-count/release/core-lifecycle --http $T/cand-probes/release/http-lifecycle --order-seed 51240 --knotrel $CAMP/src/cand/knotrel --only C --lifecycle-engines cluster-forest"
 # shellcheck disable=SC2086 # L2_ARGS holds paths without spaces
-( cd "$B" && python3 scripts/run_lifecycle_qualification.py --out "$CAMP/L2-dry" $L2_ARGS --dry-run ) > "$L/L2-dry-run.log" 2>&1
+( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 scripts/run_lifecycle_qualification.py --out "$CAMP/L2-dry" $L2_ARGS --dry-run ) > "$L/L2-dry-run.log" 2>&1
 ( cd "$B" && python3 scripts/run_cf5_s3.py run "$CAMP" "$CAMP/S3" --dry-run ) > "$L/S3-dry-run.log" 2>&1
 
 # --- Tool map ---
@@ -170,7 +170,8 @@ tools = {
     "harness_a_v100": [f"{t}/A-B-harness/release/knotrel-benchmarks"],
     "_delegated": {
         "V1": {"argv": ["/bin/sh", f"{camp}/delegated/V1.sh"], "cwd": b},
-        "L2": {"argv": ["python3", "scripts/run_lifecycle_qualification.py", "--out", f"{camp}/L2"] + shlex.split(l2), "cwd": b},
+        "L2": {"argv": ["python3", "scripts/run_lifecycle_qualification.py", "--out", f"{camp}/L2"] + shlex.split(l2), "cwd": b,
+               "env": {"LIFECYCLE_QUALIFICATION_ROOTS": camp}},
         "S3": {"argv": ["python3", "scripts/run_cf5_s3.py", "run", camp, f"{camp}/S3"], "cwd": b,
                "requires_env": ["KNOTREL_PG_ADMIN_URL"]},
     },

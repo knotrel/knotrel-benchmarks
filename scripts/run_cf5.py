@@ -346,7 +346,8 @@ def run_delegated(cell: Dict[str, Any], tools: Dict[str, Any], out: Path) -> Dic
     start = time.monotonic()
     with log.open("w") as handle:
         done = subprocess.run(spec["argv"], cwd=spec.get("cwd"), stdout=handle,
-                              stderr=subprocess.STDOUT)
+                              stderr=subprocess.STDOUT,
+                              env={**os.environ, **spec.get("env", {})})
     return {"state": "DELEGATED_DONE" if done.returncode == 0 else "DELEGATED_FAILED",
             "exit": done.returncode, "wall_s": time.monotonic() - start, "log": str(log)}
 

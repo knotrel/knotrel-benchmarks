@@ -280,7 +280,13 @@ def main() -> int:
         return 2
     binaries = {"core": args.core, "core-count": args.core_count, "http": args.http}
     cells = matrix(args.profile, args.lifecycle_engines, args.equivalent_references)
-    if args.profile == "final" and not args.window_multipliers:
+    # The multipliers scale only the timed B1-B4 cells: a final run whose --only filter keeps
+    # none of them (CF5 L2: --only C) needs none; every other final run still requires them.
+    wanted_experiments = set(args.only.split(",")) if args.only else None
+    timed_in_scope = any(c["experiment"] in ("B1", "B2", "B3", "B4")
+                         and (wanted_experiments is None or c["experiment"] in wanted_experiments)
+                         for c in cells)
+    if args.profile == "final" and not args.window_multipliers and timed_in_scope:
         print("--window-multipliers is required for the final profile", file=sys.stderr)
         return 2
     if args.window_multipliers:
