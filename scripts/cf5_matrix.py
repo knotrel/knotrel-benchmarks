@@ -55,7 +55,7 @@ def metric(name: str, path: str, kind: str, direction: str = "lower_is_better",
 
 
 # Measurement limit (plan section 6.1), from the instrument calibration fixed before the
-# campaign. ``limit_ns`` bounds the additive error of one observed value:
+# campaign. ``limit_ns`` estimates (not a guaranteed bound) the additive error of one value:
 # - ``aggregate``: ``intervals`` clock intervals, nothing timed inside: intervals * (tick + read);
 # - ``instrumented_aggregate``: one interval around ``timed_ops`` individually timed
 #   operations (K1, V2, V3 harness): tick + read + timed_ops * (harness gap + read);
@@ -68,7 +68,6 @@ CLOCK_READ_NS = _CAL["constants"]["clock_read_ns"]
 HARNESS_GAP_NS = _CAL["constants"]["harness_gap_ns"]
 WORKLOAD_OPS = {k: v for k, v in _CAL["workload_operations"].items() if k != "source"}
 L3_CHURN_OPS = {k: v for k, v in _CAL["l3_churn_operations"].items() if k != "source"}
-RESOLUTION_SHARE = 0.1  # plan section 6.1: limit negligible below a tenth of the margin
 
 
 def measurement(category: str, intervals: int = 1, timed_ops: int = 0,
@@ -433,8 +432,7 @@ def build() -> Dict[str, Any]:
                   "coverage": 0.9773, "margins": MARGINS, "cap_hours": 15,
                   "measurement_limit": {"calibration": str(CALIBRATION.relative_to(ROOT)),
                                         "tick_ns": TICK_NS, "clock_read_ns": CLOCK_READ_NS,
-                                        "harness_gap_ns": HARNESS_GAP_NS,
-                                        "resolution_share": RESOLUTION_SHARE},
+                                        "harness_gap_ns": HARNESS_GAP_NS},
                   "second_session_cap_hours": 8, "tiers": [1, 2, 3],
                   # Priority order of blocks within each tier (plan section 8).
                   "block_order": [["V1", "V2"], ["K1", "K2", "S1", "L1", "S3"],

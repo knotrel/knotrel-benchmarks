@@ -462,12 +462,35 @@ class MeasurementLimitTest(unittest.TestCase):
         self.assertEqual((result["cf_median"], result["ref_median"]), (100.0, 120.0))
         self.assertNotIn("interval_log", result)
 
-    def test_negligible_limit_keeps_the_plan_class_even_at_the_margin(self):
-        # delta = 2 * 57.7 / 1e6 is far below a tenth of ln(1.1): the plan's class, unchanged.
+    def test_small_limit_keeps_the_plan_class_away_from_the_margin(self):
         pairs = spread_pairs([1.0e6 * (1.0 + 0.0009 * i) for i in range(24)], 1.0e6)
         result = an.classify_paired(limit_cell(57.7), pairs)["latency_ns.p99"]
         self.assertEqual(result["class"], "EQUIVALENT")
-        self.assertLess(result["limit_log"], 0.1 * math.log(1.1))
+        self.assertNotIn("class_without_limit", result)
+
+    def test_small_limit_still_blocks_equivalence_at_the_margin(self):
+        # Review of revision 5: a limit below a tenth of the margin was exempt; now any limit
+        # that moves the class prevents it. Upper bound just inside ln(1.1), delta ~ 1.2e-4.
+        edge = math.exp(math.log(1.1) - 5e-5)
+        values = [1.0e6] * 6 + [1.0e6 * edge] * 12 + [1.2e6] * 6
+        result = an.classify_paired(limit_cell(57.7), spread_pairs(values, 1.0e6))
+        self.assertEqual(result["latency_ns.p99"]["class"], "TIMER_LIMITED")
+        self.assertEqual(result["latency_ns.p99"]["class_without_limit"], "EQUIVALENT")
+
+    def test_small_limit_still_blocks_pass_at_the_margin(self):
+        edge = math.exp(math.log(1.1) - 5e-5)
+        values = [1.0e6] * 6 + [1.0e6 * edge] * 12 + [1.2e6] * 6
+        result = an.classify_paired(limit_cell(57.7, rule="regression"),
+                                    spread_pairs(values, 1.0e6))
+        self.assertEqual(result["latency_ns.p99"]["class"], "TIMER_LIMITED")
+        self.assertEqual(result["latency_ns.p99"]["class_without_limit"], "PASS")
+
+    def test_unquantified_effects_are_reported_per_metric(self):
+        cell = limit_cell(57.7)
+        cell["metrics"][0]["measurement"]["category"] = "instrumented_aggregate"
+        result = an.classify_paired(cell, spread_pairs([1e6] * 24, 1e6))["latency_ns.p99"]
+        self.assertTrue(any("overlap" in e for e in result["not_in_limit"]))
+        self.assertTrue(any("not guaranteed" in e for e in result["not_in_limit"]))
 
     def test_equivalence_inside_the_limit_is_timer_limited_never_equivalent(self):
         # limit 4 us on 100 us arms: delta ~ 0.08 > 0.0095; [lo, hi] inside +-ln(1.1) but

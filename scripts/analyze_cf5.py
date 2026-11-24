@@ -13,11 +13,14 @@ Refuses preparatory runs and runs whose recorded matrix hash differs from ``--ma
   PASS / REGRESSION / INCONCLUSIVE, never merged.
 - Measurement limit (section 6.1), time metrics (margin kind ``time`` or ``tail``): each
   carries ``measurement.limit_ns`` E (matrix, from the instrument calibration).
-  TIMER_LIMITED (no class, values kept) when an arm's median is at most 2E, or when
-  ``delta = ln(1 + E/(cf - E)) + ln(1 + E/(ref - E))`` exceeds a tenth of ``ln(1 + margin)``
-  and the class computed on ``[lo - delta, hi + delta]`` differs from the class on
-  ``[lo, hi]`` (``class_without_limit`` is then published, never counted). Otherwise the
-  class is the plan's, unchanged. TIMER_LIMITED never becomes PASS or EQUIVALENT.
+  E is a calibrated estimate, not a guaranteed bound. TIMER_LIMITED (no class, values
+  kept) when an arm's median is at most 2E, or when the class computed on
+  ``[lo - delta, hi + delta]``, ``delta = ln(1 + E/(cf - E)) + ln(1 + E/(ref - E))``,
+  differs from the class on ``[lo, hi]`` (``class_without_limit`` is then published,
+  never counted). So no class, PASS and EQUIVALENT included, stands if a shift within the
+  limit would change it. Effects outside E are listed per metric in ``not_in_limit``.
+  Applies only to the paired cells of this analyzer (K1, K2, K2x, K3, L1, L3, S1, V2, V3);
+  V1, L2 and S3 keep their own protocols (section 6.1).
 - Deterministic cells: ``q = cf / ref``: SMALLER / LARGER / SIMILAR; UNDEFINED (no class)
   when the reference value is not positive.
 - INCOMPLETE cells are published with their pairs' medians and no class; session-1
@@ -45,7 +48,19 @@ from typing import Any, Dict, List, Optional
 
 LOWER, UPPER = 7, 18  # one-based order statistics at n = 24
 N = 24
-RESOLUTION_SHARE = 0.1  # section 6.1: a limit below a tenth of the margin is negligible
+#: Section 6.1: effects the calibrated limit does not include, published with each metric.
+NOT_IN_LIMIT = {
+    "instrumented_aggregate": ("per-operation timing: loss of overlap between consecutive "
+                               "operations (operation-dependent, not quantified)",),
+    "per_op_sum": ("per-operation timing: loss of overlap between consecutive operations "
+                   "(operation-dependent, not quantified)",),
+    "http_percentile": ("client thread scheduling and wake-up delays inside the request "
+                        "interval (part of the measured latency of both arms)",),
+}
+NOT_IN_LIMIT_ALWAYS = ("preemption and interrupts inside an interval (random, both arms; "
+                       "in the pair dispersion, not bounded)",
+                       "clock-read and harness-gap constants are calibrated maxima, "
+                       "not guaranteed bounds")
 FAVOURABLE = {"FASTER", "SMALLER"}
 UNFAVOURABLE = {"SLOWER", "LARGER"}
 NEUTRAL = {"EQUIVALENT", "SIMILAR"}
@@ -114,6 +129,10 @@ def classify_paired(cell: Dict[str, Any], pairs: List[Dict[str, Any]]) -> Dict[s
                                  "limit (plan section 6.1)")
             limit = spec["limit_ns"]
             result["measurement_limit_ns"] = limit
+            result["measurement_category"] = spec["category"]
+            # Reported separately, never folded into the limit (section 6.1).
+            result["not_in_limit"] = list(NOT_IN_LIMIT.get(spec["category"], ())) + \
+                list(NOT_IN_LIMIT_ALWAYS)
             low = min(result["cf_median"], result["ref_median"])
             if low <= 2 * limit:
                 result["class"] = "TIMER_LIMITED"
@@ -132,8 +151,7 @@ def classify_paired(cell: Dict[str, Any], pairs: List[Dict[str, Any]]) -> Dict[s
         rule = regression if cell["rule"] == "regression" else two_sided
         margin = metric["margin"]
         cls = rule(bounds[0], bounds[1], margin)
-        if delta > RESOLUTION_SHARE * math.log(1 + margin) and \
-                rule(bounds[0] - delta, bounds[1] + delta, margin) != cls:
+        if delta > 0 and rule(bounds[0] - delta, bounds[1] + delta, margin) != cls:
             result["class"] = "TIMER_LIMITED"
             result["class_without_limit"] = cls
             result["timer_limited_reason"] = "the class changes within the measurement limit"
