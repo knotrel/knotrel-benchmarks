@@ -19,12 +19,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, List
 
 ROOT = Path(__file__).resolve().parent.parent
 V100 = ROOT / "results" / "v1.0.0-qualification" / "MATRIX.json"
 DEFAULT_OUT = ROOT / "results" / "v1.1.0-cf5" / "cf5-matrix.json"
+CALIBRATION = ROOT / "results" / "v1.1.0-cf5" / "timer-calibration" / "calibration.json"
 
 MARGINS = {"time": 0.10, "tail": 0.25, "throughput": 0.10, "memory": 0.20}
 REFERENCES = ("compact-bfs", "ett", "hdt")
@@ -43,9 +45,61 @@ K2X_DEGREE = 6  # E = 3V
 SEED = 42
 
 
-def metric(name: str, path: str, kind: str, direction: str = "lower_is_better") -> Dict[str, Any]:
-    return {"name": name, "path": path, "margin_kind": kind, "margin": MARGINS[kind],
-            "direction": direction}
+def metric(name: str, path: str, kind: str, direction: str = "lower_is_better",
+           measurement: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    out = {"name": name, "path": path, "margin_kind": kind, "margin": MARGINS[kind],
+           "direction": direction}
+    if measurement is not None:
+        out["measurement"] = measurement
+    return out
+
+
+# Measurement limit (plan section 6.1), from the instrument calibration fixed before the
+# campaign. ``limit_ns`` bounds the additive error of one observed value:
+# - ``aggregate``: ``intervals`` clock intervals, nothing timed inside: intervals * (tick + read);
+# - ``instrumented_aggregate``: one interval around ``timed_ops`` individually timed
+#   operations (K1, V2, V3 harness): tick + read + timed_ops * (harness gap + read);
+# - ``per_op_sum``: sum of ``timed_ops`` per-operation intervals (L3 churn):
+#   timed_ops * read + 3 * tick * sqrt(timed_ops / 6) (quantization, three standard deviations);
+# - ``http_percentile``: one client request interval (closed loop): tick + read.
+_CAL = json.loads(CALIBRATION.read_text())
+TICK_NS = _CAL["constants"]["tick_ns"]
+CLOCK_READ_NS = _CAL["constants"]["clock_read_ns"]
+HARNESS_GAP_NS = _CAL["constants"]["harness_gap_ns"]
+WORKLOAD_OPS = {k: v for k, v in _CAL["workload_operations"].items() if k != "source"}
+L3_CHURN_OPS = {k: v for k, v in _CAL["l3_churn_operations"].items() if k != "source"}
+RESOLUTION_SHARE = 0.1  # plan section 6.1: limit negligible below a tenth of the margin
+
+
+def measurement(category: str, intervals: int = 1, timed_ops: int = 0,
+                gap_ns: float = 0) -> Dict[str, Any]:
+    if category == "aggregate":
+        limit = intervals * (TICK_NS + CLOCK_READ_NS)
+    elif category == "instrumented_aggregate":
+        limit = TICK_NS + CLOCK_READ_NS + timed_ops * (gap_ns + CLOCK_READ_NS)
+    elif category == "per_op_sum":
+        limit = timed_ops * CLOCK_READ_NS + 3 * TICK_NS * math.sqrt(timed_ops / 6)
+    elif category == "http_percentile":
+        limit = TICK_NS + CLOCK_READ_NS
+    else:
+        raise ValueError(category)
+    out: Dict[str, Any] = {"category": category, "limit_ns": round(limit, 1)}
+    if category == "aggregate":
+        out["intervals"] = intervals
+    if timed_ops:
+        out["timed_ops"] = timed_ops
+    if gap_ns:
+        out["gap_ns"] = gap_ns
+    return out
+
+
+def wall(workload: str, *tools: str) -> Dict[str, Any]:
+    # Two arms on different harness binaries: the larger gap (symmetric bound).
+    return measurement("instrumented_aggregate", timed_ops=WORKLOAD_OPS[workload],
+                       gap_ns=max(HARNESS_GAP_NS[t] for t in tools))
+
+
+AGG1 = measurement("aggregate")
 
 
 MREG_CHECK = {"path": "errors", "equals": 0}
@@ -115,7 +169,7 @@ def k1() -> List[Dict[str, Any]]:
                 cells.append(paired(f"K1-{workload}-{nodes}-vs-{ref}", "K1", 2, workload,
                                     harness("cluster-forest"), harness(ref), ref,
                                     [metric("workload_wall_ns", "repetitions.0.workload_wall_ns",
-                                            "time")],
+                                            "time", measurement=wall(workload, "harness"))],
                                     check={"same_trace": "trace_fingerprint_fnv1a64"}))
     return cells
 
@@ -147,7 +201,8 @@ def k3_families() -> List[Dict[str, Any]]:
         for ref in REFERENCES:
             cells.append(paired(f"K3-{family}-100000-vs-{ref}", "K3", 3, "K3-families",
                                 tool("cluster-forest"), tool(ref), ref,
-                                [metric("construct_ns", "result.construct_ns", "time")],
+                                [metric("construct_ns", "result.construct_ns", "time",
+                                        measurement=AGG1)],
                                 check={"same_trace": "edges_fingerprint"}))
     return cells
 
@@ -213,9 +268,16 @@ def l1() -> List[Dict[str, Any]]:
         # tolerance, which bounded lifecycle overhead against plain mode.
         cells.append(paired(f"L1-{cell_id}", "L1", 2, "L", probe("cluster-forest"),
                             probe("compact-bfs"), "compact-bfs",
-                            [metric("candidate_ns", "candidate_ns", "time")],
+                            [metric("candidate_ns", "candidate_ns", "time", measurement=AGG1)],
                             check={"path": "answers_agree", "equals": True}))
     return cells
+
+
+def l3_measurement(cell: Dict[str, Any]) -> Dict[str, Any]:
+    # churn: the sum of per-operation intervals; imports: the median of single intervals.
+    if cell["args"][0] == "churn":
+        return measurement("per_op_sum", timed_ops=L3_CHURN_OPS[cell["id"]])
+    return AGG1
 
 
 def l3() -> List[Dict[str, Any]]:
@@ -226,7 +288,8 @@ def l3() -> List[Dict[str, Any]]:
                                 "last", engine_check("engine", "cluster-forest")),
                             arm("release_cells", with_engine(cell["args"], "compact-bfs"),
                                 "last", engine_check("engine", "compact-bfs")),
-                            "compact-bfs", [metric("observation_ns", "observation_ns", "time")],
+                            "compact-bfs", [metric("observation_ns", "observation_ns", "time",
+                                                   measurement=l3_measurement(cell))],
                             # release-cells emits no fingerprint: its churn cells report the
                             # operation count (equal counts checked); its import cells build the
                             # same seeded topology from identical argv but the engine.
@@ -262,7 +325,8 @@ def mreg_arm(tool: str, cell: Dict[str, Any], engine: str) -> Dict[str, Any]:
 
 
 MREG_METRICS = [metric("requests_per_s", "requests_per_s", "throughput", "higher_is_better"),
-                metric("latency_ns.p99", "latency_ns.p99", "tail")]
+                metric("latency_ns.p99", "latency_ns.p99", "tail",
+                       measurement=measurement("http_percentile"))]
 
 
 def s1() -> List[Dict[str, Any]]:
@@ -295,7 +359,9 @@ def v2_v3() -> List[Dict[str, Any]]:
             cells.append(paired(f"V2-{workload}-100000-{engine}", "V2", 1, None,
                                 h("harness_a_candidate"), h("harness_a_v100"), "v1.0.0",
                                 [metric("workload_wall_ns", "repetitions.0.workload_wall_ns",
-                                        "time")], rule="regression",
+                                        "time", measurement=wall(workload, "harness_a_candidate",
+                                                                 "harness_a_v100"))],
+                                rule="regression",
                                 check={"same_trace": "trace_fingerprint_fnv1a64"}))
     for workload, rounds in (("chain-split-rejoin-v1", 100), ("sustained-churn-path-v1", 20)):
         for engine in ("compact-bfs", "compact-workspace"):
@@ -308,7 +374,8 @@ def v2_v3() -> List[Dict[str, Any]]:
                                   HARNESS_IDENTITY["cluster-forest"]),
                                 a("harness_a_v100", engine, A_IDENTITY[engine]), f"v1.0.0 {engine}",
                                 [metric("workload_wall_ns", "repetitions.0.workload_wall_ns",
-                                        "time")],
+                                        "time", measurement=wall(workload, "harness",
+                                                                 "harness_a_v100"))],
                                 check={"same_trace": "trace_fingerprint_fnv1a64"}))
     for cell in v100_cells("M_reg"):
         cells.append(paired(f"V3-{cell['id']}", "V3", 3, None,
@@ -339,13 +406,19 @@ def delegated() -> List[Dict[str, Any]]:
 def build() -> Dict[str, Any]:
     cells = (k1()
              + core_cells("K2", 2, "staged", K2_SIZES, K2_DEGREES,
-                          [metric("update_ns", "result.update_ns", "time"),
-                           metric("query_ns", "result.query_ns", "time")], "K2-d{degree}")
+                          # 10 insertion and 10 deletion stages; 20 query batches.
+                          [metric("update_ns", "result.update_ns", "time",
+                                  measurement=measurement("aggregate", intervals=20)),
+                           metric("query_ns", "result.query_ns", "time",
+                                  measurement=measurement("aggregate", intervals=20))],
+                          "K2-d{degree}")
              + core_cells("K2x", 3, "all", K2X_SIZES, (K2X_DEGREE,),
-                          [metric("delete_ns", "result.delete_ns", "time"),
-                           metric("insert_ns", "result.insert_ns", "time")], "K2x")
+                          [metric("delete_ns", "result.delete_ns", "time", measurement=AGG1),
+                           metric("insert_ns", "result.insert_ns", "time", measurement=AGG1)],
+                          "K2x")
              + core_cells("K3", 3, "construct", K2_SIZES, K2_DEGREES,
-                          [metric("construct_ns", "result.construct_ns", "time")], "K2-d{degree}",
+                          [metric("construct_ns", "result.construct_ns", "time",
+                                  measurement=AGG1)], "K2-d{degree}",
                           role="veto")
              + k3_families() + k4() + l1() + l3() + l4() + s1() + v2_v3() + delegated())
     ids = [c["id"] for c in cells]
@@ -358,6 +431,10 @@ def build() -> Dict[str, Any]:
         "plan": "knotrel docs/releases/v1.1.0-cf5-qualification-plan.md",
         "rules": {"pairs": 24, "warmup_pairs": 2, "interval_order_statistics": [7, 18],
                   "coverage": 0.9773, "margins": MARGINS, "cap_hours": 15,
+                  "measurement_limit": {"calibration": str(CALIBRATION.relative_to(ROOT)),
+                                        "tick_ns": TICK_NS, "clock_read_ns": CLOCK_READ_NS,
+                                        "harness_gap_ns": HARNESS_GAP_NS,
+                                        "resolution_share": RESOLUTION_SHARE},
                   "second_session_cap_hours": 8, "tiers": [1, 2, 3],
                   # Priority order of blocks within each tier (plan section 8).
                   "block_order": [["V1", "V2"], ["K1", "K2", "S1", "L1", "S3"],

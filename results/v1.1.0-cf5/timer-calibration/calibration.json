@@ -1,0 +1,31 @@
+{
+ "schema": "cf5-timer-calibration-1",
+ "date": "2026-11-24",
+ "host": "Apple M3, 8 cores, macOS (Darwin 25.5.0)",
+ "toolchain": "1.100.0 (the CF5 build toolchain), --release",
+ "purpose": "Measurement limit of the clock used by every CF5 harness, fixed before the campaign (plan section 6.1). Instrument calibration only: no cluster-forest observation is used.",
+ "clock": "std::time::Instant in every analyzed harness (knotrel-benchmarks, cf5-core, release-cells, http-lifecycle, contention-probe; v1.0.0 harness df635a1e: same replay loop)",
+ "measured": {
+  "tick_ns": "back-to-back deltas take only the values 0, 41, 42, 83, 84, 125 ns (10^7 deltas x 5 runs): a 24 MHz counter, tick 41.667 ns",
+  "clock_read_ns": "Instant::now() 13.92-14.14 ns per call; empty timed interval mean 14.25-14.52 ns; summed per-operation timing exceeds one aggregate interval by 14.94-15.08 ns per operation (clock-runs.txt)",
+  "serialization": "per-operation timing also stops overlap between consecutive operations: for a 42-56 ns operation the summed per-operation time exceeds the aggregate by 63-77 ns per operation (clock-runs.txt, spin(100)). Operation-dependent, not an additive constant; not part of the limit below (stated limitation, plan section 6.1)",
+  "harness_gap_ns_per_op": "workload_wall_ns minus the sum of per-operation intervals, divided by the timed operations, compact-bfs, 5 repetitions per workload, two runs (harness-gap-run1.txt, harness-gap-run2.txt): knotrel-benchmarks (candidate) 18.8-33.2, A harness candidate 19.1-25.8, A harness v1.0.0 18.6-24.4"
+ },
+ "constants": {
+  "tick_ns": 41.667,
+  "clock_read_ns": 16,
+  "harness_gap_ns": {"harness": 34, "harness_a_candidate": 26, "harness_a_v100": 25},
+  "rounding": "each constant is the ceiling, in whole ns, of the largest value observed (tick: exact)"
+ },
+ "workload_operations": {
+  "source": "timed operations per K1/V2/V3 workload at the CF5 rounds (100; 20 for sustained), identical at every size (harness-gap runs)",
+  "chain-split-rejoin-v1": 400, "cycle-alternatives-v1": 800, "components-join-split-v1": 400,
+  "hub-alternatives-v1": 1200, "sustained-churn-path-v1": 2000, "sustained-churn-blocks-v1": 2000,
+  "dense-bridge-churn-v1": 10000, "redundant-bridge-churn-v1": 10000
+ },
+ "l3_churn_operations": {
+  "source": "release-cells churn 'operations' (deterministic per argv; equality checked per pair by same_trace)",
+  "R-churn-fresh-sparse-100k": 750000, "R-churn-fresh-hub-100k": 750000,
+  "R-churn-same-sparse-100k": 750000, "R-churn-toggle-sparse-100k": 570151
+ }
+}

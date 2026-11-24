@@ -10,9 +10,14 @@ Refuses preparatory runs and runs whose recorded matrix hash differs from ``--ma
 - Paired cells: per metric, the 24 log ratios ``ln(cf / ref)`` (``ln(ref / cf)`` for
   higher-is-better metrics), interval ``[r(7), r(18)]`` (coverage 97.73 %).
   ``two_sided``: FASTER / SLOWER / EQUIVALENT / INCONCLUSIVE; ``regression`` (V2):
-  PASS / REGRESSION / INCONCLUSIVE, never merged. TIMER_LIMITED (no class) when an arm's
-  median of a time metric (margin kind ``time`` or ``tail``, all recorded in ns; a sum for
-  K2's ``query_ns``; a client p99 such as ``latency_ns.p99``) is below 1 ms.
+  PASS / REGRESSION / INCONCLUSIVE, never merged.
+- Measurement limit (section 6.1), time metrics (margin kind ``time`` or ``tail``): each
+  carries ``measurement.limit_ns`` E (matrix, from the instrument calibration).
+  TIMER_LIMITED (no class, values kept) when an arm's median is at most 2E, or when
+  ``delta = ln(1 + E/(cf - E)) + ln(1 + E/(ref - E))`` exceeds a tenth of ``ln(1 + margin)``
+  and the class computed on ``[lo - delta, hi + delta]`` differs from the class on
+  ``[lo, hi]`` (``class_without_limit`` is then published, never counted). Otherwise the
+  class is the plan's, unchanged. TIMER_LIMITED never becomes PASS or EQUIVALENT.
 - Deterministic cells: ``q = cf / ref``: SMALLER / LARGER / SIMILAR; UNDEFINED (no class)
   when the reference value is not positive.
 - INCOMPLETE cells are published with their pairs' medians and no class; session-1
@@ -40,7 +45,7 @@ from typing import Any, Dict, List, Optional
 
 LOWER, UPPER = 7, 18  # one-based order statistics at n = 24
 N = 24
-TIMER_LIMIT_NS = 1_000_000
+RESOLUTION_SHARE = 0.1  # section 6.1: a limit below a tenth of the margin is negligible
 FAVOURABLE = {"FASTER", "SMALLER"}
 UNFAVOURABLE = {"SLOWER", "LARGER"}
 NEUTRAL = {"EQUIVALENT", "SIMILAR"}
@@ -101,10 +106,21 @@ def classify_paired(cell: Dict[str, Any], pairs: List[Dict[str, Any]]) -> Dict[s
     for metric in cell["metrics"]:
         name = metric["name"]
         result = out[name]
-        if metric.get("margin_kind") in TIME_KINDS and \
-                min(result["cf_median"], result["ref_median"]) < TIMER_LIMIT_NS:
-            result["class"] = "TIMER_LIMITED"
-            continue
+        delta = 0.0
+        if metric.get("margin_kind") in TIME_KINDS:
+            spec = metric.get("measurement")
+            if spec is None:
+                raise SystemExit(f"{cell.get('id')} {name}: time metric without a measurement "
+                                 "limit (plan section 6.1)")
+            limit = spec["limit_ns"]
+            result["measurement_limit_ns"] = limit
+            low = min(result["cf_median"], result["ref_median"])
+            if low <= 2 * limit:
+                result["class"] = "TIMER_LIMITED"
+                result["timer_limited_reason"] = "a median is at most twice the measurement limit"
+                continue
+            delta = limit_log(limit, result["cf_median"], result["ref_median"])
+            result["limit_log"] = delta
         ratios = [log_ratio(p["cf"]["metrics"][name], p["ref"]["metrics"][name],
                             metric["direction"]) for p in pairs]
         bounds = interval(ratios)
@@ -114,8 +130,22 @@ def classify_paired(cell: Dict[str, Any], pairs: List[Dict[str, Any]]) -> Dict[s
         result["interval_log"] = bounds
         result["median_log"] = statistics.median(ratios)
         rule = regression if cell["rule"] == "regression" else two_sided
-        result["class"] = rule(bounds[0], bounds[1], metric["margin"])
+        margin = metric["margin"]
+        cls = rule(bounds[0], bounds[1], margin)
+        if delta > RESOLUTION_SHARE * math.log(1 + margin) and \
+                rule(bounds[0] - delta, bounds[1] + delta, margin) != cls:
+            result["class"] = "TIMER_LIMITED"
+            result["class_without_limit"] = cls
+            result["timer_limited_reason"] = "the class changes within the measurement limit"
+            continue
+        result["class"] = cls
     return out
+
+
+def limit_log(limit: float, cf: float, ref: float) -> float:
+    """Section 6.1: the largest shift of ``ln(cf / ref)`` that an additive error of at most
+    ``limit`` ns on each arm can cause (medians above twice the limit)."""
+    return math.log(1 + limit / (cf - limit)) + math.log(1 + limit / (ref - limit))
 
 
 def family_statement(primary: List[str], every: List[str]) -> str:

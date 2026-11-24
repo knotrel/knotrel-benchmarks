@@ -36,7 +36,9 @@ def tiny_matrix(cf_engine="cf", ref_engine="ref", rule="two_sided", tier=2, chec
     cell = {"id": "C1", "block": "K1", "tier": tier, "kind": "paired", "family": "F",
             "role": "primary", "reference": "ref", "rule": rule, "arms": {"cf": arm(cf_engine), "ref": arm(ref_engine)},
             "metrics": [{"name": "t_ns", "path": "t_ns", "margin": 0.10, "margin_kind": "time",
-                         "direction": "lower_is_better"}]}
+                         "direction": "lower_is_better",
+                         "measurement": {"category": "aggregate", "intervals": 1,
+                                         "limit_ns": 57.7}}]}
     if check:
         cell["check"] = check
     det = {"id": "D1", "block": "K4", "tier": 3, "kind": "deterministic", "family": "F",
@@ -439,6 +441,81 @@ class DelegatedTest(unittest.TestCase):
                 run_cf5.run_delegated({"id": "L2"}, tools, Path(d))
         self.assertEqual(state["state"], "DELEGATED_DONE")
 
+def limit_cell(limit, kind="time", rule="two_sided", name="latency_ns.p99"):
+    margin = {"time": 0.10, "tail": 0.25}[kind]
+    return {"id": "X", "rule": rule, "metrics": [
+        {"name": name, "margin_kind": kind, "margin": margin, "direction": "lower_is_better",
+         "measurement": {"category": "aggregate", "limit_ns": limit}}]}
+
+
+def spread_pairs(cf_values, ref, name="latency_ns.p99"):
+    return [{"cf": {"metrics": {name: v}}, "ref": {"metrics": {name: ref}}} for v in cf_values]
+
+
+class MeasurementLimitTest(unittest.TestCase):
+    """Plan section 6.1 (revision 5): TIMER_LIMITED from the measured limit and the margin."""
+
+    def test_median_at_most_twice_the_limit_is_timer_limited_with_values_kept(self):
+        pairs = spread_pairs([100.0] * 24, 120.0)
+        result = an.classify_paired(limit_cell(57.7), pairs)["latency_ns.p99"]
+        self.assertEqual(result["class"], "TIMER_LIMITED")
+        self.assertEqual((result["cf_median"], result["ref_median"]), (100.0, 120.0))
+        self.assertNotIn("interval_log", result)
+
+    def test_negligible_limit_keeps_the_plan_class_even_at_the_margin(self):
+        # delta = 2 * 57.7 / 1e6 is far below a tenth of ln(1.1): the plan's class, unchanged.
+        pairs = spread_pairs([1.0e6 * (1.0 + 0.0009 * i) for i in range(24)], 1.0e6)
+        result = an.classify_paired(limit_cell(57.7), pairs)["latency_ns.p99"]
+        self.assertEqual(result["class"], "EQUIVALENT")
+        self.assertLess(result["limit_log"], 0.1 * math.log(1.1))
+
+    def test_equivalence_inside_the_limit_is_timer_limited_never_equivalent(self):
+        # limit 4 us on 100 us arms: delta ~ 0.08 > 0.0095; [lo, hi] inside +-ln(1.1) but
+        # the widened interval is not: TIMER_LIMITED, the unwidened class only reported.
+        pairs = spread_pairs([100_000.0 * (1.0 + 0.002 * i) for i in range(24)], 100_000.0)
+        result = an.classify_paired(limit_cell(4_000.0), pairs)["latency_ns.p99"]
+        self.assertEqual(result["class"], "TIMER_LIMITED")
+        self.assertEqual(result["class_without_limit"], "EQUIVALENT")
+
+    def test_difference_beyond_the_limit_keeps_its_class(self):
+        pairs = spread_pairs([40_000.0 + 10.0 * i for i in range(24)], 100_000.0)
+        result = an.classify_paired(limit_cell(2_000.0), pairs)["latency_ns.p99"]
+        self.assertGreater(result["limit_log"], 0.1 * math.log(1.1))
+        self.assertEqual(result["class"], "FASTER")
+
+    def test_regression_rule_never_passes_inside_the_limit(self):
+        pairs = spread_pairs([100_000.0 * (1.0 + 0.003 * i) for i in range(24)], 100_000.0)
+        result = an.classify_paired(limit_cell(4_000.0, rule="regression"), pairs)
+        self.assertEqual(result["latency_ns.p99"]["class"], "TIMER_LIMITED")
+        self.assertEqual(result["latency_ns.p99"]["class_without_limit"], "PASS")
+
+    def test_time_metric_without_a_limit_is_refused(self):
+        cell = limit_cell(1.0)
+        cell["metrics"][0].pop("measurement")
+        with self.assertRaises(SystemExit):
+            an.classify_paired(cell, spread_pairs([1e6] * 24, 1e6))
+
+    def test_matrix_limits_follow_the_calibration(self):
+        m = cf5_matrix
+        tick, read = m.TICK_NS, m.CLOCK_READ_NS
+        cells = {c["id"]: c for c in m.build()["cells"]}
+        for cell in cells.values():
+            for metric in cell.get("metrics", []):
+                if metric["margin_kind"] in ("time", "tail"):
+                    self.assertGreater(metric["measurement"]["limit_ns"], 0, cell["id"])
+        k1 = cells["K1-chain-split-rejoin-v1-10000-vs-hdt"]["metrics"][0]["measurement"]
+        self.assertAlmostEqual(k1["limit_ns"], tick + read + 400 * (34 + read), places=0)
+        v2 = cells["V2-sustained-churn-path-v1-100000-hdt"]["metrics"][0]["measurement"]
+        self.assertAlmostEqual(v2["limit_ns"], tick + read + 2000 * (26 + read), places=0)
+        k2 = cells["K2-d4-10000-vs-ett"]["metrics"][1]["measurement"]
+        self.assertAlmostEqual(k2["limit_ns"], 20 * (tick + read), places=0)
+        churn = cells["L3-R-churn-toggle-sparse-100k"]["metrics"][0]["measurement"]
+        self.assertAlmostEqual(churn["limit_ns"],
+                               570151 * read + 3 * tick * math.sqrt(570151 / 6), places=0)
+        p99 = cells["S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-ett"]["metrics"][1]
+        self.assertAlmostEqual(p99["measurement"]["limit_ns"], tick + read, places=0)
+
+
 class ReviewRegressionTest(Fixture):
     """One deterministic regression per finding of the independent tooling review."""
 
@@ -452,14 +529,15 @@ class ReviewRegressionTest(Fixture):
             det["check"]["same_trace_as"] = "C1"
         return m
 
-    def test_b1_client_p99_below_1ms_is_timer_limited(self):
-        cell = {"rule": "two_sided", "metrics": [
-            {"name": "latency_ns.p99", "margin_kind": "tail", "margin": 0.25,
-             "direction": "lower_is_better"}]}
-        pairs = [{"cf": {"metrics": {"latency_ns.p99": 500_000.0}},
+    def test_b1_client_p99_below_1ms_is_classified_by_its_measured_limit(self):
+        # Superseded rule (revision 5, section 6.1): a closed-loop client p99 is one request
+        # interval (limit tick + clock read, about 58 ns), so 0.4-0.5 ms is resolvable and
+        # gets the plan's class, not TIMER_LIMITED as under the uniform 1 ms threshold.
+        pairs = [{"cf": {"metrics": {"latency_ns.p99": 520_000.0}},
                   "ref": {"metrics": {"latency_ns.p99": 400_000.0}}}] * 24
-        self.assertEqual(an.classify_paired(cell, pairs)["latency_ns.p99"]["class"],
-                         "TIMER_LIMITED")
+        result = an.classify_paired(limit_cell(57.7, "tail"), pairs)["latency_ns.p99"]
+        self.assertEqual(result["class"], "SLOWER")
+        self.assertEqual(result["measurement_limit_ns"], 57.7)
 
     def test_b2_deterministic_arms_must_run_the_same_input(self):
         code, _ = self.run_matrix(self.det_matrix("x", "y"), "d1")
