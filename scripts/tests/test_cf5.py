@@ -569,6 +569,16 @@ class PathConfinementTest(unittest.TestCase):
             an.main(["--matrix", "-x", "--run", tempfile.gettempdir()])
 
 
+class AnalysisOutputTest(unittest.TestCase):
+    def test_existing_analysis_is_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "analysis.json"
+            out.write_text("kept\n")
+            with self.assertRaises(SystemExit):
+                an.main(["--matrix", str(out), "--run", d, "--out", str(out)])
+            self.assertEqual(out.read_text(), "kept\n")
+
+
 class ReviewRegressionTest(Fixture):
     """One deterministic regression per finding of the independent tooling review."""
 

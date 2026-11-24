@@ -328,7 +328,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     args.matrix = confined(args.matrix, "--matrix")
     args.run = [confined_directory(r, "--run") for r in args.run]
     if args.out:
+        # As analyze_v100q_a.py: a confined, new file in an existing directory, never
+        # overwritten (published analyses are evidence).
         args.out = confined(args.out, "--out")
+        if args.out.exists():
+            parser.error(f"{args.out} already exists")
+        if not args.out.parent.is_dir():
+            parser.error(f"{args.out.parent} is not a directory")
     text = args.matrix.read_bytes()
     sha = hashlib.sha256(text).hexdigest()
     runs = [load_run(r, sha) for r in args.run]
@@ -336,7 +342,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     result = analyze(json.loads(text), runs)
     out = json.dumps(result, indent=1, sort_keys=True)
     if args.out:
-        args.out.write_text(out + "\n")
+        with args.out.open("x") as handle:
+            handle.write(out + "\n")
     else:
         print(out)
     return 0
