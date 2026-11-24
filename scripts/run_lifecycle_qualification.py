@@ -38,6 +38,9 @@ from typing import Any, Dict, List
 from cli_paths import confined, confined_directory, confined_executable
 
 ENGINES = ("compact-bfs", "ett", "hdt")
+#: Engines added later, in scope only when named in ``--lifecycle-engines`` (CF5:
+#: ``cluster-forest``), so every earlier matrix, the default included, is unchanged.
+OPTIONAL_ENGINES = ("cluster-forest",)
 SEED = 5_000_001
 
 
@@ -105,6 +108,8 @@ def in_lifecycle_scope(cell: Dict[str, Any], lifecycle_engines: str) -> bool:
     engine = args[args.index("--engine") + 1]
     if engine in lifecycle_engines.split(","):
         return True
+    if engine in OPTIONAL_ENGINES:
+        return False
     return "--scenario" in args and args[args.index("--scenario") + 1] == "metrics-legacy"
 
 
@@ -118,7 +123,7 @@ def matrix(profile: str, lifecycle_engines: str = ALL_LIFECYCLE_ENGINES,
     cells (``*-equivalent`` scenarios, same tolerances and request counts) beside
     the frozen ones; without it the matrix is unchanged.
     """
-    unknown = set(lifecycle_engines.split(",")) - set(ENGINES)
+    unknown = set(lifecycle_engines.split(",")) - set(ENGINES) - set(OPTIONAL_ENGINES)
     if unknown or not lifecycle_engines:
         raise SystemExit(f"unknown lifecycle engines: {sorted(unknown)}")
     return [c for c in _full_matrix(profile, equivalent) if in_lifecycle_scope(c, lifecycle_engines)]
@@ -144,7 +149,7 @@ def _full_matrix(profile: str, equivalent: bool = False) -> List[Dict[str, Any]]
         cells.append({"id": cell_id, "experiment": experiment, "tolerance": tolerance,
                       "binary": "core", "args": ["pairs"] + pair_args(**kv)})
 
-    for engine in ENGINES:
+    for engine in ENGINES + OPTIONAL_ENGINES:
         for topology in ("sparse", "ring", "hub"):
             for nodes in (1_000, 10_000, 100_000):
                 for mix in ("query", "mutation"):
@@ -171,7 +176,7 @@ def _full_matrix(profile: str, equivalent: bool = False) -> List[Dict[str, Any]]
     scenarios = (("optin-mutation", 0.50, 40), ("optin-query", 0.25, 4), ("ops", 0.25, 40),
                  ("ops-query", 0.25, 8), ("events", 0.25, 40), ("import", 1.00, 1),
                  ("import-optin", 1.00, 1))
-    for engine in ENGINES:
+    for engine in ENGINES + OPTIONAL_ENGINES:
         for topology in ("sparse", "hub"):
             for scenario, tolerance, requests in scenarios:
                 http(f"B4-http-{scenario}-{engine}-{topology}-10000", tolerance, scenario=scenario,
@@ -199,7 +204,7 @@ def _full_matrix(profile: str, equivalent: bool = False) -> List[Dict[str, Any]]
                  scenario=f"{scenario}-equivalent", engine="compact-bfs", topology="sparse",
                  nodes=100_000, requests=requests)
 
-    for engine in ENGINES:
+    for engine in ENGINES + OPTIONAL_ENGINES:
         for topology in ("sparse", "hub"):
             for arm in ("plain", "lifecycle", "reference"):
                 cells.append({
@@ -275,7 +280,13 @@ def main() -> int:
         return 2
     binaries = {"core": args.core, "core-count": args.core_count, "http": args.http}
     cells = matrix(args.profile, args.lifecycle_engines, args.equivalent_references)
-    if args.profile == "final" and not args.window_multipliers:
+    # The multipliers scale only the timed B1-B4 cells: a final run whose --only filter keeps
+    # none of them (CF5 L2: --only C) needs none; every other final run still requires them.
+    wanted_experiments = set(args.only.split(",")) if args.only else None
+    timed_in_scope = any(c["experiment"] in ("B1", "B2", "B3", "B4")
+                         and (wanted_experiments is None or c["experiment"] in wanted_experiments)
+                         for c in cells)
+    if args.profile == "final" and not args.window_multipliers and timed_in_scope:
         print("--window-multipliers is required for the final profile", file=sys.stderr)
         return 2
     if args.window_multipliers:

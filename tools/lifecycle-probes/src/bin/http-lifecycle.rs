@@ -3,8 +3,12 @@
 //! ```text
 //! http-lifecycle --scenario S --engine E --topology T --nodes N
 //!     --requests R --pairs P --warmup K --seed SEED
-//!     [--inactive-percent I --disabled-percent D]
+//!     [--inactive-percent I --disabled-percent D] [--reference-engine E2]
 //! ```
+//!
+//! `--reference-engine` (CF5 L1) runs the reference arm on another engine, so
+//! the untimed answers check compares the candidate with an independent
+//! engine; by default both arms use `--engine`.
 //!
 //! Requests go through the real Axum router with `tower::ServiceExt::oneshot`
 //! (no sockets). The first output line is a `build` record. Every pair builds
@@ -1494,13 +1498,28 @@ async fn main_async() -> Result<(), String> {
         inactive_percent: args.num_or("inactive-percent", 20)?,
         disabled_percent: args.num_or("disabled-percent", 10)?,
     };
+    // CF5 L1: the reference (plain) arm can use another engine, so the
+    // answers check compares the lifecycle arm with an independent engine.
+    let reference_plan = match args.0.get("reference-engine") {
+        None => None,
+        Some(name) => Some(Plan {
+            engine: parse_engine(name).ok_or("unknown --reference-engine")?,
+            n: plan.n,
+            edges: plan.edges.clone(),
+            requests: plan.requests,
+            seed: plan.seed,
+            inactive_percent: plan.inactive_percent,
+            disabled_percent: plan.disabled_percent,
+        }),
+    };
     let pairs: usize = args.num("pairs")?;
     let warmup: usize = args.num("warmup")?;
     let mut rng = Rng(seed ^ 0xc4ec);
     let checks: Vec<(u64, u64)> = (0..200).map(|_| (rng.below(n), rng.below(n))).collect();
     for index in 0..warmup + pairs {
         let mut candidate = prepare(&scenario, &plan, true).await?;
-        let mut reference = prepare(&scenario, &plan, false).await?;
+        let mut reference =
+            prepare(&scenario, reference_plan.as_ref().unwrap_or(&plan), false).await?;
         let candidate_first = index % 2 == 0;
         let (c, r) = if candidate_first {
             let c = run_window(&mut candidate).await;
@@ -1524,7 +1543,8 @@ async fn main_async() -> Result<(), String> {
         let mut record = json!({"kind": if pair < 0 {"warmup"} else {"pair"}, "pair": pair, "scenario": scenario,
                "candidate_first": candidate_first, "candidate_ns": c as u64, "reference_ns": r as u64,
                "candidate_requests": candidate.calls.len(), "reference_requests": reference.calls.len(),
-               "answers_agree": agree});
+               "answers_agree": agree, "engine": plan.engine.as_str(),
+               "reference_engine": reference_plan.as_ref().map_or(plan.engine.as_str(), |p| p.engine.as_str())});
         // Qualification 3, revision 2: whether the planner reference offered
         // the candidate's isolation (one plain request per lifecycle chunk).
         if let Some(a) = reference.atomicity {

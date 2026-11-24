@@ -18,6 +18,8 @@ peak-alloc = ["dep:cap"]
 [dependencies]
 knotrel-core = { path = "../../../knotrel/crates/knotrel-core" }
 knotrel-server = { path = "../../../knotrel/crates/knotrel-server" }
+# CF5 K4: the shared graph generator of the K2 cells (`knotrel_benchmarks::cf5`).
+knotrel-benchmarks = { path = "../../crates/knotrel-benchmarks" }
 axum = "0.8.9"
 tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
 tower = { version = "0.5", features = ["util"] }

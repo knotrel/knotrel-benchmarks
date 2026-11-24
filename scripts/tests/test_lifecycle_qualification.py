@@ -255,5 +255,40 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(code, 3)
 
 
+class WindowMultiplierScopeTest(unittest.TestCase):
+    """Regression (CF5 L2): ``--profile final --only C`` has no timed cell to scale, so it
+    needs no window multipliers; a final run that keeps a timed cell still requires them."""
+
+    def run_dry(self, only):
+        import os
+        import subprocess
+        import tempfile
+        bench = Path(__file__).resolve().parents[2]
+        knotrel = bench.parent / "knotrel"
+        with tempfile.TemporaryDirectory() as d:
+            exe = Path(d) / "probe"
+            exe.write_text("#!/bin/sh\n")
+            exe.chmod(0o755)
+            env = dict(os.environ, LIFECYCLE_QUALIFICATION_ROOTS=os.pathsep.join(
+                [str(Path(d).resolve()), str(bench), str(knotrel)]))
+            return subprocess.run(
+                [sys.executable, str(bench / "scripts" / "run_lifecycle_qualification.py"),
+                 "--out", str(Path(d) / "out"), "--profile", "final", "--core", str(exe),
+                 "--core-count", str(exe), "--http", str(exe), "--order-seed", "1",
+                 "--knotrel", str(knotrel), "--only", only,
+                 "--lifecycle-engines", "cluster-forest", "--dry-run"],
+                cwd=bench, env=env, capture_output=True, text=True)
+
+    def test_only_c_needs_no_multipliers(self):
+        done = self.run_dry("C")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(json.loads(done.stdout)["cells"], 60)
+
+    def test_timed_cells_still_require_multipliers(self):
+        done = self.run_dry("B4,C")
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("--window-multipliers is required", done.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -92,13 +92,17 @@ class ProbeLockVersionTest(unittest.TestCase):
         text = (ROOT / "tools/lifecycle-probes/Cargo.lock").read_text()
         return {n: re.findall(rf'name = "{n}"\nversion = "([^"]+)"', text) for n in ("knotrel-core", "knotrel-server")}
 
-    def test_probe_lockfile_names_the_freeze_record_version(self):
-        records = [TEMPLATE]
-        if (V100 / "FREEZE.json").exists():
-            records.append(json.loads((V100 / "FREEZE.json").read_text()))
-        for record in records:
-            want = record["candidate"]["version"]
-            self.assertEqual(self.lock_versions(), {"knotrel-core": [want], "knotrel-server": [want]})
+    def test_probe_lockfile_names_the_checkout_version(self):
+        """The probe lockfile names the version of the knotrel checkout it builds against.
+
+        During the v1.0.0 campaign this compared with the freeze record's candidate version
+        (``1.0.0-rc.1``); that campaign is closed, its prepare script still checks the lockfile
+        against its candidate (next test), and later campaigns (CF5) rebuild the probes against
+        their own candidate, so the lockfile follows the checkout.
+        """
+        manifest = (ROOT.parent / "knotrel" / "Cargo.toml").read_text()
+        want = re.search(r'\[workspace\.package\][^\[]*?\nversion = "([^"]+)"', manifest).group(1)
+        self.assertEqual(self.lock_versions(), {"knotrel-core": [want], "knotrel-server": [want]})
 
     def test_prepare_checks_the_lockfile_against_the_candidate_before_building(self):
         check = PREPARE.index('CAND_VERSION=$(git -C "$KREPO" show "$CAND:Cargo.toml"')
