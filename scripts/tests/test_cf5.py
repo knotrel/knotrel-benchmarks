@@ -543,6 +543,32 @@ class MeasurementLimitTest(unittest.TestCase):
         self.assertAlmostEqual(p99["measurement"]["limit_ns"], tick + read, places=0)
 
 
+class S3PostgresLifecycleTest(unittest.TestCase):
+    """Session 1 stop (2026-11-24): S3 needed a PostgreSQL URL set for the whole session, so
+    Docker Desktop would have run during every block. PostgreSQL now exists only in S3."""
+
+    ROOT = SCRIPTS.parent / "results" / "v1.1.0-cf5"
+
+    def test_s3_collector_owns_the_postgres_lifecycle(self):
+        prepare = (self.ROOT / "prepare_cf5.sh").read_text()
+        spec = prepare[prepare.index('"S3": {'):prepare.index('},', prepare.index('"S3": {'))]
+        self.assertIn("run_s3.sh", spec)
+        self.assertNotIn("requires_env", spec)
+        self.assertNotIn("KNOTREL_PG_ADMIN_URL", prepare)
+        self.assertIn('run_s3.sh" "$CAMP" --prepare', prepare)
+
+    def test_wrapper_removes_the_container_and_quits_docker_it_started(self):
+        import subprocess
+        script = self.ROOT / "run_s3.sh"
+        self.assertEqual(subprocess.run(["sh", "-n", str(script)]).returncode, 0)
+        text = script.read_text()
+        cleanup = text[text.index("cleanup() {"):text.index("trap cleanup EXIT")]
+        self.assertIn("stop-test-postgres.sh", cleanup)
+        self.assertIn("docker desktop stop", cleanup)
+        self.assertIn('STARTED_DOCKER" = 1', cleanup)
+        self.assertNotIn("echo \"$URL", text)
+
+
 class ReportNotesTest(unittest.TestCase):
     def test_v1_s3_notes_and_limits_are_in_every_analysis(self):
         matrix = {"cells": [{"id": "V1", "block": "V1", "kind": "delegated"},
