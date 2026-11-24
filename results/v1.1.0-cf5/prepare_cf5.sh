@@ -189,7 +189,7 @@ EOF
 L2_ARGS="--profile final --core $T/cand-probes/release/core-lifecycle --core-count $T/cand-probes-count/release/core-lifecycle --http $T/cand-probes/release/http-lifecycle --order-seed 51240 --knotrel $CAMP/src/cand/knotrel --only C --lifecycle-engines cluster-forest"
 # shellcheck disable=SC2086 # L2_ARGS holds paths without spaces
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 scripts/run_lifecycle_qualification.py --out "$CAMP/L2-dry" $L2_ARGS --dry-run ) > "$L/L2-dry-run.log" 2>&1
-( cd "$B" && python3 scripts/run_cf5_s3.py run "$CAMP" "$CAMP/S3" --dry-run ) > "$L/S3-dry-run.log" 2>&1
+( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 scripts/run_cf5_s3.py run "$CAMP" "$CAMP/S3" --dry-run ) > "$L/S3-dry-run.log" 2>&1
 
 # --- Tool map ---
 python3 - "$CAMP" "$L2_ARGS" <<'PY'
@@ -214,6 +214,7 @@ tools = {
                "env": {"LIFECYCLE_QUALIFICATION_ROOTS": camp}},
         # Exit 1: S3 NONCONFORMING by its own 90-minute cap (cells cut by a cap).
         "S3": {"argv": ["python3", "scripts/run_cf5_s3.py", "run", camp, "{run}/S3"], "cwd": b,
+               "env": {"LIFECYCLE_QUALIFICATION_ROOTS": camp},
                "requires_env": ["KNOTREL_PG_ADMIN_URL"], "incomplete_exit": [1]},
     },
     "_freeze": f"{b}/results/v1.1.0-cf5/FREEZE.json",
@@ -229,4 +230,8 @@ PY
 
 # --- Binary checksums ---
 ( cd "$CAMP" && find targets -type f -perm -u+x -path '*/release/*' ! -path '*/deps/*' ! -path '*/build/*' ! -name '*.d' -print0 | xargs -0 shasum -a 256 > binaries-sha256.txt )
+# Command-line paths are confined (cli_paths): the campaign directory is granted explicitly.
+( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" python3 -c "import sys; sys.path.insert(0, 'scripts'); from cli_paths import confined; confined('$CAMP/tools.json', 'tools'); confined('$CAMP/session1', 'out')" ) \
+  || { echo "campaign paths refused by cli_paths" >&2; exit 4; }
 echo "PREPARED ($LABEL) $CAMP"
+echo "session 1: cd $B && LIFECYCLE_QUALIFICATION_ROOTS=$CAMP python3 scripts/run_cf5.py --matrix results/v1.1.0-cf5/cf5-matrix.json --tools $CAMP/tools.json --out $CAMP/session1"
