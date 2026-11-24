@@ -57,6 +57,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_directory  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 PAIRS = 24
 WARMUP = 2
@@ -411,6 +414,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.error("--order-seed, --cap-hours, --blocks, --pairs, --warmup, "
                      "--cells-per-block and --no-smoke need --preparatory")
 
+    # Command-line paths must lie inside the allowed roots (cli_paths).
+    args.matrix = confined(args.matrix, "--matrix")
+    args.tools = confined(args.tools, "--tools")
+    args.out = confined(args.out, "--out")
+    if args.resume_from:
+        args.resume_from = confined_directory(args.resume_from, "--resume-from")
     matrix_text = args.matrix.read_bytes()
     matrix = json.loads(matrix_text)
     matrix_sha = sha256_bytes(matrix_text)

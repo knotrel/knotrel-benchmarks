@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 import tempfile
 import unittest
@@ -13,6 +14,9 @@ from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS))
+# Command-line paths are confined (cli_paths); the temporary directories are granted here.
+os.environ["LIFECYCLE_QUALIFICATION_ROOTS"] = os.pathsep.join(
+    filter(None, [os.environ.get("LIFECYCLE_QUALIFICATION_ROOTS"), tempfile.gettempdir()]))
 import analyze_cf5 as an  # noqa: E402
 import cf5_matrix  # noqa: E402
 import run_cf5  # noqa: E402
@@ -537,6 +541,32 @@ class MeasurementLimitTest(unittest.TestCase):
                                570151 * read + 3 * tick * math.sqrt(570151 / 6), places=0)
         p99 = cells["S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-ett"]["metrics"][1]
         self.assertAlmostEqual(p99["measurement"]["limit_ns"], tick + read, places=0)
+
+
+class ReportNotesTest(unittest.TestCase):
+    def test_v1_s3_notes_and_limits_are_in_every_analysis(self):
+        matrix = {"cells": [{"id": "V1", "block": "V1", "kind": "delegated"},
+                            {"id": "S3", "block": "S3", "kind": "delegated"}]}
+        run = {"status": {"campaign": "complete", "cells": {}}, "raw": []}
+        result = an.analyze(matrix, [run])
+        self.assertIn("not applied", result["cells"]["V1"]["protocol_note"])
+        self.assertIn("no general guarantee", result["cells"]["V1"]["protocol_note"])
+        self.assertIn("feeder protocol", result["cells"]["S3"]["protocol_note"])
+        self.assertTrue(any("not quantified" in n for n in result["report_notes"]))
+        self.assertTrue(any("estimate" in n for n in result["report_notes"]))
+
+
+class PathConfinementTest(unittest.TestCase):
+    """SonarCloud S8707 on PR #35: command-line paths outside the allowed roots are refused."""
+
+    def test_paths_outside_the_roots_are_refused(self):
+        outside = "/private/etc/cf5-not-allowed" if sys.platform == "darwin" else "/etc/cf5-x"
+        with self.assertRaises(SystemExit):
+            an.main(["--matrix", outside, "--run", outside])
+        with self.assertRaises(SystemExit):
+            run_cf5.main(["--matrix", outside, "--tools", outside, "--out", outside])
+        with self.assertRaises(SystemExit):
+            an.main(["--matrix", "-x", "--run", tempfile.gettempdir()])
 
 
 class ReviewRegressionTest(Fixture):

@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -447,6 +448,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args()
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from cli_paths import confined  # noqa: PLC0415
+    args.out = confined(args.out, "--out")
     matrix = build()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(matrix, indent=1, sort_keys=True) + "\n")

@@ -43,11 +43,37 @@ import hashlib
 import json
 import math
 import statistics
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_directory  # noqa: E402
+
 LOWER, UPPER = 7, 18  # one-based order statistics at n = 24
 N = 24
+#: Shown next to the delegated results in the CF5 report (plan sections 6.1 and 14, item 9).
+PROTOCOL_NOTES = {
+    "V1": "V1 follows the frozen v1.0.0 experiment A protocol (rule set v0.4.0, REPORT_ONLY "
+          "link/cut p99 of the core cells). Its PASS is a PASS under that protocol: the "
+          "section 6.1 TIMER_LIMITED rule is not applied, and it is no general guarantee on "
+          "measurement error.",
+    "S3": "S3 follows the feeder protocol: absolute Q1-Q4 thresholds and Q5-style ratios of "
+          "medians over 3 observations per side. No interval, no TIMER_LIMITED class; the "
+          "section 6.1 rule does not apply.",
+    "L2": "L2 runs only the C rules (sustained resources), which contain no time metric.",
+}
+#: Shown with every CF5 report (plan section 6.1).
+REPORT_NOTES = (
+    "The measurement limit E is a calibration estimate (one host, one day; only the tick term "
+    "is guaranteed), not a mathematical upper bound. A class that stands was not changed by "
+    "the calibrated limit; it is not immune to every measurement error.",
+    "Per-operation timing (K1, V2, V3 workload_wall_ns; L3 churn) also removes overlap "
+    "between consecutive operations; the effect depends on the operation and is not "
+    "quantified (listed per metric in not_in_limit).",
+    "Preemption, interrupts, frequency changes and client scheduling or wake-up delays are "
+    "not bounded by E; they act on both arms and enter the pair dispersion.",
+)
 #: Section 6.1: effects the calibrated limit does not include, published with each metric.
 NOT_IN_LIMIT = {
     "instrumented_aggregate": ("per-operation timing: loss of overlap between consecutive "
@@ -253,6 +279,8 @@ def analyze(matrix: Dict[str, Any], runs: List[Dict[str, Any]]) -> Dict[str, Any
                                                                    arms["ref"][m["name"]],
                                                                    m["margin"])}
                                 for m in cell["metrics"]}
+        if cell["id"] in PROTOCOL_NOTES:
+            entry["protocol_note"] = PROTOCOL_NOTES[cell["id"]]
         cells_out[cell["id"]] = entry
     statements: Dict[str, Dict[str, Any]] = {}
     if failed:
@@ -285,7 +313,7 @@ def analyze(matrix: Dict[str, Any], runs: List[Dict[str, Any]]) -> Dict[str, Any
             statements.setdefault(family, {})[reference] = {"statement": statement,
                                                             "named_cells": named}
     return {"schema": "cf5-analysis-2", "campaign_failed": failed, "cells": cells_out,
-            "family_statements": statements}
+            "family_statements": statements, "report_notes": list(REPORT_NOTES)}
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -296,6 +324,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
     if len(args.run) > 2:
         parser.error("at most two sessions")
+    # Command-line paths must lie inside the allowed roots (cli_paths, as every analyzer).
+    args.matrix = confined(args.matrix, "--matrix")
+    args.run = [confined_directory(r, "--run") for r in args.run]
+    if args.out:
+        args.out = confined(args.out, "--out")
     text = args.matrix.read_bytes()
     sha = hashlib.sha256(text).hexdigest()
     runs = [load_run(r, sha) for r in args.run]

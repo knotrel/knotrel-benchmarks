@@ -49,6 +49,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evaluate_v100q_q as ev  # noqa: E402
+from cli_paths import confined, confined_directory  # noqa: E402
 import run_v100q_q as q  # noqa: E402
 
 CAP_S = 90 * 60.0
@@ -195,6 +196,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     evaluation.add_argument("out", type=Path)
     evaluation.add_argument("--out", dest="result", type=Path)
     args = parser.parse_args(argv)
+    args.out = confined(args.out, "out")
+    if args.command == "run":
+        args.camp = confined_directory(args.camp, "camp")
+    elif args.result:
+        args.result = confined(args.result, "--out")
     if args.command == "run":
         runner = S3Runner(args.camp.resolve(), args.out.resolve(), cap_s=args.cap_s)
         if args.dry_run:
