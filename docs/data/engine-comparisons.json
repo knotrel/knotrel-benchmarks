@@ -1,0 +1,1306 @@
+{
+  "schema_version": 1,
+  "comparisons": [
+    {
+      "id": "cluster-forest-cf5-02cba68",
+      "title": "cluster-forest compared with compact-bfs, ETT and HDT",
+      "kind": "engine comparison on one build",
+      "candidate_engine": "cluster-forest",
+      "reference_engines": [
+        "compact-bfs",
+        "ett",
+        "hdt"
+      ],
+      "candidate_sha": "02cba6825f9ad9ef769f4006428ccad5509076e9",
+      "tooling_sha": "f4d41f19869c0a63baa0ce32d91ab02c1dd1522f",
+      "campaign": "v1.1.0 CF5, attempt 1, session 1 (2026-11-24 to 2026-11-25)",
+      "environment": "Apple M3 (8 cores), 16 GB, macOS 26.5.2, Rust 1.100.0, AC power; server, PostgreSQL (S3 only) and load generator on the same machine",
+      "method": "Paired design, 24 measured pairs per timed cell, interval [r(7), r(18)] of the paired log ratios (97.73 %); margins: time 10 %, tail 25 %, throughput 10 %, memory 20 %. K4 and L4 are deterministic allocator counts, one run per arm.",
+      "decision": "compact-bfs stays the default engine; cluster-forest is opt-in and experimental.",
+      "limitations": [
+        "Host swap activity not verifiable; results accepted by the maintainer with this limitation. Swap occupancy was 738.25 MB at the start and at all 30 snapshots, and 722.25 MB at the end; the 192 zero values of the per-process swap counter concern only the V1 processes observed.",
+        "Statements hold only for the measured workloads, sizes and densities, this host, candidate 02cba68 and the server configurations used.",
+        "The measurement limit is a calibration estimate, not a mathematical bound; per-operation timing (K1, L3 churn) is not quantified."
+      ],
+      "lifecycle_disposition": "The two C3 FAILs are accepted by the maintainer as a documented limitation of the cluster-forest lifecycle on the sparse 1 000-node graph; their class stays FAIL and memory stability for those two workloads stays open.",
+      "report_url": "https://github.com/knotrel/knotrel-benchmarks/blob/e0c5114af55096ffa758527be3b835307cf0e1b6/results/v1.1.0-cf5/REPORT.md",
+      "evidence_url": "https://github.com/knotrel/knotrel-benchmarks/tree/e0c5114af55096ffa758527be3b835307cf0e1b6/results/v1.1.0-cf5/analysis/attempt1",
+      "families": [
+        {
+          "family": "dense-bridge-churn-v1",
+          "description": "Two cliques, one bridge toggled",
+          "scope": "core",
+          "sizes": [
+            512,
+            2048
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.0384,
+                0.0389
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.0025,
+                0.00343
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.32,
+                0.431
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "redundant-bridge-churn-v1",
+          "description": "Two cliques, two bridges toggled independently",
+          "scope": "core",
+          "sizes": [
+            512,
+            2048
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.039,
+                0.0425
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.00408,
+                0.00607
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.326,
+                0.473
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "components-join-split-v1",
+          "description": "Two paths joined and split by a seeded bridge",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.396,
+                0.426
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                10.4,
+                48.0
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                9.69,
+                9.87
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "hub-alternatives-v1",
+          "description": "Star plus a leaf path; a leaf is isolated and restored",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.00462,
+                0.0293
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "insufficient evidence",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 1,
+                "TIMER_LIMITED": 1
+              },
+              "median_ratio": [
+                1.33,
+                1.35
+              ],
+              "named_cells": [
+                "K1-hub-alternatives-v1-10000-vs-ett"
+              ]
+            },
+            {
+              "reference": "hdt",
+              "statement": "insufficient evidence",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "TIMER_LIMITED": 2
+              },
+              "median_ratio": [
+                1.19,
+                1.23
+              ],
+              "named_cells": [
+                "K1-hub-alternatives-v1-10000-vs-hdt",
+                "K1-hub-alternatives-v1-100000-vs-hdt"
+              ]
+            }
+          ]
+        },
+        {
+          "family": "sustained-churn-blocks-v1",
+          "description": "16-vertex cycles joined by bridges, persistent toggling",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                11.8,
+                19.0
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                13.7,
+                28.4
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "FASTER": 2
+              },
+              "median_ratio": [
+                0.374,
+                0.679
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "chain-split-rejoin-v1",
+          "description": "Path; a seeded bridge is cut and relinked",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                2.38,
+                2.81
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                58.7,
+                330.0
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                56.7,
+                78.9
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "cycle-alternatives-v1",
+          "description": "Ring; cuts with and without an alternative path",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                1.92,
+                2.06
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                37.0,
+                202.0
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                1.38,
+                2.28
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "sustained-churn-path-v1",
+          "description": "Path edges toggled persistently, with queries",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                16.4,
+                25.5
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                18.7,
+                68.8
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer reference",
+              "cells": 2,
+              "blocks": [
+                "K1"
+              ],
+              "classes": {
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                17.4,
+                28.3
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "K2-d4",
+          "description": "Staged random inserts and deletes, E = 2V, with construction (K3) and memory (K4)",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000,
+            1000000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "mixed results",
+              "cells": 9,
+              "blocks": [
+                "K2",
+                "K3",
+                "K4"
+              ],
+              "classes": {
+                "FASTER": 3,
+                "LARGER": 12,
+                "SLOWER": 6
+              },
+              "median_ratio": [
+                0.000183,
+                60.4
+              ],
+              "named_cells": [
+                "K2-d4-10000-vs-compact-bfs",
+                "K2-d4-100000-vs-compact-bfs",
+                "K2-d4-1000000-vs-compact-bfs",
+                "K3-d4-10000-vs-compact-bfs",
+                "K3-d4-100000-vs-compact-bfs",
+                "K3-d4-1000000-vs-compact-bfs",
+                "K4-d4-10000-vs-compact-bfs",
+                "K4-d4-100000-vs-compact-bfs",
+                "K4-d4-1000000-vs-compact-bfs"
+              ]
+            },
+            {
+              "reference": "ett",
+              "statement": "mixed results",
+              "cells": 9,
+              "blocks": [
+                "K2",
+                "K3",
+                "K4"
+              ],
+              "classes": {
+                "EQUIVALENT": 2,
+                "FASTER": 3,
+                "SIMILAR": 3,
+                "SLOWER": 4,
+                "SMALLER": 9
+              },
+              "median_ratio": [
+                0.568,
+                3.08
+              ],
+              "named_cells": [
+                "K2-d4-10000-vs-ett",
+                "K2-d4-100000-vs-ett",
+                "K2-d4-1000000-vs-ett",
+                "K3-d4-10000-vs-ett",
+                "K3-d4-100000-vs-ett",
+                "K3-d4-1000000-vs-ett",
+                "K4-d4-10000-vs-ett",
+                "K4-d4-100000-vs-ett",
+                "K4-d4-1000000-vs-ett"
+              ]
+            },
+            {
+              "reference": "hdt",
+              "statement": "mixed results",
+              "cells": 9,
+              "blocks": [
+                "K2",
+                "K3",
+                "K4"
+              ],
+              "classes": {
+                "EQUIVALENT": 2,
+                "FASTER": 5,
+                "INCONCLUSIVE": 1,
+                "SLOWER": 1,
+                "SMALLER": 12
+              },
+              "median_ratio": [
+                0.443,
+                1.22
+              ],
+              "named_cells": [
+                "K2-d4-100000-vs-hdt",
+                "K2-d4-1000000-vs-hdt",
+                "K3-d4-10000-vs-hdt",
+                "K3-d4-100000-vs-hdt",
+                "K3-d4-1000000-vs-hdt",
+                "K4-d4-10000-vs-hdt",
+                "K4-d4-100000-vs-hdt",
+                "K4-d4-1000000-vs-hdt"
+              ]
+            }
+          ]
+        },
+        {
+          "family": "K2-d16",
+          "description": "Staged random inserts and deletes, E = 8V, with construction (K3) and memory (K4)",
+          "scope": "core",
+          "sizes": [
+            10000,
+            100000,
+            1000000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "mixed results",
+              "cells": 9,
+              "blocks": [
+                "K2",
+                "K3",
+                "K4"
+              ],
+              "classes": {
+                "FASTER": 3,
+                "LARGER": 12,
+                "SLOWER": 6
+              },
+              "median_ratio": [
+                0.000204,
+                30.2
+              ],
+              "named_cells": [
+                "K2-d16-10000-vs-compact-bfs",
+                "K2-d16-100000-vs-compact-bfs",
+                "K2-d16-1000000-vs-compact-bfs",
+                "K3-d16-10000-vs-compact-bfs",
+                "K3-d16-100000-vs-compact-bfs",
+                "K3-d16-1000000-vs-compact-bfs",
+                "K4-d16-10000-vs-compact-bfs",
+                "K4-d16-100000-vs-compact-bfs",
+                "K4-d16-1000000-vs-compact-bfs"
+              ]
+            },
+            {
+              "reference": "ett",
+              "statement": "mixed results",
+              "cells": 9,
+              "blocks": [
+                "K2",
+                "K3",
+                "K4"
+              ],
+              "classes": {
+                "FASTER": 4,
+                "SIMILAR": 2,
+                "SLOWER": 5,
+                "SMALLER": 10
+              },
+              "median_ratio": [
+                0.548,
+                2.71
+              ],
+              "named_cells": [
+                "K2-d16-10000-vs-ett",
+                "K2-d16-100000-vs-ett",
+                "K2-d16-1000000-vs-ett",
+                "K3-d16-10000-vs-ett",
+                "K3-d16-100000-vs-ett",
+                "K3-d16-1000000-vs-ett",
+                "K4-d16-10000-vs-ett",
+                "K4-d16-100000-vs-ett",
+                "K4-d16-1000000-vs-ett"
+              ]
+            },
+            {
+              "reference": "hdt",
+              "statement": "mixed results",
+              "cells": 9,
+              "blocks": [
+                "K2",
+                "K3",
+                "K4"
+              ],
+              "classes": {
+                "EQUIVALENT": 1,
+                "FASTER": 6,
+                "SLOWER": 2,
+                "SMALLER": 12
+              },
+              "median_ratio": [
+                0.45,
+                1.26
+              ],
+              "named_cells": [
+                "K2-d16-10000-vs-hdt",
+                "K2-d16-100000-vs-hdt",
+                "K2-d16-1000000-vs-hdt",
+                "K3-d16-10000-vs-hdt",
+                "K3-d16-100000-vs-hdt",
+                "K3-d16-1000000-vs-hdt",
+                "K4-d16-10000-vs-hdt",
+                "K4-d16-100000-vs-hdt",
+                "K4-d16-1000000-vs-hdt"
+              ]
+            }
+          ]
+        },
+        {
+          "family": "K2x",
+          "description": "Random simple graph, E = 3V, inserts, queries and deletes (exploratory provenance)",
+          "scope": "core",
+          "sizes": [
+            16384,
+            131072,
+            1048576
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer reference",
+              "cells": 3,
+              "blocks": [
+                "K2x"
+              ],
+              "classes": {
+                "SLOWER": 6
+              },
+              "median_ratio": [
+                3.01,
+                141.0
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "mixed results",
+              "cells": 3,
+              "blocks": [
+                "K2x"
+              ],
+              "classes": {
+                "FASTER": 3,
+                "SLOWER": 3
+              },
+              "median_ratio": [
+                0.621,
+                3.87
+              ],
+              "named_cells": [
+                "K2x-d6-1048576-vs-ett",
+                "K2x-d6-131072-vs-ett",
+                "K2x-d6-16384-vs-ett"
+              ]
+            },
+            {
+              "reference": "hdt",
+              "statement": "insufficient evidence",
+              "cells": 3,
+              "blocks": [
+                "K2x"
+              ],
+              "classes": {
+                "EQUIVALENT": 1,
+                "FASTER": 4,
+                "INCONCLUSIVE": 1
+              },
+              "median_ratio": [
+                0.47,
+                0.993
+              ],
+              "named_cells": [
+                "K2x-d6-1048576-vs-hdt"
+              ]
+            }
+          ]
+        },
+        {
+          "family": "K3-families",
+          "description": "Construction from the six sparse K1 family graphs at 100 000 vertices",
+          "scope": "core",
+          "sizes": [
+            100000
+          ],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer reference",
+              "cells": 6,
+              "blocks": [
+                "K3"
+              ],
+              "classes": {
+                "SLOWER": 6
+              },
+              "median_ratio": [
+                7.87,
+                10.3
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "prefer cluster-forest",
+              "cells": 6,
+              "blocks": [
+                "K3"
+              ],
+              "classes": {
+                "FASTER": 6
+              },
+              "median_ratio": [
+                0.303,
+                0.393
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "hdt",
+              "statement": "prefer cluster-forest",
+              "cells": 6,
+              "blocks": [
+                "K3"
+              ],
+              "classes": {
+                "FASTER": 6
+              },
+              "median_ratio": [
+                0.288,
+                0.367
+              ],
+              "named_cells": []
+            }
+          ]
+        },
+        {
+          "family": "L",
+          "description": "Node and edge lifecycle: L1 lifecycle window, L3 import and churn, L4 memory",
+          "scope": "core",
+          "sizes": [],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "mixed results",
+              "cells": 32,
+              "blocks": [
+                "L1",
+                "L3",
+                "L4"
+              ],
+              "classes": {
+                "FASTER": 3,
+                "INCONCLUSIVE": 1,
+                "LARGER": 19,
+                "SIMILAR": 1,
+                "SLOWER": 18
+              },
+              "median_ratio": [
+                0.0109,
+                32.5
+              ],
+              "named_cells": [
+                "L1-B4-http-events-equivalent-compact-bfs-sparse-10000",
+                "L1-B4-http-events-equivalent-compact-bfs-sparse-100000",
+                "L1-B4-http-import-equivalent-compact-bfs-hub-10000",
+                "L1-B4-http-import-equivalent-compact-bfs-sparse-10000",
+                "L1-B4-http-import-equivalent-compact-bfs-sparse-100000",
+                "L1-B4-http-import-high-equivalent-compact-bfs-sparse-10000",
+                "L1-B4-http-ops-equivalent-compact-bfs-sparse-10000",
+                "L1-B4-http-ops-equivalent-compact-bfs-sparse-100000",
+                "L1-B4-http-ops-query-equivalent-compact-bfs-hub-10000",
+                "L1-B4-http-ops-query-equivalent-compact-bfs-sparse-10000",
+                "L1-B4-http-ops-query-equivalent-compact-bfs-sparse-100000",
+                "L3-R-churn-fresh-hub-100k",
+                "L3-R-churn-fresh-sparse-100k",
+                "L3-R-churn-same-sparse-100k",
+                "L3-R-churn-toggle-sparse-100k",
+                "L3-R-core-import-hub-10k-20-10",
+                "L3-R-core-import-sparse-100k-20-10",
+                "L3-R-core-import-sparse-100k-60-30",
+                "L3-R-core-import-sparse-10k-20-10",
+                "L3-R-http-import-sparse-100k-20-10",
+                "L3-R-http-import-sparse-10k-20-10",
+                "L4-Rmem-churn-fresh-hub",
+                "L4-Rmem-churn-fresh-ring",
+                "L4-Rmem-churn-fresh-sparse",
+                "L4-Rmem-churn-same-sparse",
+                "L4-Rmem-churn-toggle-sparse",
+                "L4-Rmem-import-core-20-10",
+                "L4-Rmem-import-core-60-30",
+                "L4-Rmem-import-http-create-20-10",
+                "L4-Rmem-import-http-create-60-30",
+                "L4-Rmem-import-http-replace-20-10"
+              ]
+            }
+          ]
+        },
+        {
+          "family": "S1-lifecycle-off",
+          "description": "HTTP server, mixed read and write traffic, lifecycle off",
+          "scope": "end-to-end",
+          "sizes": [],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer cluster-forest",
+              "cells": 4,
+              "blocks": [
+                "S1"
+              ],
+              "classes": {
+                "FASTER": 8
+              },
+              "median_ratio": [
+                0.00439,
+                0.418
+              ],
+              "named_cells": []
+            },
+            {
+              "reference": "ett",
+              "statement": "isolated differences",
+              "cells": 4,
+              "blocks": [
+                "S1"
+              ],
+              "classes": {
+                "EQUIVALENT": 6,
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                0.891,
+                1.34
+              ],
+              "named_cells": [
+                "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-ett"
+              ]
+            },
+            {
+              "reference": "hdt",
+              "statement": "isolated differences",
+              "cells": 4,
+              "blocks": [
+                "S1"
+              ],
+              "classes": {
+                "EQUIVALENT": 6,
+                "SLOWER": 2
+              },
+              "median_ratio": [
+                0.9,
+                1.3
+              ],
+              "named_cells": [
+                "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-hdt"
+              ]
+            }
+          ]
+        },
+        {
+          "family": "S1-lifecycle-on",
+          "description": "HTTP server, mixed read and write traffic, lifecycle on",
+          "scope": "end-to-end",
+          "sizes": [],
+          "against": [
+            {
+              "reference": "compact-bfs",
+              "statement": "prefer cluster-forest",
+              "cells": 2,
+              "blocks": [
+                "S1"
+              ],
+              "classes": {
+                "FASTER": 4
+              },
+              "median_ratio": [
+                0.00856,
+                0.0196
+              ],
+              "named_cells": []
+            }
+          ]
+        }
+      ],
+      "block_counts": [
+        {
+          "block": "K1",
+          "reference": "compact-bfs",
+          "classes": {
+            "FASTER": 8,
+            "SLOWER": 8
+          }
+        },
+        {
+          "block": "K1",
+          "reference": "ett",
+          "classes": {
+            "FASTER": 4,
+            "SLOWER": 11,
+            "TIMER_LIMITED": 1
+          }
+        },
+        {
+          "block": "K1",
+          "reference": "hdt",
+          "classes": {
+            "FASTER": 6,
+            "SLOWER": 8,
+            "TIMER_LIMITED": 2
+          }
+        },
+        {
+          "block": "K2",
+          "reference": "compact-bfs",
+          "classes": {
+            "FASTER": 6,
+            "SLOWER": 6
+          }
+        },
+        {
+          "block": "K2",
+          "reference": "ett",
+          "classes": {
+            "EQUIVALENT": 2,
+            "FASTER": 1,
+            "SLOWER": 9
+          }
+        },
+        {
+          "block": "K2",
+          "reference": "hdt",
+          "classes": {
+            "EQUIVALENT": 3,
+            "FASTER": 5,
+            "INCONCLUSIVE": 1,
+            "SLOWER": 3
+          }
+        },
+        {
+          "block": "K2x",
+          "reference": "compact-bfs",
+          "classes": {
+            "SLOWER": 6
+          }
+        },
+        {
+          "block": "K2x",
+          "reference": "ett",
+          "classes": {
+            "FASTER": 3,
+            "SLOWER": 3
+          }
+        },
+        {
+          "block": "K2x",
+          "reference": "hdt",
+          "classes": {
+            "EQUIVALENT": 1,
+            "FASTER": 4,
+            "INCONCLUSIVE": 1
+          }
+        },
+        {
+          "block": "K3",
+          "reference": "compact-bfs",
+          "classes": {
+            "SLOWER": 12
+          }
+        },
+        {
+          "block": "K3",
+          "reference": "ett",
+          "classes": {
+            "FASTER": 12
+          }
+        },
+        {
+          "block": "K3",
+          "reference": "hdt",
+          "classes": {
+            "FASTER": 12
+          }
+        },
+        {
+          "block": "K4",
+          "reference": "compact-bfs",
+          "classes": {
+            "LARGER": 24
+          }
+        },
+        {
+          "block": "K4",
+          "reference": "ett",
+          "classes": {
+            "SIMILAR": 5,
+            "SMALLER": 19
+          }
+        },
+        {
+          "block": "K4",
+          "reference": "hdt",
+          "classes": {
+            "SMALLER": 24
+          }
+        },
+        {
+          "block": "L1",
+          "reference": "compact-bfs",
+          "classes": {
+            "FASTER": 3,
+            "SLOWER": 8
+          }
+        },
+        {
+          "block": "L3",
+          "reference": "compact-bfs",
+          "classes": {
+            "INCONCLUSIVE": 1,
+            "SLOWER": 10
+          }
+        },
+        {
+          "block": "L4",
+          "reference": "compact-bfs",
+          "classes": {
+            "LARGER": 19,
+            "SIMILAR": 1
+          }
+        },
+        {
+          "block": "S1",
+          "reference": "compact-bfs",
+          "classes": {
+            "FASTER": 12
+          }
+        },
+        {
+          "block": "S1",
+          "reference": "ett",
+          "classes": {
+            "EQUIVALENT": 6,
+            "SLOWER": 2
+          }
+        },
+        {
+          "block": "S1",
+          "reference": "hdt",
+          "classes": {
+            "EQUIVALENT": 6,
+            "SLOWER": 2
+          }
+        }
+      ],
+      "lifecycle_rules": {
+        "counts": {
+          "C1": {
+            "PASS": 30
+          },
+          "C2": {
+            "PASS": 60
+          },
+          "C3": {
+            "FAIL": 2,
+            "PASS": 13
+          },
+          "C4": {
+            "EXCEEDS_BUDGET": 9,
+            "PASS": 6
+          }
+        },
+        "c3_fail": [
+          {
+            "run": "C-heap-lifecycle-cluster-forest-sparse-same-1000",
+            "graph": "sparse",
+            "workload": "reuse same",
+            "nodes": 1000,
+            "metric": "net_heap_bytes",
+            "late_over_early": 1.133,
+            "projected_growth_30_pct": 20.2,
+            "first_bytes": 558512.0,
+            "last_bytes": 650736.0
+          },
+          {
+            "run": "C-heap-lifecycle-cluster-forest-sparse-toggle-1000",
+            "graph": "sparse",
+            "workload": "toggle",
+            "nodes": 1000,
+            "metric": "net_heap_bytes",
+            "late_over_early": 1.146,
+            "projected_growth_30_pct": 14.6,
+            "first_bytes": 558512.0,
+            "last_bytes": 656824.0
+          }
+        ],
+        "c4_exceeds_budget": [
+          {
+            "run": "C-rss-lifecycle-cluster-forest-sparse-fresh-1000",
+            "graph": "sparse",
+            "workload": "fresh",
+            "nodes": 1000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 1.688,
+            "projected_growth_30_pct": 116.0,
+            "first_bytes": 589824.0,
+            "last_bytes": 1327104.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-sparse-same-1000",
+            "graph": "sparse",
+            "workload": "reuse same",
+            "nodes": 1000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 1.15,
+            "projected_growth_30_pct": 31.5,
+            "first_bytes": 589824.0,
+            "last_bytes": 753664.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-sparse-toggle-1000",
+            "graph": "sparse",
+            "workload": "toggle",
+            "nodes": 1000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 1.154,
+            "projected_growth_30_pct": 17.5,
+            "first_bytes": 606208.0,
+            "last_bytes": 737280.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-sparse-fresh-10000",
+            "graph": "sparse",
+            "workload": "fresh",
+            "nodes": 10000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 2.27,
+            "projected_growth_30_pct": 209.9,
+            "first_bytes": 3342336.0,
+            "last_bytes": 9519104.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-sparse-fresh-100000",
+            "graph": "sparse",
+            "workload": "fresh",
+            "nodes": 100000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 2.657,
+            "projected_growth_30_pct": 307.4,
+            "first_bytes": 18759680.0,
+            "last_bytes": 104398848.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-sparse-same-100000",
+            "graph": "sparse",
+            "workload": "reuse same",
+            "nodes": 100000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 1.021,
+            "projected_growth_30_pct": 32.0,
+            "first_bytes": 24657920.0,
+            "last_bytes": 34570240.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-ring-fresh-100000",
+            "graph": "ring",
+            "workload": "fresh",
+            "nodes": 100000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 3.016,
+            "projected_growth_30_pct": 293.4,
+            "first_bytes": 29196288.0,
+            "last_bytes": 111132672.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-hub-fresh-100000",
+            "graph": "hub",
+            "workload": "fresh",
+            "nodes": 100000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 2.479,
+            "projected_growth_30_pct": 255.4,
+            "first_bytes": 27181056.0,
+            "last_bytes": 102957056.0
+          },
+          {
+            "run": "C-rss-lifecycle-cluster-forest-hub-same-100000",
+            "graph": "hub",
+            "workload": "reuse same",
+            "nodes": 100000,
+            "metric": "net_rss_bytes",
+            "late_over_early": 1.061,
+            "projected_growth_30_pct": 67.5,
+            "first_bytes": 13598720.0,
+            "last_bytes": 25116672.0
+          }
+        ]
+      }
+    }
+  ]
+}

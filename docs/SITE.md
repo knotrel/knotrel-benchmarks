@@ -28,7 +28,11 @@ https://knotrel.github.io/knotrel-benchmarks/. No deployment workflow is require
 
 `docs/data/releases.json` is the source for release pages; the Python generator
 owns the HTML pages. Add an adapter/export from a campaign analyzer rather than
-manually transcribing measurements. Planned entries contain no
+manually transcribing measurements. The site contains the published 1.0.0
+report (qualification **accepted with exceptions**, exported by
+`scripts/export_v100q_site.py`) and no fabricated values or verdicts. 1.0.0
+remains the latest published release until the 1.1.0 tag; a 1.1.0 entry is
+added only from its own release comparison. Planned entries contain no
 values or verdicts.
 
 For 1.0.0, freeze the latest released 0.9.x patch as an exact tag and 40-character
@@ -140,3 +144,47 @@ placeholders to satisfy the table.
 `--check` detects stale generated HTML. Run the site tests to validate internal
 links and reject incomplete evidence. Historical corrections must be versioned
 and explained, keeping earlier campaign artifacts available.
+
+## Engine comparisons
+
+`docs/data/engine-comparisons.json` holds comparisons of engines on **one
+build**, which the release schema cannot express (it compares a candidate with
+earlier releases). The generator renders `engines.html` and one
+`engines/<id>.html` page per entry; the page title and eyebrow say that it is
+an engine comparison on one build, not a release comparison.
+
+The first entry, `cluster-forest-cf5-02cba68`, is the v1.1.0 CF5
+qualification (`results/v1.1.0-cf5/REPORT.md`). Regenerate it from the
+analyzers' outputs, never by hand:
+
+```sh
+python3 scripts/export_cf5_site.py   # permalinks: REPORT_COMMIT in the script
+python3 scripts/build_site.py
+```
+
+Schema 1 (`schema_version: 1`), checked by `validate_engines`:
+
+- identity: a slug `id`, `title`, `kind`, `candidate_engine`,
+  `reference_engines`, 40-character `candidate_sha` and `tooling_sha`,
+  `campaign`, `environment`, `method` and the maintainer's `decision`;
+- `report_url` and `evidence_url` must be **commit permalinks**
+  (`https://github.com/<owner>/<repo>/blob|tree/<40-hex SHA>/...`), so the page
+  never follows a moving branch;
+- `limitations`: nonempty; the first is shown at the top of the page and on
+  the index card (for CF5, the host swap limitation of decision D1);
+- `families`: per workload family, the analyzer's statement against each
+  reference, from the closed set of plan section 12 (`prefer cluster-forest`,
+  `prefer reference`, `mixed results`, `insufficient evidence`,
+  `no difference beyond the margins`, `isolated differences`), the classes of
+  every metric of the family's cells (`FASTER`, `SLOWER`, `EQUIVALENT`,
+  `INCONCLUSIVE`, `TIMER_LIMITED`, `SMALLER`, `LARGER`, `SIMILAR`) and the range
+  of their median paired ratio (timed metrics, three significant figures; below
+  1 favours the candidate engine);
+- `block_counts`: every metric class per block and reference;
+- `lifecycle_rules`: C1–C4 counts and **every** C3 FAIL and C4
+  EXCEEDS_BUDGET run with the analyzer's numbers. A C3 FAIL requires
+  `lifecycle_disposition`; the projected 30-cycle growth is labelled as a
+  projection from the slope, never as measured growth.
+
+No class or statement is converted, merged or dropped.
+

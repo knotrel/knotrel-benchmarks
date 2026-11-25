@@ -51,7 +51,8 @@ class SiteTests(unittest.TestCase):
         return comparison, row
 
     def test_links_and_generated_files(self):
-        for name, output in site.generate(self.live).items():
+        engines = json.loads((site.DOCS / 'data/engine-comparisons.json').read_text())
+        for name, output in site.generate(self.live, engines).items():
             self.assertEqual((site.DOCS / name).read_text(), output)
             parser = Links()
             parser.feed(output)
@@ -336,3 +337,66 @@ class SchemaTwoTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class EngineComparisonTests(unittest.TestCase):
+    """The CF5 engine page: one build, original classes, limitation and L2 non-PASS rows visible."""
+
+    def setUp(self):
+        self.releases = copy.deepcopy(PLANNED)
+        self.engines = json.loads((site.DOCS / 'data/engine-comparisons.json').read_text())
+        self.c = self.engines['comparisons'][0]
+
+    def page(self):
+        return site.generate(self.releases, self.engines)[f'engines/{self.c["id"]}.html']
+
+    def test_page_names_the_comparison_kind_and_limitation(self):
+        page = self.page()
+        self.assertIn('ENGINE COMPARISON / ONE BUILD / NOT A RELEASE COMPARISON', page)
+        self.assertIn('cluster-forest compared with compact-bfs, ETT, HDT', page)
+        self.assertIn('Host swap activity not verifiable; results accepted by the maintainer with this limitation',
+                      page)
+        self.assertIn(self.c['report_url'], page)
+        self.assertIn('compact-bfs stays the default engine', page)
+
+    def test_lifecycle_fails_and_disclosures_are_listed_as_projections(self):
+        page = self.page()
+        rules = self.c['lifecycle_rules']
+        self.assertEqual([(e['workload'], e['nodes'], e['projected_growth_30_pct']) for e in rules['c3_fail']],
+                         [('reuse same', 1000, 20.2), ('toggle', 1000, 14.6)])
+        self.assertIn('<strong>+20.2 %</strong> (projected from the slope)', page)
+        self.assertIn('<strong>+14.6 %</strong> (projected from the slope)', page)
+        self.assertEqual(len(rules['c4_exceeds_budget']), 9)
+        self.assertIn('C4 EXCEEDS_BUDGET (9)', page)
+        for e in rules['c3_fail'] + rules['c4_exceeds_budget']:
+            self.assertIn(e['run'], page)
+
+    def test_family_statements_match_the_analyzer(self):
+        analysis = json.loads((site.ROOT / 'results/v1.1.0-cf5/analysis/attempt1/analysis-session1.json').read_text())
+        for family in self.c['families']:
+            for a in family['against']:
+                self.assertEqual(a['statement'],
+                                 analysis['family_statements'][family['family']][a['reference']]['statement'])
+
+    def test_rejects_missing_limitation_unlisted_fail_and_moving_links(self):
+        for mutate in (lambda c: c.update(limitations=[]),
+                       lambda c: c['lifecycle_rules']['c3_fail'].pop(),
+                       lambda c: c['lifecycle_rules']['c4_exceeds_budget'].pop(),
+                       lambda c: c.pop('lifecycle_disposition'),
+                       lambda c: c.update(report_url='https://github.com/knotrel/knotrel-benchmarks/blob/main/x.md'),
+                       lambda c: c['families'][0]['against'][0].update(statement='prefer cluster-forest strongly'),
+                       lambda c: c['families'][0]['against'][0]['classes'].update(PASS=1)):
+            engines = copy.deepcopy(self.engines)
+            mutate(engines['comparisons'][0])
+            with self.assertRaises((AssertionError, KeyError)):
+                site.generate(self.releases, engines)
+
+    def test_engines_index_without_data(self):
+        page = site.generate(self.releases)['engines.html']
+        self.assertIn('No engine comparison published yet.', page)
+
+    def test_exporter_reproduces_the_dataset(self):
+        spec = importlib.util.spec_from_file_location('export_cf5_site', site.ROOT / 'scripts/export_cf5_site.py')
+        exporter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(exporter)
+        self.assertEqual(exporter.build(exporter.REPORT_URL, exporter.EVIDENCE_URL), self.engines)
