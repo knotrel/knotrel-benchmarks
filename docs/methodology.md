@@ -366,6 +366,52 @@ whole measurement window. Per-process counters such as `ru_nswap` from
 attempt 1 recorded occupancy only; its report carries that limitation
 (`results/v1.1.0-cf5/REPORT.md`, D1).
 
+## Per-release measurement policy
+
+Adopted 2026-11-25 for releases after v1.1.0 ([knotrel/knotrel#186](https://github.com/knotrel/knotrel/issues/186)).
+Performance is measured **per release, not per feature**. There are two kinds of
+measurement campaign:
+
+1. **Release qualification.** One campaign per release, run on the release
+   candidate against the previous release. Its scope is the set of areas changed
+   since the previous release tag: code under `crates/*/src`, `Cargo.lock`, the
+   toolchain and server configuration defaults. Areas with no change get no cells;
+   the freeze record lists them with the diff evidence ("no code change since
+   vX.Y.Z"). A toolchain or dependency change puts every area it can affect in
+   scope.
+2. **Impact estimate.** A before/after comparison of one specific change, run only
+   when its result decides whether the change is adopted (performance
+   optimizations, alternative designs). It is scoped to the cells the change can
+   affect. It informs adoption and does not qualify the release. An adopted change
+   puts its areas in the scope of the release qualification.
+
+These are not measurement campaigns under this policy and never produce
+qualification data: **profiling** (diagnostic), **research experiments**, and
+**external comparisons** with other systems, which use the candidate frozen by a
+release qualification ([issue #15](https://github.com/knotrel/knotrel-benchmarks/issues/15)).
+Feature stories do not carry measurement protocols of their own: a measurement item
+in a story becomes a set of cells contributed to its release's qualification and
+declared in that campaign's frozen protocol.
+
+Rules:
+
+- Criteria and thresholds are fixed before collection.
+- The scope of a release qualification is derived from the diff against the
+  previous release tag at freeze time and recorded in the freeze record.
+- A carried non-PASS result (exception, INCONCLUSIVE, TIMER_LIMITED, documented
+  limitation) is re-measured only inside a release qualification, and only if its
+  code path changed. Otherwise it gets a written disposition citing the diff.
+- Campaigns that share a host run serially, never concurrently. This covers impact
+  estimates and release qualifications.
+- Host swap activity is recorded with cumulative counters before and after the
+  window ([Host swap activity](#host-swap-activity)).
+
+**Sentinel set: none.** A release qualification does not add a fixed set of core or
+server regression cells for areas the diff leaves unchanged. Indirect causes
+(toolchain, dependencies, configuration defaults) are already changes under the
+scope rule above. Recorded on 2026-11-25 under the maintainer's delegation for the
+v1.2.0 plan; a later release may revisit it before its freeze, never after.
+
 ## Sustained scale experiments
 
 `sustained-churn-path-v1` toggles seeded path edges; an ordered set of absent
