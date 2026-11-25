@@ -30,10 +30,12 @@ https://knotrel.github.io/knotrel-benchmarks/. No deployment workflow is require
 owns the HTML pages. Add an adapter/export from a campaign analyzer rather than
 manually transcribing measurements. The site contains the published 1.0.0
 report (qualification **accepted with exceptions**, exported by
-`scripts/export_v100q_site.py`) and no fabricated values or verdicts. 1.0.0
-remains the latest published release until the 1.1.0 tag; a 1.1.0 entry is
-added only from its own release comparison. Planned entries contain no
-values or verdicts.
+`scripts/export_v100q_site.py`), the 1.1.0 report (the CF5 regression checks
+V1 and V2 against v1.0.0, qualification **accepted with exceptions**, exported
+by `scripts/export_cf5_release_site.py`, which takes no arguments) and no
+fabricated values or verdicts. 1.1.0 is the latest published release. A release entry is merged right before its
+release tag, so the site never lists a release that does not exist. Planned
+entries contain no values or verdicts.
 
 For 1.0.0, freeze the latest released 0.9.x patch as an exact tag and 40-character
 SHA. Later updates must not change the selected reference retrospectively.
@@ -76,6 +78,11 @@ version) was changed by hand to `1.0.0`, with a `qualification_note`, when the
 maintainer released 1.0.0 directly and transferred the qualification under a
 waiver (2026-11-24, `results/v1.0.0-qualification/DECISION.md` section 6). No
 measurement or verdict was changed.
+For 1.1.0 the exporter writes the label `1.1.0` and a `qualification_note`
+directly: the measured candidate `02cba68` carried crate version 1.0.0. The
+note states the delta to 1.1.0 and that the transfer of the results to the
+1.1.0 build is decided separately (`results/v1.1.0-cf5/DECISION.md`); update
+it when that decision is recorded.
 
 Schema 2 adds outcomes that schema 1 cannot express. A dataset with
 `schema_version: 2` may contain release entries with `schema_version: 2`. A
