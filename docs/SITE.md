@@ -157,8 +157,7 @@ qualification (`results/v1.1.0-cf5/REPORT.md`). Regenerate it from the
 analyzers' outputs, never by hand:
 
 ```sh
-python3 scripts/export_cf5_site.py --report-url <commit permalink of REPORT.md> \
-  --evidence-url <commit permalink of analysis/attempt1>
+python3 scripts/export_cf5_site.py   # permalinks: REPORT_COMMIT in the script
 python3 scripts/build_site.py
 ```
 

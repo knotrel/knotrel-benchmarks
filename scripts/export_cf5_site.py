@@ -24,10 +24,10 @@ The report's maintainer decisions (D1 limitation, D5 disposition) are passed as 
 caller from the report; they never change a class.
 
 Usage:
-    python3 scripts/export_cf5_site.py --report-url URL --evidence-url URL
+    python3 scripts/export_cf5_site.py
 
-It always writes ``docs/data/engine-comparisons.json``; no output path is taken from the command
-line.
+It takes no arguments and always writes ``docs/data/engine-comparisons.json``; the report and
+evidence permalinks are the constants ``REPORT_URL`` and ``EVIDENCE_URL``.
 """
 import argparse
 import collections
@@ -43,6 +43,12 @@ OUT = ROOT / 'docs/data/engine-comparisons.json'
 COMPARISON_ID = 'cluster-forest-cf5-02cba68'
 CANDIDATE_SHA = '02cba6825f9ad9ef769f4006428ccad5509076e9'
 TOOLING_SHA = 'f4d41f19869c0a63baa0ce32d91ab02c1dd1522f'
+# Commit of the published report (knotrel-benchmarks#41): the page links to it by permalink, so it
+# never follows a moving branch. Change it here, in review, if the report is corrected.
+REPORT_COMMIT = 'e0c5114af55096ffa758527be3b835307cf0e1b6'
+REPORT_URL = f'https://github.com/knotrel/knotrel-benchmarks/blob/{REPORT_COMMIT}/results/v1.1.0-cf5/REPORT.md'
+EVIDENCE_URL = (f'https://github.com/knotrel/knotrel-benchmarks/tree/{REPORT_COMMIT}'
+                '/results/v1.1.0-cf5/analysis/attempt1')
 REFERENCES = ('compact-bfs', 'ett', 'hdt')
 ENGINE_BLOCKS = ('K1', 'K2', 'K2x', 'K3', 'K4', 'L1', 'L3', 'L4', 'S1')
 
@@ -200,11 +206,8 @@ def build(report_url, evidence_url):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--report-url', required=True)
-    parser.add_argument('--evidence-url', required=True)
-    args = parser.parse_args()
-    data = build(args.report_url, args.evidence_url)
+    argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
+    data = build(REPORT_URL, EVIDENCE_URL)
     OUT.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
     print(f'wrote {OUT.relative_to(ROOT)}')
 

@@ -399,4 +399,4 @@ class EngineComparisonTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('export_cf5_site', site.ROOT / 'scripts/export_cf5_site.py')
         exporter = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(exporter)
-        self.assertEqual(exporter.build(self.c['report_url'], self.c['evidence_url']), self.engines)
+        self.assertEqual(exporter.build(exporter.REPORT_URL, exporter.EVIDENCE_URL), self.engines)
