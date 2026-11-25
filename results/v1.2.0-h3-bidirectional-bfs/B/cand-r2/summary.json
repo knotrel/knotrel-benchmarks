@@ -1,0 +1,223 @@
+{
+  "measurement_secs": 148.327131208,
+  "summary": {
+    "cells": {
+      "L1 G100k C=16": {
+        "feeder_503_refusals": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "first10_median_ms": {
+          "max": 26.0315415,
+          "median": 26.0315415,
+          "min": 26.0315415,
+          "n": 1
+        },
+        "last10_median_ms": {
+          "max": 24.379375,
+          "median": 24.379375,
+          "min": 24.379375,
+          "n": 1
+        },
+        "marker_max_ms": {
+          "max": 57.72475,
+          "median": 57.72475,
+          "min": 57.72475,
+          "n": 1
+        },
+        "marker_p50_ms": {
+          "max": 27.244708,
+          "median": 27.244708,
+          "min": 27.244708,
+          "n": 1
+        },
+        "marker_p99_ms": {
+          "max": 57.583042,
+          "median": 57.583042,
+          "min": 57.583042,
+          "n": 1
+        },
+        "marker_timeouts": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_503": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_p99_ms": {
+          "max": 1.594625,
+          "median": 1.594625,
+          "min": 1.594625,
+          "n": 1
+        },
+        "query_rps": {
+          "max": 41381.18121413293,
+          "median": 41381.18121413293,
+          "min": 41381.18121413293,
+          "n": 1
+        },
+        "writer_changes_per_sec": {
+          "max": 997.4012621229798,
+          "median": 997.4012621229798,
+          "min": 997.4012621229798,
+          "n": 1
+        }
+      },
+      "L2 G100k C=0": {
+        "events": {
+          "max": 94604.0,
+          "median": 94604.0,
+          "min": 94604.0,
+          "n": 1
+        },
+        "events_per_sec": {
+          "max": 179882.77204561638,
+          "median": 179882.77204561638,
+          "min": 179882.77204561638,
+          "n": 1
+        },
+        "feeder_503_refusals": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_p99_ms": {
+          "max": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "query_rps": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "secs_to_ready": {
+          "max": 0.525920292,
+          "median": 0.525920292,
+          "min": 0.525920292,
+          "n": 1
+        }
+      },
+      "L2 G100k C=16": {
+        "events": {
+          "max": 94604.0,
+          "median": 94604.0,
+          "min": 94604.0,
+          "n": 1
+        },
+        "events_per_sec": {
+          "max": 77798.92092903251,
+          "median": 77798.92092903251,
+          "min": 77798.92092903251,
+          "n": 1
+        },
+        "feeder_503_refusals": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_p99_ms": {
+          "max": 2.4922500000000003,
+          "median": 2.4922500000000003,
+          "min": 2.4922500000000003,
+          "n": 1
+        },
+        "query_rps": {
+          "max": 37032.346532503776,
+          "median": 37032.346532503776,
+          "min": 37032.346532503776,
+          "n": 1
+        },
+        "secs_to_ready": {
+          "max": 1.216006583,
+          "median": 1.216006583,
+          "min": 1.216006583,
+          "n": 1
+        }
+      },
+      "L2 G100k C=64": {
+        "events": {
+          "max": 94604.0,
+          "median": 94604.0,
+          "min": 94604.0,
+          "n": 1
+        },
+        "events_per_sec": {
+          "max": 73283.12631499548,
+          "median": 73283.12631499548,
+          "min": 73283.12631499548,
+          "n": 1
+        },
+        "feeder_503_refusals": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_p99_ms": {
+          "max": 6.146917,
+          "median": 6.146917,
+          "min": 6.146917,
+          "n": 1
+        },
+        "query_rps": {
+          "max": 36187.861742907146,
+          "median": 36187.861742907146,
+          "min": 36187.861742907146,
+          "n": 1
+        },
+        "secs_to_ready": {
+          "max": 1.290938375,
+          "median": 1.290938375,
+          "min": 1.290938375,
+          "n": 1
+        }
+      }
+    },
+    "criteria": {
+      "Q1": {
+        "marker_max_ms": 57.72475,
+        "marker_p99_ms": 57.583042,
+        "pass": true,
+        "rule": "L1 G100k C=16: p99 <= 1000 ms and max <= 3000 ms"
+      },
+      "Q2": {
+        "observations": [
+          {
+            "cell": "L1 G100k C=16",
+            "lag_ok": true,
+            "rep": 1,
+            "wal_ok": true
+          }
+        ],
+        "pass": true,
+        "rule": "every L1 observation: last10 median <= 2 x first10 median + 50 ms, retained WAL end <= start + 16 MiB"
+      },
+      "Q3": {
+        "pass": false,
+        "rate_c0": 179882.77204561638,
+        "rate_c16": 77798.92092903251,
+        "rate_c64": 73283.12631499548,
+        "ratio_c16": 0.4324978987387604,
+        "ratio_c64": 0.4073938014275855,
+        "rule": "L2 G100k: C=16 >= 50 % and C=64 >= 25 % of C=0"
+      },
+      "Q4": {
+        "pass": true,
+        "rule": "L2 G100k C=64: time to ready <= 60 s",
+        "secs_to_ready_c64": 1.290938375
+      }
+    }
+  }
+}
