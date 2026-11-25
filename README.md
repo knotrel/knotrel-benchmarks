@@ -263,11 +263,24 @@ failed qualification results into passes.
 
 ## Performance website
 
-The release performance site lives in [`docs/`](docs/index.html), starting with
-**1.0.0 compared with the latest released 0.9.x patch at campaign freeze**.
-The initial report is a plan, not measured evidence. Release pages are generated
-from validated JSON, with exact reference versions, confidence intervals and
-separate verdict/exception fields. See [site maintenance and GitHub Pages setup](docs/SITE.md).
+The performance site lives in [`docs/`](docs/index.html) and is published at
+https://knotrel.github.io/knotrel-benchmarks/. Its pages are generated from
+validated JSON by `scripts/build_site.py`, never written by hand.
+
+- **Release reports.** The series starts with **1.0.0 compared with v0.9.0**,
+  the latest 0.9.x patch at campaign freeze. Its report is published: the
+  qualification is **accepted with exceptions**, with every verdict shown as
+  measured ([1.0.0 page](docs/releases/1.0.0.html),
+  [decision record](results/v1.0.0-qualification/DECISION.md)). 1.0.0 is the
+  latest published release; no 1.1.0 release report exists before its tag.
+- **Engine comparisons.** Engines measured on one build, not one release
+  against another. The first is the v1.1.0 CF5 qualification of
+  `cluster-forest` against `compact-bfs`, ETT and HDT on candidate `02cba68`
+  ([page](docs/engines/cluster-forest-cf5-02cba68.html),
+  [report](results/v1.1.0-cf5/REPORT.md)), exported by
+  `scripts/export_cf5_site.py`.
+
+See [site maintenance and GitHub Pages setup](docs/SITE.md).
 
 ```sh
 python3 scripts/build_site.py
