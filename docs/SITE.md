@@ -32,7 +32,8 @@ manually transcribing measurements. The site contains the published 1.0.0
 report (qualification **accepted with exceptions**, exported by
 `scripts/export_v100q_site.py`) and no fabricated values or verdicts. 1.0.0
 remains the latest published release until the 1.1.0 tag; a 1.1.0 entry is
-added only from its own release comparison.
+added only from its own release comparison. Planned entries contain no
+values or verdicts.
 
 For 1.0.0, freeze the latest released 0.9.x patch as an exact tag and 40-character
 SHA. Later updates must not change the selected reference retrospectively.
