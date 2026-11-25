@@ -24,7 +24,10 @@ The report's maintainer decisions (D1 limitation, D5 disposition) are passed as 
 caller from the report; they never change a class.
 
 Usage:
-    python3 scripts/export_cf5_site.py --report-url URL --evidence-url URL [--out PATH]
+    python3 scripts/export_cf5_site.py --report-url URL --evidence-url URL
+
+It always writes ``docs/data/engine-comparisons.json``; no output path is taken from the command
+line.
 """
 import argparse
 import collections
@@ -200,11 +203,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--report-url', required=True)
     parser.add_argument('--evidence-url', required=True)
-    parser.add_argument('--out', type=Path, default=OUT)
     args = parser.parse_args()
     data = build(args.report_url, args.evidence_url)
-    args.out.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
-    print(f'wrote {args.out}')
+    OUT.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
+    print(f'wrote {OUT.relative_to(ROOT)}')
 
 
 if __name__ == '__main__':
