@@ -1,0 +1,393 @@
+{
+ "schema": "cf5-record-2",
+ "preparatory": false,
+ "session": 1,
+ "order_seed": 795524442842124889,
+ "order_seed_derived": true,
+ "matrix_sha256": "cc3473e453cd5719457146408b34e9d13be8d03854fa0c519a8cf42c2dfe2380",
+ "tools": {
+  "harness": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-harness/release/knotrel-benchmarks"
+  ],
+  "cf5_core": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-harness/release/cf5-core"
+  ],
+  "memory_peak": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes-peak/release/memory-peak"
+  ],
+  "release_cells": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/release-cells"
+  ],
+  "http_lifecycle": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/http-lifecycle"
+  ],
+  "contention": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/contention/release/contention-probe",
+   "--server-bin",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-server/release/knotrel-server"
+  ],
+  "contention_v100": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/contention/release/contention-probe",
+   "--server-bin",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/ref-server/release/knotrel-server"
+  ],
+  "harness_a_candidate": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/A-C-harness/release/knotrel-benchmarks"
+  ],
+  "harness_a_v100": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/A-B-harness/release/knotrel-benchmarks"
+  ],
+  "_delegated": {
+   "V1": {
+    "argv": [
+     "/bin/sh",
+     "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/delegated/V1.sh",
+     "{run}"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks"
+   },
+   "L2": {
+    "argv": [
+     "python3",
+     "scripts/run_lifecycle_qualification.py",
+     "--out",
+     "{run}/L2",
+     "--profile",
+     "final",
+     "--core",
+     "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/core-lifecycle",
+     "--core-count",
+     "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes-count/release/core-lifecycle",
+     "--http",
+     "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/http-lifecycle",
+     "--order-seed",
+     "51240",
+     "--knotrel",
+     "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel",
+     "--only",
+     "C",
+     "--lifecycle-engines",
+     "cluster-forest"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks",
+    "env": {
+     "LIFECYCLE_QUALIFICATION_ROOTS": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1"
+    }
+   },
+   "S3": {
+    "argv": [
+     "/bin/sh",
+     "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/results/v1.1.0-cf5/run_s3.sh",
+     "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1",
+     "{run}"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks",
+    "incomplete_exit": [
+     1
+    ]
+   }
+  },
+  "_freeze": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/results/v1.1.0-cf5/FREEZE.json",
+  "_checkouts": {
+   "candidate": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel",
+   "benchmarks": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks",
+   "v100": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/sources/B/knotrel",
+   "harness_a": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/sources/knotrel-benchmarks"
+  },
+  "_lockfiles": [
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/tools/lifecycle-probes/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/tools/contention-probe/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/sources/B/knotrel/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/build-inputs/B/knotrel-benchmarks/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/build-inputs/C/knotrel-benchmarks/Cargo.lock"
+  ]
+ },
+ "provenance": {
+  "executables": {
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-harness/release/knotrel-benchmarks": "914bb78ca568a599332b90a2e753ebf30315932c52be650a309a6044c4405bd0",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-harness/release/cf5-core": "efd9fc3df967cc4d102fe3f248419ddb031fc2202ab5e24975bb4448debfa7ae",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes-peak/release/memory-peak": "3e657b1fa878c607ad115f5f7e4552e6778ba7fc5c83366ac7bc1b014b3827d5",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/release-cells": "653faf96398874606464d59a6653e1f96b9db7216cd409435840951d087e8053",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/http-lifecycle": "5979b786f10d4bb4d2b41c841b5ee42912d437d1a3cfdb04f44515f24b6dd919",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/contention/release/contention-probe": "6053905dd78324503423990ebfd902aa2c44cb304462784b3dea439352c0514c",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-server/release/knotrel-server": "882bbe7f77eedb9fdfa8ee8f1ef58de71b83e7b992c9741a9a3235de8f8cb499",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/ref-server/release/knotrel-server": "c80fed2da52816f38e756aac29cb244f6da660678fa13d893fb96174890bc20f",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/A-C-harness/release/knotrel-benchmarks": "4520acd9bc83cf97aa690d40d5c68e475ca8dfed4d6b93aef374c3cdb42899c8",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/A-B-harness/release/knotrel-benchmarks": "2c28994083eed0426dd82a3383e3a7c3c09eb59ff6d9b2a020bb58862dfce655"
+  },
+  "checkouts": {
+   "candidate": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel",
+    "sha": "02cba6825f9ad9ef769f4006428ccad5509076e9",
+    "dirty": false
+   },
+   "benchmarks": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks",
+    "sha": "f4d41f19869c0a63baa0ce32d91ab02c1dd1522f",
+    "dirty": false
+   },
+   "v100": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/sources/B/knotrel",
+    "sha": "d38df5f9fb935e95de6f7195d8bb1d5d9a458be9",
+    "dirty": false
+   },
+   "harness_a": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/sources/knotrel-benchmarks",
+    "sha": "df635a1e872fd9e2d556b166ac23f342ee45d675",
+    "dirty": false
+   }
+  },
+  "lockfiles": {
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel/Cargo.lock": "f17eaf936fb4f80cb2b31aec4773fbc1d868a2593ecb6512447c671fefb26ad7",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/Cargo.lock": "7e31c3838c24ff4233add10011578fb28d318c53a7ee953e694d4b9485ebccff",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/tools/lifecycle-probes/Cargo.lock": "4cea783732fa281a35dc578f2f092f131aa40a32ea7e8d333efd05ea36413662",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/tools/contention-probe/Cargo.lock": "d174e1053c51c8029993fc3bb27dec136e97badc5972bc5c7834479240061106",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/sources/B/knotrel/Cargo.lock": "f17eaf936fb4f80cb2b31aec4773fbc1d868a2593ecb6512447c671fefb26ad7",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/build-inputs/B/knotrel-benchmarks/Cargo.lock": "24c188f215e5fb1ed7aceb2ebadd58e5af652d9faec8b77667227ebcbd35b555",
+   "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/A/build-inputs/C/knotrel-benchmarks/Cargo.lock": "24c188f215e5fb1ed7aceb2ebadd58e5af652d9faec8b77667227ebcbd35b555"
+  },
+  "delegated": {
+   "L2": {
+    "scripts/run_lifecycle_qualification.py": "29156319dbbe18bd28861923fb082906c3deae967a43eb29977b57a612b70ce3",
+    "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/core-lifecycle": "d21d5b8cca0fbb2f5ad81add1e66200704ed8e3875b703b396b3502ba18e8366",
+    "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes-count/release/core-lifecycle": "af3c693569e3280ed1dffbeeec51cc581d67ee39c05e79f91a9c3f6e824f134a",
+    "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/targets/cand-probes/release/http-lifecycle": "5979b786f10d4bb4d2b41c841b5ee42912d437d1a3cfdb04f44515f24b6dd919"
+   },
+   "S3": {
+    "/bin/sh": "ad5c194b05f83bc5e793c1cd67b148a4b680467b5a5730ab1a31fe4e6460ee9f",
+    "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/src/cand/knotrel-benchmarks/results/v1.1.0-cf5/run_s3.sh": "fa62efe59266a65952dd6f0436f4aea33c4ca32647686b68d049fb13556eca3e"
+   },
+   "V1": {
+    "/bin/sh": "ad5c194b05f83bc5e793c1cd67b148a4b680467b5a5730ab1a31fe4e6460ee9f",
+    "/Users/rt/workspace/knotrel/evidence/v1.1.0-cf5-attempt1-02cba68-f4d41f1/delegated/V1.sh": "f7c4fa16b7128020a16fb2183ef1a7222e9b54a2ebfb479cc8557f39a38ef4e5"
+   }
+  }
+ },
+ "pairs": 24,
+ "warmup_pairs": 2,
+ "cap_hours": 15,
+ "cells": [
+  "K1-chain-split-rejoin-v1-10000-vs-compact-bfs",
+  "K1-chain-split-rejoin-v1-10000-vs-ett",
+  "K1-chain-split-rejoin-v1-10000-vs-hdt",
+  "K1-chain-split-rejoin-v1-100000-vs-compact-bfs",
+  "K1-chain-split-rejoin-v1-100000-vs-ett",
+  "K1-chain-split-rejoin-v1-100000-vs-hdt",
+  "K1-cycle-alternatives-v1-10000-vs-compact-bfs",
+  "K1-cycle-alternatives-v1-10000-vs-ett",
+  "K1-cycle-alternatives-v1-10000-vs-hdt",
+  "K1-cycle-alternatives-v1-100000-vs-compact-bfs",
+  "K1-cycle-alternatives-v1-100000-vs-ett",
+  "K1-cycle-alternatives-v1-100000-vs-hdt",
+  "K1-components-join-split-v1-10000-vs-compact-bfs",
+  "K1-components-join-split-v1-10000-vs-ett",
+  "K1-components-join-split-v1-10000-vs-hdt",
+  "K1-components-join-split-v1-100000-vs-compact-bfs",
+  "K1-components-join-split-v1-100000-vs-ett",
+  "K1-components-join-split-v1-100000-vs-hdt",
+  "K1-hub-alternatives-v1-10000-vs-compact-bfs",
+  "K1-hub-alternatives-v1-10000-vs-ett",
+  "K1-hub-alternatives-v1-10000-vs-hdt",
+  "K1-hub-alternatives-v1-100000-vs-compact-bfs",
+  "K1-hub-alternatives-v1-100000-vs-ett",
+  "K1-hub-alternatives-v1-100000-vs-hdt",
+  "K1-sustained-churn-path-v1-10000-vs-compact-bfs",
+  "K1-sustained-churn-path-v1-10000-vs-ett",
+  "K1-sustained-churn-path-v1-10000-vs-hdt",
+  "K1-sustained-churn-path-v1-100000-vs-compact-bfs",
+  "K1-sustained-churn-path-v1-100000-vs-ett",
+  "K1-sustained-churn-path-v1-100000-vs-hdt",
+  "K1-sustained-churn-blocks-v1-10000-vs-compact-bfs",
+  "K1-sustained-churn-blocks-v1-10000-vs-ett",
+  "K1-sustained-churn-blocks-v1-10000-vs-hdt",
+  "K1-sustained-churn-blocks-v1-100000-vs-compact-bfs",
+  "K1-sustained-churn-blocks-v1-100000-vs-ett",
+  "K1-sustained-churn-blocks-v1-100000-vs-hdt",
+  "K1-dense-bridge-churn-v1-512-vs-compact-bfs",
+  "K1-dense-bridge-churn-v1-512-vs-ett",
+  "K1-dense-bridge-churn-v1-512-vs-hdt",
+  "K1-dense-bridge-churn-v1-2048-vs-compact-bfs",
+  "K1-dense-bridge-churn-v1-2048-vs-ett",
+  "K1-dense-bridge-churn-v1-2048-vs-hdt",
+  "K1-redundant-bridge-churn-v1-512-vs-compact-bfs",
+  "K1-redundant-bridge-churn-v1-512-vs-ett",
+  "K1-redundant-bridge-churn-v1-512-vs-hdt",
+  "K1-redundant-bridge-churn-v1-2048-vs-compact-bfs",
+  "K1-redundant-bridge-churn-v1-2048-vs-ett",
+  "K1-redundant-bridge-churn-v1-2048-vs-hdt",
+  "K2-d4-10000-vs-compact-bfs",
+  "K2-d4-10000-vs-ett",
+  "K2-d4-10000-vs-hdt",
+  "K2-d4-100000-vs-compact-bfs",
+  "K2-d4-100000-vs-ett",
+  "K2-d4-100000-vs-hdt",
+  "K2-d4-1000000-vs-compact-bfs",
+  "K2-d4-1000000-vs-ett",
+  "K2-d4-1000000-vs-hdt",
+  "K2-d16-10000-vs-compact-bfs",
+  "K2-d16-10000-vs-ett",
+  "K2-d16-10000-vs-hdt",
+  "K2-d16-100000-vs-compact-bfs",
+  "K2-d16-100000-vs-ett",
+  "K2-d16-100000-vs-hdt",
+  "K2-d16-1000000-vs-compact-bfs",
+  "K2-d16-1000000-vs-ett",
+  "K2-d16-1000000-vs-hdt",
+  "K2x-d6-16384-vs-compact-bfs",
+  "K2x-d6-16384-vs-ett",
+  "K2x-d6-16384-vs-hdt",
+  "K2x-d6-131072-vs-compact-bfs",
+  "K2x-d6-131072-vs-ett",
+  "K2x-d6-131072-vs-hdt",
+  "K2x-d6-1048576-vs-compact-bfs",
+  "K2x-d6-1048576-vs-ett",
+  "K2x-d6-1048576-vs-hdt",
+  "K3-d4-10000-vs-compact-bfs",
+  "K3-d4-10000-vs-ett",
+  "K3-d4-10000-vs-hdt",
+  "K3-d4-100000-vs-compact-bfs",
+  "K3-d4-100000-vs-ett",
+  "K3-d4-100000-vs-hdt",
+  "K3-d4-1000000-vs-compact-bfs",
+  "K3-d4-1000000-vs-ett",
+  "K3-d4-1000000-vs-hdt",
+  "K3-d16-10000-vs-compact-bfs",
+  "K3-d16-10000-vs-ett",
+  "K3-d16-10000-vs-hdt",
+  "K3-d16-100000-vs-compact-bfs",
+  "K3-d16-100000-vs-ett",
+  "K3-d16-100000-vs-hdt",
+  "K3-d16-1000000-vs-compact-bfs",
+  "K3-d16-1000000-vs-ett",
+  "K3-d16-1000000-vs-hdt",
+  "K3-chain-split-rejoin-v1-100000-vs-compact-bfs",
+  "K3-chain-split-rejoin-v1-100000-vs-ett",
+  "K3-chain-split-rejoin-v1-100000-vs-hdt",
+  "K3-cycle-alternatives-v1-100000-vs-compact-bfs",
+  "K3-cycle-alternatives-v1-100000-vs-ett",
+  "K3-cycle-alternatives-v1-100000-vs-hdt",
+  "K3-components-join-split-v1-100000-vs-compact-bfs",
+  "K3-components-join-split-v1-100000-vs-ett",
+  "K3-components-join-split-v1-100000-vs-hdt",
+  "K3-hub-alternatives-v1-100000-vs-compact-bfs",
+  "K3-hub-alternatives-v1-100000-vs-ett",
+  "K3-hub-alternatives-v1-100000-vs-hdt",
+  "K3-sustained-churn-path-v1-100000-vs-compact-bfs",
+  "K3-sustained-churn-path-v1-100000-vs-ett",
+  "K3-sustained-churn-path-v1-100000-vs-hdt",
+  "K3-sustained-churn-blocks-v1-100000-vs-compact-bfs",
+  "K3-sustained-churn-blocks-v1-100000-vs-ett",
+  "K3-sustained-churn-blocks-v1-100000-vs-hdt",
+  "K4-d4-10000-vs-compact-bfs",
+  "K4-d4-10000-vs-ett",
+  "K4-d4-10000-vs-hdt",
+  "K4-d4-100000-vs-compact-bfs",
+  "K4-d4-100000-vs-ett",
+  "K4-d4-100000-vs-hdt",
+  "K4-d4-1000000-vs-compact-bfs",
+  "K4-d4-1000000-vs-ett",
+  "K4-d4-1000000-vs-hdt",
+  "K4-d16-10000-vs-compact-bfs",
+  "K4-d16-10000-vs-ett",
+  "K4-d16-10000-vs-hdt",
+  "K4-d16-100000-vs-compact-bfs",
+  "K4-d16-100000-vs-ett",
+  "K4-d16-100000-vs-hdt",
+  "K4-d16-1000000-vs-compact-bfs",
+  "K4-d16-1000000-vs-ett",
+  "K4-d16-1000000-vs-hdt",
+  "L1-B4-http-import-high-equivalent-compact-bfs-sparse-10000",
+  "L1-B4-http-import-equivalent-compact-bfs-sparse-10000",
+  "L1-B4-http-import-equivalent-compact-bfs-hub-10000",
+  "L1-B4-http-import-equivalent-compact-bfs-sparse-100000",
+  "L1-B4-http-ops-equivalent-compact-bfs-sparse-10000",
+  "L1-B4-http-ops-equivalent-compact-bfs-sparse-100000",
+  "L1-B4-http-ops-query-equivalent-compact-bfs-sparse-10000",
+  "L1-B4-http-ops-query-equivalent-compact-bfs-hub-10000",
+  "L1-B4-http-ops-query-equivalent-compact-bfs-sparse-100000",
+  "L1-B4-http-events-equivalent-compact-bfs-sparse-10000",
+  "L1-B4-http-events-equivalent-compact-bfs-sparse-100000",
+  "L3-R-core-import-sparse-100k-20-10",
+  "L3-R-core-import-sparse-100k-60-30",
+  "L3-R-core-import-sparse-10k-20-10",
+  "L3-R-core-import-hub-10k-20-10",
+  "L3-R-http-import-sparse-100k-20-10",
+  "L3-R-http-import-sparse-100k-60-30",
+  "L3-R-http-import-sparse-10k-20-10",
+  "L3-R-churn-fresh-sparse-100k",
+  "L3-R-churn-fresh-hub-100k",
+  "L3-R-churn-same-sparse-100k",
+  "L3-R-churn-toggle-sparse-100k",
+  "L4-Rmem-import-core-20-10",
+  "L4-Rmem-import-http-create-20-10",
+  "L4-Rmem-import-core-60-30",
+  "L4-Rmem-import-http-create-60-30",
+  "L4-Rmem-import-http-replace-20-10",
+  "L4-Rmem-churn-fresh-sparse",
+  "L4-Rmem-churn-fresh-ring",
+  "L4-Rmem-churn-fresh-hub",
+  "L4-Rmem-churn-same-sparse",
+  "L4-Rmem-churn-toggle-sparse",
+  "S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-compact-bfs",
+  "S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-ett",
+  "S1-Mreg-standalone-off-read95-b8-c16-100k-none-vs-hdt",
+  "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-compact-bfs",
+  "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-ett",
+  "S1-Mreg-standalone-off-mixed50-b64-c16-100k-none-vs-hdt",
+  "S1-Mreg-standalone-off-read95-b1-c4-10k-none-vs-compact-bfs",
+  "S1-Mreg-standalone-off-read95-b1-c4-10k-none-vs-ett",
+  "S1-Mreg-standalone-off-read95-b1-c4-10k-none-vs-hdt",
+  "S1-Mreg-standalone-on-lifecycle50-b8-c16-100k-none-vs-compact-bfs",
+  "S1-Mreg-source-managed-off-read100-b8-c16-100k-import-vs-compact-bfs",
+  "S1-Mreg-source-managed-off-read100-b8-c16-100k-import-vs-ett",
+  "S1-Mreg-source-managed-off-read100-b8-c16-100k-import-vs-hdt",
+  "S1-Mreg-source-managed-on-read100-b8-c16-100k-events-vs-compact-bfs",
+  "V2-Mreg-standalone-off-read95-b8-c16-100k-none",
+  "V2-Mreg-standalone-off-mixed50-b64-c16-100k-none",
+  "V2-Mreg-standalone-off-read95-b1-c4-10k-none",
+  "V2-Mreg-standalone-on-lifecycle50-b8-c16-100k-none",
+  "V2-Mreg-source-managed-off-read100-b8-c16-100k-import",
+  "V2-Mreg-source-managed-on-read100-b8-c16-100k-events",
+  "V2-chain-split-rejoin-v1-100000-ett-scan",
+  "V2-chain-split-rejoin-v1-100000-hdt",
+  "V2-sustained-churn-path-v1-100000-ett-scan",
+  "V2-sustained-churn-path-v1-100000-hdt",
+  "V3-chain-split-rejoin-v1-10000-vs-v100-compact-bfs",
+  "V3-chain-split-rejoin-v1-10000-vs-v100-compact-workspace",
+  "V3-sustained-churn-path-v1-10000-vs-v100-compact-bfs",
+  "V3-sustained-churn-path-v1-10000-vs-v100-compact-workspace",
+  "V3-Mreg-standalone-off-read95-b8-c16-100k-none",
+  "V3-Mreg-standalone-off-mixed50-b64-c16-100k-none",
+  "V3-Mreg-standalone-off-read95-b1-c4-10k-none",
+  "V3-Mreg-standalone-on-lifecycle50-b8-c16-100k-none",
+  "V3-Mreg-source-managed-off-read100-b8-c16-100k-import",
+  "V3-Mreg-source-managed-on-read100-b8-c16-100k-events",
+  "V1",
+  "L2",
+  "S3"
+ ],
+ "host": {
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "kernel": "Darwin 192.168.68.111 25.5.0 Darwin Kernel Version 25.5.0: Tue Jun  9 22:19:21 PDT 2026; root:xnu-12377.121.10~1/RELEASE_ARM64_T8122 arm64",
+  "python": "3.12.10",
+  "cpu": "Apple M3",
+  "cores": 8,
+  "memory_bytes": "17179869184",
+  "frequency_policy": "System-wide power settings:\nCurrently in use:\n standby              1\n Sleep On Power Button 1\n hibernatefile        /var/vm/sleepimage\n powernap             1\n networkoversleep     0\n disksleep            10\n sleep                0 (sleep prevented by Claude, caffeinate, caffeinate, powerd)\n hibernatemode        3\n ttyskeepawake        1\n displaysleep         0\n tcpkeepalive         1\n lowpowermode         0\n womp                 1"
+ },
+ "resume_from": null,
+ "start": {
+  "label": "start",
+  "time": 1795550239.580708,
+  "loadavg": [
+   2.32177734375,
+   3.27685546875,
+   2.68994140625
+  ],
+  "swap": "total = 2048.00M  used = 738.25M  free = 1309.75M  (encrypted)",
+  "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+ }
+}

@@ -6,7 +6,10 @@ Reads only the raw JSON lines written by ``run_lifecycle_qualification.py``, its
 benchmark.
 
 **Validation (any failure stops the analysis):** the run is the ``final`` profile with no
-``--only`` filter; every matrix cell has a raw file and a run-log record with exit 0, with
+``--only`` filter, or with exactly the filter named by ``--expect-only`` (only ``C``: the CF5
+L2 profile, whose plan must then be the complete C matrix of the expected scope and which
+uses no window multipliers: ``--expect-multipliers-sha256 none``); the plan and the run log
+list each cell once; every matrix cell has a raw file and a run-log record with exit 0, with
 AC power recorded before it; ``provenance.json`` names the expected window-multiplier hash;
 every raw file starts with a ``build`` record naming the expected knotrel revision and the
 expected knotrel-benchmarks (probe source) revision, neither dirty, with the build variant
@@ -187,12 +190,30 @@ def sustained(cell: Dict[str, Any], records: List[Dict[str, Any]], cycles: int) 
     return result
 
 
+#: ``--only`` filters an analysis may expect. CF5 L2 (frozen 2026-11-24) runs
+#: ``--profile final --only C``: the sustained-resource rules, which have no timed cell.
+EXPECTABLE_ONLY = ("C",)
+
+
+def unique_ids(records: List[Dict[str, Any]], what: str) -> Dict[str, Dict[str, Any]]:
+    """Index records by ``id``, refusing a duplicate instead of keeping the last one."""
+    out: Dict[str, Dict[str, Any]] = {}
+    for record in records:
+        if record["id"] in out:
+            raise Invalid(f"{what}: duplicate cell {record['id']}")
+        out[record["id"]] = record
+    return out
+
+
 def validate(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipliers_sha: str,
              lifecycle_engines: str = "compact-bfs,ett,hdt",
-             equivalent_references: bool = False) -> Dict[str, Any]:
+             equivalent_references: bool = False, expected_only: str = "") -> Dict[str, Any]:
     provenance = json.loads((run / "provenance.json").read_text())
-    if provenance["profile"] != "final" or provenance.get("only"):
-        raise Invalid("not a complete final run")
+    if expected_only and expected_only not in EXPECTABLE_ONLY:
+        raise Invalid(f"--expect-only {expected_only!r} is not an accepted profile {EXPECTABLE_ONLY}")
+    if provenance["profile"] != "final" or (provenance.get("only") or "") != expected_only:
+        raise Invalid("not a complete final run" if not expected_only
+                      else f"not a final --only {expected_only} run")
     # Runs before amendment 4 have no scope field and used every engine.
     if provenance.get("lifecycle_engines", "compact-bfs,ett,hdt") != lifecycle_engines:
         raise Invalid("lifecycle-engine scope differs from the expected scope")
@@ -203,13 +224,19 @@ def validate(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipliers_
     runner = _runner()
     plan = (runner.matrix("final", lifecycle_engines, True) if equivalent_references
             else runner.matrix("final", lifecycle_engines))
-    expected = {c["id"] for c in plan}
+    expected = {c["id"] for c in plan if not expected_only or c["experiment"] in expected_only.split(",")}
     if set(cells) != expected:
         raise Invalid(f"plan matrix differs from the {lifecycle_engines} scope "
                       f"(missing {sorted(expected - set(cells))[:3]}, extra {sorted(set(cells) - expected)[:3]})")
-    if provenance.get("window_multipliers_sha256") != multipliers_sha:
+    if expected_only:
+        # A C-only run scales no timed cell, so it records no multipliers; say so explicitly.
+        if multipliers_sha != "none" or provenance.get("window_multipliers_sha256") is not None:
+            raise Invalid("a C-only run uses no window multipliers (--expect-multipliers-sha256 none)")
+        if provenance.get("cells") != len(expected):
+            raise Invalid(f"provenance records {provenance.get('cells')} cells, expected {len(expected)}")
+    elif provenance.get("window_multipliers_sha256") != multipliers_sha:
         raise Invalid("window multipliers differ from the frozen file")
-    log = {r["id"]: r for r in lines(run / "run-log.jsonl")}
+    log = unique_ids(lines(run / "run-log.jsonl"), "run log")
     for cell_id in cells:
         record = log.get(cell_id)
         if record is None or record["exit"] != 0:
@@ -241,16 +268,18 @@ def main() -> int:
                         help="lifecycle-engine scope of the run (amendment 4: compact-bfs)")
     parser.add_argument("--expect-equivalent-references", action="store_true",
                         help="the run includes the capability-equivalent B4 cells (v0.7.0 qualification 3)")
+    parser.add_argument("--expect-only", default="", choices=("",) + EXPECTABLE_ONLY,
+                        help="the run's recorded --only filter (CF5 L2: C); default: none")
     parser.add_argument("--json", type=Path)
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
     args.run = confined_directory(args.run, "run directory")
     json_out = confined(args.json, "--json") if args.json else None
     markdown_out = confined(args.markdown, "--markdown") if args.markdown else None
-    cells = {c["id"]: c for c in json.loads((args.run / "plan" / "matrix.json").read_text())}
     try:
+        cells = unique_ids(json.loads((args.run / "plan" / "matrix.json").read_text()), "plan")
         validate(args.run, cells, args.expect_knotrel_rev, args.expect_multipliers_sha256,
-                 args.expect_lifecycle_engines, args.expect_equivalent_references)
+                 args.expect_lifecycle_engines, args.expect_equivalent_references, args.expect_only)
         raw = args.run / "raw"
         timing, resources = [], []
         for cell_id, cell in cells.items():
