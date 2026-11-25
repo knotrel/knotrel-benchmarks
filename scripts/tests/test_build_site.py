@@ -400,3 +400,48 @@ class EngineComparisonTests(unittest.TestCase):
         exporter = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(exporter)
         self.assertEqual(exporter.build(exporter.REPORT_URL, exporter.EVIDENCE_URL), self.engines)
+
+
+class Release110Tests(unittest.TestCase):
+    """The 1.1.0 entry: the CF5 regression checks against v1.0.0, exported, never hand-copied."""
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('export_cf5_release_site',
+                                                      site.ROOT / 'scripts/export_cf5_release_site.py')
+        self.exporter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.exporter)
+        analysis = site.ROOT / 'results/v1.1.0-cf5/analysis/attempt1'
+        self.a = json.loads((analysis / 'analysis-session1-V1.json').read_text())
+        self.cf5 = json.loads((analysis / 'analysis-session1.json').read_text())
+        self.live = json.loads((site.DOCS / 'data/releases.json').read_text())
+
+    def test_exporter_reproduces_the_entry(self):
+        entry = self.exporter.build(self.a, self.cf5)
+        self.assertEqual([r for r in self.live['releases'] if r['version'] == '1.1.0'], [entry])
+        self.assertEqual(self.exporter.merge(self.live, entry), self.live)
+
+    def test_open_cells_keep_their_classes_with_the_d3_disposition(self):
+        rows = self.exporter.build(self.a, self.cf5)['comparisons'][0]['results']
+        open_rows = sorted((r['scenario'], r['verdict']) for r in rows if r['verdict'] != 'PASS')
+        self.assertEqual([v for _, v in open_rows].count('TIMER_LIMITED'), 2)
+        self.assertEqual(len(open_rows), 7)
+        for r in rows:
+            self.assertEqual('disposition' in r, r['verdict'] != 'PASS')
+            if r['verdict'] == 'TIMER_LIMITED':
+                self.assertEqual(r['class_without_limit'], 'PASS')
+
+    def test_page_shows_the_decision_and_the_limitation(self):
+        page = site.generate(self.live)['releases/1.1.0.html']
+        self.assertIn('accepted with exceptions', page)
+        self.assertIn('Host swap activity not verifiable', page)
+        self.assertIn('sonic-rs 0.5.11 to 0.5.12', page)
+
+    def test_unknown_class_and_missing_disposition_are_refused(self):
+        a = copy.deepcopy(self.a)
+        a['cells'][0]['status'] = 'SLOWER'
+        with self.assertRaises(Exception):
+            self.exporter.build(a, self.cf5)
+        cf5 = copy.deepcopy(self.cf5)
+        cf5['cells']['V2-chain-split-rejoin-v1-100000-hdt']['metrics']['workload_wall_ns']['class'] = 'INCONCLUSIVE'
+        with self.assertRaisesRegex(self.exporter.ExportError, 'without a recorded disposition'):
+            self.exporter.build(self.a, cf5)

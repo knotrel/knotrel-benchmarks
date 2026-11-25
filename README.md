@@ -53,15 +53,22 @@ checks, trace interchange and further limitations.
 
 ## Evidence by release and purpose
 
-### Latest published release: v0.2.0
+### Latest published release: v1.1.0
 
-No v0.2.0-specific performance report is published in this repository. The
-v0.2.0 sources (`7e9becd`) serve only as the **baseline** of the v0.3.0
-qualification below.
+v1.1.0 is compared with v1.0.0 by the regression checks of the existing
+engines in the CF5 campaign (V1 under the frozen v1.0.0 experiment A protocol,
+V2 under the CF5 rules): no result is REGRESSION or FAIL, and five checks are
+left open with their original classes. The qualification is **accepted with
+exceptions**; host swap activity was not verifiable and the results are
+accepted by the maintainer with this limitation
+([decision record](results/v1.1.0-cf5/DECISION.md),
+[report](results/v1.1.0-cf5/REPORT.md)). The new `cluster-forest` engine,
+opt-in and experimental, is compared with `compact-bfs`, ETT and HDT on the
+[engine comparison page](https://knotrel.github.io/knotrel-benchmarks/engines/cluster-forest-cf5-02cba68.html).
 
-### Current candidate: v0.3.0 regression qualification
+### Earlier evidence: v0.3.0 regression qualification
 
-The v0.3.0 candidate is **not yet published**. Its release qualification
+The v0.3.0 release qualification
 compared Knotrel `6a1267f` (candidate) with v0.2.0 sources `7e9becd` rebuilt
 with Rust 1.100.0 (baseline), using one shared harness (`df635a1e`), HTTP
 driver and collector (`580c7e44`: baseline/candidate mode of
@@ -77,13 +84,10 @@ to +12.09%) and HTTP lifecycle readiness (+8.02%, −11.46% to +21.97%) did not
 pass and do not exclude regressions. PASS is a decision under a pre-approved
 tolerance, not a significance test. No speedup is claimed.
 
-The per-cell table belongs to the v0.3.0 release documentation
+The per-cell table is in the v0.3.0 release documentation
 (`docs/releases/v0.3.0-release-notes.md` and `docs/performance-v0.3.0.md` in
-Knotrel). It becomes public when that candidate documentation is published.
-Until then, Knotrel's public `main` still shows the earlier planning status. The
-raw qualification reports are **not published** in either repository; this
-summary is the only current public record. `ett` and `hdt` were not
-re-qualified.
+Knotrel). The raw qualification reports are **not published** in either
+repository. `ett` and `hdt` were not re-qualified.
 
 ### Hot-path audit after the v0.3.0 candidate
 
@@ -111,7 +115,7 @@ re-qualified.
 
 The hot-path and metrics-overhead campaigns above, and the v0.5.0–v0.7.0
 qualifications, are kept at their release tags; the current release's
-qualification is [`results/v0.9.0-qualification`](results/v0.9.0-qualification/DECISION.md).
+qualification is [`results/v1.1.0-cf5`](results/v1.1.0-cf5/DECISION.md).
 See [results/README.md](results/README.md#earlier-release-evidence-at-tags).
 
 ### Historical engine and competitor comparison
@@ -271,8 +275,13 @@ validated JSON by `scripts/build_site.py`, never written by hand.
   the latest 0.9.x patch at campaign freeze. Its report is published: the
   qualification is **accepted with exceptions**, with every verdict shown as
   measured ([1.0.0 page](docs/releases/1.0.0.html),
-  [decision record](results/v1.0.0-qualification/DECISION.md)). 1.0.0 is the
-  latest published release; no 1.1.0 release report exists before its tag.
+  [decision record](results/v1.0.0-qualification/DECISION.md)). **1.1.0
+  compared with v1.0.0** holds the regression checks of the existing engines
+  from the CF5 campaign (V1, V2); its qualification is **accepted with
+  exceptions** ([1.1.0 page](docs/releases/1.1.0.html),
+  [decision record](results/v1.1.0-cf5/DECISION.md)), exported by
+  `scripts/export_cf5_release_site.py`. 1.1.0 is the
+  latest published release.
 - **Engine comparisons.** Engines measured on one build, not one release
   against another. The first is the v1.1.0 CF5 qualification of
   `cluster-forest` against `compact-bfs`, ETT and HDT on candidate `02cba68`
