@@ -290,5 +290,98 @@ class WindowMultiplierScopeTest(unittest.TestCase):
         self.assertIn("--window-multipliers is required", done.stderr)
 
 
+class OnlyCAnalysisTests(unittest.TestCase):
+    """Regression (CF5 L2, 2026-11-25): the frozen analyzer refused the ``--profile final
+    --only C`` run the CF5 freeze prescribes ("not a complete final run"). ``--expect-only C``
+    accepts exactly that profile: the complete C matrix of the expected scope, each cell once,
+    no window multipliers. Without the flag the original refusal stands."""
+
+    ENGINES = "cluster-forest"
+
+    def c_cells(self):
+        return [c for c in run.matrix("final", self.ENGINES) if c["experiment"] == "C"]
+
+    def records(self, cell):
+        if cell["experiment"] != "C":
+            return pairs([1.0] * 12)
+        cycles = int(cell["args"][cell["args"].index("--cycles") + 1])
+        nodes = int(cell["args"][cell["args"].index("--nodes") + 1])
+        out = [build(count_alloc=cell["binary"] == "core-count")]
+        for c in range(cycles + 1):
+            logical = [nodes, 3, nodes, 3, 3]
+            out.append({"kind": "checkpoint", "cycle": c, "expected": list(logical),
+                        "counts": {"logical": logical, "engine_vertices": nodes, "retired_vertices": 0},
+                        "net_heap_bytes": 1000, "net_rss_bytes": 1000})
+        return out
+
+    def analyze(self, plan=None, provenance=None, log_cells=None, extra_args=(), multipliers="none",
+                expect_only=("--expect-only", "C")):
+        cells = self.c_cells()
+        plan = cells if plan is None else plan
+        prov = {"only": "C", "lifecycle_engines": self.ENGINES, "window_multipliers_sha256": None,
+                "cells": len(cells)}
+        prov.update(provenance or {})
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_run(root, log_cells if log_cells is not None else plan,
+                      {c["id"]: self.records(c) for c in plan}, provenance=prov)
+            (root / "plan" / "matrix.json").write_text(json.dumps(plan))
+            out = root / "report.json"
+            sys.argv = ["x", str(root), "--expect-knotrel-rev", REV, "--expect-multipliers-sha256",
+                        multipliers, "--expect-probes-rev", PROBES, "--expect-lifecycle-engines",
+                        self.ENGINES, *expect_only, *extra_args, "--json", str(out),
+                        "--markdown", str(root / "r.md")]
+            code = an.main()
+            return code, (json.loads(out.read_text()) if code == 0 else None)
+
+    def test_complete_c_matrix_is_accepted_and_classified(self):
+        self.assertEqual(len(self.c_cells()), 60)
+        code, report = self.analyze()
+        self.assertEqual(code, 0)
+        self.assertEqual(report["timing"], [])
+        self.assertEqual(len(report["sustained"]), 60)
+        for r in report["sustained"]:
+            self.assertEqual(r["C2"], "PASS", r["id"])
+            if "-lifecycle-" in r["id"]:
+                self.assertEqual(r["C1"], "PASS", r["id"])
+                self.assertEqual(r.get("C3", r.get("C4")), "PASS", r["id"])
+
+    def test_without_the_flag_the_frozen_refusal_stands(self):
+        code, _ = self.analyze(expect_only=(), multipliers=SHA)
+        self.assertEqual(code, 3)
+
+    def test_missing_cell_is_refused(self):
+        code, _ = self.analyze(plan=self.c_cells()[1:])
+        self.assertEqual(code, 3)
+
+    def test_duplicate_cell_in_the_plan_is_refused(self):
+        cells = self.c_cells()
+        code, _ = self.analyze(plan=cells + [cells[0]])
+        self.assertEqual(code, 3)
+
+    def test_duplicate_cell_in_the_run_log_is_refused(self):
+        cells = self.c_cells()
+        code, _ = self.analyze(log_cells=cells + [cells[5]])
+        self.assertEqual(code, 3)
+
+    def test_timed_cell_in_a_c_only_plan_is_refused(self):
+        timed = next(c for c in run.matrix("final", self.ENGINES) if c["experiment"] == "B1")
+        code, _ = self.analyze(plan=self.c_cells() + [timed])
+        self.assertEqual(code, 3)
+
+    def test_multipliers_must_be_declared_absent(self):
+        self.assertEqual(self.analyze(multipliers=SHA)[0], 3)
+        self.assertEqual(self.analyze(provenance={"window_multipliers_sha256": SHA})[0], 3)
+
+    def test_recorded_filter_and_cell_count_must_match(self):
+        self.assertEqual(self.analyze(provenance={"only": ""})[0], 3)
+        self.assertEqual(self.analyze(provenance={"only": "B4,C"})[0], 3)
+        self.assertEqual(self.analyze(provenance={"cells": 59})[0], 3)
+
+    def test_only_the_c_profile_can_be_expected(self):
+        with self.assertRaises(SystemExit):
+            self.analyze(expect_only=("--expect-only", "B1"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,38 @@
+# CF5 attempt 1, session 1: analysis commands, each run once after the session ended
+# (2026-11-25). C = the campaign directory (private bundle
+# v1.1.0-cf5-attempt1-02cba68-f4d41f1). Analyzers from the frozen knotrel-benchmarks
+# checkout in C/src/cand/knotrel-benchmarks at f4d41f19 (tooling ff6889e7), unmodified.
+
+cd $C/src/cand/knotrel-benchmarks
+LIFECYCLE_QUALIFICATION_ROOTS=$C python3 scripts/analyze_cf5.py \
+  --matrix results/v1.1.0-cf5/cf5-matrix.json --run $C/session1 --out $C/analysis-session1.json
+LIFECYCLE_QUALIFICATION_ROOTS=$C python3 scripts/analyze_v100q_a.py \
+  --block1 $C/session1/delegated/V1-attempt1/raw-main \
+  --block2 $C/session1/delegated/V1-attempt1/extension/raw-extension \
+  --output $C/analysis-session1-V1.json
+# S3: evaluated by its collector (run_s3.sh -> run_cf5_s3.py evaluate) during the session:
+#   $C/session1/delegated/S3-attempt1/S3-evaluation.json (copied here unchanged).
+
+# L2, frozen analyzer (f4d41f19, sha256 bbd12a59...ae5c): refuses the run, no output written.
+# Its exact output is kept in L2-frozen-analyzer-refusal.txt.
+LIFECYCLE_QUALIFICATION_ROOTS=$C python3 scripts/analyze_lifecycle_qualification.py \
+  $C/session1/delegated/L2-attempt1/L2 --expect-knotrel-rev 02cba6825f9ad9ef769f4006428ccad5509076e9 \
+  --expect-multipliers-sha256 none --expect-probes-rev f4d41f19869c0a63baa0ce32d91ab02c1dd1522f \
+  --expect-lifecycle-engines cluster-forest
+#   -> INVALID RUN: not a complete final run   (exit status 3)
+
+# L2, revised analyzer (maintainer decision D2, 2026-11-25): scripts/analyze_lifecycle_qualification.py
+# sha256 09c547efce0f8537a5919191157b88c446f4a8854c9973cfbb7a0380760dcbae, the frozen file
+# (f4d41f19) plus the --expect-only C revision, uncommitted when it ran (branch
+# docs/cf5-attempt1-report) and committed unchanged in the same change as REPORT.md,
+# run once (R = that knotrel-benchmarks checkout):
+cd $R
+LIFECYCLE_QUALIFICATION_ROOTS=$C python3 scripts/analyze_lifecycle_qualification.py \
+  $C/session1/delegated/L2-attempt1/L2 --expect-knotrel-rev 02cba6825f9ad9ef769f4006428ccad5509076e9 \
+  --expect-multipliers-sha256 none --expect-probes-rev f4d41f19869c0a63baa0ce32d91ab02c1dd1522f \
+  --expect-lifecycle-engines cluster-forest --expect-only C \
+  --json $C/analysis-session1-L2.json --markdown $C/analysis-session1-L2.md
+#   -> exit status 0; copied here unchanged.
+
+# Presentation (this directory, from the analysis directory):
+python3 render_cells.py analysis-session1.json > CELLS.md

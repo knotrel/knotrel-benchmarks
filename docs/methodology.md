@@ -354,6 +354,18 @@ cache interaction. Reports preserve all repetitions and process identities.
 See the [comparison results](../results/2026-09-26-competitors/README.md) and
 [adoption-based candidate selection](research/2026-09-26-competitive-landscape.md).
 
+## Host swap activity
+
+Swap occupancy (for example `sysctl vm.swapusage`) shows how much swap is in use, not
+whether the host paged during a measurement. Campaigns frozen after v1.1.0 CF5
+attempt 1 also record the system's cumulative swap counters (`vm_stat` `Swapins` and
+`Swapouts` on macOS, `pswpin` and `pswpout` in `/proc/vmstat` on Linux) immediately
+before the first and after the last measured observation, so that the delta covers the
+whole measurement window. Per-process counters such as `ru_nswap` from
+`/usr/bin/time -l` cover only the processes observed and do not replace them. CF5
+attempt 1 recorded occupancy only; its report carries that limitation
+(`results/v1.1.0-cf5/REPORT.md`, D1).
+
 ## Sustained scale experiments
 
 `sustained-churn-path-v1` toggles seeded path edges; an ordered set of absent
