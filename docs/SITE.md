@@ -28,8 +28,8 @@ https://knotrel.github.io/knotrel-benchmarks/. No deployment workflow is require
 
 `docs/data/releases.json` is the source for release pages; the Python generator
 owns the HTML pages. Add an adapter/export from a campaign analyzer rather than
-manually transcribing measurements. This initial site intentionally contains
-only a planned 1.0.0 report, with no fabricated values or verdicts.
+manually transcribing measurements. Planned entries contain no
+values or verdicts.
 
 For 1.0.0, freeze the latest released 0.9.x patch as an exact tag and 40-character
 SHA. Later updates must not change the selected reference retrospectively.
