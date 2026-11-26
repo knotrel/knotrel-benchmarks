@@ -46,7 +46,11 @@ import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined_executable  # noqa: E402
 
 BATCH = 1024
 PAGE = 1000
@@ -223,7 +227,7 @@ def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--server-bin", required=True)
     parser.add_argument("--emit-bin", required=True)
-    parser.add_argument("--engine", required=True)
+    parser.add_argument("--engine", required=True, choices=["compact-bfs", "cluster-forest"])
     parser.add_argument("--workload", default="hub-in-sparse", choices=["hub-in-sparse"])
     parser.add_argument("--nodes", type=int, required=True)
     parser.add_argument("--degree", type=int, required=True)
@@ -231,6 +235,8 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument("--cell", choices=["p3", "p4"], required=True)
     parser.add_argument("--cursors", type=int, default=100)
     args = parser.parse_args(argv)
+    args.server_bin = str(confined_executable(args.server_bin, "--server-bin"))
+    args.emit_bin = str(confined_executable(args.emit_bin, "--emit-bin"))
     result = run(args)
     print(json.dumps(result))
     return 0 if result["errors"] == 0 else 1

@@ -25,6 +25,9 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_directory, confined_executable  # noqa: E402
+
 
 def run_check(checkout: Path, server: str, quick: bool) -> dict:
     script = checkout / "scripts" / "measure-inspection-costs.py"
@@ -42,6 +45,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--quick", action="store_true")
     args = parser.parse_args(argv)
+    args.base_server = str(confined_executable(args.base_server, "--base-server"))
+    args.cand_server = str(confined_executable(args.cand_server, "--cand-server"))
+    args.base_checkout = confined_directory(args.base_checkout, "--base-checkout")
+    args.cand_checkout = confined_directory(args.cand_checkout, "--cand-checkout")
+    args.out = confined(args.out, "--out")
     args.out.mkdir(parents=True, exist_ok=True)
     summary = {"quick": args.quick, "script_sha256": {}}
     try:

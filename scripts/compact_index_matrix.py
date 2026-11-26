@@ -37,6 +37,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 CALIBRATION = ROOT / "results" / "v1.1.0-cf5" / "timer-calibration" / "calibration.json"
 PROTOCOL = "knotrel docs/design/compact-node-index.md, section 6 (approved 2026-11-26)"
@@ -426,8 +429,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--windows", type=Path)
     parser.add_argument("--scale", type=int, default=1)
     args = parser.parse_args(argv)
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from cli_paths import confined  # noqa: PLC0415
     args.out = confined(args.out, "--out")
     factors = json.loads(confined(args.windows, "--windows").read_text()) \
         if args.windows else None

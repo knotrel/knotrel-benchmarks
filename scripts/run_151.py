@@ -193,6 +193,11 @@ def propose(matrix: Dict[str, Any], raw: List[Dict[str, Any]]) -> Dict[str, Any]
 
 
 def propose_windows(args: argparse.Namespace) -> int:
+    args.matrix = confined(args.matrix, "--matrix")
+    args.pilot = confined_directory(args.pilot, "--pilot")
+    args.out = confined(args.out, "--out")
+    if args.estimate:
+        args.estimate = confined(args.estimate, "--estimate")
     matrix = json.loads(args.matrix.read_text())
     status = json.loads((args.pilot / "status.json").read_text())
     if not status.get("preparatory"):
