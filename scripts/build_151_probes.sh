@@ -85,7 +85,7 @@ else
 fi
 
 python3 - "$OUT" "$BASE" "$CAND" "$SHARED" "$OVERLAY" "${LOCKED:-relocked}" <<'PY'
-import json, sys
+import json, os, sys
 out, base, cand, shared, overlay, locked = sys.argv[1:]
 tools = {}
 for arm in ("base", "cand"):
@@ -106,7 +106,12 @@ tools["_delegated"] = {"Q": {
     "argv": ["python3", f"{bench}/scripts/inspection_q_151.py",
              "--base-server", tools["_server_base"], "--cand-server", tools["_server_cand"],
              "--base-checkout", base, "--cand-checkout", cand, "--out", "{run}"],
-    "cwd": bench}}
+    "cwd": bench,
+    # The check runs from the candidate clone, whose own roots do not cover the base
+    # arm, the two checkouts or the run directory: allow them explicitly (cli_paths).
+    # Run directories must therefore lie in the directory that contains OUT.
+    "env": {"LIFECYCLE_QUALIFICATION_ROOTS": os.pathsep.join(
+        [os.path.dirname(out), base, cand])}}}
 tools["_checkouts"] = {"base": base, "candidate": cand, "benchmarks": bench}
 tools["_lockfiles"] = [f"{base}/Cargo.lock", f"{cand}/Cargo.lock",
                        f"{bench}/tools/lifecycle-probes/Cargo.lock"]
