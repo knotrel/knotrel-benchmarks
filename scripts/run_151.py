@@ -29,8 +29,8 @@ is the candidate (B), arm ``ref`` the base (CUR).
 - ``freeze``: writes the freeze record section 6.5 requires before the first observation
   (matrix SHA-256, base, candidate and knotrel-benchmarks SHAs, executable and lockfile
   hashes, host description, the derived order seed) to a new file, and names it as
-  ``_freeze`` in the tool map. Refuses a scaled matrix, unset windows, dirty checkouts or
-  an overlay build. Commit the record (proposed: ``results/v1.2.0-151/FREEZE.json``).
+  ``_freeze`` in the tool map. Refuses a scaled matrix, unset windows, an unset cap,
+  dirty checkouts or an overlay build. Commit the record (proposed: ``results/v1.2.0-151/FREEZE.json``).
 - ``campaign``: the frozen campaign through ``run_cf5.py`` (24 pairs, 2 warmup, 12/12
   balanced order from a seed derived from the matrix SHA-256 and the candidate SHA; the
   tool map must name ``_freeze`` with both). Refuses a scaled matrix or unset windows.
@@ -221,6 +221,8 @@ def freeze(args: argparse.Namespace) -> int:
     problems = []
     if matrix.get("scale", 1) != 1 or matrix.get("windows") != "set":
         problems.append("the matrix needs scale 1 and frozen windows")
+    if matrix.get("cap") != "set":
+        problems.append("the matrix needs the approved host-time cap (--cap-hours)")
     if tools.get("_build", {}).get("overlay"):
         problems.append("the tools were built with --overlay")
     prov = run_cf5.provenance(tools)
@@ -254,6 +256,8 @@ def campaign(args: argparse.Namespace) -> int:
     matrix = json.loads(args.matrix.read_text())
     if matrix.get("scale", 1) != 1 or matrix.get("windows") != "set":
         raise SystemExit("NOT STARTED: the campaign needs scale 1 and frozen windows")
+    if matrix.get("cap") != "set":
+        raise SystemExit("NOT STARTED: the campaign needs the approved cap (--cap-hours)")
     argv = ["--matrix", str(args.matrix), "--tools", str(args.tools), "--out", str(args.out)]
     if args.session == 2:
         argv += ["--session", "2", "--resume-from", str(args.resume_from)]
