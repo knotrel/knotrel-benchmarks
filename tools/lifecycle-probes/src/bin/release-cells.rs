@@ -27,7 +27,9 @@
 //!   untimed). Observation: total time of all cycles; also reported: the
 //!   slowest single operation (compaction spikes) and the number of
 //!   compactions. Logical counts are checked against the independent model
-//!   after every cycle; a mismatch fails the run.
+//!   after every cycle; a mismatch fails the run. A `gate` field (operation
+//!   and edge counts, final logical counts, `LifecycleStorage` entry counts)
+//!   serves the knotrel#151 cross-arm correctness gate (cell C1).
 
 use axum::{
     Router,
@@ -340,6 +342,10 @@ fn churn(args: &Args) -> Result<Value, String> {
         json!({"kind":"churn","engine":engine.as_str(),"observation_ns":total,"cycle_ns":cycle_ns,"slowest_op_ns":slowest,
               "operations":operations,"compactions":compactions,
               "engine_vertices":graph.engine_vertex_count(),"nodes":graph.node_count(),
+              // knotrel#151 C1: the cross-arm gate (added fields only).
+              "gate":{"operations":operations,"edges":edges.len(),
+                      "logical":lifecycle_probes::compact::logical(&graph),
+                      "storage":lifecycle_probes::compact::storage_entries(&graph)},
               "rss_bytes":rss_bytes()}),
     )
 }

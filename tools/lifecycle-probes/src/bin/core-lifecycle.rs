@@ -7,6 +7,8 @@
 //! core-lifecycle resources --arm lifecycle|reference|plain --engine E
 //!     --topology T --nodes N --cycles C --churn-percent P
 //!     --reuse none|fresh|same|toggle --seed S
+//! core-lifecycle resources --arm lifecycle --engine E --workload W --nodes N
+//!     [--degree D] --cycles 0 --seed S
 //! core-lifecycle pauses --engine E --topology T --nodes N --cycles C
 //!     --churn-percent P --seed S
 //! ```
@@ -34,6 +36,11 @@
 //! expected counts, storage diagnostics (lifecycle arm), RSS and, in the
 //! `count-alloc` build, live heap. Heap and RSS are also reported net of the
 //! baseline, which holds the generated topology and the schedule.
+//!
+//! `resources --workload W` (knotrel#151 M6) takes a `compact` workload
+//! (`sparse`, `ring`, `hub`, `star`, `hub-in-sparse`, `iso`) instead of
+//! `--topology`, for the lifecycle arm with `--cycles 0` only, and adds a
+//! `workload-rss` record with the RSS after the build and the gate.
 //!
 //! `pauses` (v0.7.0 qualification 3, check T5) replays the fresh-ID churn
 //! schedule of `resources --reuse fresh` on the lifecycle arm and times every
@@ -326,8 +333,48 @@ fn churn<S: Churn>(args: &Args, engine: EngineConfig) -> Result<(), String> {
     Ok(())
 }
 
+/// knotrel#151 M6: `resources --workload W` (a `compact` workload, lifecycle
+/// arm, `--cycles 0`): builds by `add_node` over every ID in ascending order,
+/// then `link` in workload order (the `Subject::build` method), and prints
+/// the baseline and the construction checkpoint with RSS.
+fn workload_resources(args: &Args, engine: EngineConfig) -> Result<(), String> {
+    use lifecycle_probes::compact::{self, Workload};
+    if args.get("arm")? != "lifecycle" || args.num::<usize>("cycles")? != 0 {
+        return Err("--workload supports only --arm lifecycle --cycles 0".into());
+    }
+    let nodes = args.0.get("nodes").map_or(Ok(0), |_| args.num("nodes"))?;
+    let degree = args.0.get("degree").map_or(Ok(0), |_| args.num("degree"))?;
+    let w = Workload::generate(args.get("workload")?, nodes, degree, args.num("seed")?)?;
+    let baseline = (live_heap(), rss_bytes());
+    println!(
+        "{}",
+        json!({"kind":"baseline","live_heap_bytes":baseline.0,"rss_bytes":baseline.1,"schedule_ops":0})
+    );
+    let mut graph = LifecycleGraph::new(engine).map_err(|e| e.to_string())?;
+    for &v in &w.ids {
+        graph.add_node(v).map_err(|e| e.to_string())?;
+    }
+    for &(a, b) in &w.edges {
+        graph.link(a, b).map_err(|e| e.to_string())?;
+    }
+    compact::check_logical(&graph, w.expected(), "build")?;
+    let expected = w.expected();
+    checkpoint(&graph, 0, &expected, baseline);
+    let rss = rss_bytes();
+    println!(
+        "{}",
+        json!({"kind":"workload-rss","engine":engine.as_str(),"workload":w.label,
+               "rss_after_build":rss,"net_rss_bytes":rss.zip(baseline.1).map(|(r, b)| r as i64 - b as i64),
+               "gate":compact::gate(&w, &graph)})
+    );
+    Ok(())
+}
+
 fn resources_command(args: &Args) -> Result<(), String> {
     let engine = parse_engine(args.get("engine")?).ok_or("unknown --engine")?;
+    if args.0.contains_key("workload") {
+        return workload_resources(args, engine);
+    }
     match args.get("arm")? {
         "lifecycle" => churn::<LifecycleGraph>(args, engine),
         "reference" => churn::<Reference>(args, engine),

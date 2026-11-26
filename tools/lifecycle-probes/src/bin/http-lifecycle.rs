@@ -47,6 +47,11 @@
 //! - `metrics-legacy`: the `optin-mutation` requests on two
 //!   lifecycle-disabled servers, metrics enabled vs disabled.
 //!
+//! Each pair record also carries `candidate_requests_per_s` (lifecycle arm
+//! requests over its window), `errors` (always 0: a failed request aborts the
+//! probe) and `candidate_stats` (the lifecycle arm's `/v1/stats` counts after
+//! the window), for the knotrel#151 cross-build cell C3.
+//!
 //! Capability-equivalent references (v0.7.0 qualification 3): the suffix
 //! `-equivalent` on `ops`, `ops-query`, `events`, `import` keeps the
 //! candidate arm unchanged and changes only the reference window.
@@ -811,6 +816,25 @@ async fn run_window(arm: &mut Arm) -> u128 {
         }
     }
     start.elapsed().as_nanos()
+}
+
+/// Untimed `GET /v1/stats` counts of an arm's check app (knotrel#151 C3 gate).
+async fn stats(arm: &Arm) -> Value {
+    let response = arm
+        .check
+        .clone()
+        .oneshot(Request::get("/v1/stats").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    let body = to_bytes(response.into_body(), 1 << 20).await.unwrap();
+    let stats: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
+    json!([
+        stats["node_count"],
+        stats["edge_count"],
+        stats["active_node_count"],
+        stats["enabled_edge_count"],
+        stats["effective_edge_count"]
+    ])
 }
 
 async fn answers(arm: &Arm, pairs: &[(u64, u64)]) -> Vec<Value> {
@@ -1889,6 +1913,12 @@ async fn main_async() -> Result<(), String> {
                "candidate_requests": candidate.calls.len(), "reference_requests": reference.calls.len(),
                "answers_agree": agree, "engine": plan.engine.as_str(),
                "reference_engine": reference_plan.as_ref().map_or(plan.engine.as_str(), |p| p.engine.as_str())});
+        // knotrel#151 C3: the lifecycle (candidate) arm alone, as one
+        // observation of a cross-build comparison. Every request must succeed
+        // (`send` asserts it), so errors are 0 whenever a record is printed.
+        record["candidate_requests_per_s"] = json!(candidate.calls.len() as f64 / (c as f64 / 1e9));
+        record["errors"] = json!(0);
+        record["candidate_stats"] = stats(&candidate).await;
         // Qualification 3, revision 2: whether the planner reference offered
         // the candidate's isolation (one plain request per lifecycle chunk).
         if let Some(a) = reference.atomicity {

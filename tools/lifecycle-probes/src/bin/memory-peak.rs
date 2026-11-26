@@ -20,7 +20,21 @@
 //! memory-peak import-http --engine E --topology T --nodes N
 //!     --inactive-percent I --disabled-percent D --seed S --mode create|replace
 //! memory-peak cf5-random --engine E --vertices V --degree D --seed S
+//! memory-peak compact-import --engine E --workload W --nodes N [--degree D] --seed S
+//! memory-peak compact-build --engine E --workload W --nodes N [--degree D] --seed S
+//! memory-peak compact-import-http --engine E --workload W --nodes N [--degree D]
+//!     --seed S --mode create|replace
+//! memory-peak mass-removal --engine E --workload W --nodes N --seed S --percent P
 //! ```
+//!
+//! The `compact-*` and `mass-removal` commands are the deterministic memory
+//! cells of the knotrel#151 comparison (M1, M1-iso, M2, M3, M5;
+//! `lifecycle_probes::compact`). Each prints one JSON object with net live
+//! heap and high-water values relative to a baseline read after every input
+//! is prepared, and a `gate` field (input fingerprint, logical counts,
+//! `LifecycleStorage` entry counts; M3: the import reply's counts, the server
+//! exposes no storage counts). `churn` ends with a `churn-end` record (M4):
+//! live at end and high-water, both net of the baseline, and the gate.
 //!
 //! `cf5-random` is CF5 block K4: the K2 graph and staged orders
 //! (`knotrel_benchmarks::cf5`), all insertions then all deletions through
@@ -42,6 +56,7 @@ use axum::{
 use knotrel_core::{EdgeSpec, EngineConfig, GraphLimits, HdtGraph, LifecycleGraph, NodeSpec};
 use knotrel_server::{ServerConfig, ServerMode, router_with_config};
 use lifecycle_probes::churn::{Model, schedule};
+use lifecycle_probes::compact::{self, Workload};
 use lifecycle_probes::{
     Op, Rng, Subject, Topology, build_record, generate, parse_engine, rss_bytes,
 };
@@ -130,6 +145,23 @@ fn churn(args: &Args) -> Result<(), String> {
         );
         previous_peak = peak;
         previous_vertices = vertices;
+    }
+    // M4 (knotrel#151): one closing record with the cell metrics and the gate.
+    let (live, peak) = heap();
+    let ops = plan.iter().map(Vec::len).sum::<usize>();
+    println!(
+        "{}",
+        json!({"kind":"churn-end","engine":engine.as_str(),
+               "live_at_end": live as i64 - base_live as i64,
+               "high_water": peak as i64 - base_live as i64,
+               "gate": {"schedule_ops": ops, "edges": edges.len(),
+                        "logical": compact::logical(&graph),
+                        "expected": expected[cycles],
+                        "storage": compact::storage_entries(&graph)},
+               "capacities": compact::storage_capacities(&graph), "rss_bytes": rss_bytes()})
+    );
+    if compact::logical(&graph) != expected[cycles] {
+        return Err("churn logical counts differ from the model".into());
     }
     Ok(())
 }
@@ -475,6 +507,237 @@ async fn import_http(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
+// ---- knotrel#151 memory cells ----
+
+fn compact_workload(args: &Args) -> Result<(EngineConfig, Workload), String> {
+    let engine = parse_engine(args.get("engine")?)
+        .filter(|e| LifecycleGraph::supports_engine(*e))
+        .ok_or("--engine is not a lifecycle engine")?;
+    let nodes = args.0.get("nodes").map_or(Ok(0), |_| args.num("nodes"))?;
+    let degree = args.0.get("degree").map_or(Ok(0), |_| args.num("degree"))?;
+    let w = Workload::generate(args.get("workload")?, nodes, degree, args.num("seed")?)?;
+    Ok((engine, w))
+}
+
+/// Net live heap, high-water and exactness relative to a baseline reading.
+fn net(base: (usize, usize), now: (usize, usize)) -> Value {
+    json!({"live": now.0 as i64 - base.0 as i64, "high_water": now.1 as i64 - base.0 as i64,
+           "peak_exact": now.1 > base.1})
+}
+
+/// M1 and M1-iso: bulk import.
+fn compact_import(args: &Args) -> Result<(), String> {
+    let (engine, w) = compact_workload(args)?;
+    let (nodes, specs) = compact::specs(&w);
+    let base = heap();
+    let graph = LifecycleGraph::try_from_topology(engine, GraphLimits::default(), &nodes, &specs)
+        .map_err(|e| e.to_string())?;
+    let after = heap();
+    compact::check_logical(&graph, w.expected(), "import")?;
+    let m = net(base, after);
+    println!(
+        "{}",
+        json!({"kind":"compact-import","engine":engine.as_str(),"workload":w.label,
+               "live_after": m["live"], "high_water": m["high_water"], "peak_exact": m["peak_exact"],
+               "nodes": w.ids.len(), "edges_registered": w.edges.len(),
+               "gate": compact::gate(&w, &graph), "capacities": compact::storage_capacities(&graph),
+               "rss_bytes": rss_bytes()})
+    );
+    drop(graph);
+    Ok(())
+}
+
+/// M2: incremental build in seeded random edge order.
+fn compact_build(args: &Args) -> Result<(), String> {
+    let (engine, w) = compact_workload(args)?;
+    let edges = compact::incremental_edges(&w, args.num("seed")?);
+    let base = heap();
+    let graph = compact::build_incremental(engine, &w.ids, &edges)?;
+    let after = heap();
+    compact::check_logical(&graph, w.expected(), "build")?;
+    let m = net(base, after);
+    println!(
+        "{}",
+        json!({"kind":"compact-build","engine":engine.as_str(),"workload":w.label,
+               "live_after": m["live"], "high_water": m["high_water"], "peak_exact": m["peak_exact"],
+               "nodes": w.ids.len(), "edges_registered": w.edges.len(),
+               "gate": compact::gate(&w, &graph), "capacities": compact::storage_capacities(&graph),
+               "rss_bytes": rss_bytes()})
+    );
+    drop(graph);
+    Ok(())
+}
+
+/// M5: remove `P`% of the nodes, then register as many fresh IDs.
+fn mass_removal(args: &Args) -> Result<(), String> {
+    let (engine, w) = compact_workload(args)?;
+    let plan = compact::mass_plan(&w, args.num("percent")?, args.num("seed")?);
+    let (nodes, specs) = compact::specs(&w);
+    let base = heap();
+    let mut graph =
+        LifecycleGraph::try_from_topology(engine, GraphLimits::default(), &nodes, &specs)
+            .map_err(|e| e.to_string())?;
+    let built = heap();
+    for &v in &plan.removed {
+        if !graph.remove_node(v) {
+            return Err(format!("remove_node({v}) reported no change"));
+        }
+    }
+    let removed = heap();
+    compact::check_logical(&graph, plan.after_removal, "after removal")?;
+    let after_removal = json!({"logical": compact::logical(&graph),
+                               "storage": compact::storage_entries(&graph)});
+    for &v in &plan.fresh {
+        if !graph.add_node(v).map_err(|e| e.to_string())? {
+            return Err(format!("add_node({v}) reported no change"));
+        }
+    }
+    let end = heap();
+    compact::check_logical(&graph, plan.at_end, "at end")?;
+    let mut gate = compact::gate(&w, &graph);
+    gate["after_removal"] = after_removal;
+    println!(
+        "{}",
+        json!({"kind":"mass-removal","engine":engine.as_str(),"workload":w.label,
+               "live_after_build": built.0 as i64 - base.0 as i64,
+               "live_after_removal": removed.0 as i64 - base.0 as i64,
+               "high_water": end.1 as i64 - base.0 as i64,
+               "high_water_rose_after_build": end.1 > built.1,
+               "live_at_end": end.0 as i64 - base.0 as i64,
+               "removed": plan.removed.len(), "gate": gate,
+               "capacities": compact::storage_capacities(&graph), "rss_bytes": rss_bytes()})
+    );
+    drop(graph);
+    Ok(())
+}
+
+fn workload_body(mode: &str, instance: &str, w: &Workload) -> Bytes {
+    let mut body = String::with_capacity(48 * w.edges.len() + 24 * w.ids.len() + 512);
+    write!(
+        body,
+        r#"{{"mode":"{mode}","instance_id":"{instance}","graph_id":"default","source_id":"src","source_epoch":"e1","source_position":"p0","feeder_session_id":"s","feeder_epoch":1,"nodes":["#
+    )
+    .unwrap();
+    for (i, v) in w.ids.iter().enumerate() {
+        if i > 0 {
+            body.push(',');
+        }
+        write!(body, r#""{v}""#).unwrap();
+    }
+    body.push_str(r#"],"edges":["#);
+    for (i, (a, b)) in w.edges.iter().enumerate() {
+        if i > 0 {
+            body.push(',');
+        }
+        write!(body, r#"{{"source":"{a}","target":"{b}"}}"#).unwrap();
+    }
+    body.push_str("]}");
+    Bytes::from(body)
+}
+
+/// M3: import replace with the old graph published (or create).
+async fn compact_import_http(args: &Args) -> Result<(), String> {
+    let (engine, w) = compact_workload(args)?;
+    let mode = args.get("mode")?;
+    if mode != "create" && mode != "replace" {
+        return Err("--mode is create or replace".into());
+    }
+    let config = ServerConfig::new("127.0.0.1:0".parse().unwrap(), engine, 32)
+        .map_err(|e| e.to_string())?
+        .with_mode(ServerMode::SourceManaged)
+        .with_topology_lifecycle(true)
+        .map_err(|e| e.to_string())?
+        .with_max_import_body_bytes(512 << 20)
+        .map_err(|e| e.to_string())?
+        .with_metrics_enabled(false)
+        .with_graph_limits(GraphLimits::default());
+    let app = router_with_config(config);
+    let (_, _, info) = send(&app, Request::get("/v1/info").body(Body::empty()).unwrap()).await;
+    let info: Value = serde_json::from_slice(&info).map_err(|e| e.to_string())?;
+    let instance = info["instance_id"]
+        .as_str()
+        .ok_or("no instance id")?
+        .to_owned();
+    let request = |path: &str, body: Bytes, etag: Option<&str>| {
+        let mut builder = Request::post(path)
+            .header("content-type", "application/json")
+            .header("x-knotrel-instance-id", instance.as_str());
+        if let Some(etag) = etag {
+            builder = builder.header("if-match", etag);
+        }
+        builder.body(Body::from(body)).unwrap()
+    };
+    let session = json!({"instance_id":instance,"feeder_session_id":"s","feeder_epoch":1,"lease_duration_ms":60000}).to_string();
+    let (status, _, _) = send(
+        &app,
+        request("/v1/feeder/session", Bytes::from(session), None),
+    )
+    .await;
+    if status != StatusCode::OK {
+        return Err(format!("session: {status}"));
+    }
+    let reference = heap();
+    let mut etag = None;
+    if mode == "replace" {
+        let body = workload_body("create_only", &instance, &w);
+        let (status, tag, reply) = send(&app, request("/v1/feeder/import", body, None)).await;
+        if status != StatusCode::CREATED {
+            return Err(format!(
+                "initial import: {status} {}",
+                String::from_utf8_lossy(&reply)
+            ));
+        }
+        etag = Some(tag.ok_or("no etag after initial import")?);
+    }
+    let published = heap();
+    let body = workload_body(
+        if mode == "replace" {
+            "replace"
+        } else {
+            "create_only"
+        },
+        &instance,
+        &w,
+    );
+    let body_bytes = body.len();
+    let before = heap();
+    let (status, _, reply) = send(&app, request("/v1/feeder/import", body, etag.as_deref())).await;
+    let after = heap();
+    if !status.is_success() {
+        return Err(format!(
+            "measured import: {status} {}",
+            String::from_utf8_lossy(&reply)
+        ));
+    }
+    let reply: Value = serde_json::from_slice(&reply).map_err(|e| e.to_string())?;
+    let counts = json!([
+        reply["node_count"],
+        reply["edge_count"],
+        reply["active_node_count"],
+        reply["enabled_edge_count"],
+        reply["effective_edge_count"]
+    ]);
+    if counts != json!(w.expected()) {
+        return Err(format!(
+            "import counts {counts}, expected {:?}",
+            w.expected()
+        ));
+    }
+    println!(
+        "{}",
+        json!({"kind":"compact-import-http","engine":engine.as_str(),"workload":w.label,"mode":mode,
+               "status":status.as_u16(),"body_bytes":body_bytes,
+               "live_published": published.0 as i64 - reference.0 as i64,
+               "high_water": after.1 as i64 - reference.0 as i64,
+               "peak_exact": after.1 > before.1,
+               "live_after_swap": after.0 as i64 - reference.0 as i64,
+               "nodes": w.ids.len(), "edges_registered": w.edges.len(),
+               "gate": {"fingerprint": w.fingerprint(), "logical": counts},
+               "rss_bytes": rss_bytes()})
+    );
+    Ok(())
+}
+
 fn main() -> ExitCode {
     let mut items = std::env::args().skip(1);
     let command = items.next().unwrap_or_default();
@@ -484,13 +747,21 @@ fn main() -> ExitCode {
         "hdt-levels" => hdt_levels(&args),
         "import-core" => import_core(&args),
         "cf5-random" => cf5_random(&args),
+        "compact-import" => compact_import(&args),
+        "compact-build" => compact_build(&args),
+        "mass-removal" => mass_removal(&args),
+        "compact-import-http" => tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| e.to_string())
+            .and_then(|rt| rt.block_on(compact_import_http(&args))),
         "import-http" => tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .map_err(|e| e.to_string())
             .and_then(|rt| rt.block_on(import_http(&args))),
         _ => Err(
-            "usage: memory-peak churn|hdt-levels|import-core|import-http|cf5-random --flag value ..."
+            "usage: memory-peak churn|hdt-levels|import-core|import-http|cf5-random|compact-import|compact-build|compact-import-http|mass-removal --flag value ..."
                 .into(),
         ),
     });
