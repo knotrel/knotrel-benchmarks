@@ -429,13 +429,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--windows", type=Path)
     parser.add_argument("--scale", type=int, default=1)
     args = parser.parse_args(argv)
-    args.out = confined(args.out, "--out")
+    out = confined(args.out, "--out")
     factors = json.loads(confined(args.windows, "--windows").read_text()) \
         if args.windows else None
-    matrix = build(args.scale, factors)
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(matrix, indent=1, sort_keys=True) + "\n")
-    print(json.dumps({"out": str(args.out), "counts": matrix["counts"],
+    matrix = build(int(args.scale), factors)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(matrix, indent=1, sort_keys=True) + "\n")
+    print(json.dumps({"out": str(out), "counts": matrix["counts"],
                       "cells": len(matrix["cells"]), "windows": matrix["windows"]}))
     return 0
 

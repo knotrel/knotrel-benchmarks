@@ -109,9 +109,10 @@ class Server:
 
 
 def emitted(emit_bin: str, args: argparse.Namespace) -> Tuple[Dict[str, Any], List[str]]:
+    numbers = [str(int(value)) for value in (args.nodes, args.degree, args.seed, args.cursors)]
     done = subprocess.run([emit_bin, "emit", "--workload", "hub-in-sparse",
-                           "--nodes", str(args.nodes), "--degree", str(args.degree),
-                           "--seed", str(args.seed), "--cursors", str(args.cursors)],
+                           "--nodes", numbers[0], "--degree", numbers[1],
+                           "--seed", numbers[2], "--cursors", numbers[3]],
                           capture_output=True, text=True, check=True)
     lines = done.stdout.splitlines()
     return json.loads(lines[0]), lines[1:]
