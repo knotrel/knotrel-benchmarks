@@ -69,30 +69,52 @@ def apply_multipliers(cells: List[Dict[str, Any]], multipliers: Dict[str, int]) 
 ALL_LIFECYCLE_ENGINES = ",".join(ENGINES)
 
 
+#: Suffixes of twin cells that run right after their frozen counterpart, in this order
+#: (qualification 3: ``-equivalent-``; knotrel#180: ``-atomic-``).
+TWIN_SUFFIXES = ("-equivalent-", "-atomic-")
+
+
+def _twin_suffix(cell_id: str) -> str:
+    """The twin suffix of ``cell_id``, or an empty string for a frozen cell."""
+    found = [suffix for suffix in TWIN_SUFFIXES if suffix in cell_id]
+    if len(found) > 1:
+        raise SystemExit(f"cell with more than one twin suffix: {cell_id}")
+    return found[0] if found else ""
+
+
 def run_order(cells: List[Dict[str, Any]], seed: int) -> List[int]:
     """Indices of ``cells`` in run order.
 
-    Without capability-equivalent cells: the frozen rule, a ``random.Random(seed)``
-    shuffle of all indices. With them (qualification 3), the frozen cells keep exactly
-    the order the frozen rule gives them on their own, and each ``*-equivalent`` cell
-    runs right after its frozen counterpart, so the frozen sequence is unchanged.
+    Without twin cells: the frozen rule, a ``random.Random(seed)`` shuffle of all
+    indices. With them, the frozen cells keep exactly the order the frozen rule gives
+    them on their own, and each twin runs right after its frozen counterpart, so the
+    frozen sequence is unchanged: a ``*-equivalent`` cell (qualification 3) first, then
+    a ``*-atomic`` cell (knotrel#180, application-gate reference). Without ``-atomic-``
+    cells the order is exactly the qualification-3 order.
     """
-    frozen = [i for i, c in enumerate(cells) if "-equivalent-" not in c["id"]]
+    frozen = [i for i, c in enumerate(cells) if not _twin_suffix(c["id"])]
     shuffled = list(range(len(frozen)))
     random.Random(seed).shuffle(shuffled)
     if len(frozen) == len(cells):
         return shuffled
-    twin = {c["id"].replace("-equivalent-", "-"): i for i, c in enumerate(cells) if "-equivalent-" in c["id"]}
-    if len(twin) != len(cells) - len(frozen):
-        raise SystemExit("duplicate equivalent cells")
+    twins: Dict[str, Dict[str, int]] = {}
+    for i, c in enumerate(cells):
+        suffix = _twin_suffix(c["id"])
+        if not suffix:
+            continue
+        slot = twins.setdefault(c["id"].replace(suffix, "-"), {})
+        if suffix in slot:
+            raise SystemExit(f"duplicate {suffix.strip('-')} cells")
+        slot[suffix] = i
     order: List[int] = []
     for k in shuffled:
         index = frozen[k]
         order.append(index)
-        if cells[index]["id"] in twin:
-            order.append(twin.pop(cells[index]["id"]))
-    if twin:
-        raise SystemExit(f"equivalent cells without a frozen counterpart: {sorted(twin)}")
+        slot = twins.pop(cells[index]["id"], {})
+        order.extend(slot[suffix] for suffix in TWIN_SUFFIXES if suffix in slot)
+    if twins:
+        raise SystemExit(f"twin cells without a frozen counterpart: "
+                         f"{sorted(cells[i]['id'] for slot in twins.values() for i in slot.values())}")
     return order
 
 
@@ -114,26 +136,33 @@ def in_lifecycle_scope(cell: Dict[str, Any], lifecycle_engines: str) -> bool:
 
 
 def matrix(profile: str, lifecycle_engines: str = ALL_LIFECYCLE_ENGINES,
-           equivalent: bool = False) -> List[Dict[str, Any]]:
+           equivalent: bool = False, atomic: bool = False) -> List[Dict[str, Any]]:
     """Every cell of experiments B and C within the lifecycle-engine scope.
 
     ``profile`` only shrinks repetition counts. The default scope (all engines)
     reproduces the original matrix; amendment 4 restricts it to ``compact-bfs``.
     ``equivalent`` (v0.7.0 qualification 3) adds the capability-equivalent B4
     cells (``*-equivalent`` scenarios, same tolerances and request counts) beside
-    the frozen ones; without it the matrix is unchanged.
+    the frozen ones; without it the matrix is unchanged. ``atomic`` (knotrel#180,
+    decision M1(b)) adds the application-gate reference cells of :data:`ATOMIC_CELLS`
+    beside their frozen counterparts; without it the matrix is unchanged.
     """
     unknown = set(lifecycle_engines.split(",")) - set(ENGINES) - set(OPTIONAL_ENGINES)
     if unknown or not lifecycle_engines:
         raise SystemExit(f"unknown lifecycle engines: {sorted(unknown)}")
-    return [c for c in _full_matrix(profile, equivalent) if in_lifecycle_scope(c, lifecycle_engines)]
+    return [c for c in _full_matrix(profile, equivalent, atomic) if in_lifecycle_scope(c, lifecycle_engines)]
 
 
 #: Scenarios whose reference gets a capability-equivalent variant (qualification 3).
 EQUIVALENT_SCENARIOS = ("ops", "ops-query", "events", "import")
 
+#: Application-gate (``-atomic``) reference cells (knotrel#180, decisions M1(b) and M4):
+#: (scenario, engine, topology, nodes). ``ops`` on the compact-bfs hub 10k only; ``events``
+#: has no atomic reference (written disposition).
+ATOMIC_CELLS = (("ops", "compact-bfs", "hub", 10_000),)
 
-def _full_matrix(profile: str, equivalent: bool = False) -> List[Dict[str, Any]]:
+
+def _full_matrix(profile: str, equivalent: bool = False, atomic: bool = False) -> List[Dict[str, Any]]:
     """Every cell of experiments B and C. ``profile`` only shrinks repetition counts."""
     pairs, warmup = (2, 0) if profile == "pilot" else (12, 2)
     cycles = 3 if profile == "pilot" else 30
@@ -184,6 +213,11 @@ def _full_matrix(profile: str, equivalent: bool = False) -> List[Dict[str, Any]]
                 if equivalent and scenario in EQUIVALENT_SCENARIOS:
                     http(f"B4-http-{scenario}-equivalent-{engine}-{topology}-10000", tolerance,
                          scenario=f"{scenario}-equivalent", engine=engine, topology=topology,
+                         nodes=10_000, requests=requests)
+                if atomic and (scenario, engine, topology, 10_000) in ATOMIC_CELLS:
+                    # The counterpart's requests (40) and tolerance (25%).
+                    http(f"B4-http-{scenario}-atomic-{engine}-{topology}-10000", tolerance,
+                         scenario=f"{scenario}-atomic", engine=engine, topology=topology,
                          nodes=10_000, requests=requests)
         http(f"B4-http-import-high-{engine}-sparse-10000", 1.00, scenario="import", engine=engine,
              topology="sparse", nodes=10_000, requests=1, inactive_percent=60, disabled_percent=30)
@@ -265,6 +299,8 @@ def main() -> int:
                         help="pilot-derived JSON {cell id: factor}; archived in plan/")
     parser.add_argument("--equivalent-references", action="store_true",
                         help="add the capability-equivalent B4 cells (v0.7.0 qualification 3)")
+    parser.add_argument("--atomic-references", action="store_true",
+                        help="add the application-gate B4 reference cells (knotrel#180)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     args.out = confined(args.out, "--out")
@@ -279,7 +315,7 @@ def main() -> int:
         print(f"refusing to reuse existing output directory {args.out}", file=sys.stderr)
         return 2
     binaries = {"core": args.core, "core-count": args.core_count, "http": args.http}
-    cells = matrix(args.profile, args.lifecycle_engines, args.equivalent_references)
+    cells = matrix(args.profile, args.lifecycle_engines, args.equivalent_references, args.atomic_references)
     # The multipliers scale only the timed B1-B4 cells: a final run whose --only filter keeps
     # none of them (CF5 L2: --only C) needs none; every other final run still requires them.
     wanted_experiments = set(args.only.split(",")) if args.only else None
@@ -299,6 +335,7 @@ def main() -> int:
         "profile": args.profile, "order_seed": args.order_seed, "seed": SEED,
         "only": args.only, "cells": len(cells), "lifecycle_engines": args.lifecycle_engines,
         "equivalent_references": args.equivalent_references,
+        **({"atomic_references": True} if args.atomic_references else {}),
         "knotrel": {"path": str(args.knotrel.resolve()), "head": git(args.knotrel, "rev-parse", "HEAD"),
                     "dirty": git(args.knotrel, "status", "--porcelain")},
         "benchmarks": {"head": git(benchmarks, "rev-parse", "HEAD"),

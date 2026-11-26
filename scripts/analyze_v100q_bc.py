@@ -40,7 +40,7 @@ FROZEN_VALIDATE = frozen.validate
 
 def validate_only(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipliers_sha: str,
                   lifecycle_engines: str = "compact-bfs,ett,hdt", equivalent_references: bool = False,
-                  only: str = ONLY) -> Dict[str, Any]:
+                  only: str = ONLY, atomic_references: bool = False) -> Dict[str, Any]:
     """``frozen.validate`` for a final run restricted to ``only`` (comma-separated experiments)."""
     provenance = json.loads((run / "provenance.json").read_text())
     if provenance["profile"] != "final" or provenance.get("only") != only:
@@ -49,9 +49,14 @@ def validate_only(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipl
         raise frozen.Invalid("lifecycle-engine scope differs from the expected scope")
     if provenance.get("equivalent_references", False) != equivalent_references:
         raise frozen.Invalid("equivalent-reference cells differ from the expected matrix")
+    if provenance.get("atomic_references", False) != atomic_references:
+        raise frozen.Invalid("atomic-reference cells differ from the expected matrix")
     runner = frozen._runner()
-    plan = (runner.matrix("final", lifecycle_engines, True) if equivalent_references
-            else runner.matrix("final", lifecycle_engines))
+    if atomic_references:
+        plan = runner.matrix("final", lifecycle_engines, equivalent_references, True)
+    else:
+        plan = (runner.matrix("final", lifecycle_engines, True) if equivalent_references
+                else runner.matrix("final", lifecycle_engines))
     wanted = set(only.split(","))
     expected = {c["id"] for c in plan if c["experiment"] in wanted}
     if set(cells) != expected:

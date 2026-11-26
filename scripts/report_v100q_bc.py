@@ -9,6 +9,10 @@ the freeze record says so: ``--core-rule identical`` takes no T5 file; ``--core-
 requires one and adds its six deciding rows, as in v0.9.0. Statuses are copied unchanged;
 nothing is recomputed.
 
+A matrix that carries an ``atomic_references`` block (knotrel#180; see
+``report_v070q3_bc.py``) gets its ``-atomic`` cells classified with the same fail-closed
+rule and the block echoed in the output; the v1.0.0 matrix has none.
+
     report_v100q_bc.py BC-analysis.json --core-rule identical
     report_v100q_bc.py BC-analysis.json --core-rule different T5-analysis.json
 """
@@ -33,14 +37,20 @@ def report(analysis: dict, matrix: dict, t5: dict = None) -> dict:
     disclosures = [r for r in rows if r["status"] in frozen.DISCLOSURE.get(r["kind"], set())]
     eq = matrix["experiments"]["B_C"]["equivalent_references"]
     unqualified = eq["unqualified_requirements"]
-    if len(unqualified) < len(eq["not_equivalent"]["cells"]):
+    if len(unqualified) < len(frozen.uncovered_not_equivalent(matrix)):
         raise SystemExit("fewer unqualified requirements than not-equivalent cells")
-    return {"rows": rows, "deciding_non_pass": frozen.non_pass(rows), "disclosures": disclosures,
-            "unqualified_requirements": unqualified,
-            "qualification_scope": frozen.scope(unqualified),
-            "overall": frozen.overall(rows, unqualified),
-            "not_equivalent_inconsistencies": frozen.inconsistencies(rows),
-            "core_rule": "different" if t5 is not None else "identical"}
+    out = {"rows": rows, "deciding_non_pass": frozen.non_pass(rows), "disclosures": disclosures,
+           "unqualified_requirements": unqualified,
+           "qualification_scope": frozen.scope(unqualified),
+           "overall": frozen.overall(rows, unqualified),
+           "not_equivalent_inconsistencies": frozen.inconsistencies(rows),
+           "core_rule": "different" if t5 is not None else "identical"}
+    # knotrel#180: a matrix with application-gate references also lists them (never
+    # present in the v1.0.0 matrix, so its output is unchanged).
+    atomic = frozen.atomic_block(matrix)
+    if atomic:
+        out["atomic_references"] = atomic
+    return out
 
 
 def main(argv: List[str]) -> int:
