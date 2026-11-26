@@ -71,6 +71,10 @@ PAIRS = 12
 WARMUP = 2
 
 
+#: Application-gate reference cells (knotrel#180).
+ATOMIC_REFERENCE = re.compile(r"-ops-atomic-")
+
+
 class Invalid(Exception):
     """The run does not satisfy the frozen protocol."""
 
@@ -118,6 +122,21 @@ def paired(cell: Dict[str, Any], records: List[Dict[str, Any]]) -> Dict[str, Any
         summary["atomicity_equivalent"] = all(flags)
         summary["reference_max_op_plain_ops"] = max(r["reference_max_op_plain_ops"] for r in pairs + warm)
         summary["reference_split_chunks"] = max(r["reference_split_chunks"] for r in pairs + warm)
+    # knotrel#180: application-gate references record the gate mode, the gated chunks and
+    # the untimed gate check in every pair; missing or mixed records are invalid.
+    if ATOMIC_REFERENCE.search(cell["id"]):
+        if not flags:
+            raise Invalid(f"{cell['id']}: atomic reference cell without atomicity records")
+        if any(r.get("atomicity_mode") != "application_gate" for r in pairs + warm):
+            raise Invalid(f"{cell['id']}: atomic reference cell without application_gate mode")
+        if any(not isinstance(r.get("gate_check"), dict) for r in pairs + warm):
+            raise Invalid(f"{cell['id']}: atomic reference cell without gate check records")
+        summary["atomicity_mode"] = "application_gate"
+        summary["reference_gated_chunks"] = min(r["reference_gated_chunks"] for r in pairs + warm)
+        summary["reference_lifecycle_chunks"] = max(r["reference_lifecycle_chunks"] for r in pairs + warm)
+        summary["gate_check_pass"] = all(r["gate_check"].get("pass") is True for r in pairs + warm)
+        if not summary["gate_check_pass"] or summary["reference_gated_chunks"] != summary["reference_lifecycle_chunks"]:
+            summary["atomicity_equivalent"] = False
     summary["id"] = cell["id"]
     summary["experiment"] = cell["experiment"]
     summary["scale"] = cell.get("scale", 1)
@@ -207,7 +226,8 @@ def unique_ids(records: List[Dict[str, Any]], what: str) -> Dict[str, Dict[str, 
 
 def validate(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipliers_sha: str,
              lifecycle_engines: str = "compact-bfs,ett,hdt",
-             equivalent_references: bool = False, expected_only: str = "") -> Dict[str, Any]:
+             equivalent_references: bool = False, expected_only: str = "",
+             atomic_references: bool = False) -> Dict[str, Any]:
     provenance = json.loads((run / "provenance.json").read_text())
     if expected_only and expected_only not in EXPECTABLE_ONLY:
         raise Invalid(f"--expect-only {expected_only!r} is not an accepted profile {EXPECTABLE_ONLY}")
@@ -221,9 +241,15 @@ def validate(run: Path, cells: Dict[str, Dict[str, Any]], rev: str, multipliers_
     # explicitly (--expect-equivalent-references) and recorded by the collector.
     if provenance.get("equivalent_references", False) != equivalent_references:
         raise Invalid("equivalent-reference cells differ from the expected matrix")
+    # knotrel#180: the application-gate cells likewise (absent from earlier provenance).
+    if provenance.get("atomic_references", False) != atomic_references:
+        raise Invalid("atomic-reference cells differ from the expected matrix")
     runner = _runner()
-    plan = (runner.matrix("final", lifecycle_engines, True) if equivalent_references
-            else runner.matrix("final", lifecycle_engines))
+    if atomic_references:
+        plan = runner.matrix("final", lifecycle_engines, equivalent_references, True)
+    else:
+        plan = (runner.matrix("final", lifecycle_engines, True) if equivalent_references
+                else runner.matrix("final", lifecycle_engines))
     expected = {c["id"] for c in plan if not expected_only or c["experiment"] in expected_only.split(",")}
     if set(cells) != expected:
         raise Invalid(f"plan matrix differs from the {lifecycle_engines} scope "
@@ -268,6 +294,8 @@ def main() -> int:
                         help="lifecycle-engine scope of the run (amendment 4: compact-bfs)")
     parser.add_argument("--expect-equivalent-references", action="store_true",
                         help="the run includes the capability-equivalent B4 cells (v0.7.0 qualification 3)")
+    parser.add_argument("--expect-atomic-references", action="store_true",
+                        help="the run includes the application-gate B4 cells (knotrel#180)")
     parser.add_argument("--expect-only", default="", choices=("",) + EXPECTABLE_ONLY,
                         help="the run's recorded --only filter (CF5 L2: C); default: none")
     parser.add_argument("--json", type=Path)
@@ -279,7 +307,8 @@ def main() -> int:
     try:
         cells = unique_ids(json.loads((args.run / "plan" / "matrix.json").read_text()), "plan")
         validate(args.run, cells, args.expect_knotrel_rev, args.expect_multipliers_sha256,
-                 args.expect_lifecycle_engines, args.expect_equivalent_references, args.expect_only)
+                 args.expect_lifecycle_engines, args.expect_equivalent_references, args.expect_only,
+                 **({"atomic_references": True} if args.expect_atomic_references else {}))
         raw = args.run / "raw"
         timing, resources = [], []
         for cell_id, cell in cells.items():

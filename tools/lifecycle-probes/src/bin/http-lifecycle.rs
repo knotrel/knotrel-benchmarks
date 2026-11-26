@@ -74,6 +74,24 @@
 //! `node_state`/`edge_state`), and the plain server's content (every node of
 //! catalog ∪ removed present, read-only; every effective edge present and no
 //! other, by cutting them after the windows); a mismatch stops the probe.
+//!
+//! Application-gate reference (knotrel#180, decision M1(b), `ops` only):
+//! - `ops-atomic`: the `ops-equivalent` reference (same graph, seed, trace,
+//!   chunks, frozen planner, prebuilt plain requests, post-window checks)
+//!   plus an application isolation gate: an async readers–writer lock owned
+//!   by the reference arm, created untimed when the arm is prepared, held
+//!   exclusively inside the timed window around every lifecycle chunk
+//!   (outcomes, catalog update and every plain request of the chunk, in
+//!   order). Readers of the application take it shared. The candidate arm is
+//!   unchanged. `atomicity_equivalent` is true only when every lifecycle
+//!   chunk was sent under one gate hold (`atomicity_mode:
+//!   "application_gate"`).
+//! - After both windows of every pair, [`gate_check`] replays each split
+//!   chunk on a fresh reference arm while a concurrent reader observes the
+//!   hub through the gate; with the gate every observation must be the
+//!   state before or after the chunk, and a negative control without the
+//!   gate must observe an intermediate state. Either failure stops the probe
+//!   (conformance condition, decision M6).
 
 use axum::{
     Router,
@@ -84,7 +102,8 @@ use knotrel_server::{ServerConfig, ServerMode, router_with_config};
 use lifecycle_probes::{Mix, Op, Rng, Topology, build_record, generate, parse_engine, trace};
 use rustc_hash::FxHashMap;
 use serde_json::{Value, json};
-use std::{collections::HashMap, process::ExitCode, time::Instant};
+use std::{collections::HashMap, process::ExitCode, sync::Arc, time::Instant};
+use tokio::sync::{RwLock, mpsc};
 use tower::ServiceExt;
 
 #[global_allocator]
@@ -654,6 +673,24 @@ struct Arm {
     /// split chunk is not one isolated unit on the plain side, and a single
     /// operation expanding beyond [`BATCH`] cannot be indivisible there.
     atomicity: Option<Atomicity>,
+    /// Application-gate reference (`ops-atomic`): the application's isolation
+    /// gate, created untimed when the arm is prepared, held exclusively for
+    /// each lifecycle chunk inside the window and shared by readers.
+    gate: Option<Gate>,
+}
+
+/// The application's isolation gate (`ops-atomic`): an async readers–writer
+/// lock owned by the reference arm.
+type Gate = Arc<RwLock<()>>;
+
+/// How the reference offers the candidate's isolation.
+#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
+enum AtomicityMode {
+    /// One plain request per lifecycle chunk (`-equivalent` references).
+    #[default]
+    PlainRequest,
+    /// One application gate hold per lifecycle chunk (`-atomic` references).
+    ApplicationGate,
 }
 
 /// See [`Arm::atomicity`].
@@ -661,6 +698,12 @@ struct Arm {
 struct Atomicity {
     split_chunks: usize,
     max_op_plain_ops: usize,
+    mode: AtomicityMode,
+    /// Lifecycle chunks of the reference (application-gate mode).
+    chunks: usize,
+    /// Lifecycle chunks whose plain requests were all sent under one hold of
+    /// the application gate, counted in the window (application-gate mode).
+    gated_chunks: usize,
 }
 
 impl Atomicity {
@@ -671,12 +714,19 @@ impl Atomicity {
             self.max_op_plain_ops = self.max_op_plain_ops.max(e);
         }
         self.split_chunks += usize::from(requests > 1);
+        self.chunks += 1;
     }
 
-    /// Whether the plain side offered the lifecycle side's isolation: one
-    /// plain request per lifecycle chunk, every operation within one request.
+    /// Whether the reference offered the lifecycle side's isolation. Plain
+    /// request mode: one plain request per lifecycle chunk, every operation
+    /// within one request. Application-gate mode: every lifecycle chunk,
+    /// split or not, sent under one gate hold (a command larger than one
+    /// plain request is inside that hold).
     fn equivalent(self) -> bool {
-        self.split_chunks == 0 && self.max_op_plain_ops <= BATCH
+        match self.mode {
+            AtomicityMode::PlainRequest => self.split_chunks == 0 && self.max_op_plain_ops <= BATCH,
+            AtomicityMode::ApplicationGate => self.chunks > 0 && self.gated_chunks == self.chunks,
+        }
     }
 }
 
@@ -702,7 +752,14 @@ async fn run_window(arm: &mut Arm) -> u128 {
         let mut next = 0;
         let mut expected = Vec::new();
         let mut removed = Vec::new();
+        let mut gated = 0;
         for (ops, count) in &steps {
+            // `ops-atomic`: the application's gate, held exclusively for the
+            // whole chunk (outcomes, catalog update, every plain request).
+            let hold = match &arm.gate {
+                Some(gate) => Some(gate.write().await),
+                None => None,
+            };
             let mut legacy = Vec::new();
             for &op in ops {
                 // Outcome for the caller, then catalog update and plain operations.
@@ -721,8 +778,15 @@ async fn run_window(arm: &mut Arm) -> u128 {
                 }
             }
             next += count;
+            if let Some(hold) = hold {
+                drop(hold);
+                gated += 1;
+            }
         }
         let elapsed = start.elapsed().as_nanos();
+        if let Some(atomicity) = arm.atomicity.as_mut() {
+            atomicity.gated_chunks = gated;
+        }
         assert_eq!(next, arm.calls.len(), "planned chunks cover every call");
         arm.expected = Some(expected);
         arm.planned = Some(planner);
@@ -1095,6 +1159,255 @@ async fn registered_content_check(
     Ok(())
 }
 
+/// What a reader of the application observes of a hub during the gate check:
+/// `connected(hub, w)` for every `w` the hub's command touches, then the
+/// plain server's edge count, all read through the application (gate
+/// shared, when the gate is on). Connectivity alone cannot tell a partly
+/// deactivated hub from an untouched one (the hub stays connected until its
+/// last edge is cut), so the edge count is part of the observation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Observation {
+    connected: Vec<bool>,
+    edges: u64,
+}
+
+async fn observe(app: &Router, pairs: &[(u64, u64)]) -> Result<Observation, String> {
+    let mut connected = Vec::with_capacity(pairs.len());
+    for chunk in pairs.chunks(BATCH) {
+        let ops: Vec<Value> = chunk
+            .iter()
+            .map(|&(a, b)| wire(&Op::Connected(a, b)))
+            .collect();
+        let (status, reply) = post(
+            app,
+            "/v1/batch",
+            None,
+            json!({"operations": ops}).to_string(),
+        )
+        .await;
+        let results = reply["results"]
+            .as_array()
+            .filter(|_| status == StatusCode::OK)
+            .ok_or_else(|| format!("gate check query {status}: {reply}"))?;
+        for item in results {
+            connected.push(
+                item["connected"]
+                    .as_bool()
+                    .ok_or_else(|| format!("gate check answer {item}"))?,
+            );
+        }
+    }
+    let edges = get(app, "/v1/stats").await["edge_count"]
+        .as_u64()
+        .ok_or("gate check: plain stats without edge_count")?;
+    Ok(Observation { connected, edges })
+}
+
+/// One reader attempt during the gate check.
+#[derive(Debug, PartialEq, Eq)]
+enum Attempt {
+    /// The reader took the gate (or there is none) and observed at once.
+    Observed,
+    /// The gate was held exclusively: the reader waits for it, then observes.
+    Blocked,
+}
+
+/// The concurrent reader of the gate check: one attempt per ping. With a
+/// gate it takes the gate shared (waiting when the writer holds it); without
+/// one (negative control) it reads at once. Returns every observation and
+/// the number of attempts that found the gate held.
+async fn gate_reader(
+    app: Router,
+    pairs: Arc<Vec<(u64, u64)>>,
+    gate: Option<Gate>,
+    mut pings: mpsc::Receiver<()>,
+    replies: mpsc::Sender<Attempt>,
+) -> Result<(Vec<Observation>, usize), String> {
+    let mut seen = Vec::new();
+    let mut blocked = 0;
+    while pings.recv().await.is_some() {
+        let Some(gate) = &gate else {
+            seen.push(observe(&app, &pairs).await?);
+            replies
+                .send(Attempt::Observed)
+                .await
+                .map_err(|e| e.to_string())?;
+            continue;
+        };
+        match gate.try_read() {
+            Ok(shared) => {
+                seen.push(observe(&app, &pairs).await?);
+                drop(shared);
+                replies
+                    .send(Attempt::Observed)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+            Err(_) => {
+                blocked += 1;
+                replies
+                    .send(Attempt::Blocked)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let shared = gate.read().await;
+                seen.push(observe(&app, &pairs).await?);
+                drop(shared);
+            }
+        }
+    }
+    Ok((seen, blocked))
+}
+
+/// Counts of one gate replay (gate on, or the negative control without it).
+#[derive(Clone, Copy, Default, Debug)]
+struct ReplayCounts {
+    split_chunks: usize,
+    inter_request_points: usize,
+    observations: usize,
+    intermediate: usize,
+    blocked: usize,
+}
+
+impl ReplayCounts {
+    fn to_json(self) -> Value {
+        json!({"split_chunks": self.split_chunks, "inter_request_points": self.inter_request_points,
+               "observations": self.observations, "intermediate": self.intermediate,
+               "blocked": self.blocked})
+    }
+}
+
+/// The verdict of the gate check (decision M6): with the gate, no observation
+/// is intermediate and every attempt between two plain requests of a split
+/// chunk found the gate held; without it, at least one intermediate state is
+/// observed. Not applicable (and passing) when no chunk is split.
+fn gate_verdict(gated: ReplayCounts, control: ReplayCounts) -> bool {
+    if gated.split_chunks == 0 && control.split_chunks == 0 {
+        return true;
+    }
+    gated.split_chunks > 0
+        && gated.split_chunks == control.split_chunks
+        && gated.intermediate == 0
+        && gated.inter_request_points > 0
+        && gated.blocked == gated.inter_request_points
+        && control.intermediate > 0
+        && control.blocked == 0
+}
+
+/// Classifies observations against the states before and after a chunk:
+/// the number that are neither.
+fn intermediate(seen: &[Observation], before: &Observation, after: &Observation) -> usize {
+    seen.iter().filter(|o| *o != before && *o != after).count()
+}
+
+/// Replays the `ops-atomic` reference on a fresh reference arm (untimed, no
+/// other request in flight): chunks are sent in order as in the window, and
+/// for each split chunk a concurrent reader observes the hub (the node of the
+/// chunk's largest command) before the chunk, between every two plain
+/// requests of the chunk, and after it. `gated` holds the arm's gate around
+/// each chunk as the window does; without it (negative control) the reader
+/// is not excluded.
+async fn gate_replay(plan: &Plan, gated: bool) -> Result<ReplayCounts, String> {
+    let mut arm = prepare("ops-atomic", plan, false).await?;
+    let (mut planner, steps) = arm
+        .plan_steps
+        .take()
+        .ok_or("ops-atomic reference without plan steps")?;
+    let gate = if gated { arm.gate.clone() } else { None };
+    let mut counts = ReplayCounts::default();
+    let mut next = 0;
+    for (ops, count) in &steps {
+        let calls = &arm.calls[next..next + count];
+        next += count;
+        let mut legacy = Vec::new();
+        let mut largest = (0, 0..0);
+        for &op in ops {
+            let before = legacy.len();
+            planner.plan(op, &mut legacy);
+            if legacy.len() - before > largest.0 {
+                largest = (legacy.len() - before, before..legacy.len());
+            }
+        }
+        if *count < 2 {
+            let hold = match &gate {
+                Some(gate) => Some(gate.write().await),
+                None => None,
+            };
+            for call in calls {
+                send(call).await;
+            }
+            drop(hold);
+            continue;
+        }
+        counts.split_chunks += 1;
+        let pairs: Arc<Vec<(u64, u64)>> = Arc::new(
+            legacy[largest.1]
+                .iter()
+                .filter_map(|op| match *op {
+                    Op::Cut(a, b) | Op::Link(a, b) => Some((a, b)),
+                    _ => None,
+                })
+                .collect(),
+        );
+        let before = observe(&arm.check, &pairs).await?;
+        let (ping, pings) = mpsc::channel(1);
+        let (reply, mut replies) = mpsc::channel(1);
+        let reader = tokio::spawn(gate_reader(
+            arm.check.clone(),
+            pairs.clone(),
+            gate.clone(),
+            pings,
+            reply,
+        ));
+        let attempt = async |replies: &mut mpsc::Receiver<Attempt>| -> Result<Attempt, String> {
+            ping.send(()).await.map_err(|e| e.to_string())?;
+            replies
+                .recv()
+                .await
+                .ok_or_else(|| "gate reader stopped".to_owned())
+        };
+        attempt(&mut replies).await?;
+        let hold = match &gate {
+            Some(gate) => Some(gate.write().await),
+            None => None,
+        };
+        for (i, call) in calls.iter().enumerate() {
+            send(call).await;
+            if i + 1 < calls.len() {
+                counts.inter_request_points += 1;
+                attempt(&mut replies).await?;
+            }
+        }
+        drop(hold);
+        attempt(&mut replies).await?;
+        drop(ping);
+        let (seen, blocked) = reader.await.map_err(|e| e.to_string())??;
+        let after = observe(&arm.check, &pairs).await?;
+        if before == after {
+            return Err("gate check: the split chunk left the observed hub unchanged".into());
+        }
+        counts.observations += seen.len();
+        counts.blocked += blocked;
+        counts.intermediate += intermediate(&seen, &before, &after);
+    }
+    Ok(counts)
+}
+
+/// The untimed gate check of an `ops-atomic` pair (decision M6), after both
+/// windows: the replay with the arm's gate and the negative control without
+/// it. A failure stops the probe.
+async fn gate_check(plan: &Plan) -> Result<Value, String> {
+    let gated = gate_replay(plan, true).await?;
+    let control = gate_replay(plan, false).await?;
+    let pass = gate_verdict(gated, control);
+    let record = json!({"replayed_split_chunks": gated.split_chunks, "gate": gated.to_json(),
+                        "control": control.to_json(), "pass": pass});
+    if pass {
+        Ok(record)
+    } else {
+        Err(format!("gate check failed: {record}"))
+    }
+}
+
 struct Plan {
     engine: knotrel_core::EngineConfig,
     n: u64,
@@ -1133,10 +1446,16 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
         disabled_percent,
     } = *plan;
     // Qualification 3: `<base>-equivalent` changes only the reference window.
-    let (scenario, equivalent) = match scenario.strip_suffix("-equivalent") {
-        Some(base @ ("ops" | "ops-query" | "events" | "import")) => (base, true),
-        Some(_) => return Err("unknown --scenario".into()),
-        None => (scenario, false),
+    // knotrel#180 (M1(b)): `ops-atomic` is `ops-equivalent` plus the
+    // application gate, for `ops` only.
+    let (scenario, equivalent, atomic) = match (
+        scenario.strip_suffix("-equivalent"),
+        scenario.strip_suffix("-atomic"),
+    ) {
+        (Some(base @ ("ops" | "ops-query" | "events" | "import")), _) => (base, true, false),
+        (_, Some("ops")) => ("ops", true, true),
+        (Some(_), _) | (_, Some(_)) => return Err("unknown --scenario".into()),
+        (None, None) => (scenario, false, false),
     };
     let equivalent_scenario = equivalent;
     let equivalent = equivalent && !candidate;
@@ -1184,6 +1503,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 window_legacy: None,
                 prepared_legacy: None,
                 atomicity: None,
+                gate: None,
             })
         }
         "ops" | "ops-query" | "events" | "metrics-ops" => {
@@ -1248,6 +1568,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     window_legacy: None,
                     prepared_legacy: equivalent.then_some(prepared),
                     atomicity: equivalent.then_some(atomicity),
+                    gate: None,
                 });
             }
             let (lifecycle, metrics) = if scenario == "metrics-ops" {
@@ -1275,6 +1596,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     window_legacy: None,
                     prepared_legacy: None,
                     atomicity: None,
+                    gate: None,
                 });
             }
             let mut planner = Planner::new(n, edges);
@@ -1282,7 +1604,14 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
             let mut steps = Vec::new();
             let mut prepared = Vec::new();
             let mut bodies = Vec::new();
-            let mut atomicity = Atomicity::default();
+            let mut atomicity = Atomicity {
+                mode: if atomic {
+                    AtomicityMode::ApplicationGate
+                } else {
+                    AtomicityMode::PlainRequest
+                },
+                ..Atomicity::default()
+            };
             for chunk in ops.chunks(256) {
                 let mut legacy = Vec::new();
                 let mut expansions = Vec::with_capacity(chunk.len());
@@ -1319,6 +1648,8 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 window_legacy: None,
                 prepared_legacy: equivalent.then_some(prepared),
                 atomicity: equivalent.then_some(atomicity),
+                // Created untimed, with the arm; the candidate never has one.
+                gate: atomic.then(|| Arc::new(RwLock::new(()))),
             })
         }
         "import" | "import-optin" => {
@@ -1415,6 +1746,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                     window_legacy: None,
                     prepared_legacy: None,
                     atomicity: None,
+                    gate: None,
                 });
             }
             let flag_store = (!candidate && flagged).then(|| FlagStore {
@@ -1441,6 +1773,7 @@ async fn prepare(scenario: &str, plan: &Plan, candidate: bool) -> Result<Arm, St
                 window_legacy: None,
                 prepared_legacy: None,
                 atomicity: None,
+                gate: None,
             })
         }
         _ => Err("unknown --scenario".into()),
@@ -1534,11 +1867,22 @@ async fn main_async() -> Result<(), String> {
                 "connectivity answers differ between arms in pair {index}"
             ));
         }
-        if scenario.ends_with("-equivalent") {
+        if scenario.ends_with("-equivalent") || scenario == "ops-atomic" {
             equivalence_check(&candidate, &mut reference)
                 .await
                 .map_err(|e| format!("equivalence check failed in pair {index}: {e}"))?;
         }
+        // knotrel#180 (M6): the gate check and its negative control, untimed,
+        // with no request in flight; a failure stops the probe.
+        let gate_record = if scenario == "ops-atomic" {
+            Some(
+                gate_check(reference_plan.as_ref().unwrap_or(&plan))
+                    .await
+                    .map_err(|e| format!("pair {index}: {e}"))?,
+            )
+        } else {
+            None
+        };
         let pair = index as i64 - warmup as i64;
         let mut record = json!({"kind": if pair < 0 {"warmup"} else {"pair"}, "pair": pair, "scenario": scenario,
                "candidate_first": candidate_first, "candidate_ns": c as u64, "reference_ns": r as u64,
@@ -1551,6 +1895,16 @@ async fn main_async() -> Result<(), String> {
             record["reference_split_chunks"] = json!(a.split_chunks);
             record["reference_max_op_plain_ops"] = json!(a.max_op_plain_ops);
             record["atomicity_equivalent"] = json!(a.equivalent());
+            // knotrel#180: application-gate fields only for `-atomic` scenarios, so
+            // every earlier record keeps its exact field set.
+            if a.mode == AtomicityMode::ApplicationGate {
+                record["reference_lifecycle_chunks"] = json!(a.chunks);
+                record["reference_gated_chunks"] = json!(a.gated_chunks);
+                record["atomicity_mode"] = json!("application_gate");
+            }
+        }
+        if let Some(gate_record) = gate_record {
+            record["gate_check"] = gate_record;
         }
         println!("{record}");
     }
@@ -1592,5 +1946,154 @@ mod tests {
         big.record([1_565], 2);
         assert!(!big.equivalent());
         assert_eq!(big.max_op_plain_ops, 1_565);
+    }
+
+    #[test]
+    fn application_gate_requires_every_chunk_under_one_hold() {
+        let mut a = Atomicity {
+            mode: AtomicityMode::ApplicationGate,
+            ..Atomicity::default()
+        };
+        // No chunk recorded: nothing shows isolation (fail-closed).
+        assert!(!a.equivalent());
+        a.record([3, 10], 1);
+        a.record([1_565, 2], 2);
+        a.record([1], 1);
+        assert_eq!(
+            (a.chunks, a.split_chunks, a.max_op_plain_ops),
+            (3, 1, 1_565)
+        );
+        // Split chunks and a command beyond one plain request are equivalent
+        // only when every chunk, split or not, was sent under one hold.
+        a.gated_chunks = 2;
+        assert!(!a.equivalent());
+        a.gated_chunks = 3;
+        assert!(a.equivalent());
+        // The same records in plain request mode stay not equivalent.
+        let plain = Atomicity {
+            mode: AtomicityMode::PlainRequest,
+            ..a
+        };
+        assert!(!plain.equivalent());
+    }
+
+    #[test]
+    fn gate_verdict_needs_isolation_with_the_gate_and_detection_without() {
+        let gated = ReplayCounts {
+            split_chunks: 2,
+            inter_request_points: 2,
+            observations: 6,
+            intermediate: 0,
+            blocked: 2,
+        };
+        let control = ReplayCounts {
+            blocked: 0,
+            intermediate: 2,
+            ..gated
+        };
+        assert!(gate_verdict(gated, control));
+        // The gate let a reader see an intermediate state.
+        assert!(!gate_verdict(
+            ReplayCounts {
+                intermediate: 1,
+                ..gated
+            },
+            control
+        ));
+        // A reader attempt between two requests did not find the gate held.
+        assert!(!gate_verdict(
+            ReplayCounts {
+                blocked: 1,
+                ..gated
+            },
+            control
+        ));
+        // The negative control saw no intermediate state: the check is blind.
+        assert!(!gate_verdict(
+            gated,
+            ReplayCounts {
+                intermediate: 0,
+                ..control
+            }
+        ));
+        // Nothing split: not applicable.
+        assert!(gate_verdict(
+            ReplayCounts::default(),
+            ReplayCounts::default()
+        ));
+        assert!(!gate_verdict(ReplayCounts::default(), control));
+    }
+
+    #[test]
+    fn observations_are_before_after_or_intermediate() {
+        let before = Observation {
+            connected: vec![true, true],
+            edges: 10,
+        };
+        let after = Observation {
+            connected: vec![false, false],
+            edges: 7,
+        };
+        // A partly cut hub is still connected: only the edge count shows it.
+        let partial = Observation {
+            connected: vec![true, true],
+            edges: 8,
+        };
+        let seen = [before.clone(), partial, after.clone()];
+        assert_eq!(intermediate(&seen, &before, &after), 1);
+    }
+
+    #[test]
+    fn gate_check_on_a_small_hub_graph() {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let n = 2_000;
+        let seed = 5_000_001;
+        let plan = Plan {
+            engine: parse_engine("compact-bfs").unwrap(),
+            n,
+            edges: generate(Topology::parse("hub").unwrap(), n, seed),
+            requests: 40,
+            seed,
+            inactive_percent: 20,
+            disabled_percent: 10,
+        };
+        runtime.block_on(async {
+            let gated = gate_replay(&plan, true).await.unwrap();
+            let control = gate_replay(&plan, false).await.unwrap();
+            assert!(gated.split_chunks > 0, "{gated:?}");
+            assert_eq!(gated.intermediate, 0, "{gated:?}");
+            assert_eq!(gated.blocked, gated.inter_request_points, "{gated:?}");
+            assert!(control.intermediate > 0, "{control:?}");
+            assert!(gate_check(&plan).await.unwrap()["pass"] == true);
+            // The window holds the gate for every chunk.
+            let mut arm = prepare("ops-atomic", &plan, false).await.unwrap();
+            assert!(arm.gate.is_some());
+            run_window(&mut arm).await;
+            let a = arm.atomicity.unwrap();
+            assert_eq!(a.mode, AtomicityMode::ApplicationGate);
+            assert_eq!(a.gated_chunks, a.chunks);
+            assert!(a.split_chunks > 0 && a.equivalent());
+            // The candidate arm and the `-equivalent` reference have no gate.
+            assert!(
+                prepare("ops-atomic", &plan, true)
+                    .await
+                    .unwrap()
+                    .gate
+                    .is_none()
+            );
+            let mut eq = prepare("ops-equivalent", &plan, false).await.unwrap();
+            assert!(eq.gate.is_none());
+            run_window(&mut eq).await;
+            let e = eq.atomicity.unwrap();
+            assert_eq!((e.mode, e.gated_chunks), (AtomicityMode::PlainRequest, 0));
+            assert!(!e.equivalent());
+            // No other base takes the `-atomic` suffix (events stays unqualified).
+            for other in ["events-atomic", "ops-query-atomic", "import-atomic"] {
+                assert!(prepare(other, &plan, false).await.is_err(), "{other}");
+            }
+        });
     }
 }

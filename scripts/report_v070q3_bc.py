@@ -22,6 +22,16 @@ states that the qualification cannot be complete while any requirement is unqual
 whatever the statuses (maintainer decision 2026-11-20): unqualified requirements never
 disappear from the verdict.
 
+Application-gate references (knotrel#180, decision M1(b)): a matrix may carry an
+``atomic_references`` block beside ``equivalent_references`` (``experiments.B_C``) listing
+deciding ``-atomic`` cells, their atomicity rule (``application_gate``) and the accepted
+residual difference (isolation only for readers through the application). Such a cell is
+deciding; it must carry an atomicity record (fail-closed), and ``atomicity_equivalent: false``
+or a mode other than the rule's gives ``NOT_EQUIVALENT``, as for equivalent cells. A
+not-equivalent cell whose ``-atomic`` twin is listed there no longer needs an unqualified
+requirement of its own. Matrices without the block (every historical one) are read exactly
+as before.
+
     report_v070q3_bc.py BC-analysis.json T5-analysis.json
 """
 
@@ -38,27 +48,56 @@ MATRIX = Path(__file__).resolve().parent.parent / "results" / "v0.7.0-qualificat
 #: Planner-based equivalent cells: their reference's atomicity must be recorded.
 PLANNER_EQUIVALENT = re.compile(r"-(ops|ops-query|events)-equivalent-")
 
+#: Application-gate reference cells (knotrel#180) and the only atomicity rule they accept.
+ATOMIC_REFERENCE = re.compile(r"-ops-atomic-")
+ATOMIC_RULE = "application_gate"
+
 T5_IDS = {f"T5-{m}-{t}" for m in ("P_max", "P_90") for t in ("sparse", "ring", "hub")}
 
 #: Disclosure categories already defined by the frozen rules (not a failure).
 DISCLOSURE = {"C4": {"EXCEEDS_BUDGET"}}
 
 
+def atomic_block(matrix: dict) -> dict:
+    """The ``atomic_references`` block of ``matrix`` (knotrel#180), or an empty one."""
+    block = matrix["experiments"]["B_C"].get("atomic_references")
+    if block is None:
+        return {}
+    if block.get("atomicity_rule") != ATOMIC_RULE or not block.get("cells"):
+        raise SystemExit(f"atomic_references needs cells and atomicity_rule {ATOMIC_RULE!r}")
+    if not all(ATOMIC_REFERENCE.search(c) for c in block["cells"]):
+        raise SystemExit("atomic_references lists a cell that is not an -atomic- reference")
+    return block
+
+
+def uncovered_not_equivalent(matrix: dict) -> list:
+    """Not-equivalent cells whose requirement no ``-atomic`` twin of the matrix decides."""
+    eq = matrix["experiments"]["B_C"]["equivalent_references"]
+    atomic = set(atomic_block(matrix).get("cells", []))
+    return [c for c in eq.get("not_equivalent", {}).get("cells", [])
+            if c.replace("-equivalent-", "-atomic-") not in atomic]
+
+
 def label(analysis: dict, matrix: dict) -> list:
     eq = matrix["experiments"]["B_C"]["equivalent_references"]
     deciding, descriptive = set(eq["deciding"]), set(eq["descriptive"])
     not_equivalent = set(eq.get("not_equivalent", {}).get("cells", []))
+    atomic = set(atomic_block(matrix).get("cells", []))
     if deciding & (descriptive | not_equivalent) or descriptive & not_equivalent:
+        raise SystemExit("a cell has more than one role in the matrix")
+    if atomic & (deciding | descriptive | not_equivalent):
         raise SystemExit("a cell has more than one role in the matrix")
     rows = []
     ids = {cell["id"] for cell in analysis["timing"]}
-    missing = (deciding | descriptive | not_equivalent) - ids
+    missing = (deciding | descriptive | not_equivalent | atomic) - ids
     if missing:
         raise SystemExit(f"cells missing from the analysis: {sorted(missing)}")
     for cell in analysis["timing"]:
         planner_equivalent = PLANNER_EQUIVALENT.search(cell["id"]) is not None
         if planner_equivalent and cell["id"] in (deciding | not_equivalent) and "atomicity_equivalent" not in cell:
             raise SystemExit(f"{cell['id']}: planner equivalent cell without atomicity record (fail-closed)")
+        if cell["id"] in atomic and "atomicity_equivalent" not in cell:
+            raise SystemExit(f"{cell['id']}: atomic reference cell without atomicity record (fail-closed)")
         role = ("descriptive" if cell["id"] in descriptive
                 else "not_equivalent" if cell["id"] in not_equivalent else "deciding")
         row = {"id": cell["id"], "kind": "timing", "role": role, "status": cell["status"],
@@ -68,6 +107,12 @@ def label(analysis: dict, matrix: dict) -> list:
             row["atomicity_equivalent"] = cell["atomicity_equivalent"]
             row["reference_max_op_plain_ops"] = cell.get("reference_max_op_plain_ops")
             if role == "deciding" and cell["id"] in deciding and not cell["atomicity_equivalent"]:
+                row["measured_status"], row["status"] = cell["status"], "NOT_EQUIVALENT"
+        if cell["id"] in atomic:
+            row["atomicity_mode"] = cell.get("atomicity_mode")
+            row["reference_gated_chunks"] = cell.get("reference_gated_chunks")
+            row["reference_split_chunks"] = cell.get("reference_split_chunks")
+            if not cell["atomicity_equivalent"] or cell.get("atomicity_mode") != ATOMIC_RULE:
                 row["measured_status"], row["status"] = cell["status"], "NOT_EQUIVALENT"
         rows.append(row)
     for cell in analysis.get("memory", []):
@@ -139,7 +184,7 @@ def main() -> int:
     disclosures = [r for r in rows if r["status"] in DISCLOSURE.get(r["kind"], set())]
     eq = matrix["experiments"]["B_C"]["equivalent_references"]
     unqualified = eq["unqualified_requirements"]
-    if len(unqualified) < len(eq["not_equivalent"]["cells"]):
+    if len(unqualified) < len(uncovered_not_equivalent(matrix)):
         raise SystemExit("fewer unqualified requirements than not-equivalent cells")
     print(json.dumps({"rows": rows, "deciding_non_pass": non_pass(rows), "disclosures": disclosures,
                       "unqualified_requirements": unqualified,
