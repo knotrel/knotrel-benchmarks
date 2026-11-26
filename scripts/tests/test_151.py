@@ -91,6 +91,18 @@ class MatrixTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             mx.build(factors={**factors, windowed[0]: 3})
 
+    def test_cap_is_recorded_only_when_approved(self):
+        m = mx.build()
+        self.assertEqual(m["cap"], "unset")
+        self.assertEqual(m["rules"]["cap_hours"], 1_000)
+        m = mx.build(cap_hours=9)
+        self.assertEqual(m["cap"], "set")
+        self.assertEqual(m["rules"]["cap_hours"], 9)
+        self.assertEqual(m["rules"]["second_session_cap_hours"], 0)
+        for bad in (0, -1, 1_000):
+            with self.assertRaises(SystemExit):
+                mx.build(cap_hours=bad)
+
     def test_scale_divides_sizes(self):
         m = mx.build(scale=10)
         cell = next(c for c in m["cells"] if c["id"] == "M1-cb-his-1e6")
@@ -307,6 +319,7 @@ class FreezeTest(unittest.TestCase):
                           str(tmp / "t.json"), "--out", str(tmp / "F.json")])
         message = str(caught.exception)
         self.assertIn("frozen windows", message)
+        self.assertIn("--cap-hours", message)
         self.assertIn("--overlay", message)
         self.assertIn("no candidate", message)
         self.assertFalse((tmp / "F.json").exists())
@@ -318,6 +331,16 @@ class FreezeTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             run_151.main(["campaign", "--matrix", str(tmp / "m.json"), "--tools",
                           str(tmp / "t.json"), "--out", str(tmp / "out")])
+
+    def test_campaign_refuses_a_matrix_without_the_cap(self):
+        tmp = Path(tempfile.mkdtemp())
+        windowed = [c["id"] for c in mx.build()["cells"] if "window" in c]
+        (tmp / "m.json").write_text(json.dumps(mx.build(factors={c: 1 for c in windowed})))
+        (tmp / "t.json").write_text("{}")
+        with self.assertRaises(SystemExit) as caught:
+            run_151.main(["campaign", "--matrix", str(tmp / "m.json"), "--tools",
+                          str(tmp / "t.json"), "--out", str(tmp / "out")])
+        self.assertIn("cap", str(caught.exception))
 
 
 class SmokeTest(unittest.TestCase):

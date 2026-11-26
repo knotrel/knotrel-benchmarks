@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generates the knotrel#151 comparison matrix (compact internal node indices, option B64).
 
-    compact_index_matrix.py --out M.json [--windows W.json] [--scale S]
+    compact_index_matrix.py --out M.json [--windows W.json] [--scale S] [--cap-hours H]
 
 knotrel ``docs/design/compact-node-index.md``, section 6 (approved 2026-11-26: B64
 only, strict D4, G1 and G2 both required, M1-iso report-only). Every cell of section
@@ -20,6 +20,12 @@ of section 6.6, in the schema of ``cf5_matrix.py`` so that ``run_cf5.py`` execut
   pilot-derived factors (``run_151.py propose-windows``; the ``apply_multipliers`` rule
   of ``run_lifecycle_qualification.py``: every windowed cell needs a factor, no unknown
   key); without it the matrix is marked ``windows: unset`` and the campaign refuses it;
+- ``--cap-hours H`` records the host-time cap the maintainer approved after the pilot
+  (section 6.8); ``run_cf5.py`` enforces it (no step starts after the cap, the pair in
+  progress completes), so the run is never interrupted from outside, which section 9
+  would make NONCONFORMING. Without it the matrix carries a placeholder (``cap:
+  unset``) and ``run_151.py freeze`` refuses it. The protocol has no second session (a
+  cell cut by the cap gets no class), so the second-session cap is 0;
 - ``--scale S`` divides every node count and hub degree by ``S`` (smoke at reduced sizes
   only; the analyzer and the campaign refuse ``scale != 1``).
 
@@ -383,7 +389,10 @@ def apply_windows(cells: List[Dict[str, Any]], factors: Dict[str, int]) -> None:
                 m["measurement"] = {**aggregate(spec["intervals"], per=k), "per_k": True}
 
 
-def build(scale: int = 1, factors: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
+def build(scale: int = 1, factors: Optional[Dict[str, int]] = None,
+          cap_hours: Optional[float] = None) -> Dict[str, Any]:
+    if cap_hours is not None and not 0 < cap_hours < 1_000:
+        raise SystemExit(f"--cap-hours must be in (0, 1000), got {cap_hours}")
     s = Sizes(scale)
     cells = memory_cells(s) + timed_cells(s) + [q_cell()]
     for c in cells:
@@ -399,6 +408,7 @@ def build(scale: int = 1, factors: Optional[Dict[str, int]] = None) -> Dict[str,
     return {
         "schema": "kr151-matrix-1", "protocol": PROTOCOL, "scale": scale,
         "windows": "set" if factors is not None else "unset",
+        "cap": "set" if cap_hours is not None else "unset",
         "arms": {"cf": "candidate (B)", "ref": "base (CUR)"},
         "rules": {"pairs": 24, "warmup_pairs": 2, "interval_order_statistics": [7, 18],
                   "coverage": 0.9773, "margins": MARGINS, "memory": MEMORY,
@@ -415,7 +425,8 @@ def build(scale: int = 1, factors: Optional[Dict[str, int]] = None) -> Dict[str,
                                  "apply_multipliers), capped by the target pool",
                   "measurement_limit": {"calibration": str(CALIBRATION.relative_to(ROOT)),
                                         "tick_ns": TICK_NS, "clock_read_ns": CLOCK_READ_NS},
-                  "cap_hours": 1_000, "second_session_cap_hours": 1_000,
+                  "cap_hours": cap_hours if cap_hours is not None else 1_000,
+                  "second_session_cap_hours": 0 if cap_hours is not None else 1_000,
                   "tiers": [1, 2, 3], "block_order": BLOCK_ORDER,
                   "seed": SEED},
         "counts": dict(sorted(counts.items())),
@@ -428,15 +439,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--windows", type=Path)
     parser.add_argument("--scale", type=int, default=1)
+    parser.add_argument("--cap-hours", type=float)
     args = parser.parse_args(argv)
     out = confined(args.out, "--out")
     factors = json.loads(confined(args.windows, "--windows").read_text()) \
         if args.windows else None
-    matrix = build(int(args.scale), factors)
+    matrix = build(int(args.scale), factors,
+                   float(args.cap_hours) if args.cap_hours is not None else None)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(matrix, indent=1, sort_keys=True) + "\n")
     print(json.dumps({"out": str(out), "counts": matrix["counts"],
-                      "cells": len(matrix["cells"]), "windows": matrix["windows"]}))
+                      "cells": len(matrix["cells"]), "windows": matrix["windows"],
+                      "cap": matrix["cap"]}))
     return 0
 
 
