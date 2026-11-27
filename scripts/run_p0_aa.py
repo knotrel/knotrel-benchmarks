@@ -52,6 +52,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from run_baseline import CORE, ROOT, command, hashes, source_patch
+from cli_paths import confined
 from run_scale import peak_rss
 
 # Protocol constants
@@ -183,7 +184,7 @@ class ProcessInterruptedError(ProcessExecutionError):
 
 def digest(path: Path) -> str:
     """Calculate SHA-256 digest of a file."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(recorded_path(path, "hashed file").read_bytes()).hexdigest()
 
 
 def json_digest(value: Any) -> str:
@@ -191,9 +192,39 @@ def json_digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode("utf-8")).hexdigest()
 
 
+def printed_process_seconds(stderr: str) -> Optional[Dict[str, float]]:
+    """The first ``N real N user N sys`` sequence that time(1) prints, parsed by tokens
+    (no regular expression, so no backtracking on long digit runs)."""
+    for line in stderr.splitlines():
+        tokens = line.split()
+        for i in range(len(tokens) - 5):
+            if (tokens[i + 1], tokens[i + 3], tokens[i + 5]) == ("real", "user", "sys"):
+                try:
+                    return {"real": float(tokens[i]), "user": float(tokens[i + 2]),
+                            "sys": float(tokens[i + 4])}
+                except ValueError:
+                    continue
+    return None
+
+
+def full_agreement(pct: Any) -> bool:
+    """Whether a reported oracle agreement percentage is exactly 100 (the collectors print
+    it with two decimals, so any real disagreement is at least 0.01 away)."""
+    return isinstance(pct, (int, float)) and not isinstance(pct, bool) and abs(pct - 100.0) < 1e-9
+
+
+def recorded_path(value: Any, what: str) -> Path:
+    """A path named in a manifest or on the command line, confined to the allowed roots
+    (``cli_paths``); a path outside them is a configuration error."""
+    try:
+        return confined(str(value), what)
+    except SystemExit as error:
+        raise ConfigurationValidationError(str(error)) from None
+
+
 def read_json(path: Path) -> Any:
     """Read and parse a JSON file."""
-    return strict_json_loads(path.read_text(encoding="utf-8"))
+    return strict_json_loads(recorded_path(path, "JSON file").read_text(encoding="utf-8"))
 
 
 def strict_json_loads(text: str) -> Any:
@@ -806,7 +837,7 @@ def _verify_hashed_executable(description: str, binfo: Dict[str, Any]) -> None:
         raise ConfigurationValidationError(
             f"{description} SHA-256 is unresolved or malformed ({expected_hash!r}); build binary before execution"
         )
-    path = Path(binfo["path"])
+    path = recorded_path(binfo["path"], description)
     if not path.is_file():
         raise ConfigurationValidationError(f"{description} does not exist: {path}")
     if not os.access(path, os.X_OK):
@@ -873,7 +904,7 @@ def _verify_bc_provenance(manifest: Dict[str, Any]) -> None:
                 )
         hashed_locks = set()
         for role, lock in lockfiles.items():
-            path = Path(lock.get("path", ""))
+            path = recorded_path(lock.get("path", ""), f"Label {label} lockfile {role}")
             if not path.is_file():
                 raise ConfigurationValidationError(f"Label {label} lockfile {role} not found: {path}")
             if digest(path) != lock.get("sha256"):
@@ -1079,7 +1110,7 @@ def validate_inputs(
             bpath_str = binfo.get("path")
             if not bpath_str:
                 raise ConfigurationValidationError(f"Binary {name} missing 'path' in provenance")
-            bpath = Path(bpath_str)
+            bpath = recorded_path(bpath_str, f"Baseline binary {name}")
             if not bpath.is_file():
                 raise ConfigurationValidationError(f"Baseline binary {name} does not exist: {bpath}")
             if not os.access(bpath, os.X_OK):
@@ -1102,8 +1133,8 @@ def validate_inputs(
                     f"Manifest provenance missing required field: {req_field!r}"
                 )
 
-        k_base = Path(prov["knotrel_baseline_checkout"])
-        b_base = Path(prov["knotrel_benchmarks_checkout"])
+        k_base = recorded_path(prov["knotrel_baseline_checkout"], "Knotrel baseline checkout")
+        b_base = recorded_path(prov["knotrel_benchmarks_checkout"], "Benchmarks baseline checkout")
 
         if not k_base.is_dir():
             raise ConfigurationValidationError(f"Knotrel baseline checkout directory not found: {k_base}")
@@ -1228,15 +1259,7 @@ def parse_time_wrapper_diagnostics(stderr: str) -> Dict[str, Any]:
         m = re.search(r"^\s*(\d+)\s+" + re.escape(label) + r"\s*$", stderr, re.M)
         diagnostics[label.replace(" ", "_")] = int(m.group(1)) if m else None
 
-    m_time = re.search(r"([\d.]+)\s+real\s+([\d.]+)\s+user\s+([\d.]+)\s+sys", stderr)
-    if m_time:
-        diagnostics["printed_process_seconds"] = {
-            "real": float(m_time.group(1)),
-            "user": float(m_time.group(2)),
-            "sys": float(m_time.group(3)),
-        }
-    else:
-        diagnostics["printed_process_seconds"] = None
+    diagnostics["printed_process_seconds"] = printed_process_seconds(stderr)
     return diagnostics
 
 
@@ -1723,7 +1746,7 @@ def _parse_http_lifecycle_entry(
         raise QualificationBlockerError(
             f"Verified queries mismatch: {q.get('verified_queries')} != {expected_queries}"
         )
-    if q.get("oracle_agreement_pct") != 100.0:
+    if not full_agreement(q.get("oracle_agreement_pct")):
         raise QualificationBlockerError(
             f"Oracle agreement failure: {q.get('oracle_agreement_pct')}% != 100.00%"
         )
@@ -2168,7 +2191,7 @@ def parse_http_output(
             f"Invalid oracle total queries: {total} (expected {expected_queries}; 0/0 is strictly rejected)"
         )
 
-    if agreed != total or pct != 100.0:
+    if agreed != total or not full_agreement(pct):
         raise QualificationBlockerError(
             f"Oracle agreement failure: {oracle_raw} (agreed {agreed}/{total}, {pct}%; must be 100.00%)"
         )
@@ -3242,6 +3265,9 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+    manifest_path = confined(args.manifest, "--manifest")
+    schedule_path = confined(args.schedule, "--schedule")
+    destination = confined(args.destination, "destination") if args.destination else None
 
     if not args.dry_run and not args.execute:
         parser.error("Either --dry-run or --execute must be specified. Real execution will not start without --execute.")
@@ -3253,7 +3279,7 @@ def main() -> int:
         )
 
     if args.execute and args.skip_host_checks:
-        manifest = read_json(args.manifest)
+        manifest = read_json(manifest_path)
         if manifest.get("pilot_design", {}).get("qualification_protocol") == QUALIFICATION_PROTOCOL:
             parser.error(
                 "--skip-host-checks is not permitted for v0.3.0 qualification manifests (closure plan §5.6)."
@@ -3261,19 +3287,19 @@ def main() -> int:
 
     if args.dry_run:
         return run_dry_run(
-            args.manifest,
-            args.schedule,
-            args.destination,
+            manifest_path,
+            schedule_path,
+            destination,
             check_provenance=not args.skip_provenance_checks,
         )
 
-    if not args.destination:
+    if not destination:
         parser.error("Destination directory is required when --execute is passed.")
 
     return execute_pilot(
-        manifest_path=args.manifest,
-        schedule_path=args.schedule,
-        destination=args.destination,
+        manifest_path=manifest_path,
+        schedule_path=schedule_path,
+        destination=destination,
         enforce_host=not args.skip_host_checks,
         dry_run_only=False,
         check_provenance=not args.skip_provenance_checks,

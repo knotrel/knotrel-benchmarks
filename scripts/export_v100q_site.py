@@ -496,6 +496,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     for name in ("freeze", "decision", "a", "bc", "bc_report", "r", "rmem", "mreg", "q", "releases", "out",
                  "report_only"):
         setattr(args, name, confined(getattr(args, name), f"--{name.replace('_', '-')}"))
+    # The two outputs are confined again into locals: the writes below use them directly.
+    out_path = confined(args.out, "--out")
+    report_only_path = confined(args.report_only, "--report-only")
     if not args.decision.is_file() or not args.decision.read_text().strip():
         parser.error("the decision record does not exist: the 1.0.0 entry is published only after it (plan section 11)")
     docs = (REPO / "docs").resolve()
@@ -534,8 +537,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except (AssertionError, KeyError, TypeError) as error:
         print(f"export refused: the result fails the site validation ({error!r})", file=sys.stderr)
         return 2
-    args.out.write_text(json.dumps(data, indent=1) + "\n")
-    args.report_only.write_text(json.dumps({"campaign_report_only": excluded}, indent=1) + "\n")
+    out_path.write_text(json.dumps(data, indent=1) + "\n")
+    report_only_path.write_text(json.dumps({"campaign_report_only": excluded}, indent=1) + "\n")
     print(f"{len(comparison['results'])} rows; {len(excluded)} items for the campaign report only; nothing published")
     return 0
 

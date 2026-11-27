@@ -45,6 +45,10 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+# Fixture checkouts, binaries and plans live in temporary directories: allow them as
+# path roots (cli_paths), as the other harness tests do.
+os.environ["LIFECYCLE_QUALIFICATION_ROOTS"] = os.pathsep.join(
+    filter(None, [os.environ.get("LIFECYCLE_QUALIFICATION_ROOTS"), tempfile.gettempdir()]))
 import run_p0_aa as p0
 
 
@@ -317,8 +321,8 @@ class DryRunAndConfigurationValidationTests(unittest.TestCase):
 
     def test_unexpected_unstaged_or_extra_staged_changes_rejected(self):
         """Any unstaged changes or extra staged files in baseline benchmarks must fail validation."""
-        k_base = Path(self.manifest["provenance"]["knotrel_baseline_checkout"])
-        b_base = Path(self.manifest["provenance"]["knotrel_benchmarks_checkout"])
+        k_base = Path(self.manifest["provenance"]["knotrel_baseline_checkout"]).resolve()
+        b_base = Path(self.manifest["provenance"]["knotrel_benchmarks_checkout"]).resolve()
         with patch("run_p0_aa.command") as mock_cmd:
             def side_effect(args, cwd=None):
                 if args == ["git", "rev-parse", "HEAD"]:

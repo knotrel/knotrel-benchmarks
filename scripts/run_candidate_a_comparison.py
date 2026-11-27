@@ -39,6 +39,8 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+from cli_paths import confined  # noqa: E402
+
 from run_p0_aa import (
     BUILD_PROCESSES,
     host_state,
@@ -138,7 +140,7 @@ CELL_DEFINITIONS: List[Dict[str, Any]] = [
 
 def digest_file(path: Path) -> str:
     h = hashlib.sha256()
-    with path.open("rb") as f:
+    with confined(path, "hashed file").open("rb") as f:
         while chunk := f.read(65536):
             h.update(chunk)
     return h.hexdigest()
@@ -524,21 +526,25 @@ def main():
     parser.add_argument("--candidate-sha256", default="1c19413d023b3e7278c9cb3b8df7adf4019b50daf9a2b5678fa93791e1b40d4c")
     args = parser.parse_args()
 
+    destination = confined(args.destination, "--destination")
+    baseline_bin = confined(args.baseline_bin, "--baseline-bin")
+    candidate_bin = confined(args.candidate_bin, "--candidate-bin")
+    cwd = confined(args.cwd, "--cwd")
     if not args.dry_run and not args.execute:
         parser.error("Specify either --dry-run or --execute")
 
-    dest = args.destination.resolve()
+    dest = destination.resolve()
     if dest.exists():
         parser.error(f"Destination already exists: {dest}")
 
     # Provenance verification
-    if not args.baseline_bin.is_file():
-        parser.error(f"Baseline binary not found: {args.baseline_bin}")
-    if not args.candidate_bin.is_file():
-        parser.error(f"Candidate binary not found: {args.candidate_bin}")
+    if not baseline_bin.is_file():
+        parser.error(f"Baseline binary not found: {baseline_bin}")
+    if not candidate_bin.is_file():
+        parser.error(f"Candidate binary not found: {candidate_bin}")
 
-    b_sha = digest_file(args.baseline_bin)
-    c_sha = digest_file(args.candidate_bin)
+    b_sha = digest_file(baseline_bin)
+    c_sha = digest_file(candidate_bin)
 
     expected_b_sha = args.baseline_sha256
     expected_c_sha = args.candidate_sha256
@@ -555,8 +561,8 @@ def main():
 
     if args.dry_run:
         print(f"Dry-run validated successfully:")
-        print(f"  Baseline:  {args.baseline_bin} (SHA256: {b_sha})")
-        print(f"  Candidate: {args.candidate_bin} (SHA256: {c_sha})")
+        print(f"  Baseline:  {baseline_bin} (SHA256: {b_sha})")
+        print(f"  Candidate: {candidate_bin} (SHA256: {c_sha})")
         print(f"  Schedule:  {schedule['total_cells']} cells, {schedule['total_sessions']} sessions, {schedule['total_pairs']} pairs, {schedule['total_invocations']} invocations.")
         return
 
@@ -586,9 +592,9 @@ def main():
         "disk_ceiling_bytes": DISK_CEILING_BYTES,
         "peak_rss_ceiling_bytes": PEAK_RSS_CEILING_BYTES,
         "binaries": {
-            "baseline_bin": str(args.baseline_bin),
+            "baseline_bin": str(baseline_bin),
             "baseline_sha256": b_sha,
-            "candidate_bin": str(args.candidate_bin),
+            "candidate_bin": str(candidate_bin),
             "candidate_sha256": c_sha,
         },
         "build_env_override": "GIT_CONFIG_GLOBAL=/dev/null",
@@ -602,7 +608,7 @@ def main():
     runtime_env = {key: os.environ[key] for key in ("PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "CARGO_HOME", "RUSTUP_HOME", "SDKROOT") if key in os.environ}
     runtime_env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull, GIT_CONFIG_NOSYSTEM="1")
     run_meta.update(fake_runner=args.fake_runner, runtime_environment=runtime_env,
-                    runtime_cwd=str(args.cwd.resolve()), stream_limit_bytes=STREAM_LIMIT_BYTES)
+                    runtime_cwd=str(cwd.resolve()), stream_limit_bytes=STREAM_LIMIT_BYTES)
     def encoded(value):
         return (json.dumps(value, indent=2, default=str) + "\n").encode("utf-8")
 
@@ -654,7 +660,7 @@ def main():
                 cell_id = p_info["cell_id"]
 
                 # Determine sequence of treatments in pair
-                treatments = [("B", str(args.baseline_bin)), ("C", str(args.candidate_bin))] if order == "B_first" else [("C", str(args.candidate_bin)), ("B", str(args.baseline_bin))]
+                treatments = [("B", str(baseline_bin)), ("C", str(candidate_bin))] if order == "B_first" else [("C", str(candidate_bin)), ("B", str(baseline_bin))]
 
                 pair_obs = {}
 
@@ -665,7 +671,7 @@ def main():
                     argv = build_command_args(bin_path, p_info, repetitions=3, warmup=1)
                     invocation = {"cell_id": cell_id, "pair_id": pair_id, "session": s_idx,
                                   "position": pos_idx, "treatment": treat_label, "argv": argv,
-                                  "cwd": str(args.cwd.resolve()), "environment": runtime_env}
+                                  "cwd": str(cwd.resolve()), "environment": runtime_env}
                     prefix = (["/usr/bin/time", "-l"] if sys.platform == "darwin" else
                               ["/usr/bin/time", "-v"] if sys.platform.startswith("linux") else [])
                     observer_metadata = dict(argv=argv, full_cmd=prefix + argv, cwd=invocation["cwd"], env=runtime_env,
@@ -719,7 +725,7 @@ def main():
                         }
                     else:
                         try:
-                            obs = observe_child(argv=argv, cwd=str(args.cwd.resolve()), env=runtime_env,
+                            obs = observe_child(argv=argv, cwd=str(cwd.resolve()), env=runtime_env,
                                                 timeout_seconds=min(PER_PROCESS_TIMEOUT_SECONDS, remaining),
                                                 is_core=True, output_limit_bytes=capture_limit)
                         except ProcessInterruptedError as exc:
