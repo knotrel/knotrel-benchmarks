@@ -38,32 +38,11 @@ def confined(value: os.PathLike | str, what: str) -> Path:
     text = os.fspath(value)
     if not text or text.startswith("-"):
         raise SystemExit(f"{what}: invalid path {text!r}")
-    roots = allowed_roots()
-    # A lexical check first, so that a path outside every root never reaches the
-    # filesystem; then the symbolic links are resolved and the result checked again.
-    lexical = os.path.normpath(os.path.abspath(text))
-    lexical_roots = roots + [os.path.normpath(os.path.abspath(r)) for r in _declared_roots()]
-    # macOS: /var, /tmp and /etc are symbolic links into /private.
-    lexical_roots += [r[len("/private"):] for r in lexical_roots if r.startswith("/private/")]
-    if not any(_inside(lexical, root) for root in lexical_roots):
-        raise SystemExit(f"{what}: {text} lies outside the allowed roots {roots}")
-    resolved = Path(os.path.realpath(lexical))
-    if not any(_inside(str(resolved), root) for root in roots):
-        raise SystemExit(f"{what}: {text} resolves outside the allowed roots {roots}")
-    return resolved
-
-
-def _inside(path: str, root: str) -> bool:
-    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
-
-
-def _declared_roots() -> List[str]:
-    """The roots as written, before symbolic links are resolved (``/tmp`` and
-    ``/private/tmp`` on macOS name the same directory)."""
-    declared = [str(REPO.parent / sibling) for sibling in ("knotrel", "evidence")]
-    declared += [str(Path(__file__).resolve().parent.parent), str(Path(__file__).resolve().parent.parent.parent)]
-    declared += [e for e in os.environ.get("LIFECYCLE_QUALIFICATION_ROOTS", "").split(os.pathsep) if e]
-    return declared
+    resolved = Path(text).resolve()
+    for root in allowed_roots():
+        if resolved == Path(root) or resolved.is_relative_to(root):
+            return resolved
+    raise SystemExit(f"{what}: {text} resolves outside the allowed roots {allowed_roots()}")
 
 
 def contained_file(directory: Path, name: str, what: str) -> Path:

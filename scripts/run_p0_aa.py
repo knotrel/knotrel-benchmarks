@@ -52,7 +52,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from run_baseline import CORE, ROOT, command, hashes, source_patch
-from cli_paths import confined
+from cli_paths import allowed_roots, confined
 from run_scale import peak_rss
 
 # Protocol constants
@@ -216,8 +216,18 @@ def full_agreement(pct: Any) -> bool:
 def recorded_path(value: Any, what: str) -> Path:
     """A path named in a manifest or on the command line, confined to the allowed roots
     (``cli_paths``); a path outside them is a configuration error."""
+    # A lexical check first: a path named in a manifest that lies outside every root
+    # never reaches the filesystem (no existence oracle); confined() then resolves
+    # symbolic links and checks again.
+    lexical = os.path.normpath(os.path.abspath(str(value)))
+    roots = allowed_roots()
+    roots += [os.path.normpath(os.path.abspath(r))
+              for r in os.environ.get("LIFECYCLE_QUALIFICATION_ROOTS", "").split(os.pathsep) if r]
+    roots += [r[len("/private"):] for r in roots if r.startswith("/private/")]  # macOS aliases
+    if not any(lexical == r or lexical.startswith(r.rstrip(os.sep) + os.sep) for r in roots):
+        raise ConfigurationValidationError(f"{what}: {value} lies outside the allowed roots")
     try:
-        return confined(str(value), what)
+        return confined(lexical, what)
     except SystemExit as error:
         raise ConfigurationValidationError(str(error)) from None
 
