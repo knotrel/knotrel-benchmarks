@@ -1,0 +1,136 @@
+{
+ "machine": "macOS-26.5.2-arm64-arm-64bit arm64 cpus=8",
+ "nodes": 500000,
+ "edges": 1500000,
+ "hub_degree": 20000,
+ "quick": false,
+ "load_seconds_off": 4.6,
+ "load_seconds_on": 4.7,
+ "M1": {
+  "nodes_limit_1000": {
+   "client_ms": {
+    "p50": 0.197,
+    "p95": 0.231,
+    "max": 0.292,
+    "n": 300
+   },
+   "server_exec_p95_bucket_s": 5e-05,
+   "server_exec_max_bucket_s": 0.0001
+  },
+  "edges_limit_1000": {
+   "client_ms": {
+    "p50": 0.296,
+    "p95": 0.464,
+    "max": 1.096,
+    "n": 300
+   },
+   "server_exec_p95_bucket_s": 0.0005,
+   "server_exec_max_bucket_s": 0.0005
+  },
+  "hub_incident_limit_1000": {
+   "client_ms": {
+    "p50": 0.181,
+    "p95": 0.189,
+    "max": 0.204,
+    "n": 300
+   },
+   "server_exec_p95_bucket_s": 5e-05,
+   "server_exec_max_bucket_s": 5e-05
+  },
+  "nodes_inactive_budget_bound": {
+   "client_ms": {
+    "p50": 0.304,
+    "p95": 0.325,
+    "max": 0.342,
+    "n": 300
+   },
+   "server_exec_p95_bucket_s": 0.0005,
+   "server_exec_max_bucket_s": 0.0005
+  }
+ },
+ "M2": {
+  "mutations": {
+   "alone_ms": {
+    "p50": 0.084,
+    "p95": 0.09,
+    "max": 0.328,
+    "n": 3000
+   },
+   "with_browsing_ms": {
+    "p50": 0.372,
+    "p95": 0.393,
+    "max": 0.69,
+    "n": 3000
+   },
+   "browse_pages": 6960
+  },
+  "queries": {
+   "alone_ms": {
+    "p50": 0.082,
+    "p95": 0.089,
+    "max": 0.192,
+    "n": 3000
+   },
+   "with_browsing_ms": {
+    "p50": 0.082,
+    "p95": 0.207,
+    "max": 0.303,
+    "n": 3000
+   },
+   "browse_pages": 2886
+  }
+ },
+ "M4": {
+  "rss_off": 223936512,
+  "rss_on": 228261888,
+  "bytes_per_node": 8.7
+ },
+ "M3": {
+  "ops_per_s_median": {
+   "on": {
+    "add_node": 1543649,
+    "link_new_endpoint": 546143
+   },
+   "off": {
+    "add_node": 1618626,
+    "link_new_endpoint": 558547
+   }
+  },
+  "on_over_off": {
+   "add_node": 0.954,
+   "link_new_endpoint": 0.978
+  },
+  "runs": {
+   "on": {
+    "add_node": [
+     1644145.3013409993,
+     1528753.9508734888,
+     1543648.6014860482
+    ],
+    "link_new_endpoint": [
+     546143.0590722334,
+     546294.7219052581,
+     546029.6139161184
+    ]
+   },
+   "off": {
+    "add_node": [
+     1618626.0609931857,
+     1624817.4619132248,
+     1615694.8598688156
+    ],
+    "link_new_endpoint": [
+     560697.0949616289,
+     558547.0154548505,
+     557774.9047164296
+    ]
+   }
+  }
+ },
+ "criteria": {
+  "C1": true,
+  "C2": true,
+  "C3": true,
+  "C4": true
+ }
+}
