@@ -177,7 +177,9 @@ ids["shared_binaries"]["measure_e2e"] = {"path": m, "sha256": h(m), "source_chec
 json.dump(ids, open(f"{camp}/A/identities.json", "w"), indent=1)
 PY
 CELLS=$(cd "$B" && python3 -c "import sys; sys.path.insert(0, 'scripts'); import run_p0_aa; print(' '.join(run_p0_aa.QUALIFICATION_CELL_IDS))")
-export LIFECYCLE_QUALIFICATION_ROOTS="$CAMP"
+# Paths are confined (cli_paths): the campaign directory and the A source manifest's directory.
+LIFECYCLE_QUALIFICATION_ROOTS="$CAMP:$(dirname "$SOURCE_MANIFEST")"
+export LIFECYCLE_QUALIFICATION_ROOTS
 ( cd "$B" && python3 scripts/prepare_bc_qualification.py "$CAMP/A/plan" --identities "$CAMP/A/identities.json" --source-manifest "$SOURCE_MANIFEST" --checkpoint v1.2.0-RQ-V1-Block1 --session-seeds 182110 182111 182112 ) > "$L/A-plan.log" 2>&1
 # shellcheck disable=SC2086 # nine cell ids, one word each
 ( cd "$B" && python3 scripts/prepare_bc_qualification.py "$CAMP/A/plan-block2" --identities "$CAMP/A/identities.json" --source-manifest "$SOURCE_MANIFEST" --phase extension --cells $CELLS --checkpoint v1.2.0-RQ-V1-Block2 --session-seeds 182120 182121 182122 ) > "$L/A-plan-block2.log" 2>&1
@@ -191,6 +193,8 @@ cat > "$CAMP/delegated/V1.sh" <<EOF
 # \$1: the fresh output directory run_cf5.py gives this attempt ({run}).
 set -eu
 cd "$B"
+LIFECYCLE_QUALIFICATION_ROOTS="$CAMP"
+export LIFECYCLE_QUALIFICATION_ROOTS
 python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan/manifest.json" --schedule "$CAMP/A/plan/schedule.json" --execute "\$1/raw-main"
 python3 scripts/run_p0_aa.py --manifest "$CAMP/A/plan-block2/manifest.json" --schedule "$CAMP/A/plan-block2/schedule.json" --execute "\$1/extension/raw-extension"
 EOF
@@ -217,7 +221,8 @@ tools = {
     "contention_base": [f"{t}/contention/release/contention-probe", "--server-bin", f"{t}/ref-server/release/knotrel-server"],
     "_delegated": {
         # {run}: a fresh directory per attempt, under run_cf5.py's --out.
-        "V1": {"argv": ["/bin/sh", f"{camp}/delegated/V1.sh", "{run}"], "cwd": b},
+        "V1": {"argv": ["/bin/sh", f"{camp}/delegated/V1.sh", "{run}"], "cwd": b,
+               "env": {"LIFECYCLE_QUALIFICATION_ROOTS": camp}},
         # run_q.sh: Docker Desktop and PostgreSQL exist only while Q runs; the URL is generated
         # at Q time and never written. Exit 1: Q NONCONFORMING by its own 45-minute cap;
         # 4: Docker or PostgreSQL unavailable (rerun once).
