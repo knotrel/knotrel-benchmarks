@@ -1,0 +1,234 @@
+{
+ "schema": "cf5-record-2",
+ "preparatory": false,
+ "session": 1,
+ "order_seed": 963775082121296932,
+ "order_seed_derived": true,
+ "matrix_sha256": "311f74526da45d584228ee6a65bb3ed8a6a6103cc4c99d7449e9708cebbd967d",
+ "tools": {
+  "harness_cand": [
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-harness/release/knotrel-benchmarks"
+  ],
+  "harness_base": [
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/base-harness/release/knotrel-benchmarks"
+  ],
+  "cf5_core_cand": [
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-harness/release/cf5-core"
+  ],
+  "cf5_core_base": [
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/base-harness/release/cf5-core"
+  ],
+  "contention_cand": [
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/contention/release/contention-probe",
+   "--server-bin",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-server/release/knotrel-server"
+  ],
+  "contention_base": [
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/contention/release/contention-probe",
+   "--server-bin",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/ref-server/release/knotrel-server"
+  ],
+  "_delegated": {
+   "V1": {
+    "argv": [
+     "/bin/sh",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/delegated/V1.sh",
+     "{run}"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks",
+    "env": {
+     "LIFECYCLE_QUALIFICATION_ROOTS": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10"
+    }
+   },
+   "Q": {
+    "argv": [
+     "/bin/sh",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/results/v1.2.0-qualification/run_q.sh",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10",
+     "{run}"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks",
+    "incomplete_exit": [
+     1
+    ]
+   },
+   "B4": {
+    "argv": [
+     "python3",
+     "scripts/run_lifecycle_qualification.py",
+     "--out",
+     "{run}/B4",
+     "--profile",
+     "final",
+     "--core",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-probes/release/core-lifecycle",
+     "--core-count",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-probes-count/release/core-lifecycle",
+     "--http",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-probes/release/http-lifecycle",
+     "--order-seed",
+     "182400",
+     "--knotrel",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel",
+     "--only",
+     "B4",
+     "--lifecycle-engines",
+     "compact-bfs",
+     "--equivalent-references",
+     "--atomic-references",
+     "--window-multipliers",
+     "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/results/v1.2.0-qualification/window-multipliers.json"
+    ],
+    "cwd": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks",
+    "env": {
+     "LIFECYCLE_QUALIFICATION_ROOTS": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10"
+    }
+   }
+  },
+  "_freeze": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/results/v1.2.0-qualification/FREEZE.json",
+  "_checkouts": {
+   "candidate": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel",
+   "benchmarks": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks",
+   "v110": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/base/knotrel",
+   "benchmarks_base": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/base/knotrel-benchmarks",
+   "v110_A": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/sources/B/knotrel",
+   "harness_a": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/sources/knotrel-benchmarks"
+  },
+  "_lockfiles": [
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/base/knotrel/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/tools/lifecycle-probes/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/tools/contention-probe/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/build-inputs/B/knotrel-benchmarks/Cargo.lock",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/build-inputs/C/knotrel-benchmarks/Cargo.lock"
+  ]
+ },
+ "provenance": {
+  "executables": {
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-harness/release/knotrel-benchmarks": "415685cf986b76a63067699899a4c12b15e863d4e7155975d625e2565f7f2d93",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/base-harness/release/knotrel-benchmarks": "b76f903d782e72d731a24af57d88eb366cbbd75f46ac89e599787773412bdf8c",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-harness/release/cf5-core": "cacbd2c59a7de6a3d0e9e5052718974cc292de002d3adc3c58869ec046f78d4d",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/base-harness/release/cf5-core": "f29a2bd966e9c0b9026072dfdfdef293274a7dd7c51757504532382c1f34e485",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/contention/release/contention-probe": "6053905dd78324503423990ebfd902aa2c44cb304462784b3dea439352c0514c",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-server/release/knotrel-server": "8b4c604b4186850e7e745a48e758194442a73ebf9a8b95a5ab6f3318109d5b59",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/ref-server/release/knotrel-server": "0de775b4f1afefcd4c2060399db6c4ab8728a56f68aecbe591c26b8974ce7c64"
+  },
+  "checkouts": {
+   "candidate": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel",
+    "sha": "9faf168b4a12a91faddddbdfac16eac5a4b2236d",
+    "dirty": false
+   },
+   "benchmarks": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks",
+    "sha": "4cf9b1038b1e5c2e641c9bb04a06609bb94de706",
+    "dirty": false
+   },
+   "v110": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/base/knotrel",
+    "sha": "57c35e8d4b17bfce2d9941419ef251a2a2a1d69c",
+    "dirty": false
+   },
+   "benchmarks_base": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/base/knotrel-benchmarks",
+    "sha": "4cf9b1038b1e5c2e641c9bb04a06609bb94de706",
+    "dirty": false
+   },
+   "v110_A": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/sources/B/knotrel",
+    "sha": "57c35e8d4b17bfce2d9941419ef251a2a2a1d69c",
+    "dirty": false
+   },
+   "harness_a": {
+    "path": "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/sources/knotrel-benchmarks",
+    "sha": "df635a1e872fd9e2d556b166ac23f342ee45d675",
+    "dirty": false
+   }
+  },
+  "lockfiles": {
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel/Cargo.lock": "be4e92449ffe656d9d45e09fe9f93be3f849d116952e03ef8b2b9735361d02d7",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/base/knotrel/Cargo.lock": "be4e92449ffe656d9d45e09fe9f93be3f849d116952e03ef8b2b9735361d02d7",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/Cargo.lock": "665b7cec8b604ee0152768a1e4c4847adcb969072bfcb054b0bc97a5dccd2721",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/tools/lifecycle-probes/Cargo.lock": "4ca46207b3706992c4bc05b0e840c7edebb0462c2f8ca2f5fa4098a7521170b5",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/tools/contention-probe/Cargo.lock": "d174e1053c51c8029993fc3bb27dec136e97badc5972bc5c7834479240061106",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/build-inputs/B/knotrel-benchmarks/Cargo.lock": "526114da6bfa4017292e606f6a0faee3779f21fef675079c973d4fb3d052f519",
+   "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/A/build-inputs/C/knotrel-benchmarks/Cargo.lock": "526114da6bfa4017292e606f6a0faee3779f21fef675079c973d4fb3d052f519"
+  },
+  "delegated": {
+   "B4": {
+    "scripts/run_lifecycle_qualification.py": "33abef59c9b67da18041152682cf6bd1aaaea808ee48008b4b5a0f4fc4b0590b",
+    "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-probes/release/core-lifecycle": "a5060b319560eacacfcb756ffbc468bbd988f487f8d88fb3667f399aee3c2623",
+    "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-probes-count/release/core-lifecycle": "c2681c947462bad997e0dd8714f1e887f344169431f91db47f52a8b03a2ee124",
+    "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/targets/cand-probes/release/http-lifecycle": "c5a625c0aa227e7e3a5acbc2dcb256760f6c72d073903e89918cae7ff6d9b82e",
+    "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/results/v1.2.0-qualification/window-multipliers.json": "a81664bd193a352714460e2e65b5fc05d10be6b1f35a1c86a16666bc5f7503ec"
+   },
+   "Q": {
+    "/bin/sh": "ad5c194b05f83bc5e793c1cd67b148a4b680467b5a5730ab1a31fe4e6460ee9f",
+    "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/src/cand/knotrel-benchmarks/results/v1.2.0-qualification/run_q.sh": "502760b59be82d9560454e1173851f95bd11d176c40a833d46548ac0416c9f14"
+   },
+   "V1": {
+    "/bin/sh": "ad5c194b05f83bc5e793c1cd67b148a4b680467b5a5730ab1a31fe4e6460ee9f",
+    "/Users/rt/workspace/knotrel/evidence/v1.2.0-qualification-attempt1-9faf168-4cf9b10/delegated/V1.sh": "5ff0cb2e58b8f334510ccf647c3face303259c1bed04c7aebbaa01ac750a0490"
+   }
+  }
+ },
+ "pairs": 24,
+ "warmup_pairs": 2,
+ "cap_hours": 5.0,
+ "cells": [
+  "V2-Mreg-standalone-off-read95-b8-c16-100k-none",
+  "V2-Mreg-standalone-off-mixed50-b64-c16-100k-none",
+  "V2-Mreg-standalone-off-read95-b1-c4-10k-none",
+  "V2-Mreg-standalone-on-lifecycle50-b8-c16-100k-none",
+  "V2-Mreg-source-managed-off-read100-b8-c16-100k-import",
+  "V2-Mreg-source-managed-on-read100-b8-c16-100k-events",
+  "K2-d4-10000",
+  "K2-d4-100000",
+  "K2-d4-1000000",
+  "K2-d16-10000",
+  "K2-d16-100000",
+  "K2-d16-1000000",
+  "K1-chain-split-rejoin-v1-10000",
+  "K1-chain-split-rejoin-v1-100000",
+  "K1-cycle-alternatives-v1-10000",
+  "K1-cycle-alternatives-v1-100000",
+  "K1-components-join-split-v1-10000",
+  "K1-components-join-split-v1-100000",
+  "K1-hub-alternatives-v1-10000",
+  "K1-hub-alternatives-v1-100000",
+  "K1-sustained-churn-path-v1-10000",
+  "K1-sustained-churn-path-v1-100000",
+  "K1-sustained-churn-blocks-v1-10000",
+  "K1-sustained-churn-blocks-v1-100000",
+  "K1-dense-bridge-churn-v1-512",
+  "K1-dense-bridge-churn-v1-2048",
+  "K1-redundant-bridge-churn-v1-512",
+  "K1-redundant-bridge-churn-v1-2048",
+  "V1",
+  "Q",
+  "B4"
+ ],
+ "host": {
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "kernel": "Darwin 192.168.68.111 25.5.0 Darwin Kernel Version 25.5.0: Tue Jun  9 22:19:21 PDT 2026; root:xnu-12377.121.10~1/RELEASE_ARM64_T8122 arm64",
+  "python": "3.9.6",
+  "cpu": "Apple M3",
+  "cores": 8,
+  "memory_bytes": "17179869184",
+  "frequency_policy": "System-wide power settings:\nCurrently in use:\n standby              1\n Sleep On Power Button 1\n hibernatefile        /var/vm/sleepimage\n powernap             1\n networkoversleep     0\n disksleep            10\n sleep                0 (sleep prevented by powerd, Claude, caffeinate, caffeinate)\n hibernatemode        3\n ttyskeepawake        1\n displaysleep         0\n tcpkeepalive         1\n lowpowermode         0\n womp                 1"
+ },
+ "resume_from": null,
+ "start": {
+  "label": "start",
+  "time": 1795769545.16379,
+  "loadavg": [
+   8.05224609375,
+   6.07080078125,
+   5.75439453125
+  ],
+  "swap": "total = 0.00M  used = 0.00M  free = 0.00M  (encrypted)",
+  "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+ }
+}
