@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from analyze_bc_qualification import TOLERANCES, summarize_metric  # noqa: E402
+from cli_paths import confined_directory, contained_file  # noqa: E402
 
 MATRIX = Path(__file__).resolve().parent.parent / "results" / "v0.6.0-qualification" / "MATRIX.json"
 NAME = re.compile(r"^\d{5}-(?P<cell>.+)-(?P<phase>warmup|analyzed)-(?P<index>\d{2})-(?P<arm>ref|cand)$")
@@ -47,7 +48,7 @@ def load_children(directory: Path) -> List[Dict[str, Any]]:
     for child in log["children"]:
         if child["exit"] != 0:
             raise AnalysisError(f"{child['name']} exited {child['exit']}")
-        stdout = (directory / "raw" / f"{child['name']}.stdout").read_text()
+        stdout = contained_file(directory / "raw", f"{child['name']}.stdout", "child output").read_text()
         children.append({**child, "records": json_lines(stdout)})
     return children
 
@@ -227,20 +228,21 @@ def main() -> int:
     parser.add_argument("--ref-rev")
     parser.add_argument("--cand-rev")
     args = parser.parse_args()
+    directory = confined_directory(args.directory, "directory")
     matrix = json.loads(MATRIX.read_text())
     try:
         if args.experiment == "r":
-            result = analyze_r(args.directory, matrix, args.ref_rev, args.cand_rev)
+            result = analyze_r(directory, matrix, args.ref_rev, args.cand_rev)
         elif args.experiment == "rmem":
-            result = analyze_rmem(args.directory, matrix, args.ref_rev, args.cand_rev)
+            result = analyze_rmem(directory, matrix, args.ref_rev, args.cand_rev)
         elif args.experiment == "mdesc":
-            result = analyze_mdesc(args.directory, matrix)
+            result = analyze_mdesc(directory, matrix)
         else:
-            result = analyze_mreg(args.directory, matrix)
+            result = analyze_mreg(directory, matrix)
     except (AnalysisError, KeyError, StopIteration, ValueError) as error:
         print(f"analysis rejected: {error!r}", file=sys.stderr)
         return 2
-    (args.directory / "analysis.json").write_text(json.dumps(result, indent=1))
+    (directory / "analysis.json").write_text(json.dumps(result, indent=1))
     print(json.dumps(result, indent=1)[:4000])
     return 0
 

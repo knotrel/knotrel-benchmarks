@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -26,6 +27,10 @@ for path in (SCRIPTS_DIR, TESTS_DIR):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+# Fixture checkouts, binaries and plans live in temporary directories: allow them as
+# path roots (cli_paths), as the other harness tests do.
+os.environ["LIFECYCLE_QUALIFICATION_ROOTS"] = os.pathsep.join(
+    filter(None, [os.environ.get("LIFECYCLE_QUALIFICATION_ROOTS"), tempfile.gettempdir()]))
 import prepare_bc_qualification as prep
 import run_p0_aa as p0
 from test_p0_aa import _make_valid_batch_report, _make_valid_lifecycle_report
@@ -370,7 +375,8 @@ class PlanGenerationTests(BCTestCase):
         build = lambda seeds: prep.build_plan(_nine_cell_source(fx), "0" * 64, fx.identities, "main",
                                               p0.QUALIFICATION_CELL_IDS, seeds)["schedule"]["pairs"]
         order = lambda pairs: [(p["cell_id"], p["labels"]) for p in pairs]
-        self.assertEqual(order(build((1, 2, 3))), order(build((1, 2, 3))))
+        first, second = order(build((1, 2, 3))), order(build((1, 2, 3)))
+        self.assertEqual(first, second)
         self.assertNotEqual(order(build((1, 2, 3))), order(build((4, 5, 6))))
 
     def test_extension_accepts_approved_subset_only(self):

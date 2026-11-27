@@ -9,6 +9,7 @@ Covers:
 """
 
 import json
+import os
 from pathlib import Path
 import statistics
 import subprocess
@@ -16,7 +17,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 BINARY = ROOT / "target/release/knotrel-benchmarks"
-COGENTCO = Path("/private/tmp/knotrel-ett-cogentco-fp7hmtgr/cogentco.trace.json")
+# The original evaluation read the Cogentco trace from a temporary directory
+# (/private/tmp/knotrel-ett-cogentco-fp7hmtgr). Name the trace explicitly instead of
+# reading a publicly writable location: KNOTREL_COGENTCO_TRACE, by default
+# ../evidence/cogentco.trace.json next to this repository.
+COGENTCO = Path(os.environ.get("KNOTREL_COGENTCO_TRACE",
+                               str(ROOT.parent / "evidence" / "cogentco.trace.json")))
 
 ENGINES = ["compact-bfs", "compact-workspace", "ett-scan", "hdt", "petgraph-dfs"]
 

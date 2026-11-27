@@ -232,7 +232,7 @@ def process_metadata(stderr):
                   "instructions retired", "cycles elapsed", "peak memory footprint"):
         match = re.search(r"^\s*(\d+)\s+" + re.escape(label) + r"\s*$", stderr, re.M)
         fields[label.replace(" ", "_")] = int(match[1]) if match else None
-    match = re.search(r"([\d.]+) real\s+([\d.]+) user\s+([\d.]+) sys", stderr)
+    match = re.search(r"(\d+(?:\.\d+)?) real[ \t]+(\d+(?:\.\d+)?) user[ \t]+(\d+(?:\.\d+)?) sys", stderr)
     fields["printed_process_seconds"] = (
         dict(zip(("real", "user", "sys"), map(float, match.groups()))) if match else None)
     return fields

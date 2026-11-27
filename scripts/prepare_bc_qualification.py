@@ -32,6 +32,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import run_p0_aa as p0
+from cli_paths import confined
 
 DEFAULT_SOURCE_MANIFEST = p0.ROOT.parent / "evidence/p0-coverage-increment-1-plan-20261030/manifest.json"
 DEFAULT_SESSION_SEEDS = {"main": (130300, 130301, 130302), "extension": (130310, 130311, 130312)}
@@ -220,27 +221,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         help="Per-session shuffle seeds (default: fixed per phase).")
     parser.add_argument("--checkpoint", help="Override the manifest checkpoint label.")
     args = parser.parse_args(argv)
+    source_manifest = confined(args.source_manifest, "--source-manifest")
+    identities = confined(args.identities, "--identities")
+    output_dir = confined(args.output_dir, "output_dir")
 
     if args.phase == "main" and args.cells:
         parser.error("--cells is only valid with --phase extension; the main phase runs all approved cells")
     if args.phase == "extension" and not args.cells:
         parser.error("--phase extension requires --cells")
-    if args.output_dir.exists():
-        parser.error(f"Output directory already exists: {args.output_dir}")
+    if output_dir.exists():
+        parser.error(f"Output directory already exists: {output_dir}")
     cell_ids = args.cells or list(p0.QUALIFICATION_CELL_IDS)
     seeds = args.session_seeds or DEFAULT_SESSION_SEEDS[args.phase]
     try:
         plan = build_plan(
-            p0.read_json(args.source_manifest), p0.digest(args.source_manifest), p0.read_json(args.identities),
+            p0.read_json(source_manifest), p0.digest(source_manifest), p0.read_json(identities),
             args.phase, cell_ids, seeds, args.checkpoint,
         )
     except (PlanError, KeyError, TypeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    args.output_dir.mkdir(parents=True)
-    p0.save_json(args.output_dir / "manifest.json", plan["manifest"])
-    p0.save_json(args.output_dir / "schedule.json", plan["schedule"])
-    print(f"Wrote {plan['schedule']['total_pairs']} pairs for {len(cell_ids)} cells to {args.output_dir}")
+    output_dir.mkdir(parents=True)
+    p0.save_json(output_dir / "manifest.json", plan["manifest"])
+    p0.save_json(output_dir / "schedule.json", plan["schedule"])
+    print(f"Wrote {plan['schedule']['total_pairs']} pairs for {len(cell_ids)} cells to {output_dir}")
     return 0
 
 

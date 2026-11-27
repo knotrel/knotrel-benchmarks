@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
+from cli_paths import confined  # noqa: E402
 
 import run_p0_aa as p0
 from run_p0_aa import (
@@ -657,12 +658,16 @@ def main() -> int:
 
     args = parser.parse_args()
 
+    destination = confined(args.destination, "destination")
+    driver_bin = confined(args.driver_bin, "--driver-bin")
+    server_bin = confined(args.server_bin, "--server-bin")
+    cwd = confined(args.cwd, "--cwd")
     if not args.dry_run and not args.execute:
         parser.error("Either --dry-run or --execute must be specified.")
 
     if args.dry_run:
         print("=== BATCH WARMUP INVESTIGATION (DRY-RUN) ===")
-        prov = validate_provenance_and_binaries(args.driver_bin, args.server_bin) if not args.skip_provenance_checks else {}
+        prov = validate_provenance_and_binaries(driver_bin, server_bin) if not args.skip_provenance_checks else {}
         print("Provenance verified:", prov)
         h = host_state()
         if not args.skip_host_checks:
@@ -671,18 +676,18 @@ def main() -> int:
                 print(f"Host validation failed: {err}")
                 return 1
             print("Host validation passed (AC power, thermal headroom, 0 competing workloads).")
-        sched = generate_schedule(args.destination, args.driver_bin, args.server_bin, cwd=args.cwd)
+        sched = generate_schedule(destination, driver_bin, server_bin, cwd=cwd)
         print(f"Schedule generated: {sched['total_pairs']} pairs across {sched['total_sessions']} sessions.")
         print("Dry run complete. No benchmarks were run.")
         return 0
 
     return execute_investigation(
-        destination=args.destination,
-        driver_bin=args.driver_bin,
-        server_bin=args.server_bin,
+        destination=destination,
+        driver_bin=driver_bin,
+        server_bin=server_bin,
         enforce_host=not args.skip_host_checks,
         check_provenance=not args.skip_provenance_checks,
-        cwd=args.cwd,
+        cwd=cwd,
     )
 
 

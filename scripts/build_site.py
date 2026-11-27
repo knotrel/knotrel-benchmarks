@@ -462,7 +462,7 @@ def engine_family_table(c):
                       f' ({a["cells"]} cells: {esc(", ".join(a["blocks"]))})</small>{ratio_text(a["median_ratio"])}</td>')
         rows += (f'<tr><th scope="row"><code>{esc(f["family"])}</code><br><small>{esc(f["description"])}. '
                  f'Sizes: {esc(sizes)}. Scope: {esc(f["scope"])}.</small></th>{cells}</tr>')
-    return ('<div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable family table"><table class="wrap">'
+    return ('<div class="table-wrap" role="region" aria-label="Scrollable family table"><table class="wrap">'
             '<caption>Family statements as computed by the analyzer, with the classes of every metric of the '
             "family's cells and the range of their median paired ratio (timed metrics only).</caption><thead><tr>"
             f'<th scope="col">Family, workload, sizes (vertices)</th>{head}</tr></thead><tbody>{rows}</tbody></table></div>')
@@ -475,7 +475,7 @@ def lifecycle_table(entries, caption):
         f'<td><strong>{e["projected_growth_30_pct"]:+.1f} %</strong> (projected from the slope)</td>'
         f'<td>{spaced(e["first_bytes"])} → {spaced(e["last_bytes"])} B</td></tr>'
         for e in entries)
-    return ('<div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable lifecycle table"><table class="wrap">'
+    return ('<div class="table-wrap" role="region" aria-label="Scrollable lifecycle table"><table class="wrap">'
             f'<caption>{esc(caption)}</caption><thead><tr><th scope="col">Run</th><th scope="col">Workload</th>'
             '<th scope="col">Graph</th><th scope="col">Nodes</th><th scope="col">Metric</th>'
             '<th scope="col">Late / early</th><th scope="col">Projected 30-cycle growth</th>'
@@ -524,7 +524,7 @@ def engine_page(c):
         '<p>A disclosure category (allocator retention in RSS), never converted into PASS or FAIL.</p>',
         lifecycle_table(rules['c4_exceeds_budget'], 'C4 EXCEEDS_BUDGET runs, disclosed with their numbers.'),
         '<h2>Class counts per block</h2>',
-        '<div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable class count table"><table>'
+        '<div class="table-wrap" role="region" aria-label="Scrollable class count table"><table>'
         '<caption>Every metric class of the engine blocks, as computed.</caption><thead><tr><th scope="col">Block</th>'
         f'<th scope="col">Reference</th><th scope="col">Classes</th></tr></thead><tbody>{counts_rows}</tbody></table></div>',
         '<h2>Method and perimeter</h2>',
@@ -574,7 +574,7 @@ def generate(data, engines=None):
             schema = row_schema(r)
             for comparison in r['comparisons']:
                 rows = ''.join(result_row(x, schema) for x in comparison['results'])
-                detail += f'<h2>Compared with v{comparison["reference_version"]}</h2><p>Candidate: <code>{comparison["candidate_sha"]}</code><br>Reference: v{comparison["reference_version"]} <code>{comparison["reference_sha"]}</code></p><p>{esc(comparison["environment"])}</p><p><a href="{esc(comparison["campaign_url"])}">Campaign manifest and raw evidence ↗</a></p><div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable measurement table"><table><caption>Estimates and confidence intervals. Verdicts are supplied by the campaign analyzer and shown exactly as measured, with their category and execution status.</caption><thead><tr>'+''.join(f'<th scope="col">{x}</th>' for x in COLUMNS)+'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+                detail += f'<h2>Compared with v{comparison["reference_version"]}</h2><p>Candidate: <code>{comparison["candidate_sha"]}</code><br>Reference: v{comparison["reference_version"]} <code>{comparison["reference_sha"]}</code></p><p>{esc(comparison["environment"])}</p><p><a href="{esc(comparison["campaign_url"])}">Campaign manifest and raw evidence ↗</a></p><div class="table-wrap" role="region" aria-label="Scrollable measurement table"><table><caption>Estimates and confidence intervals. Verdicts are supplied by the campaign analyzer and shown exactly as measured, with their category and execution status.</caption><thead><tr>'+''.join(f'<th scope="col">{x}</th>' for x in COLUMNS)+'</tr></thead><tbody>'+rows+'</tbody></table></div>'
                 detail += confidence_plot(comparison['results'], schema)
             detail += legend()
         outputs[f'releases/{r["version"]}.html'] = page(f'v{release_label(r)}', f'<p class="eyebrow">RELEASE REPORT / {esc(r["status"])}{" / PRERELEASE" if is_prerelease(r) else ""}</p><h1>Knotrel {esc(release_label(r))}</h1><p class="lead">{esc(r["baseline_policy"])}</p>{decision_note(r)}{detail}<h2>What this comparison covers</h2><div class="grid"><article class="card"><h3>Response & capacity</h3><p>Latency distributions, throughput, failures and concurrent updates.</p></article><article class="card"><h3>Resource footprint</h3><p>Steady/peak memory and CPU cost with explicit measurement boundaries.</p></article><article class="card"><h3>Confidence & provenance</h3><p>Independent runs, interval methods, exact revisions and linked evidence.</p></article></div><p class="note">Missing coverage is not PASS. An accepted exception does not change a failed verdict.</p>', '../', 'Releases')

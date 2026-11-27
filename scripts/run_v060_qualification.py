@@ -40,6 +40,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_executable  # noqa: E402
+
 MATRIX = Path(__file__).resolve().parent.parent / "results" / "v0.6.0-qualification" / "MATRIX.json"
 
 
@@ -47,8 +50,8 @@ def utc() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
-def sha256(path: str) -> str:
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def host_state() -> Dict[str, Any]:
@@ -243,10 +246,12 @@ def main() -> int:
     freeze = MATRIX.parent / "FREEZE.json"
     if not (args.dry_run or args.pilot) and not freeze.exists():
         raise SystemExit("MATRIX.json is not frozen (FREEZE.json missing); only --dry-run or --pilot may run")
-    binaries = {k: getattr(args, k) for k in ("ref", "cand", "probe", "server") if getattr(args, k)}
-    meta = {"experiment": args.experiment, "pilot": args.pilot, "matrix_sha256": sha256(str(MATRIX)),
-            "freeze_sha256": sha256(str(freeze)) if freeze.exists() else None,
-            "binaries": {k: {"path": v, "sha256": sha256(v)} for k, v in binaries.items()}}
+    args.out = confined(args.out, "--out")
+    binaries = {k: confined_executable(getattr(args, k), f"--{k}")
+                for k in ("ref", "cand", "probe", "server") if getattr(args, k)}
+    meta = {"experiment": args.experiment, "pilot": args.pilot, "matrix_sha256": sha256(MATRIX),
+            "freeze_sha256": sha256(freeze) if freeze.exists() else None,
+            "binaries": {k: {"path": str(v), "sha256": sha256(v)} for k, v in binaries.items()}}
     if args.dry_run:
         print(json.dumps(meta, indent=1))
         return 0
