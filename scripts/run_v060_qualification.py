@@ -55,6 +55,14 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def binary_record(value: str, flag: str) -> Dict[str, str]:
+    """A confined, executable binary named on the command line, with its SHA-256."""
+    path = confined(value, flag)
+    if not path.is_file() or not os.access(path, os.X_OK):
+        raise SystemExit(f"{flag}: {path} is not an executable file")
+    return {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
 def host_state() -> Dict[str, Any]:
     batt = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True).stdout
     therm = subprocess.run(["pmset", "-g", "therm"], capture_output=True, text=True).stdout
@@ -248,14 +256,18 @@ def main() -> int:
     if not (args.dry_run or args.pilot) and not freeze.exists():
         raise SystemExit("MATRIX.json is not frozen (FREEZE.json missing); only --dry-run or --pilot may run")
     args.out = confined(args.out, "--out")
-    binaries = {k: confined(getattr(args, k), f"--{k}")
-                for k in ("ref", "cand", "probe", "server") if getattr(args, k)}
-    for k, path in binaries.items():
-        if not path.is_file() or not os.access(path, os.X_OK):
-            raise SystemExit(f"--{k}: {path} is not an executable file")
+    binaries = {}
+    if args.ref:
+        binaries["ref"] = binary_record(args.ref, "--ref")
+    if args.cand:
+        binaries["cand"] = binary_record(args.cand, "--cand")
+    if args.probe:
+        binaries["probe"] = binary_record(args.probe, "--probe")
+    if args.server:
+        binaries["server"] = binary_record(args.server, "--server")
     meta = {"experiment": args.experiment, "pilot": args.pilot, "matrix_sha256": sha256(MATRIX),
             "freeze_sha256": sha256(freeze) if freeze.exists() else None,
-            "binaries": {k: {"path": str(v), "sha256": sha256(v)} for k, v in binaries.items()}}
+            "binaries": binaries}
     if args.dry_run:
         print(json.dumps(meta, indent=1))
         return 0
