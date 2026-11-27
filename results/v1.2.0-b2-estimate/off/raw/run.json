@@ -1,0 +1,81 @@
+{
+ "status": "COMPLETE",
+ "cause": "every planned observation ran within the cap",
+ "started_utc": "2026-11-27T18:33:09Z",
+ "ended_utc": "2026-11-27T19:00:45Z",
+ "cap_s": 2700.0,
+ "deadline_utc": "2026-11-27T19:18:09Z",
+ "seconds": 1655.4,
+ "rounds": [
+  {
+   "round": 1,
+   "order": [
+    "candidate",
+    "reference"
+   ]
+  },
+  {
+   "round": 2,
+   "order": [
+    "reference",
+    "candidate"
+   ]
+  },
+  {
+   "round": 3,
+   "order": [
+    "candidate",
+    "reference"
+   ]
+  }
+ ],
+ "cells": {
+  "candidate": [
+   "L1 G100k C=0",
+   "L1 G100k C=16",
+   "L1 G100k C=64",
+   "L1 G10k C=16",
+   "L2 G100k C=0",
+   "L2 G100k C=16",
+   "L2 G100k C=64"
+  ],
+  "reference": [
+   "L1 G100k C=16",
+   "L1 G100k C=64"
+  ]
+ },
+ "reruns": {},
+ "infrastructure_exhausted": [],
+ "cap_reached": false,
+ "binaries": {
+  "cand-server": {
+   "path": "off/targets/cand-server/release/knotrel-server",
+   "sha256": "3cda9cb55389e9e0fe1e1ca2877da2636fda44128721a0c967ef101fbe60dfd1"
+  },
+  "ref-server": {
+   "path": "off/targets/ref-server/release/knotrel-server",
+   "sha256": "98c7ee832cdc1cd075d6890801f36762935b8c502927efb1b2087263a9ad48f8"
+  },
+  "feeder": {
+   "path": "off/targets/feeder/release/knotrel-pg-feeder",
+   "sha256": "6809a61ae61f3c8218975cca662e47841db3e5ca92c1f4aa54e71d09ddc73db5"
+  },
+  "load": {
+   "path": "off/targets/feeder/release/examples/load",
+   "sha256": "0503011c05ea9fc281c62fc0bfec3dd0ff81fbfa9a4a2da4f87136a2ce5776c9"
+  }
+ },
+ "removed_env": [
+  "LOAD_REPS",
+  "LOAD_CELLS",
+  "LOAD_WINDOW_SECS",
+  "LOAD_BACKLOG",
+  "LOAD_ARM",
+  "LOAD_CALIBRATION",
+  "LOAD_R2_DECIDE",
+  "LOAD_BURN_DUTY",
+  "LOAD_OUT",
+  "LOAD_PG_PROCESS_PATTERNS",
+  "LOAD_REMOTE_*"
+ ]
+}

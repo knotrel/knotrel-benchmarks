@@ -22,14 +22,18 @@ CELLS = ("L2 G100k C=0", "L2 G100k C=16", "L2 G100k C=64", "L1 G100k C=16", "L1 
 
 
 def evaluation(e, mode):
-    path = Path(e) / mode / "run" / "Q-evaluation.json"
+    path = Path(e) / mode / "Q-attempt1" / "Q-evaluation.json"
+    if not path.exists():  # the first B2 run's layout (see REPORT.md, deviations)
+        path = Path(e) / mode / "run" / "Q-evaluation.json"
     return json.loads(path.read_text()) if path.exists() and path.stat().st_size else None
 
 
 def raw(e, mode):
     rows = {}
     for side in ("candidate", "reference"):
-        for f in sorted((Path(e) / mode / "run" / "Q").glob(f"round*-{side}/results.jsonl")):
+        base = Path(e) / mode / "Q-attempt1" / "Q"
+        base = base if base.exists() else Path(e) / mode / "run" / "Q"
+        for f in sorted(base.glob(f"round*-{side}/results.jsonl")):
             for line in f.read_text().splitlines():
                 r = json.loads(line)
                 key = f"{r['scenario']} {r['graph']} C={r['clients']}"

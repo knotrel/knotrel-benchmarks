@@ -14,7 +14,10 @@ for MODE in off on; do
   if [ $(( $(date +%s) - START )) -ge $CAP ]; then note "INCOMPLETE: cap reached before $MODE"; exit 0; fi
   B=$E/$MODE/src/cand/knotrel-benchmarks
   RC=0
-  caffeinate -ims sh "$B/results/v1.2.0-qualification/run_q.sh" "$E/$MODE" "$E/$MODE/run" > "$E/$MODE/run_q.log" 2>&1 || RC=$?
+  # The run directory must be named Q-attempt<k>: evaluate_v100q_q.py accepts Q only under that
+  # name (knotrel-benchmarks#60). The first B2 run used "run" and the off evaluation failed
+  # (results/v1.2.0-b2-estimate/REPORT.md, deviations); fixed after that run.
+  caffeinate -ims sh "$B/results/v1.2.0-qualification/run_q.sh" "$E/$MODE" "$E/$MODE/Q-attempt1" > "$E/$MODE/run_q.log" 2>&1 || RC=$?
   note "$MODE run_q.sh exit $RC"
   host "after-$MODE"
   if [ "$MODE" = off ]; then
