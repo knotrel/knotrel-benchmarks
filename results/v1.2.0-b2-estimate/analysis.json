@@ -1,0 +1,321 @@
+{
+ "modes": {
+  "off": {
+   "verdicts": {
+    "Q1": "PASS",
+    "Q2": "PASS",
+    "Q3": "FAIL",
+    "Q4": "PASS",
+    "Q5": "PASS"
+   },
+   "deciding_pass": true,
+   "q3": {
+    "rate_c0": 179889.45632802387,
+    "rate_c16": 29124.780399666834,
+    "rate_c64": 15965.620127349724,
+    "ratio_c16": 0.1619037657580027,
+    "ratio_c64": 0.08875239523897843
+   },
+   "q5": {
+    "rule": "L1 G100k C=16 and C=64: candidate median query_rps >= 90 % and median query_p99_ms <= 125 % of the v0.9.0 medians of this session",
+    "cells": {
+     "L1 G100k C=16": {
+      "query_rps": [
+       1199.4283359104616,
+       1292.1817181117524
+      ],
+      "rps_ratio": 1.077331324785556,
+      "rps_pass": true,
+      "query_p99_ms": [
+       77.358375,
+       74.27729099999999
+      ],
+      "p99_ratio": 0.9601712936705301,
+      "p99_pass": true,
+      "pass": true
+     },
+     "L1 G100k C=64": {
+      "query_rps": [
+       1126.0838126312701,
+       1138.7426414141576
+      ],
+      "rps_ratio": 1.0112414623502208,
+      "rps_pass": true,
+      "query_p99_ms": [
+       163.275541,
+       156.0315
+      ],
+      "p99_ratio": 0.9556330301793334,
+      "p99_pass": true,
+      "pass": true
+     }
+    },
+    "pass": true,
+    "failed_observations": [],
+    "reference_failed_observations": [],
+    "missing_observations": [],
+    "status": "PASS"
+   },
+   "run_status": "COMPLETE",
+   "raw": {
+    "candidate": {
+     "L1 G100k C=16": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 1292.1817181117524,
+      "query_p99_ms": 74.27729099999999,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     },
+     "L1 G100k C=64": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 1138.7426414141576,
+      "query_p99_ms": 156.0315,
+      "query_refused_503": 164221,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     },
+     "L2 G100k C=0": {
+      "n": 3,
+      "events_per_sec": 179889.45632802387,
+      "query_rps": 0.0,
+      "query_p99_ms": null,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": 19.58
+     },
+     "L2 G100k C=16": {
+      "n": 3,
+      "events_per_sec": 29124.780399666834,
+      "query_rps": 1418.7855630496108,
+      "query_p99_ms": 57.493,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": 93.515,
+      "share_of_c0": 0.1619037657580027
+     },
+     "L2 G100k C=64": {
+      "n": 3,
+      "events_per_sec": 15965.620127349724,
+      "query_rps": 1442.6705102536764,
+      "query_p99_ms": 97.236666,
+      "query_refused_503": 18997,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": 95.85,
+      "share_of_c0": 0.08875239523897843
+     }
+    },
+    "reference": {
+     "L1 G100k C=16": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 1199.4283359104616,
+      "query_p99_ms": 77.358375,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     },
+     "L1 G100k C=64": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 1126.0838126312701,
+      "query_p99_ms": 163.275541,
+      "query_refused_503": 160418,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     }
+    }
+   }
+  },
+  "on": {
+   "verdicts": {
+    "Q1": "PASS",
+    "Q2": "PASS",
+    "Q3": "PASS",
+    "Q4": "PASS",
+    "Q5": "FAIL"
+   },
+   "deciding_pass": true,
+   "q3": {
+    "rate_c0": 176841.94402444025,
+    "rate_c16": 99475.48876702663,
+    "rate_c64": 97258.0964229705,
+    "ratio_c16": 0.5625107172158135,
+    "ratio_c64": 0.5499718800282417
+   },
+   "q5": {
+    "rule": "L1 G100k C=16 and C=64: candidate median query_rps >= 90 % and median query_p99_ms <= 125 % of the v0.9.0 medians of this session",
+    "cells": {
+     "L1 G100k C=16": {
+      "query_rps": [
+       1203.1844030837544,
+       1058.1096717577338
+      ],
+      "rps_ratio": 0.8794243584323442,
+      "rps_pass": false,
+      "query_p99_ms": [
+       76.490833,
+       22.10925
+      ],
+      "p99_ratio": 0.2890444401357219,
+      "p99_pass": true,
+      "pass": false
+     },
+     "L1 G100k C=64": {
+      "query_rps": [
+       1116.7117743645535,
+       993.7502332012477
+      ],
+      "rps_ratio": 0.8898896349209938,
+      "rps_pass": false,
+      "query_p99_ms": [
+       157.92175,
+       46.183417
+      ],
+      "p99_ratio": 0.2924449418778604,
+      "p99_pass": true,
+      "pass": false
+     }
+    },
+    "pass": false,
+    "failed_observations": [],
+    "reference_failed_observations": [],
+    "missing_observations": [],
+    "status": "FAIL"
+   },
+   "run_status": "COMPLETE",
+   "raw": {
+    "candidate": {
+     "L1 G100k C=16": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 1058.1096717577338,
+      "query_p99_ms": 22.10925,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     },
+     "L1 G100k C=64": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 993.7502332012477,
+      "query_p99_ms": 46.183417,
+      "query_refused_503": 111539,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     },
+     "L2 G100k C=0": {
+      "n": 3,
+      "events_per_sec": 176841.94402444025,
+      "query_rps": 0.0,
+      "query_p99_ms": null,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": 19.605000000000004
+     },
+     "L2 G100k C=16": {
+      "n": 3,
+      "events_per_sec": 99475.48876702663,
+      "query_rps": 783.1029001284127,
+      "query_p99_ms": 60.796666,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": 57.59,
+      "share_of_c0": 0.5625107172158135
+     },
+     "L2 G100k C=64": {
+      "n": 3,
+      "events_per_sec": 97258.0964229705,
+      "query_rps": 789.1517177107593,
+      "query_p99_ms": 96.774667,
+      "query_refused_503": 1586,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": 58.24,
+      "share_of_c0": 0.5499718800282417
+     }
+    },
+    "reference": {
+     "L1 G100k C=16": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 1203.1844030837544,
+      "query_p99_ms": 76.490833,
+      "query_refused_503": 0,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     },
+     "L1 G100k C=64": {
+      "n": 3,
+      "events_per_sec": null,
+      "query_rps": 1116.7117743645535,
+      "query_p99_ms": 157.92175,
+      "query_refused_503": 160833,
+      "query_errors": 0,
+      "feeder_503_refusals": 0,
+      "host_cpu_busy_median": null
+     }
+    }
+   }
+  }
+ },
+ "summary": {
+  "feeder_recovery_vs_off_c16": 2.4743522769976662,
+  "q3_distance_pp_c16": 6.251071721581347,
+  "q5_on_operational_cost": {
+   "rule": "L1 G100k C=16 and C=64: candidate median query_rps >= 90 % and median query_p99_ms <= 125 % of the v0.9.0 medians of this session",
+   "cells": {
+    "L1 G100k C=16": {
+     "query_rps": [
+      1203.1844030837544,
+      1058.1096717577338
+     ],
+     "rps_ratio": 0.8794243584323442,
+     "rps_pass": false,
+     "query_p99_ms": [
+      76.490833,
+      22.10925
+     ],
+     "p99_ratio": 0.2890444401357219,
+     "p99_pass": true,
+     "pass": false
+    },
+    "L1 G100k C=64": {
+     "query_rps": [
+      1116.7117743645535,
+      993.7502332012477
+     ],
+     "rps_ratio": 0.8898896349209938,
+     "rps_pass": false,
+     "query_p99_ms": [
+      157.92175,
+      46.183417
+     ],
+     "p99_ratio": 0.2924449418778604,
+     "p99_pass": true,
+     "pass": false
+    }
+   },
+   "pass": false,
+   "failed_observations": [],
+   "reference_failed_observations": [],
+   "missing_observations": [],
+   "status": "FAIL"
+  }
+ },
+ "decision": "ADOPT"
+}

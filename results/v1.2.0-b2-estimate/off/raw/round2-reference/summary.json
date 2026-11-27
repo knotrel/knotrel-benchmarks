@@ -1,0 +1,183 @@
+{
+  "measurement_secs": 160.287566792,
+  "summary": {
+    "cells": {
+      "L1 G100k C=16": {
+        "feeder_503_refusals": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "first10_median_ms": {
+          "max": 35.192021,
+          "median": 35.192021,
+          "min": 35.192021,
+          "n": 1
+        },
+        "last10_median_ms": {
+          "max": 30.70625,
+          "median": 30.70625,
+          "min": 30.70625,
+          "n": 1
+        },
+        "marker_max_ms": {
+          "max": 144.499916,
+          "median": 144.499916,
+          "min": 144.499916,
+          "n": 1
+        },
+        "marker_p50_ms": {
+          "max": 34.143333,
+          "median": 34.143333,
+          "min": 34.143333,
+          "n": 1
+        },
+        "marker_p99_ms": {
+          "max": 113.04166599999999,
+          "median": 113.04166599999999,
+          "min": 113.04166599999999,
+          "n": 1
+        },
+        "marker_timeouts": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_503": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_p99_ms": {
+          "max": 77.358375,
+          "median": 77.358375,
+          "min": 77.358375,
+          "n": 1
+        },
+        "query_rps": {
+          "max": 1187.4377862755332,
+          "median": 1187.4377862755332,
+          "min": 1187.4377862755332,
+          "n": 1
+        },
+        "writer_changes_per_sec": {
+          "max": 958.4677222758779,
+          "median": 958.4677222758779,
+          "min": 958.4677222758779,
+          "n": 1
+        }
+      },
+      "L1 G100k C=64": {
+        "feeder_503_refusals": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "first10_median_ms": {
+          "max": 77.194166,
+          "median": 77.194166,
+          "min": 77.194166,
+          "n": 1
+        },
+        "last10_median_ms": {
+          "max": 48.291459,
+          "median": 48.291459,
+          "min": 48.291459,
+          "n": 1
+        },
+        "marker_max_ms": {
+          "max": 885.989584,
+          "median": 885.989584,
+          "min": 885.989584,
+          "n": 1
+        },
+        "marker_p50_ms": {
+          "max": 56.6905,
+          "median": 56.6905,
+          "min": 56.6905,
+          "n": 1
+        },
+        "marker_p99_ms": {
+          "max": 637.4392909999999,
+          "median": 637.4392909999999,
+          "min": 637.4392909999999,
+          "n": 1
+        },
+        "marker_timeouts": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 1
+        },
+        "query_503": {
+          "max": 52736.0,
+          "median": 52736.0,
+          "min": 52736.0,
+          "n": 1
+        },
+        "query_p99_ms": {
+          "max": 165.018917,
+          "median": 165.018917,
+          "min": 165.018917,
+          "n": 1
+        },
+        "query_rps": {
+          "max": 1126.0838126312701,
+          "median": 1126.0838126312701,
+          "min": 1126.0838126312701,
+          "n": 1
+        },
+        "writer_changes_per_sec": {
+          "max": 825.1727145040297,
+          "median": 825.1727145040297,
+          "min": 825.1727145040297,
+          "n": 1
+        }
+      }
+    },
+    "criteria": {
+      "Q1": {
+        "marker_max_ms": 144.499916,
+        "marker_p99_ms": 113.04166599999999,
+        "pass": true,
+        "rule": "L1 G100k C=16: p99 <= 1000 ms and max <= 3000 ms"
+      },
+      "Q2": {
+        "observations": [
+          {
+            "cell": "L1 G100k C=16",
+            "lag_ok": true,
+            "rep": 1,
+            "wal_ok": true
+          },
+          {
+            "cell": "L1 G100k C=64",
+            "lag_ok": true,
+            "rep": 1,
+            "wal_ok": true
+          }
+        ],
+        "pass": true,
+        "rule": "every L1 observation: last10 median <= 2 x first10 median + 50 ms, retained WAL end <= start + 16 MiB"
+      },
+      "Q3": {
+        "pass": false,
+        "rate_c0": null,
+        "rate_c16": null,
+        "rate_c64": null,
+        "ratio_c16": null,
+        "ratio_c64": null,
+        "rule": "L2 G100k: C=16 >= 50 % and C=64 >= 25 % of C=0"
+      },
+      "Q4": {
+        "pass": false,
+        "rule": "L2 G100k C=64: time to ready <= 60 s",
+        "secs_to_ready_c64": null
+      }
+    }
+  }
+}
