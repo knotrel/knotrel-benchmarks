@@ -239,3 +239,107 @@ class QEvaluatorLayoutTest(unittest.TestCase):
         self.assertNotIn('evaluate_v100q_q.py "$RUN/Q" > ', script)
         self.assertIn('--out "$RUN/Q-evaluation.json"', script)
         self.assertIn("Q-evaluation.error.txt", script)
+
+
+class Attempt2MatrixTest(unittest.TestCase):
+    """Plan section 13: the scope of attempt 2, from the diff v1.1.0..candidate."""
+
+    def test_blocks_cells_and_order(self):
+        m = mx.build(attempt=2)
+        self.assertEqual(m["attempt"], 2)
+        self.assertEqual(m["counts"], {"B4": 38, "Q": 10, "V1": 9, "V2": 6})
+        self.assertEqual(m["rules"]["block_order"], [["V1", "V2"], ["Q", "B4"]])
+        ids = [c["id"] for c in m["cells"]]
+        self.assertFalse([i for i in ids if i.startswith(("K1-", "K2-"))])
+        self.assertEqual(ids.index("Q") + 1, ids.index("Q-K4"))
+        self.assertIn("section 13", m["plan"])
+
+    def test_v1_roles_and_seeds(self):
+        v1 = next(c for c in mx.build(attempt=2)["cells"] if c["id"] == "V1")
+        self.assertEqual(sorted(v1["v1"]["deciding"]), sorted(mx.V1_HTTP_CELLS))
+        self.assertEqual(len(v1["v1"]["descriptive"]), 4)
+        self.assertTrue(all(c.startswith("core_") for c in v1["v1"]["descriptive"]))
+        self.assertEqual(v1["seeds"], {"block1": [182210, 182211, 182212],
+                                       "block2": [182220, 182221, 182222]})
+        self.assertFalse(set(sum(v1["seeds"].values(), [])) & set(sum(mx.V1_SEEDS.values(), [])))
+
+    def test_q_rules_follow_option_b(self):
+        cells = {c["id"]: c for c in mx.build(attempt=2)["cells"]}
+        self.assertEqual(cells["Q"]["q_rule"]["deciding"], ["Q1", "Q2", "Q4", "Q5"])
+        self.assertEqual(cells["Q"]["q_rule"]["reported"], ["Q3"])
+        self.assertEqual(cells["Q-K4"]["q_rule"]["deciding"], ["Q1", "Q2", "Q3", "Q4"])
+        self.assertEqual(cells["Q-K4"]["q_rule"]["cost"], ["Q5"])
+        self.assertIn("KNOTREL_MAX_CONCURRENT_QUERIES=4", cells["Q-K4"]["q_rule"]["mode"])
+
+    def test_attempt1_matrix_is_unchanged(self):
+        frozen = (SCRIPTS.parent / "results/v1.2.0-qualification/v120q-matrix.json").read_text()
+        self.assertEqual(json.dumps(mx.build(cap_hours=5.0), indent=1, sort_keys=True) + "\n", frozen)
+
+
+class Attempt2SummaryTest(unittest.TestCase):
+    def evaluation(self, c16, c64, q5="PASS"):
+        return {"criteria": {**{n: {"status": "PASS"} for n in ("Q1", "Q2", "Q4")},
+                             "Q5": {"status": q5},
+                             "Q3": {"status": "PASS" if c16 >= 0.5 and c64 >= 0.25 else "FAIL",
+                                    "ratio_c16": c16, "ratio_c64": c64, "rule": "r"}},
+                "run_status": "COMPLETE"}
+
+    def inputs(self):
+        m = mx.build(cap_hours=3, attempt=2)
+        b4 = next(c for c in m["cells"] if c["id"] == "B4")["b4"]
+        timing = [{"id": c, "status": "PASS", "interval_pct": [-1, 1]} for c in b4["all"]]
+        cf5 = {"cells": {"V2-x": {"block": "V2", "metrics": {"p99": {"class": "PASS"}}}}}
+        v1 = {"cells": [{"cell_id": c, "status": "PASS"} for c in mx.V1_HTTP_CELLS]
+              + [{"cell_id": mx.V1_CORE_CELLS[1], "status": "REGRESSION"}]}
+        return m, cf5, v1, {"timing": timing}
+
+    def test_roles_decide_and_q3_comes_from_k4(self):
+        m, cf5, v1, b4 = self.inputs()
+        s = sm.summarize(m, cf5, v1, self.evaluation(0.16, 0.09), b4,
+                         q_k4=self.evaluation(0.56, 0.55, q5="FAIL"))
+        self.assertEqual(s["not_passing_deciding"], [])
+        self.assertEqual(s["q3"]["status"], "PASS")
+        self.assertIn("=4", s["q3_mode"])
+        self.assertEqual(s["q3_default_mode"]["status"], "FAIL")
+        roles = {i["item"]: (i.get("role"), i["outcome"]) for i in s["items"]}
+        self.assertEqual(roles["Q/Q3"], ("reported", "FAIL"))
+        self.assertEqual(roles["Q-K4/Q5"], ("cost", "FAIL"))
+        self.assertEqual(roles[mx.V1_CORE_CELLS[1]], ("descriptive", "REGRESSION"))
+        text = sm.markdown(s)
+        self.assertIn("Default mode (reported, not deciding)", text)
+        self.assertIn("| `Q-K4/Q5` | cost | FAIL |", text)
+
+    def test_deciding_failures_are_listed(self):
+        m, cf5, v1, b4 = self.inputs()
+        s = sm.summarize(m, cf5, v1, self.evaluation(0.16, 0.09, q5="FAIL"), b4,
+                         q_k4=self.evaluation(0.45, 0.30))
+        self.assertEqual(sorted(s["not_passing_deciding"]), ["Q-K4/Q3", "Q/Q5"])
+
+    def test_tool_error_is_missing_evidence_not_a_failure(self):
+        m, cf5, v1, b4 = self.inputs()
+        status = {"cells": {"Q-K4": {"state": "TOOL_ERROR"}}}
+        s = sm.summarize(m, cf5, v1, self.evaluation(0.16, 0.09), b4, q_k4=None, status=status)
+        self.assertEqual(s["tool_errors"], ["Q-K4"])
+        self.assertTrue(any("tool error" in x for x in s["missing_evidence"]))
+        self.assertNotIn("Q-K4/Q3", s["not_passing_deciding"])
+        self.assertIsNone(s["q3"])
+
+
+class Attempt2RunnerTest(unittest.TestCase):
+    def test_runner_check_passes(self):
+        import check_v120q_q_runner as chk
+        from unittest import mock
+        with mock.patch("sys.stdout"):
+            self.assertEqual(chk.main([]), 0)
+
+    def test_run_q_tool_error_branch_and_variant(self):
+        script = (SCRIPTS.parent / "results/v1.2.0-qualification/run_q.sh").read_text()
+        self.assertIn("exit 6", script)
+        self.assertIn('run_v100q_q.py "$QCAMP"', script)
+        self.assertIn('"$CAMP/binaries-sha256.txt"', script)
+
+    def test_prepare_attempt2_wiring(self):
+        script = (SCRIPTS.parent / "results/v1.2.0-qualification/prepare_v120q.sh").read_text()
+        for needle in ("variant-k4", "KNOTREL_MAX_CONCURRENT_QUERIES=4", "check_v120q_q_runner.py",
+                       "MIN_FREE_GB", "182210 182211 182212", '"tool_error_exit"'):
+            self.assertIn(needle, script)

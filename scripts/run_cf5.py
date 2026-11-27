@@ -17,7 +17,7 @@ Output in DIR:
 - ``smoke.jsonl``: the tier-1 correctness smoke (one ``--verify`` observation per distinct
   arm; deterministic arms twice, compared);
 - ``status.json``: per cell COMPLETE, INCOMPLETE (pairs done), NOT_RUN, FAILED, or for
-  delegated cells DELEGATED_DONE / DELEGATED_FAILED / NOT_RUN; the campaign state
+  delegated cells DELEGATED_DONE / DELEGATED_FAILED / TOOL_ERROR / NOT_RUN; the campaign state
   (complete, incomplete, failed) and host snapshots per block. Always written, also after a
   crash or an interruption.
 
@@ -359,16 +359,27 @@ def smoke(cells: List[Dict[str, Any]], tools: Dict[str, Any], scratch: Path, log
             log.flush()
 
 
+def delegated_run_dir(out: Path, cell_id: str, attempt: int) -> Path:
+    """The fresh ``{run}`` directory of a delegated collector's attempt. The v1.2.0 Q
+    evaluator accepts ``<run>/Q`` exactly when this is ``Q-attempt<k>`` or
+    ``Q-K<n>-attempt<k>`` (``evaluate_v100q_q.RUNNER_ATTEMPT``)."""
+    return out / "delegated" / f"{cell_id}-attempt{attempt}"
+
+
 def run_delegated(cell: Dict[str, Any], tools: Dict[str, Any], out: Path) -> Dict[str, Any]:
     """Runs a delegated collector. ``{run}`` in its argv is replaced by a fresh directory under
     this session's output (``delegated/<cell>-attempt<k>``), so sessions and reruns never share
     outputs. Exit 0: DELEGATED_DONE. An exit listed in ``incomplete_exit`` (S3: its own cap
-    reached): INCOMPLETE, which a second session may redo. Any other exit is a crashed
-    collector (section 9): one rerun from scratch; a second failure stops the campaign."""
+    reached): INCOMPLETE, which a second session may redo. An exit listed in
+    ``tool_error_exit`` (v1.2.0 Q: the measurement ran, its evaluation failed): TOOL_ERROR,
+    never rerun (rerunning would only repeat the measurement), no verdict, and the campaign
+    continues; it is a defect of the tool, never a failed criterion. Any other exit is a
+    crashed collector (section 9): one rerun from scratch; a second failure stops the
+    campaign."""
     spec = tools["_delegated"][cell["id"]]
     attempts = []
     for attempt in (1, 2):
-        run_dir = out / "delegated" / f"{cell['id']}-attempt{attempt}"
+        run_dir = delegated_run_dir(out, cell["id"], attempt)
         run_dir.parent.mkdir(exist_ok=True)
         argv = [item.replace("{run}", str(run_dir)) for item in spec["argv"]]
         log = out / "delegated" / f"{cell['id']}-attempt{attempt}.log"
@@ -384,6 +395,10 @@ def run_delegated(cell: Dict[str, Any], tools: Dict[str, Any], out: Path) -> Dic
             return {"state": "DELEGATED_DONE", "attempts": attempts}
         if done.returncode in spec.get("incomplete_exit", []):
             return {"state": "INCOMPLETE", "reason": "the collector's own cap",
+                    "attempts": attempts}
+        if done.returncode in spec.get("tool_error_exit", []):
+            return {"state": "TOOL_ERROR",
+                    "reason": "the collector's evaluation tool failed after the measurement",
                     "attempts": attempts}
     failure = GateFailure(f"{cell['id']}: delegated collector failed twice "
                           f"(exits {[a['exit'] for a in attempts]})")
@@ -610,7 +625,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                                           for s in state.values()):
             # Every step ran, so only a delegated collector's own cap (S3) left cells open.
             campaign, end_cause = "incomplete", "cap (a delegated collector's own cap)"
-        status = {"schema": "cf5-status-3", "preparatory": args.preparatory,
+        tool_errors = sorted(cid for cid, s in state.items() if s["state"] == "TOOL_ERROR")
+        if tool_errors:
+            end_cause += f"; tool error (evaluation failed, no verdict): {', '.join(tool_errors)}"
+        status ={"schema": "cf5-status-3", "preparatory": args.preparatory,
                   "session": args.session, "campaign": campaign, "end_cause": end_cause,
                   "cells": state, "snapshots": snapshots}
         (args.out / "status.json").write_text(json.dumps(status, indent=1) + "\n")

@@ -2,6 +2,22 @@
 """Generates the v1.2.0 release-qualification matrix (knotrel#182).
 
     v120q_matrix.py [--out results/v1.2.0-qualification/v120q-matrix.json] [--cap-hours H]
+    v120q_matrix.py --attempt 2 [--out results/v1.2.0-qualification/attempt2/v120q-matrix.json]
+                    [--cap-hours H]
+
+**Attempt 2** (plan section 13) qualifies the candidate after the BFS restore (knotrel#205)
+and B2 (knotrel#207). Its diff against v1.1.0 changes no executed core code and changes the
+server's request path (the optional query limiter, unset by default), so the matrix keeps
+the server blocks and drops K1 and K2 (written dispositions):
+
+- V2 unchanged (default mode);
+- V1 unchanged as a protocol (its fixed nine cells), with the five HTTP cells deciding and
+  the four core cells descriptive (their executed code equals v1.1.0);
+- Q in the default mode (cell ``Q``: Q1, Q2, Q4 and Q5 deciding; Q3 reported) and with
+  ``KNOTREL_MAX_CONCURRENT_QUERIES=4`` (cell ``Q-K4``: Q1-Q4 deciding, Q3 being the
+  release's Q3 statement; Q5 published as the option's cost), the rule the maintainer
+  approved for B2 (design option B);
+- B4 unchanged.
 
 Plan: knotrel ``docs/releases/v1.2.0-qualification-plan.md``. The scope comes from the
 diff ``v1.1.0..candidate`` (plan section 3): the only executed change is
@@ -51,6 +67,23 @@ K2_SIZES = (10_000, 100_000, 1_000_000)
 K2_DEGREES = (4, 16)
 B4_ORDER_SEED = 182400
 V1_SEEDS = {"block1": [182110, 182111, 182112], "block2": [182120, 182121, 182122]}
+#: Attempt 2 (plan section 13): fresh seeds, declared before the freeze.
+V1_SEEDS_A2 = {"block1": [182210, 182211, 182212], "block2": [182220, 182221, 182222]}
+V1_HTTP_CELLS = ["http_standalone_batch_b1_compact_bfs", "http_standalone_batch_b8_compact_bfs",
+                 "http_standalone_batch_b64_compact_bfs", "http_standalone_batch_b256_compact_bfs",
+                 "http_lifecycle_compact_bfs_small"]
+V1_CORE_CELLS = ["core_sparse_traversal_10k_compact-bfs_warmed",
+                 "core_sparse_traversal_10k_compact-workspace_warmed",
+                 "core_sustained_churn_10k_compact-bfs_warmed",
+                 "core_sustained_churn_10k_compact-workspace_warmed"]
+Q_LIMIT = 4
+#: Attempt 2 Q rule (B2 design option B, approved by the maintainer; plan section 13).
+Q_RULES_A2 = {
+    "Q": {"mode": "default (KNOTREL_MAX_CONCURRENT_QUERIES unset)",
+          "deciding": ["Q1", "Q2", "Q4", "Q5"], "reported": ["Q3"], "cost": []},
+    "Q-K4": {"mode": f"KNOTREL_MAX_CONCURRENT_QUERIES={Q_LIMIT}",
+             "deciding": ["Q1", "Q2", "Q3", "Q4"], "reported": [], "cost": ["Q5"]},
+}
 Q_CAP_S = 45 * 60
 PLACEHOLDER_CAP = 1_000
 
@@ -152,6 +185,45 @@ def delegated() -> List[Dict[str, Any]]:
     ]
 
 
+def delegated_a2() -> List[Dict[str, Any]]:
+    """Attempt 2's delegated cells (plan section 13). ``Q-K4`` runs the same collector against
+    the campaign's server variant ``variant-k4`` (prepare_v120q.sh)."""
+    sets = b4_sets()
+    q_collector = ("run_q.sh (Docker Desktop and the pinned PostgreSQL 18.7 container exist "
+                   "only while Q runs, URL never written) -> run_v100q_q.py (candidate: seven "
+                   "cells on the candidate server{variant}; Q5 reference: L1 G100k C=16 and "
+                   "C=64 on the v1.1.0 server; 3 rounds) -> evaluate_v100q_q.py: Q1-Q5; exit 6 "
+                   "(evaluation failed after the measurement) is a tool error, never a verdict")
+    assert sorted(V1_HTTP_CELLS + V1_CORE_CELLS) == sorted(_v1_cell_ids())
+    return [
+        {"id": "V1", "block": "V1", "tier": 1, "kind": "delegated", "comparisons": 9,
+         "seeds": V1_SEEDS_A2,
+         "v1": {"deciding": V1_HTTP_CELLS, "descriptive": V1_CORE_CELLS,
+                "descriptive_reason": "executed core code equal to v1.1.0 (diff of plan section 13)"},
+         "collector": "run_p0_aa.py --execute on the two plans of prepare_bc_qualification.py "
+                      "(B = v1.1.0, C = candidate), n = 24 fixed; analyze_v100q_a.py rules"},
+        {"id": "Q", "block": "Q", "tier": 2, "kind": "delegated", "comparisons": 5,
+         "cap_s": Q_CAP_S, "q_rule": Q_RULES_A2["Q"],
+         "collector": q_collector.format(variant="")},
+        {"id": "Q-K4", "block": "Q", "tier": 2, "kind": "delegated", "comparisons": 5,
+         "cap_s": Q_CAP_S, "q_rule": Q_RULES_A2["Q-K4"],
+         "collector": q_collector.format(
+             variant=f" started with KNOTREL_MAX_CONCURRENT_QUERIES={Q_LIMIT} (variant-k4)")},
+        {"id": "B4", "block": "B4", "tier": 2, "kind": "delegated",
+         "comparisons": len(sets["all"]), "order_seed": B4_ORDER_SEED, "b4": sets,
+         "collector": "run_lifecycle_qualification.py --profile final --only B4 "
+                      "--lifecycle-engines compact-bfs --equivalent-references "
+                      "--atomic-references --window-multipliers "
+                      "results/v1.2.0-qualification/window-multipliers.json; "
+                      "analyze_lifecycle_qualification.py --expect-only B4"},
+    ]
+
+
+def _v1_cell_ids() -> List[str]:
+    import run_p0_aa  # noqa: PLC0415
+    return list(run_p0_aa.QUALIFICATION_CELL_IDS)
+
+
 def window_multipliers() -> Dict[str, int]:
     """The frozen v1.0.0 factors for every timed (B1-B4) cell of the scope, which
     ``apply_multipliers`` requires before ``--only`` applies, plus the atomic cell's (its
@@ -167,18 +239,20 @@ def window_multipliers() -> Dict[str, int]:
     return dict(sorted(factors.items()))
 
 
-def build(cap_hours: Optional[float] = None) -> Dict[str, Any]:
+def build(cap_hours: Optional[float] = None, attempt: int = 1) -> Dict[str, Any]:
     if cap_hours is not None and not 0 < cap_hours < PLACEHOLDER_CAP:
         raise SystemExit(f"--cap-hours must be in (0, {PLACEHOLDER_CAP}), got {cap_hours}")
-    cells = v2() + k2() + k1() + delegated()
+    if attempt not in (1, 2):
+        raise SystemExit(f"--attempt must be 1 or 2, got {attempt}")
+    cells = v2() + k2() + k1() + delegated() if attempt == 1 else v2() + delegated_a2()
     ids = [c["id"] for c in cells]
     assert len(ids) == len(set(ids)), "cell ids are unique"
     counts: Dict[str, int] = {}
     for cell in cells:
         counts[cell["block"]] = counts.get(cell["block"], 0) + cell.get("comparisons", 1)
-    return {
+    matrix = {
         "schema": "cf5-matrix-1",
-        "plan": PLAN,
+        "plan": PLAN if attempt == 1 else PLAN + ", section 13 (attempt 2)",
         "reference": REFERENCE,
         "cap": "set" if cap_hours is not None else "unset",
         "rules": {"pairs": 24, "warmup_pairs": 2, "interval_order_statistics": [7, 18],
@@ -196,18 +270,24 @@ def build(cap_hours: Optional[float] = None) -> Dict[str, Any]:
         "total_comparisons": sum(counts.values()),
         "cells": cells,
     }
+    if attempt == 2:
+        matrix["attempt"] = 2
+        matrix["rules"]["block_order"] = [["V1", "V2"], ["Q", "B4"]]
+    return matrix
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--out", type=Path)
+    parser.add_argument("--attempt", type=int, choices=(1, 2), default=1)
     parser.add_argument("--cap-hours", type=float)
     parser.add_argument("--window-multipliers", type=Path,
                         help="also write the B4 window multipliers (plan section 4.2) here")
     args = parser.parse_args(argv)
     from cli_paths import confined  # noqa: PLC0415
-    out = confined(args.out, "--out")
-    matrix = build(float(args.cap_hours) if args.cap_hours is not None else None)
+    default = DEFAULT_OUT if args.attempt == 1 else DEFAULT_OUT.parent / "attempt2" / DEFAULT_OUT.name
+    out = confined(args.out or default, "--out")
+    matrix = build(float(args.cap_hours) if args.cap_hours is not None else None, args.attempt)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(matrix, indent=1, sort_keys=True) + "\n")
     if args.window_multipliers:

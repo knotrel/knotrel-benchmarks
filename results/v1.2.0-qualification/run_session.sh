@@ -8,6 +8,9 @@
 #   RUN_CF5_ARGS  passed to run_cf5.py (the preparatory duration trial: --preparatory
 #                 --pairs 2 --warmup 0 --no-smoke); none for the frozen session
 #
+# The matrix is the one next to the tool map's freeze record (_freeze): attempt 1's
+# results/v1.2.0-qualification/v120q-matrix.json, attempt 2's attempt2/v120q-matrix.json.
+#
 # Before and after the session: vm_stat (cumulative Swapins and Swapouts, plan section 5),
 # sysctl vm.swapusage, pmset power and thermal state, uptime, into OUT/host-before.txt and
 # OUT/host-after.txt; then OUT/swap-activity.json with the counter deltas. Non-zero deltas
@@ -29,8 +32,11 @@ snapshot() {
 }
 snapshot "$HOSTDIR/host-before.txt"
 RC=0
+MATRIX=$(python3 -c "import json, os, sys; print(os.path.join(os.path.dirname(json.load(open(sys.argv[1]))['_freeze']), 'v120q-matrix.json'))" "$CAMP/tools.json")
+[ -f "$MATRIX" ] || { echo "no matrix $MATRIX" >&2; exit 3; }
+echo "matrix: $MATRIX" > "$HOSTDIR/matrix.txt"
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" caffeinate -ims python3 scripts/run_cf5.py \
-    --matrix results/v1.2.0-qualification/v120q-matrix.json --tools "$CAMP/tools.json" \
+    --matrix "$MATRIX" --tools "$CAMP/tools.json" \
     --out "$OUT" "$@" ) || RC=$?
 snapshot "$HOSTDIR/host-after.txt"
 SWAP=0
