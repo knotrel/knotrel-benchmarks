@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 
-from run_baseline import ROOT, CORE, command, hashes, source_patch
+from run_baseline import ROOT, CORE, command, hashes, printed_process_seconds, source_patch
 from run_initialization import ENGINES, distribution, validate_report
 from run_scale import peak_rss
 
@@ -235,19 +235,6 @@ def process_metadata(stderr):
     fields["printed_process_seconds"] = printed_process_seconds(stderr)
     return fields
 
-
-def printed_process_seconds(stderr):
-    """The first ``N real N user N sys`` sequence of time(1), parsed by tokens."""
-    for line in stderr.splitlines():
-        tokens = line.split()
-        for i in range(len(tokens) - 5):
-            if (tokens[i + 1], tokens[i + 3], tokens[i + 5]) == ("real", "user", "sys"):
-                try:
-                    return {"real": float(tokens[i]), "user": float(tokens[i + 2]),
-                            "sys": float(tokens[i + 4])}
-                except ValueError:
-                    continue
-    return None
 
 
 def collect_pair(pair, binary, baseline, environment, destination):

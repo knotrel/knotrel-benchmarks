@@ -51,7 +51,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from run_baseline import CORE, ROOT, command, hashes, source_patch
+from run_baseline import CORE, ROOT, command, hashes, printed_process_seconds, source_patch
 from cli_paths import allowed_roots, confined
 from run_scale import peak_rss
 
@@ -190,21 +190,6 @@ def digest(path: Path) -> str:
 def json_digest(value: Any) -> str:
     """Calculate SHA-256 digest of canonical sorted JSON."""
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode("utf-8")).hexdigest()
-
-
-def printed_process_seconds(stderr: str) -> Optional[Dict[str, float]]:
-    """The first ``N real N user N sys`` sequence that time(1) prints, parsed by tokens
-    (no regular expression, so no backtracking on long digit runs)."""
-    for line in stderr.splitlines():
-        tokens = line.split()
-        for i in range(len(tokens) - 5):
-            if (tokens[i + 1], tokens[i + 3], tokens[i + 5]) == ("real", "user", "sys"):
-                try:
-                    return {"real": float(tokens[i]), "user": float(tokens[i + 2]),
-                            "sys": float(tokens[i + 4])}
-                except ValueError:
-                    continue
-    return None
 
 
 def full_agreement(pct: Any) -> bool:

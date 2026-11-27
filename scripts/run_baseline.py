@@ -49,6 +49,21 @@ def hashes():
     return result
 
 
+def printed_process_seconds(stderr):
+    """The first ``N real N user N sys`` sequence that time(1) prints, parsed by tokens
+    (no regular expression, so no backtracking on long digit runs)."""
+    for line in stderr.splitlines():
+        tokens = line.split()
+        for i in range(len(tokens) - 5):
+            if (tokens[i + 1], tokens[i + 3], tokens[i + 5]) == ("real", "user", "sys"):
+                try:
+                    return {"real": float(tokens[i]), "user": float(tokens[i + 2]),
+                            "sys": float(tokens[i + 4])}
+                except ValueError:
+                    continue
+    return None
+
+
 def run_cases(nodes, kinds, trials, regimes, order_seed):
     """Balance fresh processes across regimes, then randomize execution order.
 
