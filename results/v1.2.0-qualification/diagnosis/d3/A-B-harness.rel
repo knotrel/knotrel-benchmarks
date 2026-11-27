@@ -1,0 +1,236 @@
+sub sp, sp, #0x70
+stp x28, x27, [sp, #0x10]
+stp x26, x25, [sp, #0x20]
+stp x24, x23, [sp, #0x30]
+stp x22, x21, [sp, #0x40]
+stp x20, x19, [sp, #0x50]
+stp x29, x30, [sp, #0x60]
+add x29, sp, #0x60
+ldr x9, [x0, #0x48]
+cbz x9, +176
+mov x11, #0x0 ; =0
+lsr x12, x1, #57
+ldp x10, x9, [x0, #0x30]
+dup.8b v0, w12
+movi.2d v1, #EXT
+and x12, x1, x9
+ldr d2, [x10, x12]
+cmeq.8b v3, v2, v0
+fmov x13, d3
+ands x13, x13, #EXT
+b.eq +128
+rbit x14, x13
+clz x14, x14
+add x14, x12, x14, lsr #3
+and x14, x14, x9
+sub x14, x10, x14, lsl #4
+ldur x15, [x14, #-0x10]
+cmp x1, x15
+b.eq +188
+sub x14, x13, #0x2
+ands x13, x14, x13
+b.ne +84
+cmeq.8b v2, v2, v1
+fmov x13, d2
+cbnz x13, +176
+add x11, x11, #0x8
+add x12, x12, x11
+and x12, x12, x9
+ldr d2, [x10, x12]
+cmeq.8b v3, v2, v0
+fmov x13, d3
+ands x13, x13, #EXT
+b.ne +84
+b +128
+mov w9, #0x3 ; =3
+stp x9, x1, [x8]
+b +832
+mov x11, #0x0 ; =0
+ldur x20, [x14, #-0x8]
+lsr x12, x2, #57
+dup.8b v0, w12
+movi.2d v1, #EXT
+and x12, x2, x9
+ldr d2, [x10, x12]
+cmeq.8b v3, v2, v0
+fmov x13, d3
+ands x13, x13, #EXT
+b.eq +276
+rbit x14, x13
+clz x14, x14
+add x14, x12, x14, lsr #3
+and x14, x14, x9
+sub x14, x10, x14, lsl #4
+ldur x15, [x14, #-0x10]
+cmp x2, x15
+b.eq +324
+sub x14, x13, #0x2
+ands x13, x14, x13
+b.ne +232
+cmeq.8b v2, v2, v1
+fmov x13, d2
+cbnz x13, +344
+add x11, x11, #0x8
+add x12, x12, x11
+and x12, x12, x9
+ldr d2, [x10, x12]
+cmeq.8b v3, v2, v0
+fmov x13, d3
+ands x13, x13, #EXT
+b.ne +232
+b +276
+ldur x23, [x14, #-0x8]
+cmp x20, x23
+b.ne +356
+mov w9, #0x1 ; =1
+b +820
+mov w9, #0x3 ; =3
+stp x9, x2, [x8]
+b +832
+ldr x21, [x3, #0x10]
+ldr x19, [x0, #0x10]
+subs x22, x19, x21
+str x8, [sp, #0x8]
+mov x25, x3
+mov x27, x0
+b.ls +540
+ldr x9, [x3]
+sub x9, x9, x21
+cmp x22, x9
+b.hi +864
+ldr x24, [x3, #0x8]
+add x0, x24, x21, lsl #2
+cmp x22, #0x2
+b.lo +452
+lsl x8, x22, #2
+sub x1, x8, #0x4
+bl EXT
+mov x3, x25
+ldr x8, [sp, #0x8]
+add x9, x21, x22
+add x10, x24, x9, lsl #2
+sub x0, x10, #0x4
+sub x21, x9, #0x1
+str wzr, [x0]
+add x21, x21, #0x1
+str x21, [x3, #0x10]
+ldr w9, [x3, #0x30]
+adds w22, w9, #0x1
+str w22, [x3, #0x30]
+b.hs +556
+cmp x20, x21
+b.hs +592
+ldr x9, [x3, #0x8]
+str w22, [x9, x20, lsl #2]
+ldr x21, [x3, #0x28]
+ldr x9, [x3, #0x18]
+cmp x21, x9
+b.eq +612
+ldr x9, [x3, #0x20]
+str x20, [x9, x21, lsl #3]
+adds x21, x21, #0x1
+str x21, [x3, #0x28]
+b.lo +644
+mov w9, #0x0 ; =0
+b +816
+ldr w9, [x3, #0x30]
+adds w22, w9, #0x1
+str w22, [x3, #0x30]
+b.lo +480
+ldr x0, [x3, #0x8]
+lsl x1, x21, #2
+bl EXT
+mov x3, x25
+ldr x8, [sp, #0x8]
+mov w22, #0x1 ; =1
+str w22, [x25, #0x30]
+cmp x20, x21
+b.lo +488
+adrp x2, EXT
+add x2, x2, #0x50
+mov x0, x20
+mov x1, x21
+bl EXT
+add x0, x3, #0x18
+bl EXT
+mov x3, x25
+ldr x8, [sp, #0x8]
+ldr x9, [x25, #0x20]
+str x20, [x9, x21, lsl #3]
+add x21, x21, #0x1
+str x21, [x25, #0x28]
+mov x26, #0x0 ; =0
+ldr x27, [x27, #0x8]
+mov w12, #0x18 ; =24
+b +672
+add x26, x26, #0x1
+cmp x26, x21
+b.hs +532
+ldr x0, [x9, x26, lsl #3]
+cmp x0, x19
+b.hs +928
+madd x11, x0, x12, x27
+ldr x10, [x11, #0x10]
+cbz x10, +660
+ldr x28, [x11, #0x8]
+lsl x24, x10, #3
+b +728
+str x20, [x9, x21, lsl #3]
+add x21, x21, #0x1
+str x21, [x3, #0x28]
+subs x24, x24, #0x8
+b.eq +660
+ldr x20, [x28], #0x8
+cmp x20, x23
+b.eq +812
+ldr x1, [x3, #0x10]
+cmp x20, x1
+b.hs +912
+ldr x10, [x3, #0x8]
+ldr w11, [x10, x20, lsl #2]
+cmp w11, w22
+b.eq +720
+str w22, [x10, x20, lsl #2]
+ldr x10, [x3, #0x18]
+cmp x21, x10
+b.ne +708
+add x0, x3, #0x18
+bl EXT
+mov w12, #0x18 ; =24
+mov x3, x25
+ldr x8, [sp, #0x8]
+ldr x9, [x25, #0x20]
+b +708
+mov w9, #0x1 ; =1
+str xzr, [x3, #0x28]
+strb w9, [x8, #0x8]
+mov x9, #-0x1 ; =-1
+str x9, [x8]
+ldp x29, x30, [sp, #0x60]
+ldp x20, x19, [sp, #0x50]
+ldp x22, x21, [sp, #0x40]
+ldp x24, x23, [sp, #0x30]
+ldp x26, x25, [sp, #0x20]
+ldp x28, x27, [sp, #0x10]
+add sp, sp, #0x70
+ret
+mov x0, x3
+mov x1, x21
+mov x2, x22
+bl EXT
+mov x3, x25
+ldr x8, [sp, #0x8]
+ldr x21, [x25, #0x10]
+ldr x24, [x25, #0x8]
+add x0, x24, x21, lsl #2
+cmp x22, #0x2
+b.hs +416
+b +452
+adrp x2, EXT
+add x2, x2, #0x80
+mov x0, x20
+bl EXT
+adrp x2, EXT
+add x2, x2, #0x68
+mov x1, x19
+bl EXT
