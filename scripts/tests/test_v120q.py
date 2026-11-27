@@ -177,3 +177,65 @@ class SummaryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QEvaluatorLayoutTest(unittest.TestCase):
+    """knotrel#182 attempt 1: run_q.sh writes block Q into ``{run}/Q`` (``{run}`` is run_cf5.py's
+    ``delegated/Q-attempt<k>``), and the evaluator refused that name, so the session's own
+    evaluation wrote an empty ``Q-evaluation.json``. The evaluator must accept the runner's
+    layout with the same verdicts as the v1.0.0 ``part3`` layout, refuse any other name
+    explicitly, and never leave a partial output file."""
+
+    def run_q_at(self, root: Path, out: Path):
+        import run_v100q_q as q
+        import test_v100q as base
+        r = q.QRunner(base.QTest().camp(root), out, 1800.0, clock=base.Clock(),
+                      launch=base.FakeTool(), state=base.good_state)
+        env = {"KNOTREL_PG_ADMIN_URL": "postgres://x", "LOAD_WINDOW_SECS": "5", "LOAD_BACKLOG": "10",
+               "LOAD_ARM": "S", "LOAD_REMOTE_SSH": "h"}
+        from unittest import mock
+        with mock.patch.dict(os.environ, env), mock.patch("sys.stdout"):
+            r.run()
+
+    def test_runner_layout_evaluates_like_part3(self):
+        import evaluate_v100q_q as ev
+        with tempfile.TemporaryDirectory() as d:
+            runner = Path(d) / "a" / "delegated" / "Q-attempt1" / "Q"
+            legacy = Path(d) / "b" / "part3"
+            self.run_q_at(Path(d) / "a", runner)
+            self.run_q_at(Path(d) / "b", legacy)
+            got, want = ev.evaluate(runner), ev.evaluate(legacy)
+        self.assertEqual(got["final_attempt"], "Q-attempt1/Q")
+        self.assertEqual(got["superseded_attempts"], [])
+        self.assertEqual({k: v["status"] for k, v in got["criteria"].items()},
+                         {k: v["status"] for k, v in want["criteria"].items()})
+
+    def test_other_names_fail_explicitly_without_output(self):
+        import evaluate_v100q_q as ev
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "delegated" / "Q-attempt1" / "Qx"
+            self.run_q_at(Path(d), out)
+            target = Path(d) / "Q-evaluation.json"
+            with mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d}), \
+                    self.assertRaisesRegex(SystemExit, "unexpected Q directory name Qx"):
+                ev.main([str(out), "--out", str(target)])
+            self.assertFalse(target.exists())
+            self.assertEqual(list(Path(d).glob("Q-evaluation*")), [])
+
+    def test_out_is_written_only_after_success(self):
+        import evaluate_v100q_q as ev
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "delegated" / "Q-attempt1" / "Q"
+            self.run_q_at(Path(d), out)
+            target = Path(d) / "Q-evaluation.json"
+            with mock.patch.dict(os.environ, {"LIFECYCLE_QUALIFICATION_ROOTS": d}), mock.patch("sys.stdout"):
+                self.assertEqual(ev.main([str(out), "--out", str(target)]), 0)
+            self.assertEqual(json.loads(target.read_text())["final_attempt"], "Q-attempt1/Q")
+
+    def test_run_q_uses_the_out_option_and_records_failures(self):
+        script = (SCRIPTS.parent / "results/v1.2.0-qualification/run_q.sh").read_text()
+        self.assertNotIn('evaluate_v100q_q.py "$RUN/Q" > ', script)
+        self.assertIn('--out "$RUN/Q-evaluation.json"', script)
+        self.assertIn("Q-evaluation.error.txt", script)

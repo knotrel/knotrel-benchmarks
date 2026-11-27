@@ -212,6 +212,10 @@ def product_failures(out: Path) -> Dict[str, List[Dict[str, Any]]]:
     return failures
 
 
+RUNNER_LAYOUT_NAME = "Q"
+RUNNER_ATTEMPT = re.compile(r"Q-attempt[1-9][0-9]*")
+
+
 def attempts(out: Path) -> Dict[str, Any]:
     """Only the final attempt of Q is evaluated (plan section 9: Q rerun once, as a whole).
 
@@ -227,8 +231,14 @@ def attempts(out: Path) -> Dict[str, Any]:
                          "only the final attempt of Q is evaluated")
     if out.name == "part3":
         return {"final_attempt": "part3", "superseded": [], "carried": []}
+    if out.name == RUNNER_LAYOUT_NAME and RUNNER_ATTEMPT.fullmatch(out.parent.name):
+        # The v1.2.0 collector (results/v1.2.0-qualification/run_q.sh) writes ``{run}/Q``, with
+        # ``{run}`` = run_cf5.py's ``delegated/Q-attempt<k>``. Each such directory is one whole
+        # Q run with no in-campaign rerun of Q (v1.2.0 plan section 9), so it is final.
+        return {"final_attempt": f"{out.parent.name}/{out.name}", "superseded": [], "carried": []}
     if out.name != "part3-attempt2":
-        raise SystemExit(f"unexpected Q directory name {out.name} (part3 or part3-attempt2)")
+        raise SystemExit(f"unexpected Q directory name {out.name} (part3, part3-attempt2, "
+                         f"or {RUNNER_LAYOUT_NAME} under Q-attempt<k>)")
     first = out.parent / "part3"
     try:
         named = json.loads((first / "superseded_by.json").read_text()).get("superseded_by")
@@ -395,10 +405,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("out", type=Path)
     parser.add_argument("--baseline-v080", type=Path)
+    parser.add_argument("--out", type=Path, dest="output",
+                        help="write the evaluation here, only after it succeeded (atomic "
+                             "rename); on failure nothing is written and the exit is non-zero")
     args = parser.parse_args(argv)
     out = confined_directory(args.out, "OUT")
     baseline = confined(args.baseline_v080, "--baseline-v080") if args.baseline_v080 else None
-    print(json.dumps(evaluate(out, baseline), indent=1))
+    text = json.dumps(evaluate(out, baseline), indent=1)
+    if args.output is None:
+        print(text)
+        return 0
+    target = confined(args.output, "--out")
+    partial = target.with_name(target.name + ".partial")
+    partial.write_text(text + "\n")
+    partial.replace(target)
+    print(f"Q evaluation written: {target}")
     return 0
 
 
