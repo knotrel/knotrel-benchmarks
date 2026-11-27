@@ -192,6 +192,21 @@ def json_digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode("utf-8")).hexdigest()
 
 
+def printed_process_seconds(stderr: str) -> Optional[Dict[str, float]]:
+    """The first ``N real N user N sys`` sequence that time(1) prints, parsed by tokens
+    (no regular expression, so no backtracking on long digit runs)."""
+    for line in stderr.splitlines():
+        tokens = line.split()
+        for i in range(len(tokens) - 5):
+            if (tokens[i + 1], tokens[i + 3], tokens[i + 5]) == ("real", "user", "sys"):
+                try:
+                    return {"real": float(tokens[i]), "user": float(tokens[i + 2]),
+                            "sys": float(tokens[i + 4])}
+                except ValueError:
+                    continue
+    return None
+
+
 def full_agreement(pct: Any) -> bool:
     """Whether a reported oracle agreement percentage is exactly 100 (the collectors print
     it with two decimals, so any real disagreement is at least 0.01 away)."""
@@ -1244,15 +1259,7 @@ def parse_time_wrapper_diagnostics(stderr: str) -> Dict[str, Any]:
         m = re.search(r"^\s*(\d+)\s+" + re.escape(label) + r"\s*$", stderr, re.M)
         diagnostics[label.replace(" ", "_")] = int(m.group(1)) if m else None
 
-    m_time = re.search(r"(\d+(?:\.\d+)?)[ \t]+real[ \t]+(\d+(?:\.\d+)?)[ \t]+user[ \t]+(\d+(?:\.\d+)?)[ \t]+sys", stderr)
-    if m_time:
-        diagnostics["printed_process_seconds"] = {
-            "real": float(m_time.group(1)),
-            "user": float(m_time.group(2)),
-            "sys": float(m_time.group(3)),
-        }
-    else:
-        diagnostics["printed_process_seconds"] = None
+    diagnostics["printed_process_seconds"] = printed_process_seconds(stderr)
     return diagnostics
 
 

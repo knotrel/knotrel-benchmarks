@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import random
 import subprocess
 import sys
@@ -41,7 +42,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cli_paths import confined, confined_executable  # noqa: E402
+from cli_paths import confined  # noqa: E402
 
 MATRIX = Path(__file__).resolve().parent.parent / "results" / "v0.6.0-qualification" / "MATRIX.json"
 
@@ -247,8 +248,11 @@ def main() -> int:
     if not (args.dry_run or args.pilot) and not freeze.exists():
         raise SystemExit("MATRIX.json is not frozen (FREEZE.json missing); only --dry-run or --pilot may run")
     args.out = confined(args.out, "--out")
-    binaries = {k: confined_executable(getattr(args, k), f"--{k}")
+    binaries = {k: confined(getattr(args, k), f"--{k}")
                 for k in ("ref", "cand", "probe", "server") if getattr(args, k)}
+    for k, path in binaries.items():
+        if not path.is_file() or not os.access(path, os.X_OK):
+            raise SystemExit(f"--{k}: {path} is not an executable file")
     meta = {"experiment": args.experiment, "pilot": args.pilot, "matrix_sha256": sha256(MATRIX),
             "freeze_sha256": sha256(freeze) if freeze.exists() else None,
             "binaries": {k: {"path": str(v), "sha256": sha256(v)} for k, v in binaries.items()}}
