@@ -1,16 +1,16 @@
 {
  "arms": {
   "bfs196": "9faf168b4a12a91faddddbdfac16eac5a4b2236d",
-  "cand": "b1ab7d5b6546a246b21fb24531501fd1ec02507e",
+  "cand": "f9de542ef5638efbe1b92a15aa047ee0da275bab",
   "v110": "57c35e8d4b17bfce2d9941419ef251a2a2a1d69c"
  },
- "candidate": "b1ab7d5b6546a246b21fb24531501fd1ec02507e",
+ "candidate": "f9de542ef5638efbe1b92a15aa047ee0da275bab",
  "candidate_pr": "knotrel#204",
  "cap_minutes": 60,
  "frozen_on": "2026-11-27",
  "pre_freeze_checks": {
   "analyzer_validation": "attempt-1 K1 (16) and V1 core (4) classes reproduced exactly",
-  "candidate_ci": "knotrel#204: 37 pass, 1 skipped"
+  "candidate_ci": "knotrel#204 at f9de542: 37 pass, 1 skipped"
  },
  "protocol": {
   "commit": "841ceda5a7e77679a11be892764dc32c6eb3bc93",
@@ -20,5 +20,10 @@
  },
  "schema": "adaptive-bfs-freeze-1",
  "switch_factor_H": 2,
- "tooling": "e0a7b3bce63bd4e56c289ea68b1d559b37ca3d2f"
+ "tooling": "e0a7b3bce63bd4e56c289ea68b1d559b37ca3d2f",
+ "voided_freeze": {
+  "candidate": "b1ab7d5b6546a246b21fb24531501fd1ec02507e",
+  "freeze_commit": "209d5156",
+  "reason": "block 0 (no observation taken): the frozen V1 provenance check of run_p0_aa.py rejected the candidate's derived A-harness lockfile, which also dropped fixedbitset from knotrel-core's dependencies (freeze1-void/). The candidate was revised to keep fixedbitset as the mark storage (same rule, same single two-bit-per-vertex allocation); rule, thresholds, cells, criteria and tooling are unchanged."
+ }
 }
