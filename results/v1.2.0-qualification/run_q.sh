@@ -4,8 +4,13 @@
 # Q runs, as in v1.0.0 block Q and the CF5 feeder block (this file is CF5's
 # results/v1.1.0-cf5/run_s3.sh with the runner rebound to the unchanged v1.0.0 block Q runner).
 #
-# Usage: run_q.sh CAMP RUN_DIR      (the delegated collector; RUN_DIR is run_cf5.py's {run})
-#        run_q.sh CAMP --prepare    (prepare_v120q.sh: prerequisites and the pinned image)
+# Usage: run_q.sh CAMP RUN_DIR [VARIANT]  (the delegated collector; RUN_DIR is run_cf5.py's {run})
+#        run_q.sh CAMP --prepare            (prepare_v120q.sh: prerequisites and the pinned image)
+#
+# VARIANT (attempt 2, cell Q-K4): a directory under CAMP with its own targets/ and
+# binaries-sha256.txt, prepared by prepare_v120q.sh. Its cand-server is a wrapper that execs
+# CAMP's candidate server with KNOTREL_MAX_CONCURRENT_QUERIES set; its other targets are links
+# to CAMP's. The runner reads only targets/, so the variant root replaces CAMP for it.
 #
 # Collector: checks AC power and the binaries against CAMP/binaries-sha256.txt; starts Docker
 # Desktop if it is not running and waits for its daemon; starts the pinned PostgreSQL 18
@@ -18,7 +23,9 @@
 # within 120 s. Every step is logged in RUN_DIR/q-lifecycle.log (no URL, no password).
 # Exit status: run_v100q_q.py's (0 COMPLETE, 1 NONCONFORMING by its cap: the matrix's
 # incomplete_exit); 4 for an infrastructure failure (Docker or PostgreSQL not available), which
-# run_cf5.py reruns once; 3 for a refused precondition.
+# run_cf5.py reruns once; 3 for a refused precondition; 6 when the measurement ran but the
+# evaluation failed (a tool error: the matrix's tool_error_exit, never rerun and never a
+# criterion verdict; the run stays on disk for a corrected evaluation).
 #
 # --prepare: checks the docker CLI, Docker.app and the scripts, starts Docker Desktop if needed,
 # makes sure the pinned image is present (pulls it by digest if not), records its digest in
@@ -26,11 +33,18 @@
 # removal) and restores Docker Desktop's previous state. No measurement.
 set -eu
 CAMP=${1%/}
-MODE=${2:?usage: run_q.sh CAMP RUN_DIR|--prepare}
+MODE=${2:?usage: run_q.sh CAMP RUN_DIR [VARIANT] | --prepare}
+VARIANT=${3:-}
+QCAMP=$CAMP
+if [ -n "$VARIANT" ]; then
+  case "$VARIANT" in */*|.*) echo "VARIANT must be a directory name under CAMP" >&2; exit 3 ;; esac
+  QCAMP=$CAMP/$VARIANT
+  [ -f "$QCAMP/binaries-sha256.txt" ] || { echo "no variant $QCAMP" >&2; exit 3; }
+fi
 K=$CAMP/src/cand/knotrel
 B=$CAMP/src/cand/knotrel-benchmarks
 F=$K/integrations/postgres-feeder
-T=$CAMP/targets
+T=$QCAMP/targets
 PGNAME=knotrel-pg-test-18
 for D in /usr/local/bin /opt/homebrew/bin /Applications/Docker.app/Contents/Resources/bin "$HOME/.docker/bin"; do
   case ":$PATH:" in *":$D:"*) ;; *) [ -d "$D" ] && PATH="$PATH:$D" ;; esac
@@ -105,9 +119,16 @@ fi
 if [ "$MODE" != "--prepare" ]; then
 pmset -g batt | head -1 | grep -q "AC Power" || { log "not on AC power"; echo "not on AC power" >&2; exit 3; }
 for X in cand-server/release/knotrel-server ref-server/release/knotrel-server feeder/release/knotrel-pg-feeder feeder/release/examples/load; do
-  grep -q "$(shasum -a 256 "$T/$X" | cut -d' ' -f1)  targets/$X\$" "$CAMP/binaries-sha256.txt" \
+  grep -q "$(shasum -a 256 "$T/$X" | cut -d' ' -f1)  targets/$X\$" "$QCAMP/binaries-sha256.txt" \
     || { log "binary changed: $X"; echo "binary changed: $X" >&2; exit 3; }
 done
+if [ -n "$VARIANT" ]; then
+  # The wrapper execs CAMP's candidate server: that binary is checked against CAMP's record too.
+  X=cand-server/release/knotrel-server
+  grep -q "$(shasum -a 256 "$CAMP/targets/$X" | cut -d' ' -f1)  targets/$X\$" "$CAMP/binaries-sha256.txt" \
+    || { log "binary changed: $X (wrapped)"; echo "binary changed: $X (wrapped)" >&2; exit 3; }
+  log "variant $VARIANT: $(grep -v '^#' "$T/cand-server/release/knotrel-server" | grep exec)"
+fi
 docker image inspect "$IMAGE" > /dev/null 2>&1 || log "image not cached: start-test-postgres.sh will pull it"
 fi
 
@@ -139,7 +160,7 @@ fi
 
 RC=0
 ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" KNOTREL_PG_ADMIN_URL="$URL" \
-    python3 scripts/run_v100q_q.py "$CAMP" "$RUN/Q" --cap-s 2700 ) || RC=$?
+    python3 scripts/run_v100q_q.py "$QCAMP" "$RUN/Q" --cap-s 2700 ) || RC=$?
 URL=""
 log "run_v100q_q.py exit $RC"
 # The evaluation writes Q-evaluation.json only after it succeeded. A failure leaves no
@@ -150,10 +171,10 @@ rm -f "$RUN/Q-evaluation.error.txt"
 if ! ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" \
     python3 scripts/evaluate_v100q_q.py "$RUN/Q" --out "$RUN/Q-evaluation.json" ) \
     > /dev/null 2> "$RUN/Q-evaluation.error.txt"; then
-  log "EVALUATION FAILED: $(tail -1 "$RUN/Q-evaluation.error.txt") (the run is kept; evaluate again afterwards)"
-  echo "Q evaluation failed: see $RUN/Q-evaluation.error.txt" >&2
-else
-  rm -f "$RUN/Q-evaluation.error.txt"
-  log "evaluation written: Q-evaluation.json"
+  log "TOOL ERROR: evaluation failed: $(tail -1 "$RUN/Q-evaluation.error.txt") (runner exit $RC; the run is kept; evaluate again afterwards)"
+  echo "Q tool error: evaluation failed (runner exit $RC): see $RUN/Q-evaluation.error.txt" >&2
+  exit 6
 fi
+rm -f "$RUN/Q-evaluation.error.txt"
+log "evaluation written: Q-evaluation.json"
 exit "$RC"
