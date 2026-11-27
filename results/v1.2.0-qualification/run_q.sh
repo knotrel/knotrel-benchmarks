@@ -13,7 +13,7 @@
 # pg_isready and SELECT 1; runs run_v100q_q.py (candidate server: the seven cells; v1.1.0
 # server: the Q5 reference cells; 3 rounds; cap 2700 s, plan section 4.2) with the URL in its
 # environment only (never written), then evaluate_v100q_q.py (Q1-Q5) into
-# RUN_DIR/Q-evaluation.json. On exit, whatever happened: the container is removed and, if this
+# RUN_DIR/Q-evaluation.json, written only on success (else RUN_DIR/Q-evaluation.error.txt). On exit, whatever happened: the container is removed and, if this
 # script started Docker Desktop, Docker Desktop is quit and its virtual machine must be gone
 # within 120 s. Every step is logged in RUN_DIR/q-lifecycle.log (no URL, no password).
 # Exit status: run_v100q_q.py's (0 COMPLETE, 1 NONCONFORMING by its cap: the matrix's
@@ -142,7 +142,18 @@ RC=0
     python3 scripts/run_v100q_q.py "$CAMP" "$RUN/Q" --cap-s 2700 ) || RC=$?
 URL=""
 log "run_v100q_q.py exit $RC"
-( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" \
-    python3 scripts/evaluate_v100q_q.py "$RUN/Q" > "$RUN/Q-evaluation.json" ) \
-  || log "evaluation failed (the run is kept; evaluate again afterwards)"
+# The evaluation writes Q-evaluation.json only after it succeeded. A failure leaves no
+# evaluation file, records the evaluator's message in Q-evaluation.error.txt and the log, and
+# keeps the collector's exit status: the measured run stays valid and is evaluated again
+# afterwards (knotrel#182 attempt 1, where a redirect left an empty file unnoticed).
+rm -f "$RUN/Q-evaluation.error.txt"
+if ! ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP" \
+    python3 scripts/evaluate_v100q_q.py "$RUN/Q" --out "$RUN/Q-evaluation.json" ) \
+    > /dev/null 2> "$RUN/Q-evaluation.error.txt"; then
+  log "EVALUATION FAILED: $(tail -1 "$RUN/Q-evaluation.error.txt") (the run is kept; evaluate again afterwards)"
+  echo "Q evaluation failed: see $RUN/Q-evaluation.error.txt" >&2
+else
+  rm -f "$RUN/Q-evaluation.error.txt"
+  log "evaluation written: Q-evaluation.json"
+fi
 exit "$RC"
