@@ -153,13 +153,17 @@ def delegated() -> List[Dict[str, Any]]:
 
 
 def window_multipliers() -> Dict[str, int]:
-    """The frozen v1.0.0 B4 factors plus the atomic cell's (its ``ops`` hub counterpart's)."""
+    """The frozen v1.0.0 factors for every timed (B1-B4) cell of the scope, which
+    ``apply_multipliers`` requires before ``--only`` applies, plus the atomic cell's (its
+    ``ops`` hub counterpart's)."""
+    import run_lifecycle_qualification as rlq  # noqa: PLC0415
     frozen = json.loads((ROOT / "results" / "v1.0.0-qualification"
                          / "window-multipliers-q3.json").read_text())
-    sets = b4_sets()
-    factors = {c: int(frozen[c]) for c in sets["all"] if c != ATOMIC_CELL}
+    timed = [c["id"] for c in rlq.matrix("final", ENGINE, True, True)
+             if c["experiment"] in ("B1", "B2", "B3", "B4")]
+    factors = {c: int(frozen[c]) for c in timed if c != ATOMIC_CELL}
     factors[ATOMIC_CELL] = int(frozen["B4-http-ops-compact-bfs-hub-10000"])
-    assert set(factors) == set(sets["all"])
+    assert set(factors) == set(timed)
     return dict(sorted(factors.items()))
 
 

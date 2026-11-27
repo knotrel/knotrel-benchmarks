@@ -58,10 +58,11 @@ class MatrixTest(unittest.TestCase):
         self.assertFalse(set(sets["deciding"]) & set(sets["descriptive"]))
         self.assertEqual(b4["order_seed"], 182400)
 
-    def test_window_multipliers_cover_exactly_the_b4_cells(self):
+    def test_window_multipliers_cover_every_timed_cell_of_the_scope(self):
         factors = mx.window_multipliers()
         b4 = next(c for c in mx.build()["cells"] if c["id"] == "B4")["b4"]
-        self.assertEqual(set(factors), set(b4["all"]))
+        self.assertTrue(set(b4["all"]) <= set(factors))
+        self.assertEqual(len(factors), 75)
         self.assertEqual(factors[mx.ATOMIC_CELL], 1)
         committed = SCRIPTS.parent / "results" / "v1.2.0-qualification" / "window-multipliers.json"
         self.assertEqual(json.loads(committed.read_text()), factors)
