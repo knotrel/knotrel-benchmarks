@@ -36,7 +36,7 @@ set -eu
 CAND=$1
 TOOLING=$2
 MODE=${3:-}
-REF=b0a19fd5a21194e6347fbf516b025b4d4675adeb          # knotrel v1.1.0 (published tag)
+REF=57c35e8d4b17bfce2d9941419ef251a2a2a1d69c          # knotrel v1.1.0 (published tag b0a19fd5, commit)
 HARNESS=df635a1e872fd9e2d556b166ac23f342ee45d675      # core harness used by A since v0.4.0
 SOURCE_MANIFEST_SHA256=95dfdabd165863c832473cd756441c0b825a846a64be45367b52901e2f6c8d42
 KREPO=${KNOTREL_REPO:-/Users/rt/workspace/knotrel/knotrel}
