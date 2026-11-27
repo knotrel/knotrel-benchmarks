@@ -140,7 +140,7 @@ CELL_DEFINITIONS: List[Dict[str, Any]] = [
 
 def digest_file(path: Path) -> str:
     h = hashlib.sha256()
-    with path.open("rb") as f:
+    with confined(path, "hashed file").open("rb") as f:
         while chunk := f.read(65536):
             h.update(chunk)
     return h.hexdigest()

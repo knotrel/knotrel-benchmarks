@@ -184,7 +184,7 @@ class ProcessInterruptedError(ProcessExecutionError):
 
 def digest(path: Path) -> str:
     """Calculate SHA-256 digest of a file."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(recorded_path(path, "hashed file").read_bytes()).hexdigest()
 
 
 def json_digest(value: Any) -> str:
@@ -224,7 +224,7 @@ def recorded_path(value: Any, what: str) -> Path:
 
 def read_json(path: Path) -> Any:
     """Read and parse a JSON file."""
-    return strict_json_loads(path.read_text(encoding="utf-8"))
+    return strict_json_loads(recorded_path(path, "JSON file").read_text(encoding="utf-8"))
 
 
 def strict_json_loads(text: str) -> Any:

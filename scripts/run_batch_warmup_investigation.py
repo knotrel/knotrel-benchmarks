@@ -72,7 +72,7 @@ BATCH_SIZES = [8, 64, 256]
 
 def compute_sha256(path: Path) -> str:
     h = hashlib.sha256()
-    h.update(path.read_bytes())
+    h.update(confined(path, "hashed file").read_bytes())
     return h.hexdigest()
 
 

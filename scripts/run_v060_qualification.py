@@ -52,7 +52,7 @@ def utc() -> str:
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(confined(path, "hashed file").read_bytes()).hexdigest()
 
 
 def binary_record(value: str, flag: str) -> Dict[str, str]:

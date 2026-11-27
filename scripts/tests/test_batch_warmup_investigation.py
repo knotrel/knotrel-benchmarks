@@ -15,6 +15,10 @@ TESTS_DIR = Path(__file__).resolve().parent
 SCRIPTS_DIR = TESTS_DIR.parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
+# Fixture binaries and evidence live in temporary directories: allow them as path
+# roots (cli_paths), as the other harness tests do.
+os.environ["LIFECYCLE_QUALIFICATION_ROOTS"] = os.pathsep.join(
+    filter(None, [os.environ.get("LIFECYCLE_QUALIFICATION_ROOTS"), tempfile.gettempdir()]))
 import run_batch_warmup_investigation as inv
 import run_p0_aa as p0
 
