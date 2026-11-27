@@ -232,10 +232,22 @@ def process_metadata(stderr):
                   "instructions retired", "cycles elapsed", "peak memory footprint"):
         match = re.search(r"^\s*(\d+)\s+" + re.escape(label) + r"\s*$", stderr, re.M)
         fields[label.replace(" ", "_")] = int(match[1]) if match else None
-    match = re.search(r"(\d+(?:\.\d+)?) real[ \t]+(\d+(?:\.\d+)?) user[ \t]+(\d+(?:\.\d+)?) sys", stderr)
-    fields["printed_process_seconds"] = (
-        dict(zip(("real", "user", "sys"), map(float, match.groups()))) if match else None)
+    fields["printed_process_seconds"] = printed_process_seconds(stderr)
     return fields
+
+
+def printed_process_seconds(stderr):
+    """The first ``N real N user N sys`` sequence of time(1), parsed by tokens."""
+    for line in stderr.splitlines():
+        tokens = line.split()
+        for i in range(len(tokens) - 5):
+            if (tokens[i + 1], tokens[i + 3], tokens[i + 5]) == ("real", "user", "sys"):
+                try:
+                    return {"real": float(tokens[i]), "user": float(tokens[i + 2]),
+                            "sys": float(tokens[i + 4])}
+                except ValueError:
+                    continue
+    return None
 
 
 def collect_pair(pair, binary, baseline, environment, destination):

@@ -39,7 +39,7 @@ def json_lines(text: str) -> List[Dict[str, Any]]:
 
 
 def load_children(directory: Path) -> List[Dict[str, Any]]:
-    log = json.loads((directory / "run-log.json").read_text())
+    log = json.loads(contained_file(directory, "run-log.json", "run log").read_text())
     if log.get("stopped") or not log.get("finished"):
         raise AnalysisError(f"run incomplete or stopped: {log.get('stopped')}")
     if log["meta"].get("pilot"):
