@@ -33,7 +33,7 @@ repository; its ratios were not inspected before the freeze.
 | D3 no memory metric LARGER | pass | no M1–M5 metric LARGER |
 | **D4 no time metric SLOWER (strict)** | **fail** | 13 metrics SLOWER, listed below |
 | **D5 Q (C1–C4 on the candidate)** | **fail** | C4 fails: RSS on − off = 77.6 bytes per node, limit 40 (base 8.7) |
-| D6 dispositions | pending | 12 INCONCLUSIVE / TIMER_LIMITED items have no maintainer disposition; they cannot change a REJECT, which D4 and D5 already fix |
+| D6 dispositions | pass | maintainer dispositions recorded on 2026-11-27 for all 12 INCONCLUSIVE / TIMER_LIMITED items (see below); the decision stays REJECT |
 
 ### D4: the 13 SLOWER metrics
 
@@ -92,11 +92,19 @@ Under the approved strict rule, these gains do not offset D4 or D5.
 
 ## Items without a class decision (D6)
 
+**Maintainer disposition (2026-11-27), for each of the 12 items:** the
+original class and interval are kept, and the item is closed without further
+measurement, because D4 and D5 already determine the REJECT of B64. The
+dispositions are in [`DISPOSITIONS.json`](DISPOSITIONS.json). Re-running the
+frozen analyzer with them gives
+[`analysis-with-dispositions.json`](analysis-with-dispositions.json): D6
+pass, decision REJECT. Every cell class equals `analysis.json`.
+
+
 INCONCLUSIVE: `I1-cb-sparse-1e5`, `I2-cf-his-1e4`, `R3-cb-his-1e4`,
 `P2-cb-his-1e4-ordered/p99_page_ns`, `C1-cb-sparse-1e5-same/slowest_op_ns`,
 `C1-cb-sparse-1e5-toggle/slowest_op_ns`. TIMER_LIMITED (EQUIVALENT without the
-limit): the six C1 `observation_ns` metrics. No disposition was written. A
-disposition belongs to the maintainer and cannot turn REJECT into ADOPT.
+limit): the six C1 `observation_ns` metrics.
 
 ## Files
 
@@ -104,6 +112,7 @@ disposition belongs to the maintainer and cannot turn REJECT into ADOPT.
 |---|---|
 | [`FREEZE.json`](FREEZE.json), [`matrix.json`](matrix.json) | the freeze record and the frozen matrix |
 | [`analysis.json`](analysis.json) | frozen analyzer output (`analyze_151.py`, no dispositions) |
+| [`DISPOSITIONS.json`](DISPOSITIONS.json), [`analysis-with-dispositions.json`](analysis-with-dispositions.json) | the maintainer's D6 dispositions and the analyzer output with them |
 | [`CELLS.md`](CELLS.md) | every classified metric, generated from `analysis.json` |
 | [`campaign/`](campaign/) | `record.json`, `schedule.json`, `status.json`, `smoke.jsonl`, `raw.jsonl.zst` (every observation; zstd of the original `raw.jsonl`), `delegated/` (Q collector output and log, both arms) |
 | [`binaries-sha256.txt`](binaries-sha256.txt), [`evidence-sha256.txt`](evidence-sha256.txt) | executable hashes; hashes of the original evidence files |
