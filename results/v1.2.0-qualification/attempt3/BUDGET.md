@@ -26,3 +26,9 @@ by 13.
 
 The carried blocks keep their measured times from attempts 1 and 2. The worst case of §14.11
 is 405 min; with a 30 % margin that is 527 min. **The cap is therefore 9.0 h.**
+
+## Superseded freeze 5a02d25 (no observation)
+
+- **What happened:** the first freeze (`FREEZE-superseded-5a02d25.json`, knotrel-benchmarks#75) did not start. `prepare_v120q.sh` stopped before any build, because `derive_arm_lock.py`, confined to its default roots after the SonarCloud fix, refused the campaign's lock path.
+- **Effect:** no observation was collected and no session ran. The preparation logs are kept in `evidence/v1.2.0-qualification-attempt3-prepare-refused-5a02d25`.
+- **Fix:** the preparation now exports the campaign as an allowed root. A new freeze follows, with the candidate, matrix and cap unchanged.
