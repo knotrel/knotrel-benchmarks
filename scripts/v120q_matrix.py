@@ -29,8 +29,9 @@ attempt-2 blocks, brings K1 and K2 back, makes the four V1 core cells deciding a
 - K4: the five engines #210 touches x ID patterns ``sequential``, ``random``, ``shl16``,
   ``shl32`` (harness ``--id-pattern``), ``workload_wall_ns`` 10 %, 300 s per observation;
 - M1: ``query-shape-probe sequence --kind large-then-small`` at 16 and 64 threads: retained
-  scratch per thread <= 256 KiB and no allocation per short query (absolute, on the
-  candidate), small-query p50 / p99 (regression);
+  scratch per thread <= 256 KiB and at most 26 allocations per thread after the first 100
+  short queries (absolute, on the candidate; amendment 1), small-query p50 / p99
+  (regression);
 - M2: ``contention-probe --prelude long-chain:600000``, read95 b8, 15 s window, 16 and 64
   clients: throughput 10 %, p99 25 %, server RSS after the window 20 %.
 
@@ -101,6 +102,10 @@ M1_CHAIN = 1_000_000
 M1_SMALL_QUERIES = 10_000
 #: The reused-scratch cap of knotrel#211 (bytes per thread).
 SCRATCH_CAP_BYTES = 256 * 1024
+#: Plan section 14, amendment 1: the most allocations a thread can make after the first 100
+#: short queries, from the code. Per side, a queue that restarts empty grows 4 -> 8192 entries
+#: (12 allocations) and is kept; the marks grow once for the 10^5 graph: 2 x (12 + 1).
+SMALL_ALLOCATIONS_MAX = 26
 K4_ENGINES = {"connectivity-compact-bfs": "knotrel-core/connectivity-graph/compact-bfs",
               "compact-workspace": "knotrel-core/compact-workspace-v2",
               "connectivity-ett": "knotrel-core/connectivity-graph/ett",
@@ -296,7 +301,7 @@ def m1() -> List[Dict[str, Any]]:
             {"name": "retained_scratch_max_bytes", "path": "retained_after_small_bytes.max",
              "max": SCRATCH_CAP_BYTES, "arm": "cf"},
             {"name": "small_query_allocations_max", "path": "small_allocations_after_100.max",
-             "max": 0, "arm": "cf"}]
+             "max": SMALL_ALLOCATIONS_MAX, "arm": "cf"}]
         cells.append(cell)
     return cells
 

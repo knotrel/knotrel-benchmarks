@@ -855,17 +855,32 @@ def derived_lock_disallowed_differences(baseline_text: str, candidate_text: str)
     """Return lockfile differences other than the knotrel-core package version line.
 
     Closure plan §5.2: the candidate harness lock may differ from the baseline derived
-    lock only in the local ``knotrel-core`` version.
+    lock only in the local ``knotrel-core`` version. Since knotrel#210 one arm's core may
+    depend on ``nohash-hasher`` and the other's not (v1.2.0 attempt 3: v1.1.0 against
+    24c2602), so the published ``nohash-hasher`` 0.2.0 entry and its line in knotrel-core's
+    dependency list are also disregarded (``derive_arm_lock.py``); any other difference,
+    including a different ``nohash-hasher`` version or checksum, still counts.
     """
+    nohash = ['[[package]]', 'name = "nohash-hasher"', 'version = "0.2.0"',
+              'source = "registry+https://github.com/rust-lang/crates.io-index"',
+              'checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"', '']
+
     def normalize(text: str) -> List[str]:
+        raw = text.splitlines()
+        for start in range(len(raw)):
+            if raw[start:start + len(nohash)] == nohash:
+                raw = raw[:start] + raw[start + len(nohash):]
+                break
         lines, package = [], None
-        for line in text.splitlines():
+        for line in raw:
             if line == "[[package]]":
                 package = None
             elif line.startswith("name = "):
                 package = line
             if package == 'name = "knotrel-core"' and line.startswith("version = "):
                 lines.append("<knotrel-core version>")
+            elif package == 'name = "knotrel-core"' and line == ' "nohash-hasher",':
+                continue
             else:
                 lines.append(line)
         return lines

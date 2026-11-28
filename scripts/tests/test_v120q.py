@@ -394,7 +394,7 @@ class Attempt3MatrixTest(unittest.TestCase):
         m1 = cells["M1-large-then-small-t64"]
         rules = {r["name"]: r for r in m1["absolute"]}
         self.assertEqual(rules["retained_scratch_max_bytes"]["max"], 256 * 1024)
-        self.assertEqual(rules["small_query_allocations_max"]["max"], 0)
+        self.assertEqual(rules["small_query_allocations_max"]["max"], 26)
         self.assertTrue(all(r["arm"] == "cf" for r in rules.values()))
         m2 = [c for c in cells.values() if c["block"] == "M2"]
         self.assertEqual(len(m2), 2)
@@ -480,3 +480,21 @@ class Attempt3RunnerTest(unittest.TestCase):
         text = (SCRIPTS / "run_cf5.py").read_text()
         self.assertIn('cell.get("timeout_s", OBSERVATION_TIMEOUT_S)', text)
         self.assertIn("min_free_disk_gb", text)
+
+
+class ArmLockTest(unittest.TestCase):
+    """derive_arm_lock.py and the V1 lock check (v1.2.0 attempt 3, knotrel#210)."""
+
+    def test_nohash_is_the_only_extra_allowed_difference(self):
+        import run_p0_aa as p0
+        import derive_arm_lock as dl
+        lock = (SCRIPTS.parent / "Cargo.lock").read_text()
+        with_nohash = dl.derive(lock, "1.1.0", True)
+        without = dl.derive(with_nohash, "1.1.0", False)
+        self.assertEqual(without, dl.derive(lock, "1.1.0", False))
+        self.assertIn('name = "nohash-hasher"', with_nohash)
+        self.assertNotIn('name = "nohash-hasher"', without)
+        self.assertEqual(p0.derived_lock_disallowed_differences(with_nohash, without), [])
+        tampered = with_nohash.replace('version = "0.2.0"\nsource = "registry+https://github.com/rust-lang/crates.io-index"\nchecksum = "2bf5',
+                                       'version = "0.2.1"\nsource = "registry+https://github.com/rust-lang/crates.io-index"\nchecksum = "2bf5')
+        self.assertTrue(p0.derived_lock_disallowed_differences(tampered, without))
