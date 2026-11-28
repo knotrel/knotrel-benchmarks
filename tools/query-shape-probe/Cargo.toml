@@ -1,0 +1,30 @@
+# Query-shape and reused-scratch probe for the v1.2.0 qualification, attempt 3
+# (plan section 14.5, K3; section 14.7, M1). It links knotrel-core through the
+# public `Graph` API only (`new`, `add_node`, `link`, `connected`), so the same
+# source builds against v1.1.0 and the candidate. Own workspace root, outside
+# the knotrel-benchmarks workspace (like tools/contention-probe).
+[package]
+name = "query-shape-probe"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100.0"
+license = "Apache-2.0"
+publish = false
+description = "Per-query latency, allocation and retained-scratch probe for knotrel_core::Graph::connected."
+
+[workspace]
+
+[dependencies]
+knotrel-core = { path = "../../../knotrel/crates/knotrel-core" }
+
+[lints.rust]
+missing_docs = "deny"
+# `deny`, not `forbid`: the counting global allocator in main.rs needs one
+# `#[allow(unsafe_code)]` module.
+unsafe_code = "deny"
+
+[lints.clippy]
+all = "warn"
+
+[profile.release]
+codegen-units = 1

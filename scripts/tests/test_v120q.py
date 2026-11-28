@@ -343,3 +343,140 @@ class Attempt2RunnerTest(unittest.TestCase):
         for needle in ("variant-k4", "KNOTREL_MAX_CONCURRENT_QUERIES=4", "check_v120q_q_runner.py",
                        "MIN_FREE_GB", "182210 182211 182212", '"tool_error_exit"'):
             self.assertIn(needle, script)
+
+
+class Attempt3MatrixTest(unittest.TestCase):
+    """Plan section 14: candidate 24c2602 (#209, #210, #211) against v1.1.0."""
+
+    def test_blocks_counts_and_order(self):
+        m = mx.build(attempt=3)
+        self.assertEqual(m["attempt"], 3)
+        self.assertEqual(m["counts"], {"B4": 38, "K1": 16, "K2": 6, "K3": 10, "K4": 20,
+                                       "M1": 2, "M2": 2, "Q": 10, "V1": 9, "V2": 6})
+        self.assertEqual(m["rules"]["block_order"][1][-1], "K2")
+        self.assertEqual(m["rules"]["block_order"],
+                         [["V1", "V2"], ["K1", "K3", "M1", "M2", "K4", "Q", "B4", "K2"]])
+        self.assertEqual(m["rules"]["min_free_disk_gb"], 2)
+        self.assertIn("section 14", m["plan"])
+
+    def test_every_v1_cell_decides_with_fresh_seeds(self):
+        v1 = next(c for c in mx.build(attempt=3)["cells"] if c["id"] == "V1")
+        self.assertEqual(sorted(v1["v1"]["deciding"]), sorted(mx.V1_HTTP_CELLS + mx.V1_CORE_CELLS))
+        self.assertEqual(v1["v1"]["descriptive"], [])
+        seeds = set(sum(v1["seeds"].values(), []))
+        self.assertEqual(seeds, {182310, 182311, 182312, 182320, 182321, 182322})
+        self.assertFalse(seeds & set(sum(mx.V1_SEEDS.values(), []) + sum(mx.V1_SEEDS_A2.values(), [])))
+
+    def test_chains_and_cycles_decide_in_k1_and_k3(self):
+        cells = {c["id"]: c for c in mx.build(attempt=3)["cells"]}
+        for cid in ("K1-chain-split-rejoin-v1-10000", "K1-cycle-alternatives-v1-100000",
+                    "K3-l1-t1", "K3-l2-t16", "K3-l3-t16", "K3-s2-t1"):
+            self.assertEqual(cells[cid]["rule"], "regression", cid)
+        k3 = cells["K3-l2-t16"]
+        self.assertEqual([m["margin_kind"] for m in k3["metrics"]], ["time", "tail"])
+        self.assertEqual(k3["metrics"][0]["measurement"]["category"], "percentile")
+        self.assertEqual(k3["check"], {"same_trace": "input_fingerprint_fnv1a64",
+                                       "path": "wrong_answers", "equals": 0})
+        self.assertEqual(k3["arms"]["cf"]["tool"], "qsp_cand")
+        self.assertEqual(k3["arms"]["ref"]["tool"], "qsp_base")
+
+    def test_k4_covers_every_engine_and_pattern(self):
+        k4 = [c for c in mx.build(attempt=3)["cells"] if c["block"] == "K4"]
+        pairs = {(c["arms"]["cf"]["args"][c["arms"]["cf"]["args"].index("--engine") + 1],
+                  c["arms"]["cf"]["args"][-1]) for c in k4}
+        self.assertEqual(len(pairs), 20)
+        self.assertEqual({p for _, p in pairs}, {"sequential", "random", "shl16", "shl32"})
+        self.assertTrue(all(c["timeout_s"] == 300 for c in k4))
+        self.assertTrue(all(c["check"]["same_trace"] == "trace_fingerprint_fnv1a64" for c in k4))
+
+    def test_m1_absolute_rules_and_m2_memory_metric(self):
+        cells = {c["id"]: c for c in mx.build(attempt=3)["cells"]}
+        m1 = cells["M1-large-then-small-t64"]
+        rules = {r["name"]: r for r in m1["absolute"]}
+        self.assertEqual(rules["retained_scratch_max_bytes"]["max"], 256 * 1024)
+        self.assertEqual(rules["small_query_allocations_max"]["max"], 0)
+        self.assertTrue(all(r["arm"] == "cf" for r in rules.values()))
+        m2 = [c for c in cells.values() if c["block"] == "M2"]
+        self.assertEqual(len(m2), 2)
+        for cell in m2:
+            self.assertIn("--prelude", cell["arms"]["cf"]["args"])
+            self.assertEqual([m["name"] for m in cell["metrics"]][-1], "server_rss_kib")
+            self.assertEqual(cell["metrics"][-1]["margin"], 0.20)
+            config = json.loads(cell["arms"]["cf"]["args"][cell["arms"]["cf"]["args"].index("--configs-json") + 1])
+            self.assertEqual(config["measure_ms"], 15_000)
+        self.assertEqual(sorted(json.loads(c["arms"]["cf"]["args"][c["arms"]["cf"]["args"].index("--configs-json") + 1])["clients"] for c in m2), [16, 64])
+
+    def test_attempt2_matrix_is_unchanged(self):
+        frozen = (SCRIPTS.parent / "results/v1.2.0-qualification/attempt2/v120q-matrix.json").read_text()
+        self.assertEqual(json.dumps(mx.build(cap_hours=3.5, attempt=2), indent=1, sort_keys=True) + "\n", frozen)
+
+
+class AbsoluteRuleTest(unittest.TestCase):
+    """analyze_cf5 absolute rules (attempt 3, M1): a criterion, never a gate."""
+
+    def line(self, retained):
+        return {"cf": {"object": {"retained_after_small_bytes": {"max": retained}}}, "ref": {"object": {}}}
+
+    def test_pass_fail_and_incomplete(self):
+        import analyze_cf5 as ac
+        cell = {"absolute": [{"name": "r", "path": "retained_after_small_bytes.max",
+                              "max": 262144, "arm": "cf"}]}
+        self.assertEqual(ac.classify_absolute(cell, [self.line(57000)] * 3, True)["r"]["class"], "PASS")
+        self.assertEqual(ac.classify_absolute(cell, [self.line(57000)] * 3, False)["r"]["class"],
+                         "INCOMPLETE")
+        result = ac.classify_absolute(cell, [self.line(57000), self.line(262145)], False)["r"]
+        self.assertEqual((result["class"], result["over_max"], result["worst"]), ("FAIL", 1, 262145))
+
+
+class Attempt3SummaryTest(unittest.TestCase):
+    def evaluation(self, c16, c64, rps=(1.0, 1.0), p99=(1.0, 1.0)):
+        q5 = {"status": "PASS", "cells": {f"L1 G100k C={c}": {"rps_ratio": r, "p99_ratio": p}
+                                          for c, r, p in zip((16, 64), rps, p99)}}
+        return {"criteria": {**{n: {"status": "PASS"} for n in ("Q1", "Q2", "Q4")}, "Q5": q5,
+                             "Q3": {"status": "PASS" if c16 >= 0.5 and c64 >= 0.25 else "FAIL",
+                                    "ratio_c16": c16, "ratio_c64": c64, "rule": "r"}},
+                "run_status": "COMPLETE"}
+
+    def test_joint_table_open_items_and_absolute_items(self):
+        m = mx.build(cap_hours=8, attempt=3)
+        b4 = next(c for c in m["cells"] if c["id"] == "B4")["b4"]
+        timing = [{"id": c, "status": "PASS", "interval_pct": [-1, 1]} for c in b4["all"]]
+        cf5 = {"cells": {
+            "M1-large-then-small-t16": {"block": "M1", "state": "COMPLETE",
+                                        "metrics": {"small_latency_p50_ns": {"class": "PASS"}},
+                                        "absolute": {"retained_scratch_max_bytes": {"class": "PASS", "worst": 57000, "max": 262144}}},
+            "M1-large-then-small-t64": {"block": "M1", "state": "INCOMPLETE",
+                                        "absolute": {"small_query_allocations_max": {"class": "FAIL", "worst": 3, "max": 0}}}}}
+        v1 = {"cells": [{"cell_id": c, "status": "PASS"} for c in mx.V1_HTTP_CELLS + mx.V1_CORE_CELLS]}
+        v1["cells"][0]["status"] = "UNRESOLVED"  # b1
+        s = sm.summarize(m, cf5, v1, self.evaluation(0.3, 0.2), {"timing": timing},
+                         q_k4=self.evaluation(0.6, 0.6, rps=(0.9, 0.92), p99=(0.3, 0.3)))
+        self.assertEqual(s["schema"], "v120q-summary-3")
+        self.assertIn("M1-large-then-small-t64/small_query_allocations_max", s["not_passing_deciding"])
+        self.assertIn("M1-large-then-small-t64", s["not_passing_deciding"])
+        self.assertNotIn("M1-large-then-small-t16/retained_scratch_max_bytes", s["not_passing_deciding"])
+        self.assertIn("http_standalone_batch_b1_compact_bfs", s["not_passing_deciding"])
+        open_items = {o["item"]: o for o in s["open_items"]}
+        self.assertEqual(open_items["http_standalone_batch_b1_compact_bfs"]["outcome_24c2602"], "UNRESOLVED")
+        self.assertEqual(open_items["B4-http-metrics-ops-compact-bfs-sparse-10000"]["outcome_24c2602"], "PASS")
+        joint = {r["cell"]: r for r in s["q_joint"]}
+        self.assertEqual(joint["Q-K4"]["24c2602"]["q5_rps"], [0.9, 0.92])
+        self.assertEqual(joint["Q"]["977e54d"]["q3"], [0.219, 0.116])
+        text = sm.markdown(s)
+        self.assertIn("Feeder recovery and query cost", text)
+        self.assertIn("| Q-K4 | 24c2602 | 60.0% / 60.0% | 0.900 / 0.920 | 0.300 / 0.300 |", text)
+        self.assertIn("Items without a verdict on 977e54d", text)
+
+
+class Attempt3RunnerTest(unittest.TestCase):
+    def test_prepare_attempt3_wiring(self):
+        script = (SCRIPTS.parent / "results/v1.2.0-qualification/prepare_v120q.sh").read_text()
+        for needle in ("182310 182311 182312", "182320 182321 182322", "$X-qsp", "derive_arm_lock.py",
+                       "tools/query-shape-probe/Cargo.lock", '"qsp_cand"', '"qsp_base"',
+                       'LABEL=prefreeze-a$SCOPE'):
+            self.assertIn(needle, script)
+
+    def test_runner_honours_cell_timeout_and_disk_floor(self):
+        text = (SCRIPTS / "run_cf5.py").read_text()
+        self.assertIn('cell.get("timeout_s", OBSERVATION_TIMEOUT_S)', text)
+        self.assertIn("min_free_disk_gb", text)

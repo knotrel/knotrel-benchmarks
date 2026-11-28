@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub mod engines;
 mod traces;
 pub mod traversal;
-pub use traces::{WorkloadKind, generate, generate_with_query_percent};
+pub use traces::{IdPattern, RANDOM_ID_KEY, WorkloadKind, generate, generate_with_query_percent};
 
 /// A deterministic workload configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

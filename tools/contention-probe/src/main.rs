@@ -8,7 +8,7 @@
 //! ```text
 //! contention-probe --server-bin PATH --mode standalone|source-managed
 //!     --lifecycle true|false --nodes N --seed S --configs FILE [--port P]
-//!     [--engine compact-bfs|ett|hdt|cluster-forest]
+//!     [--engine compact-bfs|ett|hdt|cluster-forest] [--prelude long-chain:N]
 //! ```
 //!
 //! `--engine` sets `KNOTREL_ENGINE` for the server (default `compact-bfs`, the
@@ -105,6 +105,39 @@
 //! timeout and any reconnect are bounded by the remaining budget, and an
 //! exhausted refresh records its reason (`refresh-exhausted-deadline` or
 //! `refresh-exhausted-attempts`; `refresh_exhausted` keeps the total).
+//!
+//! # Revision 5 (v1.2.0 qualification attempt 3, block M2, knotrel#211)
+//!
+//! `--prelude long-chain:N` (standalone mode only, N >= 2). Without it the
+//! probe behaves and prints exactly as revision 4 (`probe_revision` stays 4,
+//! no new fields, same server environment), so earlier V2 cells reproduce.
+//! With it:
+//! - setup (untimed, before any window) also loads a separate chain component
+//!   of N vertices, IDs [`CHAIN_BASE`]`..CHAIN_BASE + N` (disjoint from the
+//!   random graph's `0..n` and from every client- and feeder-owned extra ID),
+//!   through the same `/v1/batch` path as the random graph, and fails if any
+//!   chain operation returns an error result; the server limits grow by the
+//!   chain (`KNOTREL_MAX_NODES = n + 100000 + N`, `KNOTREL_MAX_EDGES =
+//!   500000 + N`, the server's default edge limit plus the chain);
+//! - in each configuration every client, after connecting and before the
+//!   start barrier (so outside warmup and window), sends one batch with one
+//!   `connected` query between the chain's two ends; an answer other than
+//!   `connected: true`, a non-200 status or an I/O error adds one to the
+//!   configuration's `errors` and to `prelude_queries.errors` (a 503 is resent
+//!   unchanged after 10 ms for up to 60 s and counted in
+//!   `prelude_queries.refused_503`; a 503 after that is an error). The window
+//!   starts only after every client's prelude query has returned;
+//! - the `start` record carries `probe_revision: 5`, `prelude` and
+//!   `max_edges`; the `setup` record `prelude` and `prelude_setup_ns`; each
+//!   `config` record adds `prelude`, `prelude_queries` (`ok`, `errors`, `refused_503`,
+//!   `latency_ns` p50/max, `phase_ns` from configuration start until every
+//!   prelude query returned), `server_rss_after_prelude_kib`,
+//!   `server_rss_peak_kib` (maximum of the RSS samples, `ps -o rss=`, taken in
+//!   the outstanding-jobs sampling loop, about every 100 ms of the measure
+//!   window, plus one at its end), `server_rss_samples`, and
+//!   `server_threads`: the server's thread count right after the window,
+//!   counted as the lines of `ps -M -p PID` minus the header (macOS prints
+//!   one line per thread). `server_rss_kib` is unchanged (after the window).
 //!
 //! Correctness of answers is not re-verified here (it is covered by the test
 //! suites and the core oracles); the probe measures timing.
@@ -264,6 +297,111 @@ const PROBE_REVISION: u32 = 4;
 /// events register (at most 128 per client plus 128 feeder IDs).
 const NODE_HEADROOM: u64 = 100_000;
 
+/// First vertex ID of the revision 5 prelude chain: far above the random
+/// graph (`0..n`) and every extra ID a client (`n + 10^6 (c + 1) + ..`) or the
+/// feeder (`n + 1000 ordinal + ..`) registers.
+const CHAIN_BASE: u64 = 1_000_000_000_000;
+
+/// How long a client resends a prelude query refused with 503 before the
+/// refusal counts as an error.
+const PRELUDE_DEADLINE: Duration = Duration::from_secs(60);
+
+/// The server's default `KNOTREL_MAX_EDGES`; with a prelude the limit is this
+/// plus the chain's edges, so the headroom above the random graph is kept.
+const SERVER_DEFAULT_MAX_EDGES: u64 = 500_000;
+
+/// The revision 5 `--prelude long-chain:N` option.
+#[derive(Clone, Debug, PartialEq)]
+struct Prelude {
+    /// The option as given, echoed in the output.
+    spec: String,
+    /// Chain length in vertices.
+    len: u64,
+}
+
+impl Prelude {
+    fn parse(spec: &str) -> Result<Self, String> {
+        let len = spec
+            .strip_prefix("long-chain:")
+            .and_then(|n| n.parse::<u64>().ok())
+            .filter(|n| *n >= 2)
+            .ok_or_else(|| format!("--prelude must be long-chain:N with N >= 2, got {spec:?}"))?;
+        Ok(Self {
+            spec: spec.to_owned(),
+            len,
+        })
+    }
+
+    /// The chain's two ends.
+    fn ends(&self) -> (u64, u64) {
+        (CHAIN_BASE, CHAIN_BASE + self.len - 1)
+    }
+
+    /// Setup operations: every chain vertex, then the links `v - v+1`.
+    fn ops(&self) -> Vec<String> {
+        let (first, last) = self.ends();
+        let mut ops: Vec<String> = (first..=last)
+            .map(|v| op_json("add_node", v, None, None))
+            .collect();
+        ops.extend((first..last).map(|v| op_json("link", v, Some(v + 1), None)));
+        ops
+    }
+
+    /// The prelude query body: one `connected` across the chain.
+    fn query_body(&self) -> String {
+        let (first, last) = self.ends();
+        format!(
+            r#"{{"operations":[{}]}}"#,
+            op_json("connected", first, Some(last), None)
+        )
+    }
+}
+
+/// True when a prelude reply is a 200 batch whose single result is
+/// `connected: true`.
+fn prelude_answer_ok(status: u16, reply: &[u8]) -> bool {
+    if status != 200 {
+        return false;
+    }
+    let value: Value = serde_json::from_slice(reply).unwrap_or(Value::Null);
+    match value["results"].as_array() {
+        Some(results) if results.len() == 1 => {
+            results[0]["result"] == "connected" && results[0]["connected"] == Value::Bool(true)
+        }
+        _ => false,
+    }
+}
+
+/// Number of error results in a 200 batch reply (a reply of another shape
+/// counts as one error).
+fn batch_error_results(reply: &[u8], expected: usize) -> usize {
+    let value: Value = serde_json::from_slice(reply).unwrap_or(Value::Null);
+    match value["results"].as_array() {
+        Some(results) if results.len() == expected => results
+            .iter()
+            .filter(|item| item["result"] == "error")
+            .count(),
+        _ => 1,
+    }
+}
+
+/// Thread count of a process: `ps -M -p PID` prints a header and one line per
+/// thread on macOS.
+fn thread_count(pid: u32) -> Option<u64> {
+    let output = Command::new("ps")
+        .args(["-M", "-p", &pid.to_string()])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let lines = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .count() as u64;
+    lines.checked_sub(1).filter(|threads| *threads > 0)
+}
+
 fn free_port() -> u16 {
     TcpListener::bind("127.0.0.1:0")
         .and_then(|listener| listener.local_addr())
@@ -279,9 +417,16 @@ fn start_server(
     lifecycle: bool,
     max_nodes: u64,
     engine: &str,
+    max_edges: Option<u64>,
 ) -> Result<Child, String> {
-    let child = Command::new(bin)
-        .env_clear()
+    let mut command = Command::new(bin);
+    command.env_clear();
+    // Revision 5: only a prelude sets the edge limit (the default run keeps
+    // the server's default environment).
+    if let Some(max_edges) = max_edges {
+        command.env("KNOTREL_MAX_EDGES", max_edges.to_string());
+    }
+    let child = command
         .env("KNOTREL_ADDR", format!("127.0.0.1:{port}"))
         .env("KNOTREL_MODE", mode)
         .env("KNOTREL_ENGINE", engine)
@@ -868,6 +1013,26 @@ fn setup(
     Ok(Some(feeder))
 }
 
+/// Revision 5: loads the prelude chain (standalone), through the same batch
+/// path as the random graph. Every operation's result is checked, so a refused
+/// vertex or link (a limit) fails the run instead of leaving a shorter chain.
+fn load_chain(address: SocketAddr, prelude: &Prelude) -> Result<(), String> {
+    let mut conn = Conn::connect(address).map_err(|e| e.to_string())?;
+    for chunk in prelude.ops().chunks(1024) {
+        let body = format!(r#"{{"operations":[{}]}}"#, chunk.join(","));
+        let (status, _, reply) = conn
+            .request("POST", "/v1/batch", &[], body.as_bytes())
+            .map_err(|e| e.to_string())?;
+        if status != 200 || batch_error_results(&reply, chunk.len()) > 0 {
+            return Err(format!(
+                "prelude setup batch: {status} {}",
+                String::from_utf8_lossy(&reply)
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Runs one configuration and returns its JSON record.
 #[allow(clippy::too_many_arguments)]
 fn run_config(
@@ -879,6 +1044,7 @@ fn run_config(
     feeder: &mut Option<Feeder>,
     seed: u64,
     ordinal: u64,
+    prelude: Option<&Prelude>,
 ) -> Result<Value, String> {
     let mix = config["mix"].as_str().ok_or("mix")?.to_owned();
     let batch = config["batch"].as_u64().ok_or("batch")? as usize;
@@ -908,7 +1074,10 @@ fn run_config(
     }
 
     let stop = Arc::new(AtomicBool::new(false));
+    let config_start = Instant::now();
     let start_barrier = Arc::new(Barrier::new(clients + 1));
+    // Revision 5: every client's prelude query returns before the epoch is set.
+    let prelude_barrier = prelude.map(|_| Arc::new(Barrier::new(clients + 1)));
     let epoch = Arc::new(std::sync::OnceLock::<Instant>::new());
     let mut handles = Vec::new();
     for client in 0..clients {
@@ -917,6 +1086,8 @@ fn run_config(
         let epoch = Arc::clone(&epoch);
         let edges = Arc::clone(edges);
         let mix = mix.clone();
+        let prelude_query = prelude.map(Prelude::query_body);
+        let prelude_barrier = prelude_barrier.clone();
         handles.push(thread::spawn(move || -> Result<Value, String> {
             let mut rng = Rng((seed ^ 0x9e37_79b9_7f4a_7c15).wrapping_add(client as u64 * 7919) | 1);
             // Disjoint ownership: client c owns items with index ≡ c (mod clients).
@@ -935,6 +1106,33 @@ fn run_config(
                 .collect();
             let mut workload = Workload { rng: Rng(rng.next() | 1), n, mix, own_edges, own_base, own_nodes, cursor: 0, phase: false };
             let mut conn = Conn::connect(address).map_err(|e| e.to_string())?;
+            // Revision 5: one large query per client, before the barrier.
+            let mut prelude_result = None;
+            if let (Some(body), Some(barrier)) = (&prelude_query, &prelude_barrier) {
+                let sent = Instant::now();
+                let mut refused = 0u64;
+                let ok = loop {
+                    match conn.request("POST", "/v1/batch", &[], body.as_bytes()) {
+                        // An admission refusal is resent unchanged (as in the
+                        // window) until the prelude deadline.
+                        Ok((503, _, _)) if sent.elapsed() < PRELUDE_DEADLINE => {
+                            refused += 1;
+                            thread::sleep(Duration::from_millis(10));
+                        }
+                        Ok((status, _, reply)) => break prelude_answer_ok(status, &reply),
+                        Err(_) => {
+                            // Never leave before the barrier (main waits on it);
+                            // a failed reconnect surfaces in the window loop.
+                            if let Ok(fresh) = Conn::connect(address) {
+                                conn = fresh;
+                            }
+                            break false;
+                        }
+                    }
+                };
+                prelude_result = Some((ok, sent.elapsed().as_nanos() as u64, refused));
+                barrier.wait();
+            }
             start_barrier.wait();
             let t0 = *epoch.get().expect("epoch set before the barrier releases");
             let measure_start = t0 + warmup;
@@ -1008,8 +1206,14 @@ fn run_config(
                     }
                 }
             }
-            Ok(json!({"latencies": latencies, "statuses": statuses, "errors": errors, "operations": operations,
-                      "item_errors": item_errors, "noop_mutations": noop_mutations}))
+            let mut record = json!({"latencies": latencies, "statuses": statuses, "errors": errors, "operations": operations,
+                      "item_errors": item_errors, "noop_mutations": noop_mutations});
+            if let Some((ok, latency, refused)) = prelude_result {
+                record["prelude_ok"] = Value::Bool(ok);
+                record["prelude_ns"] = json!(latency);
+                record["prelude_refused_503"] = json!(refused);
+            }
+            Ok(record)
         }));
     }
 
@@ -1182,6 +1386,11 @@ fn run_config(
         None
     };
 
+    let mut prelude_phase = None;
+    if let Some(barrier) = &prelude_barrier {
+        barrier.wait();
+        prelude_phase = Some((config_start.elapsed().as_nanos() as u64, rss_kib(pid)));
+    }
     let start = Instant::now();
     epoch.set(start).expect("epoch set once");
     start_barrier.wait();
@@ -1190,6 +1399,7 @@ fn run_config(
     thread::sleep(warmup.saturating_sub(start.elapsed()));
     let (hist_before, _) = scrape(address)?;
     let mut outstanding = Vec::new();
+    let mut rss_samples: Vec<u64> = Vec::new();
     let window_end = start + warmup + measure;
     while Instant::now() < window_end {
         if let Ok((_, gauges)) = scrape(address)
@@ -1197,7 +1407,19 @@ fn run_config(
         {
             outstanding.push(*value);
         }
+        if prelude.is_some()
+            && let Some(rss) = rss_kib(pid)
+        {
+            rss_samples.push(rss);
+        }
         thread::sleep(Duration::from_millis(100));
+    }
+    // Revision 5: thread count and a last RSS sample right after the window.
+    let threads_after_window = prelude.and_then(|_| thread_count(pid));
+    if prelude.is_some()
+        && let Some(rss) = rss_kib(pid)
+    {
+        rss_samples.push(rss);
     }
     let mut latencies = Vec::new();
     let mut per_client = Vec::new();
@@ -1206,6 +1428,8 @@ fn run_config(
     let mut operations = 0;
     let mut item_errors: BTreeMap<String, u64> = BTreeMap::new();
     let mut noop_mutations = 0u64;
+    let (mut prelude_ok, mut prelude_errors, mut prelude_refused) = (0u64, 0u64, 0u64);
+    let mut prelude_latencies: Vec<u64> = Vec::new();
     for handle in handles {
         let result = handle.join().map_err(|_| "client thread panicked")??;
         let client_latencies: Vec<u64> =
@@ -1221,7 +1445,18 @@ fn run_config(
             *item_errors.entry(code.clone()).or_default() += count.as_u64().unwrap_or(0);
         }
         noop_mutations += result["noop_mutations"].as_u64().unwrap_or(0);
+        if let Some(ok) = result["prelude_ok"].as_bool() {
+            prelude_latencies.push(result["prelude_ns"].as_u64().unwrap_or(0));
+            prelude_refused += result["prelude_refused_503"].as_u64().unwrap_or(0);
+            if ok {
+                prelude_ok += 1;
+            } else {
+                prelude_errors += 1;
+            }
+        }
     }
+    // A wrong prelude answer or a failed prelude request is an error.
+    errors += prelude_errors;
     let (hist_after, _) = scrape(address)?;
     stop.store(true, Ordering::Relaxed);
     let background_summary = match background_handle {
@@ -1249,7 +1484,7 @@ fn run_config(
         _ => 0.0,
     };
     outstanding.sort_by(f64::total_cmp);
-    Ok(json!({
+    let mut record = json!({
         "kind": "config", "config": config,
         "completed": latencies.len(), "operations": operations,
         "requests_per_s": latencies.len() as f64 / seconds,
@@ -1268,7 +1503,22 @@ fn run_config(
         "server_phases": histogram_delta(&hist_before, &hist_after),
         "background": background_summary,
         "server_rss_kib": rss_kib(pid),
-    }))
+    });
+    if let Some(prelude) = prelude {
+        prelude_latencies.sort_unstable();
+        let (phase_ns, rss_after_prelude) = prelude_phase.unwrap_or((0, None));
+        record["prelude"] = json!(prelude.spec);
+        record["prelude_queries"] = json!({"ok": prelude_ok, "errors": prelude_errors,
+            "refused_503": prelude_refused,
+            "latency_ns": {"p50": percentile(&prelude_latencies, 0.5),
+                           "max": prelude_latencies.last().copied().unwrap_or(0)},
+            "phase_ns": phase_ns});
+        record["server_rss_after_prelude_kib"] = json!(rss_after_prelude);
+        record["server_rss_peak_kib"] = json!(rss_samples.iter().max());
+        record["server_rss_samples"] = json!(rss_samples.len());
+        record["server_threads"] = json!(threads_after_window);
+    }
+    Ok(record)
 }
 
 fn main() {
@@ -1302,16 +1552,34 @@ fn main() {
         .filter(|line| !line.trim().is_empty())
         .map(|line| serde_json::from_str(line).expect("config line is JSON"))
         .collect();
+    let prelude = args.get("prelude").map(|spec| {
+        Prelude::parse(spec).unwrap_or_else(|error| {
+            eprintln!("contention-probe: {error}");
+            std::process::exit(2);
+        })
+    });
+    if prelude.is_some() && mode != "standalone" {
+        eprintln!("contention-probe: --prelude needs --mode standalone");
+        std::process::exit(2);
+    }
     let port = args
         .get("port")
         .and_then(|p| p.parse().ok())
         .unwrap_or_else(free_port);
-    println!(
-        "{}",
-        json!({"kind": "start", "probe_revision": PROBE_REVISION, "server_bin": bin, "mode": mode, "engine": engine, "lifecycle": lifecycle, "nodes": n, "max_nodes": n + NODE_HEADROOM, "seed": seed, "configs": configs.len()})
-    );
-    let max_nodes = n + NODE_HEADROOM;
-    let mut child = match start_server(&bin, port, &mode, lifecycle, max_nodes, &engine) {
+    let chain_len = prelude.as_ref().map_or(0, |p| p.len);
+    let max_nodes = n + NODE_HEADROOM + chain_len;
+    let max_edges = prelude
+        .as_ref()
+        .map(|p| SERVER_DEFAULT_MAX_EDGES + p.len - 1);
+    let mut start = json!({"kind": "start", "probe_revision": PROBE_REVISION, "server_bin": bin, "mode": mode, "engine": engine, "lifecycle": lifecycle, "nodes": n, "max_nodes": max_nodes, "seed": seed, "configs": configs.len()});
+    if let Some(prelude) = &prelude {
+        start["probe_revision"] = json!(5);
+        start["prelude"] = json!(prelude.spec);
+        start["max_edges"] = json!(max_edges);
+    }
+    println!("{start}");
+    let mut child = match start_server(&bin, port, &mode, lifecycle, max_nodes, &engine, max_edges)
+    {
         Ok(child) => child,
         Err(error) => {
             eprintln!("contention-probe: {error}");
@@ -1323,10 +1591,18 @@ fn main() {
     let outcome = (|| -> Result<(), String> {
         let setup_start = Instant::now();
         let mut feeder = setup(address, &mode, n, &edges)?;
-        println!(
-            "{}",
-            json!({"kind": "setup", "edges": edges.len(), "setup_ns": setup_start.elapsed().as_nanos() as u64, "server_rss_kib": rss_kib(child.id())})
-        );
+        let mut prelude_setup_ns = None;
+        if let Some(prelude) = &prelude {
+            let chain_start = Instant::now();
+            load_chain(address, prelude)?;
+            prelude_setup_ns = Some(chain_start.elapsed().as_nanos() as u64);
+        }
+        let mut setup_record = json!({"kind": "setup", "edges": edges.len(), "setup_ns": setup_start.elapsed().as_nanos() as u64, "server_rss_kib": rss_kib(child.id())});
+        if let Some(prelude) = &prelude {
+            setup_record["prelude"] = json!(prelude.spec);
+            setup_record["prelude_setup_ns"] = json!(prelude_setup_ns);
+        }
+        println!("{setup_record}");
         for (ordinal, config) in configs.iter().enumerate() {
             let record = run_config(
                 address,
@@ -1337,6 +1613,7 @@ fn main() {
                 &mut feeder,
                 seed,
                 ordinal as u64,
+                prelude.as_ref(),
             )?;
             println!("{record}");
         }
@@ -1760,6 +2037,103 @@ mod tests {
             .request("POST", "/v1/feeder/import", &[], b"{}")
             .unwrap();
         assert_eq!(status, 201, "the next request read the late refresh reply");
+    }
+
+    #[test]
+    fn prelude_option_parses_and_rejects() {
+        let prelude = Prelude::parse("long-chain:600000").unwrap();
+        assert_eq!(prelude.len, 600_000);
+        assert_eq!(prelude.spec, "long-chain:600000");
+        assert_eq!(
+            prelude.ends(),
+            (1_000_000_000_000, 1_000_000_000_000 + 599_999)
+        );
+        for bad in ["long-chain:1", "long-chain:", "chain:5", "long-chain:x", ""] {
+            assert!(Prelude::parse(bad).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn prelude_chain_is_disjoint_and_linked_in_order() {
+        let prelude = Prelude::parse("long-chain:3").unwrap();
+        let base = CHAIN_BASE;
+        assert_eq!(
+            prelude.ops(),
+            vec![
+                format!(r#"{{"op":"add_node","node":"{base}"}}"#),
+                format!(r#"{{"op":"add_node","node":"{}"}}"#, base + 1),
+                format!(r#"{{"op":"add_node","node":"{}"}}"#, base + 2),
+                format!(
+                    r#"{{"op":"link","source":"{base}","target":"{}"}}"#,
+                    base + 1
+                ),
+                format!(
+                    r#"{{"op":"link","source":"{}","target":"{}"}}"#,
+                    base + 1,
+                    base + 2
+                ),
+            ]
+        );
+        assert_eq!(
+            prelude.query_body(),
+            format!(
+                r#"{{"operations":[{{"op":"connected","source":"{base}","target":"{}"}}]}}"#,
+                base + 2
+            )
+        );
+        // Above every random-graph ID and every client-owned extra ID of a
+        // 10^5 graph with up to 512 clients and 1000 configurations.
+        let n = 100_000u64;
+        assert!(CHAIN_BASE > n + 1_000_000 * 513 + 256 * 1000);
+    }
+
+    #[test]
+    fn prelude_answer_gate() {
+        let yes = br#"{"results":[{"result":"connected","connected":true}]}"#;
+        let no = br#"{"results":[{"result":"connected","connected":false}]}"#;
+        let error = br#"{"results":[{"result":"error","code":"node_not_found"}]}"#;
+        let two = br#"{"results":[{"result":"connected","connected":true},{"result":"connected","connected":true}]}"#;
+        assert!(prelude_answer_ok(200, yes));
+        assert!(!prelude_answer_ok(503, yes));
+        assert!(!prelude_answer_ok(200, no));
+        assert!(!prelude_answer_ok(200, error));
+        assert!(!prelude_answer_ok(200, two));
+        assert!(!prelude_answer_ok(200, b"not json"));
+    }
+
+    #[test]
+    fn setup_batches_count_error_results() {
+        let ok = br#"{"results":[{"result":"changed","changed":true},{"result":"changed","changed":false}]}"#;
+        let refused = br#"{"results":[{"result":"changed","changed":true},{"result":"error","code":"limit"}]}"#;
+        assert_eq!(batch_error_results(ok, 2), 0);
+        assert_eq!(batch_error_results(refused, 2), 1);
+        assert_eq!(batch_error_results(ok, 3), 1);
+        assert_eq!(batch_error_results(b"{}", 1), 1);
+    }
+
+    #[test]
+    fn thread_count_sees_this_process_threads() {
+        let pid = std::process::id();
+        let before = thread_count(pid).expect("ps -M works");
+        let barrier = Arc::new(Barrier::new(5));
+        let handles: Vec<_> = (0..4)
+            .map(|_| {
+                let barrier = Arc::clone(&barrier);
+                thread::spawn(move || {
+                    barrier.wait();
+                    barrier.wait();
+                })
+            })
+            .collect();
+        barrier.wait();
+        let during = thread_count(pid).expect("ps -M works");
+        barrier.wait();
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        // Other tests run concurrently, so only a lower bound holds.
+        assert!(before >= 1);
+        assert!(during >= 5, "{during}");
     }
 
     #[test]

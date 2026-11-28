@@ -27,6 +27,13 @@ and descriptive roles; ``--q`` is the default-mode cell ``Q`` and ``--q-k4`` the
 from ``Q-K4``, with the default-mode Q3 reported next to it. ``--status`` (run_cf5.py's
 ``status.json``) names delegated cells in ``TOOL_ERROR`` (their evaluation failed after the
 measurement): listed as missing evidence from a tool error, never as a failed criterion.
+
+Attempt 3 (plan section 14): every V1 cell is deciding; ``--cf5`` also carries K3, K4, M1 and
+M2, and M1's absolute rules (retained scratch per thread at most 256 KiB, no allocation per
+short query) are items of their own; Q and Q-K4 as in attempt 2, plus the joint table of
+section 14.8 (Q3 shares next to Q5 throughput and p99 ratios, per mode, with attempt 2's
+values for 977e54d in their own column); and the four items of section 14.9 with their
+class on 24c2602 next to their class on 977e54d.
 """
 
 from __future__ import annotations
@@ -52,6 +59,13 @@ def load(path: Optional[Path], what: str) -> Optional[Any]:
 def cf5_items(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
     items = []
     for cell_id, cell in sorted(analysis["cells"].items()):
+        for name, rule in sorted((cell.get("absolute") or {}).items()):
+            # Attempt 3, M1: absolute rules on the candidate, items of their own. A FAIL is
+            # final even in an incomplete cell.
+            if rule["class"] == "FAIL" or cell.get("state") in (None, "COMPLETE"):
+                items.append({"block": cell.get("block"), "item": f"{cell_id}/{name}",
+                              "outcome": rule["class"], "worst": rule.get("worst"),
+                              "max": rule.get("max")})
         if cell.get("state") not in (None, "COMPLETE"):
             items.append({"block": cell.get("block"), "item": cell_id, "outcome": cell["state"]})
             continue
@@ -136,18 +150,57 @@ def q_statement(evaluation: Dict[str, Any]) -> Dict[str, Any]:
     return statement
 
 
+#: Plan section 14.9: the four deciding items without a verdict on 977e54d (attempt 2), with
+#: the metric that set each class there. Their classes stay with 977e54d.
+OPEN_ITEMS_A2 = [
+    {"item": "B4-http-metrics-ops-compact-bfs-sparse-10000", "block": "B4",
+     "class_977e54d": "INCONCLUSIVE", "cause_977e54d": "window time [+1.58, +7.08] %, tolerance 6 %"},
+    {"item": "http_lifecycle_compact_bfs_small", "block": "V1",
+     "class_977e54d": "INCONCLUSIVE_DISCLOSED",
+     "cause_977e54d": "primary time_to_ready_ms [-20.2, +23.6] %, tolerance 10 %"},
+    {"item": "http_standalone_batch_b1_compact_bfs", "block": "V1",
+     "class_977e54d": "UNRESOLVED",
+     "cause_977e54d": "supporting request_latency_p99_ns [-42.1, +78.3] %, tolerance 25 %"},
+    {"item": "http_standalone_batch_b256_compact_bfs", "block": "V1",
+     "class_977e54d": "UNRESOLVED",
+     "cause_977e54d": "supporting sampled_max_rss_bytes [-0.23, +22.47] %, tolerance 20 %"},
+]
+#: Attempt 2's Q values for 977e54d (attempt2/REPORT.md), shown in their own column.
+Q_JOINT_A2 = {"Q": {"q3": [0.219, 0.116], "q5_rps": [1.072, 1.013], "q5_p99": [1.035, 1.031]},
+              "Q-K4": {"q3": [0.555, 0.549], "q5_rps": [0.851, 0.880], "q5_p99": [0.294, 0.292]}}
+
+
+def q_joint(cell: str, evaluation: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Plan section 14.8: the feeder's recovery (Q3 shares) next to the query cost (Q5
+    throughput and p99 ratios against v1.1.0), for one mode."""
+    row: Dict[str, Any] = {"cell": cell, "977e54d": Q_JOINT_A2[cell]}
+    if evaluation is None:
+        row["24c2602"] = None
+        return row
+    q3 = evaluation["criteria"]["Q3"]
+    q5 = evaluation["criteria"]["Q5"].get("cells") or {}
+    def ratios(key: str) -> List[Optional[float]]:
+        return [q5.get(f"L1 G100k C={c}", {}).get(key) for c in (16, 64)]
+    row["24c2602"] = {"q3": [q3.get("ratio_c16"), q3.get("ratio_c64")],
+                      "q3_status": q3.get("status"),
+                      "q5_rps": ratios("rps_ratio"), "q5_p99": ratios("p99_ratio"),
+                      "q5_status": evaluation["criteria"]["Q5"].get("status")}
+    return row
+
+
 def summarize(matrix: Dict[str, Any], cf5: Optional[Dict[str, Any]], v1: Optional[Dict[str, Any]],
               q: Optional[Dict[str, Any]], b4: Optional[Dict[str, Any]],
               q_k4: Optional[Dict[str, Any]] = None,
               status: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     by_id = {c["id"]: c for c in matrix["cells"]}
     sets = by_id["B4"]["b4"]
-    attempt2 = matrix.get("attempt") == 2
+    attempt = matrix.get("attempt", 1)
+    attempt2 = attempt in (2, 3)
     items: List[Dict[str, Any]] = []
     missing: List[str] = []
     tool_errors = sorted(cid for cid, s in ((status or {}).get("cells") or {}).items()
                          if s.get("state") == "TOOL_ERROR")
-    paired_blocks = "V2" if attempt2 else "V2, K1, K2"
+    paired_blocks = {1: "V2, K1, K2", 2: "V2", 3: "V2, K1, K2, K3, K4, M1, M2"}[attempt]
     if cf5 is not None:
         items += cf5_items(cf5)
     else:
@@ -178,8 +231,16 @@ def summarize(matrix: Dict[str, Any], cf5: Optional[Dict[str, Any]], v1: Optiona
     for item in deciding:
         by_outcome.setdefault(str(item["outcome"]), []).append(item["item"])
     atomic = next((i for i in items if i["item"] == sets["atomic"][0]), None)
+    extra: Dict[str, Any] = {}
+    if attempt == 3:
+        extra["q_joint"] = [q_joint("Q", q), q_joint("Q-K4", q_k4)]
+        found = {i["item"]: i for i in items}
+        extra["open_items"] = [dict(o, outcome_24c2602=(found[o["item"]]["outcome"]
+                                                        if o["item"] in found else "MISSING"))
+                               for o in OPEN_ITEMS_A2]
     return {
-        "schema": "v120q-summary-1" if not attempt2 else "v120q-summary-2",
+        **extra,
+        "schema": {1: "v120q-summary-1", 2: "v120q-summary-2", 3: "v120q-summary-3"}[attempt],
         "plan": matrix.get("plan"),
         "reference": matrix.get("reference"),
         "deciding_by_outcome": dict(sorted(by_outcome.items())),
@@ -226,6 +287,26 @@ def markdown(summary: Dict[str, Any]) -> str:
         lines += ["", "## Reported, cost and descriptive items (not deciding)", "",
                   "| Item | Role | Outcome |", "|---|---|---|"]
         lines += [f"| `{i['item']}` | {i['role']} | {i['outcome']} |" for i in reported]
+    joint = summary.get("q_joint")
+    if joint:
+        def pair(values: Optional[List[Optional[float]]], pct: bool) -> str:
+            if not values or any(v is None for v in values):
+                return "—"
+            return " / ".join(f"{v:.1%}" if pct else f"{v:.3f}" for v in values)
+        lines += ["", "## Feeder recovery and query cost (plan section 14.8)", "",
+                  "| Mode | Candidate | Q3 share C=16 / C=64 | Q5 throughput ratio C=16 / C=64 "
+                  "| Q5 p99 ratio C=16 / C=64 |", "|---|---|---|---|---|"]
+        for row in joint:
+            for cand in ("24c2602", "977e54d"):
+                v = row.get(cand) or {}
+                lines.append(f"| {row['cell']} | {cand} | {pair(v.get('q3'), True)} | "
+                             f"{pair(v.get('q5_rps'), False)} | {pair(v.get('q5_p99'), False)} |")
+    open_items = summary.get("open_items")
+    if open_items:
+        lines += ["", "## Items without a verdict on 977e54d (plan section 14.9)", "",
+                  "| Item | 977e54d | Cause on 977e54d | 24c2602 |", "|---|---|---|---|"]
+        lines += [f"| `{o['item']}` | {o['class_977e54d']} | {o['cause_977e54d']} | "
+                  f"{o['outcome_24c2602']} |" for o in open_items]
     atomic = summary.get("ops_atomic")
     if atomic:
         lines += ["", "## `ops-atomic` (hub 10k, deciding)", "",

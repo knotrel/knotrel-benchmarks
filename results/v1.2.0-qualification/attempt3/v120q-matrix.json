@@ -1,0 +1,5407 @@
+{
+ "attempt": 3,
+ "cap": "unset",
+ "cells": [
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-standalone-off-read95-b8-c16-100k-none\", \"measure_ms\": 3000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-standalone-off-read95-b8-c16-100k-none\", \"measure_ms\": 3000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "V2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "V2-Mreg-standalone-off-read95-b8-c16-100k-none",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 1
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 64, \"clients\": 16, \"id\": \"Mreg-standalone-off-mixed50-b64-c16-100k-none\", \"measure_ms\": 3000, \"mix\": \"mixed50\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 64, \"clients\": 16, \"id\": \"Mreg-standalone-off-mixed50-b64-c16-100k-none\", \"measure_ms\": 3000, \"mix\": \"mixed50\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "V2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "V2-Mreg-standalone-off-mixed50-b64-c16-100k-none",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 1
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "10000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 1, \"clients\": 4, \"id\": \"Mreg-standalone-off-read95-b1-c4-10k-none\", \"measure_ms\": 3000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "10000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 1, \"clients\": 4, \"id\": \"Mreg-standalone-off-read95-b1-c4-10k-none\", \"measure_ms\": 3000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "V2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "V2-Mreg-standalone-off-read95-b1-c4-10k-none",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 1
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "true",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-standalone-on-lifecycle50-b8-c16-100k-none\", \"measure_ms\": 3000, \"mix\": \"lifecycle50\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "true",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-standalone-on-lifecycle50-b8-c16-100k-none\", \"measure_ms\": 3000, \"mix\": \"lifecycle50\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "V2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "V2-Mreg-standalone-on-lifecycle50-b8-c16-100k-none",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 1
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "source-managed",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"import\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-source-managed-off-read100-b8-c16-100k-import\", \"measure_ms\": 5000, \"mix\": \"read100\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "source-managed",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"import\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-source-managed-off-read100-b8-c16-100k-import\", \"measure_ms\": 5000, \"mix\": \"read100\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "V2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "V2-Mreg-source-managed-off-read100-b8-c16-100k-import",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 1
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "source-managed",
+      "--lifecycle",
+      "true",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"events\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-source-managed-on-read100-b8-c16-100k-events\", \"measure_ms\": 3000, \"mix\": \"read100\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "source-managed",
+      "--lifecycle",
+      "true",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"events\", \"batch\": 8, \"clients\": 16, \"id\": \"Mreg-source-managed-on-read100-b8-c16-100k-events\", \"measure_ms\": 3000, \"mix\": \"read100\", \"open_rate\": null, \"warmup_ms\": 1000}"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "V2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "V2-Mreg-source-managed-on-read100-b8-c16-100k-events",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 1
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "10000",
+      "--degree",
+      "4",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_cand"
+    },
+    "ref": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "10000",
+      "--degree",
+      "4",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_base"
+    }
+   },
+   "block": "K2",
+   "check": {
+    "same_trace": "edges_fingerprint"
+   },
+   "family": null,
+   "id": "K2-d4-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "update_ns",
+     "path": "result.update_ns"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "query_ns",
+     "path": "result.query_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "100000",
+      "--degree",
+      "4",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_cand"
+    },
+    "ref": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "100000",
+      "--degree",
+      "4",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_base"
+    }
+   },
+   "block": "K2",
+   "check": {
+    "same_trace": "edges_fingerprint"
+   },
+   "family": null,
+   "id": "K2-d4-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "update_ns",
+     "path": "result.update_ns"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "query_ns",
+     "path": "result.query_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "1000000",
+      "--degree",
+      "4",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_cand"
+    },
+    "ref": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "1000000",
+      "--degree",
+      "4",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_base"
+    }
+   },
+   "block": "K2",
+   "check": {
+    "same_trace": "edges_fingerprint"
+   },
+   "family": null,
+   "id": "K2-d4-1000000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "update_ns",
+     "path": "result.update_ns"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "query_ns",
+     "path": "result.query_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "10000",
+      "--degree",
+      "16",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_cand"
+    },
+    "ref": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "10000",
+      "--degree",
+      "16",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_base"
+    }
+   },
+   "block": "K2",
+   "check": {
+    "same_trace": "edges_fingerprint"
+   },
+   "family": null,
+   "id": "K2-d16-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "update_ns",
+     "path": "result.update_ns"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "query_ns",
+     "path": "result.query_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "100000",
+      "--degree",
+      "16",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_cand"
+    },
+    "ref": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "100000",
+      "--degree",
+      "16",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_base"
+    }
+   },
+   "block": "K2",
+   "check": {
+    "same_trace": "edges_fingerprint"
+   },
+   "family": null,
+   "id": "K2-d16-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "update_ns",
+     "path": "result.update_ns"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "query_ns",
+     "path": "result.query_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "1000000",
+      "--degree",
+      "16",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_cand"
+    },
+    "ref": {
+     "args": [
+      "staged",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--vertices",
+      "1000000",
+      "--degree",
+      "16",
+      "--seed",
+      "42"
+     ],
+     "checks": [
+      {
+       "equals": "connectivity-compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "cf5_core_base"
+    }
+   },
+   "block": "K2",
+   "check": {
+    "same_trace": "edges_fingerprint"
+   },
+   "family": null,
+   "id": "K2-d16-1000000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "update_ns",
+     "path": "result.update_ns"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "aggregate",
+      "intervals": 20,
+      "limit_ns": 1153.3
+     },
+     "name": "query_ns",
+     "path": "result.query_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "chain-split-rejoin-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "chain-split-rejoin-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-chain-split-rejoin-v1-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 20057.7,
+      "timed_ops": 400
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "chain-split-rejoin-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "chain-split-rejoin-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-chain-split-rejoin-v1-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 20057.7,
+      "timed_ops": 400
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "cycle-alternatives-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "cycle-alternatives-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-cycle-alternatives-v1-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 40057.7,
+      "timed_ops": 800
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "cycle-alternatives-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "cycle-alternatives-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-cycle-alternatives-v1-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 40057.7,
+      "timed_ops": 800
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "components-join-split-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "components-join-split-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-components-join-split-v1-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 20057.7,
+      "timed_ops": 400
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "components-join-split-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "components-join-split-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-components-join-split-v1-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 20057.7,
+      "timed_ops": 400
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "hub-alternatives-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "hub-alternatives-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-hub-alternatives-v1-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 60057.7,
+      "timed_ops": 1200
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "hub-alternatives-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "hub-alternatives-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-hub-alternatives-v1-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 60057.7,
+      "timed_ops": 1200
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-path-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-path-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-sustained-churn-path-v1-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-path-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-path-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-sustained-churn-path-v1-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-sustained-churn-blocks-v1-10000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "100000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-sustained-churn-blocks-v1-100000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "dense-bridge-churn-v1",
+      "--nodes",
+      "512",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "dense-bridge-churn-v1",
+      "--nodes",
+      "512",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-dense-bridge-churn-v1-512",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 500057.7,
+      "timed_ops": 10000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "dense-bridge-churn-v1",
+      "--nodes",
+      "2048",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "dense-bridge-churn-v1",
+      "--nodes",
+      "2048",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-dense-bridge-churn-v1-2048",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 500057.7,
+      "timed_ops": 10000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "redundant-bridge-churn-v1",
+      "--nodes",
+      "512",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "redundant-bridge-churn-v1",
+      "--nodes",
+      "512",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-redundant-bridge-churn-v1-512",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 500057.7,
+      "timed_ops": 10000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "redundant-bridge-churn-v1",
+      "--nodes",
+      "2048",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "redundant-bridge-churn-v1",
+      "--nodes",
+      "2048",
+      "--rounds",
+      "100",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K1",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K1-redundant-bridge-churn-v1-2048",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 500057.7,
+      "timed_ops": 10000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "s1",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "s1",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-s1-t1",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "s1",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "s1",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-s1-t16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "s2",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "s2",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-s2-t1",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "s2",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "s2",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-s2-t16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "l1",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "l1",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-l1-t1",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "l1",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "l1",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-l1-t16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "l2",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "l2",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-l2-t1",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "l2",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "l2",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-l2-t16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "l3",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "l3",
+      "--threads",
+      "1",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-l3-t1",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "shape",
+      "--shape",
+      "l3",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "shape",
+      "--shape",
+      "l3",
+      "--threads",
+      "16",
+      "--vertices",
+      "100000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "K3",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K3-l3-t16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p50_ns",
+     "path": "latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_p99_ns",
+     "path": "latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-compact-bfs-sequential",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-compact-bfs-random",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-compact-bfs-shl16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-compact-bfs",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/compact-bfs",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-compact-bfs-shl32",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-compact-workspace-sequential",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-compact-workspace-random",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-compact-workspace-shl16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "compact-workspace",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/compact-workspace-v2",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-compact-workspace-shl32",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-ett-sequential",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-ett-random",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-ett-shl16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-ett",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/ett",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-ett-shl32",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-hdt-sequential",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-hdt-random",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-hdt-shl16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-hdt",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/hdt",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-hdt-shl32",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "sequential"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-cluster-forest-sequential",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "random"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-cluster-forest-random",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl16"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-cluster-forest-shl16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_cand"
+    },
+    "ref": {
+     "args": [
+      "--workload",
+      "sustained-churn-blocks-v1",
+      "--nodes",
+      "10000",
+      "--rounds",
+      "20",
+      "--seed",
+      "42",
+      "--engine",
+      "connectivity-cluster-forest",
+      "--warmup",
+      "1",
+      "--repetitions",
+      "1",
+      "--id-pattern",
+      "shl32"
+     ],
+     "checks": [
+      {
+       "equals": "knotrel-core/connectivity-graph/cluster-forest-v1",
+       "path": "engine"
+      }
+     ],
+     "line": "whole",
+     "tool": "harness_base"
+    }
+   },
+   "block": "K4",
+   "check": {
+    "same_trace": "trace_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "K4-connectivity-cluster-forest-shl32",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "instrumented_aggregate",
+      "gap_ns": 34,
+      "limit_ns": 100057.7,
+      "timed_ops": 2000
+     },
+     "name": "workload_wall_ns",
+     "path": "repetitions.0.workload_wall_ns"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2,
+   "timeout_s": 300
+  },
+  {
+   "absolute": [
+    {
+     "arm": "cf",
+     "max": 262144,
+     "name": "retained_scratch_max_bytes",
+     "path": "retained_after_small_bytes.max"
+    },
+    {
+     "arm": "cf",
+     "max": 0,
+     "name": "small_query_allocations_max",
+     "path": "small_allocations_after_100.max"
+    }
+   ],
+   "arms": {
+    "cf": {
+     "args": [
+      "sequence",
+      "--kind",
+      "large-then-small",
+      "--threads",
+      "16",
+      "--chain-vertices",
+      "1000000",
+      "--vertices",
+      "100000",
+      "--small-queries",
+      "10000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "sequence",
+      "--kind",
+      "large-then-small",
+      "--threads",
+      "16",
+      "--chain-vertices",
+      "1000000",
+      "--vertices",
+      "100000",
+      "--small-queries",
+      "10000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "M1",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "M1-large-then-small-t16",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "small_latency_p50_ns",
+     "path": "small_latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "small_latency_p99_ns",
+     "path": "small_latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "absolute": [
+    {
+     "arm": "cf",
+     "max": 262144,
+     "name": "retained_scratch_max_bytes",
+     "path": "retained_after_small_bytes.max"
+    },
+    {
+     "arm": "cf",
+     "max": 0,
+     "name": "small_query_allocations_max",
+     "path": "small_allocations_after_100.max"
+    }
+   ],
+   "arms": {
+    "cf": {
+     "args": [
+      "sequence",
+      "--kind",
+      "large-then-small",
+      "--threads",
+      "64",
+      "--chain-vertices",
+      "1000000",
+      "--vertices",
+      "100000",
+      "--small-queries",
+      "10000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_cand"
+    },
+    "ref": {
+     "args": [
+      "sequence",
+      "--kind",
+      "large-then-small",
+      "--threads",
+      "64",
+      "--chain-vertices",
+      "1000000",
+      "--vertices",
+      "100000",
+      "--small-queries",
+      "10000",
+      "--seed",
+      "42"
+     ],
+     "line": "whole",
+     "tool": "qsp_base"
+    }
+   },
+   "block": "M1",
+   "check": {
+    "equals": 0,
+    "path": "wrong_answers",
+    "same_trace": "input_fingerprint_fnv1a64"
+   },
+   "family": null,
+   "id": "M1-large-then-small-t64",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "lower_is_better",
+     "margin": 0.1,
+     "margin_kind": "time",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "small_latency_p50_ns",
+     "path": "small_latency_ns.p50"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "percentile",
+      "limit_ns": 57.7
+     },
+     "name": "small_latency_p99_ns",
+     "path": "small_latency_ns.p99"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 16, \"id\": \"M2-standalone-off-read95-b8-c16-100k-chain600000\", \"measure_ms\": 15000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}",
+      "--prelude",
+      "long-chain:600000"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 16, \"id\": \"M2-standalone-off-read95-b8-c16-100k-chain600000\", \"measure_ms\": 15000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}",
+      "--prelude",
+      "long-chain:600000"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "M2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "M2-standalone-off-read95-b8-c16-100k-chain600000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.2,
+     "margin_kind": "memory",
+     "name": "server_rss_kib",
+     "path": "server_rss_kib"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "arms": {
+    "cf": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 64, \"id\": \"M2-standalone-off-read95-b8-c64-100k-chain600000\", \"measure_ms\": 15000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}",
+      "--prelude",
+      "long-chain:600000"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_cand"
+    },
+    "ref": {
+     "args": [
+      "--mode",
+      "standalone",
+      "--lifecycle",
+      "false",
+      "--nodes",
+      "100000",
+      "--seed",
+      "7",
+      "--engine",
+      "compact-bfs",
+      "--configs-json",
+      "{\"background\": \"none\", \"batch\": 8, \"clients\": 64, \"id\": \"M2-standalone-off-read95-b8-c64-100k-chain600000\", \"measure_ms\": 15000, \"mix\": \"read95\", \"open_rate\": null, \"warmup_ms\": 1000}",
+      "--prelude",
+      "long-chain:600000"
+     ],
+     "checks": [
+      {
+       "equals": "compact-bfs",
+       "line": "kind=start",
+       "path": "engine"
+      }
+     ],
+     "line": "kind=config",
+     "tool": "contention_base"
+    }
+   },
+   "block": "M2",
+   "check": {
+    "equals": 0,
+    "path": "errors"
+   },
+   "family": null,
+   "id": "M2-standalone-off-read95-b8-c64-100k-chain600000",
+   "kind": "paired",
+   "metrics": [
+    {
+     "direction": "higher_is_better",
+     "margin": 0.1,
+     "margin_kind": "throughput",
+     "name": "requests_per_s",
+     "path": "requests_per_s"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.25,
+     "margin_kind": "tail",
+     "measurement": {
+      "category": "http_percentile",
+      "limit_ns": 57.7
+     },
+     "name": "latency_ns.p99",
+     "path": "latency_ns.p99"
+    },
+    {
+     "direction": "lower_is_better",
+     "margin": 0.2,
+     "margin_kind": "memory",
+     "name": "server_rss_kib",
+     "path": "server_rss_kib"
+    }
+   ],
+   "reference": "v1.1.0",
+   "role": "primary",
+   "rule": "regression",
+   "tier": 2
+  },
+  {
+   "block": "V1",
+   "collector": "run_p0_aa.py --execute on the two plans of prepare_bc_qualification.py (B = v1.1.0, C = candidate), n = 24 fixed; analyze_v100q_a.py rules",
+   "comparisons": 9,
+   "id": "V1",
+   "kind": "delegated",
+   "seeds": {
+    "block1": [
+     182310,
+     182311,
+     182312
+    ],
+    "block2": [
+     182320,
+     182321,
+     182322
+    ]
+   },
+   "tier": 1,
+   "v1": {
+    "deciding": [
+     "http_standalone_batch_b1_compact_bfs",
+     "http_standalone_batch_b8_compact_bfs",
+     "http_standalone_batch_b64_compact_bfs",
+     "http_standalone_batch_b256_compact_bfs",
+     "http_lifecycle_compact_bfs_small",
+     "core_sparse_traversal_10k_compact-bfs_warmed",
+     "core_sparse_traversal_10k_compact-workspace_warmed",
+     "core_sustained_churn_10k_compact-bfs_warmed",
+     "core_sustained_churn_10k_compact-workspace_warmed"
+    ],
+    "descriptive": [],
+    "descriptive_reason": null
+   }
+  },
+  {
+   "block": "Q",
+   "cap_s": 2700,
+   "collector": "run_q.sh (Docker Desktop and the pinned PostgreSQL 18.7 container exist only while Q runs, URL never written) -> run_v100q_q.py (candidate: seven cells on the candidate server; Q5 reference: L1 G100k C=16 and C=64 on the v1.1.0 server; 3 rounds) -> evaluate_v100q_q.py: Q1-Q5; exit 6 (evaluation failed after the measurement) is a tool error, never a verdict",
+   "comparisons": 5,
+   "id": "Q",
+   "kind": "delegated",
+   "q_rule": {
+    "cost": [],
+    "deciding": [
+     "Q1",
+     "Q2",
+     "Q4",
+     "Q5"
+    ],
+    "mode": "default (KNOTREL_MAX_CONCURRENT_QUERIES unset)",
+    "reported": [
+     "Q3"
+    ]
+   },
+   "tier": 2
+  },
+  {
+   "block": "Q",
+   "cap_s": 2700,
+   "collector": "run_q.sh (Docker Desktop and the pinned PostgreSQL 18.7 container exist only while Q runs, URL never written) -> run_v100q_q.py (candidate: seven cells on the candidate server started with KNOTREL_MAX_CONCURRENT_QUERIES=4 (variant-k4); Q5 reference: L1 G100k C=16 and C=64 on the v1.1.0 server; 3 rounds) -> evaluate_v100q_q.py: Q1-Q5; exit 6 (evaluation failed after the measurement) is a tool error, never a verdict",
+   "comparisons": 5,
+   "id": "Q-K4",
+   "kind": "delegated",
+   "q_rule": {
+    "cost": [
+     "Q5"
+    ],
+    "deciding": [
+     "Q1",
+     "Q2",
+     "Q3",
+     "Q4"
+    ],
+    "mode": "KNOTREL_MAX_CONCURRENT_QUERIES=4",
+    "reported": []
+   },
+   "tier": 2
+  },
+  {
+   "b4": {
+    "all": [
+     "B4-http-optin-mutation-compact-bfs-sparse-10000",
+     "B4-http-optin-query-compact-bfs-sparse-10000",
+     "B4-http-ops-compact-bfs-sparse-10000",
+     "B4-http-ops-equivalent-compact-bfs-sparse-10000",
+     "B4-http-ops-query-compact-bfs-sparse-10000",
+     "B4-http-ops-query-equivalent-compact-bfs-sparse-10000",
+     "B4-http-events-compact-bfs-sparse-10000",
+     "B4-http-events-equivalent-compact-bfs-sparse-10000",
+     "B4-http-import-compact-bfs-sparse-10000",
+     "B4-http-import-equivalent-compact-bfs-sparse-10000",
+     "B4-http-import-optin-compact-bfs-sparse-10000",
+     "B4-http-optin-mutation-compact-bfs-hub-10000",
+     "B4-http-optin-query-compact-bfs-hub-10000",
+     "B4-http-ops-compact-bfs-hub-10000",
+     "B4-http-ops-equivalent-compact-bfs-hub-10000",
+     "B4-http-ops-atomic-compact-bfs-hub-10000",
+     "B4-http-ops-query-compact-bfs-hub-10000",
+     "B4-http-ops-query-equivalent-compact-bfs-hub-10000",
+     "B4-http-events-compact-bfs-hub-10000",
+     "B4-http-events-equivalent-compact-bfs-hub-10000",
+     "B4-http-import-compact-bfs-hub-10000",
+     "B4-http-import-equivalent-compact-bfs-hub-10000",
+     "B4-http-import-optin-compact-bfs-hub-10000",
+     "B4-http-import-high-compact-bfs-sparse-10000",
+     "B4-http-import-high-equivalent-compact-bfs-sparse-10000",
+     "B4-http-metrics-ops-compact-bfs-sparse-10000",
+     "B4-http-metrics-legacy-compact-bfs-sparse-10000",
+     "B4-http-metrics-legacy-ett-sparse-10000",
+     "B4-http-metrics-legacy-hdt-sparse-10000",
+     "B4-http-ops-compact-bfs-sparse-100000",
+     "B4-http-ops-equivalent-compact-bfs-sparse-100000",
+     "B4-http-ops-query-compact-bfs-sparse-100000",
+     "B4-http-ops-query-equivalent-compact-bfs-sparse-100000",
+     "B4-http-events-compact-bfs-sparse-100000",
+     "B4-http-events-equivalent-compact-bfs-sparse-100000",
+     "B4-http-import-compact-bfs-sparse-100000",
+     "B4-http-import-equivalent-compact-bfs-sparse-100000",
+     "B4-http-import-optin-compact-bfs-sparse-100000"
+    ],
+    "atomic": [
+     "B4-http-ops-atomic-compact-bfs-hub-10000"
+    ],
+    "deciding": [
+     "B4-http-optin-mutation-compact-bfs-sparse-10000",
+     "B4-http-optin-query-compact-bfs-sparse-10000",
+     "B4-http-ops-equivalent-compact-bfs-sparse-10000",
+     "B4-http-ops-query-equivalent-compact-bfs-sparse-10000",
+     "B4-http-events-equivalent-compact-bfs-sparse-10000",
+     "B4-http-import-equivalent-compact-bfs-sparse-10000",
+     "B4-http-import-optin-compact-bfs-sparse-10000",
+     "B4-http-optin-mutation-compact-bfs-hub-10000",
+     "B4-http-optin-query-compact-bfs-hub-10000",
+     "B4-http-ops-atomic-compact-bfs-hub-10000",
+     "B4-http-ops-query-equivalent-compact-bfs-hub-10000",
+     "B4-http-import-equivalent-compact-bfs-hub-10000",
+     "B4-http-import-optin-compact-bfs-hub-10000",
+     "B4-http-import-high-equivalent-compact-bfs-sparse-10000",
+     "B4-http-metrics-ops-compact-bfs-sparse-10000",
+     "B4-http-metrics-legacy-compact-bfs-sparse-10000",
+     "B4-http-metrics-legacy-ett-sparse-10000",
+     "B4-http-metrics-legacy-hdt-sparse-10000",
+     "B4-http-ops-equivalent-compact-bfs-sparse-100000",
+     "B4-http-ops-query-equivalent-compact-bfs-sparse-100000",
+     "B4-http-events-equivalent-compact-bfs-sparse-100000",
+     "B4-http-import-equivalent-compact-bfs-sparse-100000",
+     "B4-http-import-optin-compact-bfs-sparse-100000"
+    ],
+    "descriptive": [
+     "B4-http-ops-compact-bfs-sparse-10000",
+     "B4-http-ops-query-compact-bfs-sparse-10000",
+     "B4-http-events-compact-bfs-sparse-10000",
+     "B4-http-import-compact-bfs-sparse-10000",
+     "B4-http-ops-compact-bfs-hub-10000",
+     "B4-http-ops-equivalent-compact-bfs-hub-10000",
+     "B4-http-ops-query-compact-bfs-hub-10000",
+     "B4-http-events-compact-bfs-hub-10000",
+     "B4-http-events-equivalent-compact-bfs-hub-10000",
+     "B4-http-import-compact-bfs-hub-10000",
+     "B4-http-import-high-compact-bfs-sparse-10000",
+     "B4-http-ops-compact-bfs-sparse-100000",
+     "B4-http-ops-query-compact-bfs-sparse-100000",
+     "B4-http-events-compact-bfs-sparse-100000",
+     "B4-http-import-compact-bfs-sparse-100000"
+    ],
+    "unqualified": [
+     "B4-http-ops-compact-bfs-hub-10000",
+     "B4-http-events-compact-bfs-hub-10000",
+     "B4-http-ops-equivalent-compact-bfs-hub-10000",
+     "B4-http-events-equivalent-compact-bfs-hub-10000"
+    ]
+   },
+   "block": "B4",
+   "collector": "run_lifecycle_qualification.py --profile final --only B4 --lifecycle-engines compact-bfs --equivalent-references --atomic-references --window-multipliers results/v1.2.0-qualification/window-multipliers.json; analyze_lifecycle_qualification.py --expect-only B4",
+   "comparisons": 38,
+   "id": "B4",
+   "kind": "delegated",
+   "order_seed": 182400,
+   "tier": 2
+  }
+ ],
+ "counts": {
+  "B4": 38,
+  "K1": 16,
+  "K2": 6,
+  "K3": 10,
+  "K4": 20,
+  "M1": 2,
+  "M2": 2,
+  "Q": 10,
+  "V1": 9,
+  "V2": 6
+ },
+ "plan": "knotrel docs/releases/v1.2.0-qualification-plan.md, section 14 (attempt 3)",
+ "reference": "v1.1.0",
+ "rules": {
+  "block_order": [
+   [
+    "V1",
+    "V2"
+   ],
+   [
+    "K1",
+    "K3",
+    "M1",
+    "M2",
+    "K4",
+    "Q",
+    "B4",
+    "K2"
+   ]
+  ],
+  "cap_hours": 1000,
+  "coverage": 0.9773,
+  "interval_order_statistics": [
+   7,
+   18
+  ],
+  "margins": {
+   "memory": 0.2,
+   "tail": 0.25,
+   "throughput": 0.1,
+   "time": 0.1
+  },
+  "measurement_limit": {
+   "calibration": "results/v1.1.0-cf5/timer-calibration/calibration.json",
+   "clock_read_ns": 16,
+   "harness_gap_ns": {
+    "harness": 34,
+    "harness_a_candidate": 26,
+    "harness_a_v100": 25
+   },
+   "tick_ns": 41.667
+  },
+  "min_free_disk_gb": 2,
+  "pairs": 24,
+  "second_session_cap_hours": 0,
+  "tiers": [
+   1,
+   2
+  ],
+  "warmup_pairs": 2
+ },
+ "schema": "cf5-matrix-1",
+ "total_comparisons": 119
+}

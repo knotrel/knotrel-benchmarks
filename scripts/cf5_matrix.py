@@ -62,7 +62,9 @@ def metric(name: str, path: str, kind: str, direction: str = "lower_is_better",
 #   operations (K1, V2, V3 harness): tick + read + timed_ops * (harness gap + read);
 # - ``per_op_sum``: sum of ``timed_ops`` per-operation intervals (L3 churn):
 #   timed_ops * read + 3 * tick * sqrt(timed_ops / 6) (quantization, three standard deviations);
-# - ``http_percentile``: one client request interval (closed loop): tick + read.
+# - ``http_percentile``: one client request interval (closed loop): tick + read;
+# - ``percentile``: a percentile of individually timed in-process operations (v1.2.0 K3/M1),
+#   one interval per value: tick + read.
 _CAL = json.loads(CALIBRATION.read_text())
 TICK_NS = _CAL["constants"]["tick_ns"]
 CLOCK_READ_NS = _CAL["constants"]["clock_read_ns"]
@@ -79,7 +81,7 @@ def measurement(category: str, intervals: int = 1, timed_ops: int = 0,
         limit = TICK_NS + CLOCK_READ_NS + timed_ops * (gap_ns + CLOCK_READ_NS)
     elif category == "per_op_sum":
         limit = timed_ops * CLOCK_READ_NS + 3 * TICK_NS * math.sqrt(timed_ops / 6)
-    elif category == "http_percentile":
+    elif category in ("http_percentile", "percentile"):
         limit = TICK_NS + CLOCK_READ_NS
     else:
         raise ValueError(category)

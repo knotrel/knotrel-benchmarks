@@ -4,8 +4,15 @@
 # everything, writes the tool map and checks the delegated collectors with their dry runs.
 # It never measures.
 #
-# Usage: prepare_v120q.sh CAND_SHA TOOLING_SHA --pre-freeze [2]
-#        prepare_v120q.sh CAND_SHA FREEZE_SHA ATTEMPT        (ATTEMPT: 1 or 2, plan section 9)
+# Usage: prepare_v120q.sh CAND_SHA TOOLING_SHA --pre-freeze [2|3]
+#        prepare_v120q.sh CAND_SHA FREEZE_SHA ATTEMPT        (ATTEMPT: 1, 2 or 3; plan sections 9, 13, 14)
+#
+# Attempt 3 (plan section 14; "--pre-freeze 3"): freeze record and matrix under
+# results/v1.2.0-qualification/attempt3/; the K harness and cf5-core builds again (K1, K2, K4),
+# query-shape-probe against each arm (K3, M1: cand-qsp, base-qsp), built from build-inputs/<arm>
+# with lockfiles derived for the arm (scripts/derive_arm_lock.py: knotrel-core version and
+# nohash-hasher, which v1.1.0 locks and the candidate does not), the variant-k4 wrapper and its
+# smoke, V1 seeds 182310-182312 and 182320-182322, the Q runner check, the disk check.
 #
 # Attempt 2 (plan section 13; "--pre-freeze 2" for its pre-freeze check): the freeze record
 # and matrix are results/v1.2.0-qualification/attempt2/{FREEZE.json,v120q-matrix.json}; no K1
@@ -46,7 +53,7 @@ CAND=$1
 TOOLING=$2
 MODE=${3:-}
 SCOPE=1
-case "$MODE" in 2) SCOPE=2 ;; --pre-freeze) [ "${4:-}" = 2 ] && SCOPE=2 ;; esac
+case "$MODE" in 2) SCOPE=2 ;; 3) SCOPE=3 ;; --pre-freeze) case "${4:-}" in 2|3) SCOPE=$4 ;; esac ;; esac
 MIN_FREE_GB=${MIN_FREE_GB:-8}
 REF=57c35e8d4b17bfce2d9941419ef251a2a2a1d69c          # knotrel v1.1.0 (published tag b0a19fd5, commit)
 HARNESS=df635a1e872fd9e2d556b166ac23f342ee45d675      # core harness used by A since v0.4.0
@@ -57,7 +64,7 @@ EVIDENCE=${EVIDENCE_ROOT:-/Users/rt/workspace/knotrel/evidence}
 SOURCE_MANIFEST=${SOURCE_MANIFEST:-$EVIDENCE/p0-coverage-increment-1-plan-20261030/manifest.json}
 Q=results/v1.2.0-qualification
 QA=$Q
-[ "$SCOPE" = 2 ] && QA=$Q/attempt2
+[ "$SCOPE" = 1 ] || QA=$Q/attempt$SCOPE
 for X in "$CAND" "$TOOLING"; do
   echo "$X" | grep -Eq '^[0-9a-f]{40}$' || { echo "commits must be 40-character SHAs" >&2; exit 3; }
 done
@@ -65,8 +72,8 @@ done
   || { echo "knotrel tag v1.1.0 is not $REF" >&2; exit 3; }
 case "$MODE" in
   --pre-freeze) LABEL=prefreeze
-       [ "$SCOPE" = 2 ] && LABEL=prefreeze-a2 ;;
-  1|2) LABEL=attempt$MODE
+       [ "$SCOPE" = 1 ] || LABEL=prefreeze-a$SCOPE ;;
+  1|2|3) LABEL=attempt$MODE
        F=$QA/FREEZE.json
        git -C "$BREPO" cat-file -e "$TOOLING:$F" 2>/dev/null \
          || { echo "$TOOLING has no $F" >&2; exit 3; }
@@ -91,12 +98,14 @@ if not record.get('cap_hours'):
 for p in problems: print(p, file=sys.stderr)
 sys.exit(1 if problems else 0)
 " "$CAND" "$TOOLING" "$(git -C "$BREPO" rev-parse "$TOOLING^")" "$BREPO" "$QA" || exit 3 ;;
-  *) echo "third argument: --pre-freeze, 1 or 2" >&2; exit 3 ;;
+  *) echo "third argument: --pre-freeze, 1, 2 or 3" >&2; exit 3 ;;
 esac
 # The tooling's lockfiles must name the candidate's knotrel version (--locked builds).
 CAND_VERSION=$(git -C "$KREPO" show "$CAND:Cargo.toml" | grep -m1 '^version' | cut -d'"' -f2)
 REF_VERSION=$(git -C "$KREPO" show "$REF:Cargo.toml" | grep -m1 '^version' | cut -d'"' -f2)
-for LOCK in Cargo.lock tools/lifecycle-probes/Cargo.lock; do
+LOCKS="Cargo.lock tools/lifecycle-probes/Cargo.lock"
+[ "$SCOPE" = 3 ] && LOCKS="$LOCKS tools/query-shape-probe/Cargo.lock"
+for LOCK in $LOCKS; do
   git -C "$BREPO" show "$TOOLING:$LOCK" | python3 -c "
 import re, sys
 want = set(sys.argv[1:])
@@ -139,14 +148,11 @@ for X in B C; do
   I=$CAMP/A/build-inputs/$X/knotrel-benchmarks
   mkdir -p "$I"
   cp -R "$CAMP/A/sources/knotrel-benchmarks/Cargo.toml" "$CAMP/A/sources/knotrel-benchmarks/crates" "$CAMP/A/sources/knotrel-benchmarks/rust-toolchain.toml" "$I/"
-  python3 - "$CAMP/A/sources/knotrel-benchmarks/Cargo.lock" "$I/Cargo.lock" "$V" <<'PY'
-import re, sys
-src, dst, version = sys.argv[1:]
-text = open(src).read()
-new, count = re.subn(r'(name = "knotrel-core"\nversion = ")[^"]+(")', r'\g<1>' + version + r'\2', text)
-assert count == 1, count
-open(dst, "w").write(new)
-PY
+  # The knotrel-core version line and, since knotrel#210, nohash-hasher follow the arm
+  # (derive_arm_lock.py at the tooling commit; a no-op for nohash-hasher in attempts 1 and 2).
+  python3 "$CAMP/src/cand/knotrel-benchmarks/scripts/derive_arm_lock.py" "$CAMP/A/sources/knotrel-benchmarks/Cargo.lock" "$I/Cargo.lock" "$CAMP/A/sources/$X/knotrel"
+  [ "$(grep -A1 'name = "knotrel-core"' "$I/Cargo.lock" | sed -n 's/^version = "\(.*\)"/\1/p')" = "$V" ] \
+    || { echo "A-$X harness lock: knotrel-core version is not $V" >&2; exit 3; }
   diff "$CAMP/A/sources/knotrel-benchmarks/Cargo.lock" "$I/Cargo.lock" > "$L/A-$X-harness-lock-derivation.diff" || true
   ln -s "../../sources/$X/knotrel" "$CAMP/A/build-inputs/$X/knotrel"
 done
@@ -165,6 +171,26 @@ if [ "$SCOPE" = 1 ]; then
   ( cd "$B" && CARGO_TARGET_DIR=$T/cand-harness $CB -p knotrel-benchmarks --bin knotrel-benchmarks --bin cf5-core ) > "$L/build-cand-harness.log" 2>&1
   ( cd "$CAMP/src/base/knotrel-benchmarks" && CARGO_TARGET_DIR=$T/base-harness $CB -p knotrel-benchmarks --bin knotrel-benchmarks --bin cf5-core ) > "$L/build-base-harness.log" 2>&1
 fi
+if [ "$SCOPE" = 3 ]; then
+  # Attempt 3: v1.1.0 still locks nohash-hasher and the candidate does not (knotrel#210), so
+  # each arm builds the tooling from build-inputs/<arm>: the tooling sources with lockfiles
+  # derived for that arm (derive_arm_lock.py) and knotrel linked next to them.
+  for X in cand base; do
+    I=$CAMP/build-inputs/$X/knotrel-benchmarks
+    mkdir -p "$I/tools"
+    cp -R "$CAMP/src/$X/knotrel-benchmarks/Cargo.toml" "$CAMP/src/$X/knotrel-benchmarks/crates" "$CAMP/src/$X/knotrel-benchmarks/rust-toolchain.toml" "$I/"
+    cp -R "$CAMP/src/$X/knotrel-benchmarks/tools/query-shape-probe" "$CAMP/src/$X/knotrel-benchmarks/tools/lifecycle-probes" "$I/tools/"
+    ln -s "../../src/$X/knotrel" "$CAMP/build-inputs/$X/knotrel"
+    for LOCK in Cargo.lock tools/query-shape-probe/Cargo.lock tools/lifecycle-probes/Cargo.lock; do
+      python3 "$B/scripts/derive_arm_lock.py" "$CAMP/src/$X/knotrel-benchmarks/$LOCK" "$I/$LOCK" "$CAMP/src/$X/knotrel"
+      diff "$CAMP/src/$X/knotrel-benchmarks/$LOCK" "$I/$LOCK" >> "$L/$X-lock-derivation.diff" || true
+    done
+    ( cd "$I" && CARGO_TARGET_DIR=$T/$X-harness $CB -p knotrel-benchmarks --bin knotrel-benchmarks --bin cf5-core ) > "$L/build-$X-harness.log" 2>&1
+    ( cd "$I/tools/query-shape-probe" && CARGO_TARGET_DIR=$T/$X-qsp $CB ) > "$L/build-$X-qsp.log" 2>&1
+  done
+fi
+# Attempt 3: the B4 probes build from build-inputs/cand (lockfile derived for the candidate).
+[ "$SCOPE" = 3 ] && P=$CAMP/build-inputs/cand/knotrel-benchmarks/tools/lifecycle-probes
 ( cd "$P" && CARGO_TARGET_DIR=$T/cand-probes $CB --bin core-lifecycle --bin http-lifecycle ) > "$L/build-cand-probes.log" 2>&1
 ( cd "$P" && CARGO_TARGET_DIR=$T/cand-probes-count $CB --features count-alloc --bin core-lifecycle ) > "$L/build-cand-probes-count.log" 2>&1
 ( cd "$B/tools/contention-probe" && CARGO_TARGET_DIR=$T/contention $CB ) > "$L/build-contention.log" 2>&1
@@ -175,12 +201,12 @@ for X in ref cand; do
   bash "$CAMP/src/cand/knotrel/scripts/smoke-test-release-binary.sh" "$T/$X-server/release/knotrel-server" > "$L/smoke-$X-server.log" 2>&1
 done
 
-# --- Attempt 2: the K = 4 server variant for cell Q-K4 (plan section 13) ---
-if [ "$SCOPE" = 2 ]; then
+# --- Attempts 2 and 3: the K = 4 server variant for cell Q-K4 (plan sections 13, 14.8) ---
+if [ "$SCOPE" != 1 ]; then
   V=$CAMP/variant-k4
   mkdir -p "$V/targets/cand-server/release" "$V/targets/ref-server/release" "$V/targets/feeder/release/examples"
   REAL=$T/cand-server/release/knotrel-server
-  printf '#!/bin/sh\n# v1.2.0 attempt 2, cell Q-K4: the candidate server with KNOTREL_MAX_CONCURRENT_QUERIES=4.\nKNOTREL_MAX_CONCURRENT_QUERIES=4 exec %s "$@"\n' "$REAL" > "$V/targets/cand-server/release/knotrel-server"
+  printf '#!/bin/sh\n# v1.2.0 attempt %s, cell Q-K4: the candidate server with KNOTREL_MAX_CONCURRENT_QUERIES=4.\nKNOTREL_MAX_CONCURRENT_QUERIES=4 exec %s "$@"\n' "$SCOPE" "$REAL" > "$V/targets/cand-server/release/knotrel-server"
   chmod +x "$V/targets/cand-server/release/knotrel-server"
   ln -s "$T/ref-server/release/knotrel-server" "$V/targets/ref-server/release/knotrel-server"
   ln -s "$T/feeder/release/knotrel-pg-feeder" "$V/targets/feeder/release/knotrel-pg-feeder"
@@ -238,7 +264,9 @@ CELLS=$(cd "$B" && python3 -c "import sys; sys.path.insert(0, 'scripts'); import
 # Paths are confined (cli_paths): the campaign directory and the A source manifest's directory.
 LIFECYCLE_QUALIFICATION_ROOTS="$CAMP:$(dirname "$SOURCE_MANIFEST")"
 export LIFECYCLE_QUALIFICATION_ROOTS
-if [ "$SCOPE" = 2 ]; then
+if [ "$SCOPE" = 3 ]; then
+  CK=v1.2.0-RQ3-V1; S1="182310 182311 182312"; S2="182320 182321 182322"
+elif [ "$SCOPE" = 2 ]; then
   CK=v1.2.0-RQ2-V1; S1="182210 182211 182212"; S2="182220 182221 182222"
 else
   CK=v1.2.0-RQ-V1; S1="182110 182111 182112"; S2="182120 182121 182122"
@@ -304,17 +332,28 @@ tools = {
                    f"{camp}/A/build-inputs/B/knotrel-benchmarks/Cargo.lock",
                    f"{camp}/A/build-inputs/C/knotrel-benchmarks/Cargo.lock"],
 }
+if scope == "3":
+    # Attempt 3 (plan section 14): query-shape-probe against each arm (K3, M1).
+    tools["qsp_cand"] = [f"{t}/cand-qsp/release/query-shape-probe"]
+    tools["qsp_base"] = [f"{t}/base-qsp/release/query-shape-probe"]
+    tools["_lockfiles"].append(f"{b}/tools/query-shape-probe/Cargo.lock")
+    for arm in ("cand", "base"):
+        for lock in ("Cargo.lock", "tools/query-shape-probe/Cargo.lock",
+                     "tools/lifecycle-probes/Cargo.lock"):
+            tools["_lockfiles"].append(f"{camp}/build-inputs/{arm}/knotrel-benchmarks/{lock}")
 if scope == "2":
-    # Attempt 2 (plan section 13): no K1 or K2 tools; both Q cells map exit 6 (the evaluation
-    # failed after the measurement) to TOOL_ERROR, never rerun and never a verdict.
+    # Attempt 2 (plan section 13): no K1 or K2 tools.
     for key in ("harness_cand", "harness_base", "cf5_core_cand", "cf5_core_base"):
         del tools[key]
+if scope in ("2", "3"):
+    # Both Q cells map exit 6 (the evaluation failed after the measurement) to TOOL_ERROR,
+    # never rerun and never a verdict.
     q_spec = tools["_delegated"]["Q"]
     q_spec["tool_error_exit"] = [6]
     tools["_delegated"]["Q-K4"] = dict(q_spec, argv=q_spec["argv"] + ["variant-k4"])
 json.dump(tools, open(f"{camp}/tools.json", "w"), indent=1)
 PY
-if [ "$SCOPE" = 2 ]; then
+if [ "$SCOPE" != 1 ]; then
   # The runner gives Q and Q-K4 the directories the evaluator accepts, and a tool error is
   # distinguished from a failed criterion (plan section 13, pre-collection checks).
   ( cd "$B" && LIFECYCLE_QUALIFICATION_ROOTS="$CAMP:$EVIDENCE" python3 scripts/check_v120q_q_runner.py "$CAMP" --out "$L/Q-runner-check.json" \

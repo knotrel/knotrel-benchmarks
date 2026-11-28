@@ -37,6 +37,9 @@ Rules:
 - **Second session:** only after a session 1 that is not failed, within 14 days, with the
   same matrix and binaries; exactly the INCOMPLETE and NOT_RUN cells, from scratch, in
   session 1's schedule order restricted to them; complete cells are never repeated.
+- **Per-cell timeout and disk floor (v1.2.0 attempt 3):** a cell's ``timeout_s`` replaces the
+  default observation timeout; with ``rules.min_free_disk_gb`` the session stops before a
+  step when the output volume has less free space (the remaining cells are NOT_RUN).
 - **Preparatory mode:** marked in every file; the analyzer refuses it.
 """
 
@@ -147,7 +150,7 @@ def run_arm(cell: Dict[str, Any], arm_name: str, tools: Dict[str, Any], scratch:
     start = time.monotonic()
     try:
         done = subprocess.run(argv, capture_output=True, text=True,
-                              timeout=OBSERVATION_TIMEOUT_S)
+                              timeout=cell.get("timeout_s", OBSERVATION_TIMEOUT_S))
     except subprocess.TimeoutExpired as error:
         raise InfrastructureFailure(f"{cell['id']} {arm_name}: timeout") from error
     except OSError as error:
@@ -547,6 +550,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     state: Dict[str, Dict[str, Any]] = {c["id"]: {"state": "NOT_RUN", "pairs": 0}
                                         for c in cells}
     deadline = time.monotonic() + cap_hours * 3600
+    min_free = (matrix["rules"]["min_free_disk_gb"] * 1024 ** 3
+                if matrix["rules"].get("min_free_disk_gb") else None)
     campaign = "complete"
     snapshots: List[Dict[str, Any]] = []
     current_block = None
@@ -564,6 +569,12 @@ def main(argv: Optional[List[str]] = None) -> int:
             if time.monotonic() > deadline:
                 campaign = "incomplete"
                 end_cause = "cap"
+                break
+            if min_free is not None and shutil.disk_usage(args.out).free < min_free:
+                # v1.2.0 attempt 3 (plan section 14.11): the session stops after the step in
+                # progress; the remaining cells are NOT_RUN.
+                campaign = "incomplete"
+                end_cause = f"disk: less than {matrix['rules']['min_free_disk_gb']} GB free"
                 break
             if step["kind"] == "smoke":
                 smoke(cells, tools, scratch, smoke_log)
