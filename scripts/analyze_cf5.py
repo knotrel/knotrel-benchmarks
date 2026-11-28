@@ -82,6 +82,8 @@ NOT_IN_LIMIT = {
                    "(operation-dependent, not quantified)",),
     "http_percentile": ("client thread scheduling and wake-up delays inside the request "
                         "interval (part of the measured latency of both arms)",),
+    "percentile": ("thread scheduling inside the operation interval (part of the measured "
+                   "latency of both arms)",),
 }
 NOT_IN_LIMIT_ALWAYS = ("preemption and interrupts inside an interval (random, both arms; "
                        "in the pair dispersion, not bounded)",
@@ -186,6 +188,35 @@ def classify_paired(cell: Dict[str, Any], pairs: List[Dict[str, Any]]) -> Dict[s
     return out
 
 
+def classify_absolute(cell: Dict[str, Any], lines: List[Dict[str, Any]],
+                      complete: bool) -> Dict[str, Any]:
+    """Absolute criteria on one arm (v1.2.0 attempt 3, M1): ``{"name", "path", "max", "arm"}``.
+    Every recorded observation of that arm counts, warmup pairs included. One value above
+    ``max`` is a FAIL, whatever the cell's state; otherwise PASS when the cell is COMPLETE and
+    INCOMPLETE before. Never a gate: the campaign continues."""
+    out: Dict[str, Any] = {}
+    for rule in cell.get("absolute", []):
+        values = [dig(l[rule["arm"]]["object"], rule["path"]) for l in lines
+                  if rule["arm"] in l and "object" in l[rule["arm"]]]
+        over = [v for v in values if v > rule["max"]]
+        if over:
+            cls = "FAIL"
+        else:
+            cls = "PASS" if complete and values else "INCOMPLETE"
+        out[rule["name"]] = {"arm": rule["arm"], "path": rule["path"], "max": rule["max"],
+                             "observations": len(values),
+                             "worst": max(values) if values else None,
+                             "median": statistics.median(values) if values else None,
+                             "over_max": len(over), "class": cls}
+    return out
+
+
+def dig(value: Any, path: str) -> Any:
+    for part in path.split("."):
+        value = value[int(part)] if isinstance(value, list) else value[part]
+    return value
+
+
 def limit_log(limit: float, cf: float, ref: float) -> float:
     """Section 6.1: the largest shift of ``ln(cf / ref)`` that an additive error of at most
     ``limit`` ns on each arm can cause (medians above twice the limit)."""
@@ -267,6 +298,9 @@ def analyze(matrix: Dict[str, Any], runs: List[Dict[str, Any]]) -> Dict[str, Any
                 entry["metrics"] = classify_paired(cell, measured)
             elif measured:
                 entry["incomplete_medians"] = medians(cell, measured)
+            if cell.get("absolute"):
+                entry["absolute"] = classify_absolute(cell, lines,
+                                                      state["state"] == "COMPLETE")
             if cell["id"] in partial_session1:
                 old = [l for l in partial_session1[cell["id"]] if not l.get("warmup")]
                 entry["session_1_partial"] = {"label": "INCOMPLETE-session-1",

@@ -19,6 +19,22 @@ the server blocks and drops K1 and K2 (written dispositions):
   approved for B2 (design option B);
 - B4 unchanged.
 
+**Attempt 3** (plan section 14) qualifies ``main`` at 24c2602: attempt 2's candidate plus
+knotrel#209 (bidirectional ``Graph::connected``), #210 (FxHash ID maps in every engine) and
+#211 (per-thread reused query scratch, at most 256 KiB per thread). The matrix keeps the
+attempt-2 blocks, brings K1 and K2 back, makes the four V1 core cells deciding again, and adds:
+
+- K3: query shapes (short and long, connected and disconnected, chains and cycles) at 1 and
+  16 threads, ``query-shape-probe shape`` built against each arm; p50 (10 %) and p99 (25 %);
+- K4: the five engines #210 touches x ID patterns ``sequential``, ``random``, ``shl16``,
+  ``shl32`` (harness ``--id-pattern``), ``workload_wall_ns`` 10 %, 300 s per observation;
+- M1: ``query-shape-probe sequence --kind large-then-small`` at 16 and 64 threads: retained
+  scratch per thread <= 256 KiB and at most 26 allocations per thread after the first 100
+  short queries (absolute, on the candidate; amendment 1), small-query p50 / p99
+  (regression);
+- M2: ``contention-probe --prelude long-chain:600000``, read95 b8, 15 s window, 16 and 64
+  clients: throughput 10 %, p99 25 %, server RSS after the window 20 %.
+
 Plan: knotrel ``docs/releases/v1.2.0-qualification-plan.md``. The scope comes from the
 diff ``v1.1.0..candidate`` (plan section 3): the only executed change is
 ``Graph::connected`` (bidirectional BFS, knotrel#196), reached by every ``compact-bfs``
@@ -76,6 +92,31 @@ V1_CORE_CELLS = ["core_sparse_traversal_10k_compact-bfs_warmed",
                  "core_sparse_traversal_10k_compact-workspace_warmed",
                  "core_sustained_churn_10k_compact-bfs_warmed",
                  "core_sustained_churn_10k_compact-workspace_warmed"]
+#: Attempt 3 (plan section 14.4): fresh seeds, declared before the freeze.
+V1_SEEDS_A3 = {"block1": [182310, 182311, 182312], "block2": [182320, 182321, 182322]}
+K3_SHAPES = ("s1", "s2", "l1", "l2", "l3")
+K3_THREADS = (1, 16)
+K3_VERTICES = 100_000
+M1_THREADS = (16, 64)
+M1_CHAIN = 1_000_000
+M1_SMALL_QUERIES = 10_000
+#: The reused-scratch cap of knotrel#211 (bytes per thread).
+SCRATCH_CAP_BYTES = 256 * 1024
+#: Plan section 14, amendment 1: the most allocations a thread can make after the first 100
+#: short queries, from the code. Per side, a queue that restarts empty grows 4 -> 8192 entries
+#: (12 allocations) and is kept; the marks grow once for the 10^5 graph: 2 x (12 + 1).
+SMALL_ALLOCATIONS_MAX = 26
+K4_ENGINES = {"connectivity-compact-bfs": "knotrel-core/connectivity-graph/compact-bfs",
+              "compact-workspace": "knotrel-core/compact-workspace-v2",
+              "connectivity-ett": "knotrel-core/connectivity-graph/ett",
+              "connectivity-hdt": "knotrel-core/connectivity-graph/hdt",
+              "connectivity-cluster-forest": "knotrel-core/connectivity-graph/cluster-forest-v1"}
+K4_PATTERNS = ("sequential", "random", "shl16", "shl32")
+K4_WORKLOAD = "sustained-churn-blocks-v1"
+K4_TIMEOUT_S = 300
+M2_CLIENTS = (16, 64)
+M2_CHAIN = 600_000
+MIN_FREE_DISK_GB = 2
 Q_LIMIT = 4
 #: Attempt 2 Q rule (B2 design option B, approved by the maintainer; plan section 13).
 Q_RULES_A2 = {
@@ -219,6 +260,107 @@ def delegated_a2() -> List[Dict[str, Any]]:
     ]
 
 
+def k3() -> List[Dict[str, Any]]:
+    """Query shapes (plan section 14.5): the same probe source built against each arm."""
+    pct = cf5.measurement("percentile")
+    metrics = [cf5.metric("latency_p50_ns", "latency_ns.p50", "time", measurement=pct),
+               cf5.metric("latency_p99_ns", "latency_ns.p99", "tail", measurement=pct)]
+    cells = []
+    for shape in K3_SHAPES:
+        for threads in K3_THREADS:
+            def tool(name: str) -> Dict[str, Any]:
+                return cf5.arm(name, ["shape", "--shape", shape, "--threads", threads,
+                                      "--vertices", K3_VERTICES, "--seed", cf5.SEED])
+            cells.append(cf5.paired(f"K3-{shape}-t{threads}", "K3", 2, None,
+                                    tool("qsp_cand"), tool("qsp_base"), REFERENCE, metrics,
+                                    rule="regression",
+                                    check={"same_trace": "input_fingerprint_fnv1a64",
+                                           "path": "wrong_answers", "equals": 0}))
+    return cells
+
+
+def m1() -> List[Dict[str, Any]]:
+    """Reused scratch after a large query (plan section 14.7): absolute rules on the
+    candidate, regression on small-query latency."""
+    pct = cf5.measurement("percentile")
+    metrics = [cf5.metric("small_latency_p50_ns", "small_latency_ns.p50", "time",
+                          measurement=pct),
+               cf5.metric("small_latency_p99_ns", "small_latency_ns.p99", "tail",
+                          measurement=pct)]
+    cells = []
+    for threads in M1_THREADS:
+        def tool(name: str) -> Dict[str, Any]:
+            return cf5.arm(name, ["sequence", "--kind", "large-then-small", "--threads", threads,
+                                  "--chain-vertices", M1_CHAIN, "--vertices", K3_VERTICES,
+                                  "--small-queries", M1_SMALL_QUERIES, "--seed", cf5.SEED])
+        cell = cf5.paired(f"M1-large-then-small-t{threads}", "M1", 2, None, tool("qsp_cand"),
+                          tool("qsp_base"), REFERENCE, metrics, rule="regression",
+                          check={"same_trace": "input_fingerprint_fnv1a64",
+                                 "path": "wrong_answers", "equals": 0})
+        cell["absolute"] = [
+            {"name": "retained_scratch_max_bytes", "path": "retained_after_small_bytes.max",
+             "max": SCRATCH_CAP_BYTES, "arm": "cf"},
+            {"name": "small_query_allocations_max", "path": "small_allocations_after_100.max",
+             "max": SMALL_ALLOCATIONS_MAX, "arm": "cf"}]
+        cells.append(cell)
+    return cells
+
+
+def k4() -> List[Dict[str, Any]]:
+    """ID maps (plan section 14.6): every engine #210 touches x four ID patterns."""
+    cells = []
+    for engine, identity in K4_ENGINES.items():
+        for pattern in K4_PATTERNS:
+            def harness(name: str) -> Dict[str, Any]:
+                return cf5.arm(name, ["--workload", K4_WORKLOAD, "--nodes", 10_000,
+                                      "--rounds", 20, "--seed", cf5.SEED, "--engine", engine,
+                                      "--warmup", 1, "--repetitions", 1,
+                                      "--id-pattern", pattern],
+                               checks=cf5.engine_check("engine", identity))
+            cell = cf5.paired(f"K4-{engine}-{pattern}", "K4", 2, None, harness("harness_cand"),
+                              harness("harness_base"), REFERENCE,
+                              [cf5.metric("workload_wall_ns", "repetitions.0.workload_wall_ns",
+                                          "time", measurement=cf5.wall(K4_WORKLOAD, "harness"))],
+                              rule="regression",
+                              check={"same_trace": "trace_fingerprint_fnv1a64"})
+            cell["timeout_s"] = K4_TIMEOUT_S
+            cells.append(cell)
+    return cells
+
+
+def m2() -> List[Dict[str, Any]]:
+    """Process memory at the server (plan section 14.7): one long-chain query per client,
+    then read95 b8 for a 15 s window."""
+    metrics = cf5.MREG_METRICS + [cf5.metric("server_rss_kib", "server_rss_kib", "memory")]
+    cells = []
+    for clients in M2_CLIENTS:
+        cell_id = f"M2-standalone-off-read95-b8-c{clients}-100k-chain{M2_CHAIN}"
+        spec = {"mode": "standalone", "lifecycle": False, "nodes": 100_000,
+                "config": {"id": cell_id, "mix": "read95", "batch": 8, "clients": clients,
+                           "warmup_ms": 1000, "measure_ms": 15_000, "open_rate": None,
+                           "background": "none"}}
+        def probe(name: str) -> Dict[str, Any]:
+            out = cf5.mreg_arm(name, spec, ENGINE)
+            out["args"] += ["--prelude", f"long-chain:{M2_CHAIN}"]
+            return out
+        cells.append(cf5.paired(cell_id, "M2", 2, None, probe("contention_cand"),
+                                probe("contention_base"), REFERENCE, metrics,
+                                rule="regression", check=cf5.MREG_CHECK))
+    return cells
+
+
+def delegated_a3() -> List[Dict[str, Any]]:
+    """Attempt 3's delegated cells (plan section 14): attempt 2's, with every V1 cell deciding
+    and fresh V1 seeds."""
+    cells = delegated_a2()
+    v1 = cells[0]
+    assert v1["id"] == "V1"
+    v1["seeds"] = V1_SEEDS_A3
+    v1["v1"] = {"deciding": V1_HTTP_CELLS + V1_CORE_CELLS, "descriptive": [],
+                "descriptive_reason": None}
+    return cells
+
+
 def _v1_cell_ids() -> List[str]:
     import run_p0_aa  # noqa: PLC0415
     return list(run_p0_aa.QUALIFICATION_CELL_IDS)
@@ -242,9 +384,14 @@ def window_multipliers() -> Dict[str, int]:
 def build(cap_hours: Optional[float] = None, attempt: int = 1) -> Dict[str, Any]:
     if cap_hours is not None and not 0 < cap_hours < PLACEHOLDER_CAP:
         raise SystemExit(f"--cap-hours must be in (0, {PLACEHOLDER_CAP}), got {cap_hours}")
-    if attempt not in (1, 2):
-        raise SystemExit(f"--attempt must be 1 or 2, got {attempt}")
-    cells = v2() + k2() + k1() + delegated() if attempt == 1 else v2() + delegated_a2()
+    if attempt not in (1, 2, 3):
+        raise SystemExit(f"--attempt must be 1, 2 or 3, got {attempt}")
+    if attempt == 1:
+        cells = v2() + k2() + k1() + delegated()
+    elif attempt == 2:
+        cells = v2() + delegated_a2()
+    else:
+        cells = v2() + k2() + k1() + k3() + k4() + m1() + m2() + delegated_a3()
     ids = [c["id"] for c in cells]
     assert len(ids) == len(set(ids)), "cell ids are unique"
     counts: Dict[str, int] = {}
@@ -252,7 +399,8 @@ def build(cap_hours: Optional[float] = None, attempt: int = 1) -> Dict[str, Any]
         counts[cell["block"]] = counts.get(cell["block"], 0) + cell.get("comparisons", 1)
     matrix = {
         "schema": "cf5-matrix-1",
-        "plan": PLAN if attempt == 1 else PLAN + ", section 13 (attempt 2)",
+        "plan": {1: PLAN, 2: PLAN + ", section 13 (attempt 2)",
+                 3: PLAN + ", section 14 (attempt 3)"}[attempt],
         "reference": REFERENCE,
         "cap": "set" if cap_hours is not None else "unset",
         "rules": {"pairs": 24, "warmup_pairs": 2, "interval_order_statistics": [7, 18],
@@ -273,19 +421,26 @@ def build(cap_hours: Optional[float] = None, attempt: int = 1) -> Dict[str, Any]
     if attempt == 2:
         matrix["attempt"] = 2
         matrix["rules"]["block_order"] = [["V1", "V2"], ["Q", "B4"]]
+    if attempt == 3:
+        matrix["attempt"] = 3
+        # Plan section 14.11: K2, the longest block, last, so a cap cuts it first.
+        matrix["rules"]["block_order"] = [["V1", "V2"],
+                                          ["K1", "K3", "M1", "M2", "K4", "Q", "B4", "K2"]]
+        matrix["rules"]["min_free_disk_gb"] = MIN_FREE_DISK_GB
     return matrix
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path)
-    parser.add_argument("--attempt", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--attempt", type=int, choices=(1, 2, 3), default=1)
     parser.add_argument("--cap-hours", type=float)
     parser.add_argument("--window-multipliers", type=Path,
                         help="also write the B4 window multipliers (plan section 4.2) here")
     args = parser.parse_args(argv)
     from cli_paths import confined  # noqa: PLC0415
-    default = DEFAULT_OUT if args.attempt == 1 else DEFAULT_OUT.parent / "attempt2" / DEFAULT_OUT.name
+    default = (DEFAULT_OUT if args.attempt == 1
+               else DEFAULT_OUT.parent / f"attempt{args.attempt}" / DEFAULT_OUT.name)
     out = confined(args.out or default, "--out")
     matrix = build(float(args.cap_hours) if args.cap_hours is not None else None, args.attempt)
     out.parent.mkdir(parents=True, exist_ok=True)

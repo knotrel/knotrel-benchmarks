@@ -4,7 +4,9 @@ mod imported;
 mod metrics;
 
 use knotrel_benchmarks::engines::{Engine, EngineKind};
-use knotrel_benchmarks::{Config, Operation, Workload, WorkloadKind, generate_with_query_percent};
+use knotrel_benchmarks::{
+    Config, IdPattern, Operation, Workload, WorkloadKind, generate_with_query_percent,
+};
 use metrics::Latency;
 use serde::Serialize;
 use std::{
@@ -36,6 +38,9 @@ struct Report {
     query_repeats: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     query_percent: Option<u8>,
+    /// Present only for non-sequential patterns, keeping older reports identical.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id_pattern: Option<&'static str>,
     trace_fingerprint_fnv1a64: String,
     initial_edges: usize,
     initial_density: f64,
@@ -79,6 +84,8 @@ struct TraceExport<'a> {
     config: Config,
     #[serde(skip_serializing_if = "Option::is_none")]
     query_percent: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id_pattern: Option<&'static str>,
     trace: &'a Workload,
 }
 struct Options {
@@ -91,6 +98,7 @@ struct Options {
     engines: Vec<EngineKind>,
     query_repeats: usize,
     query_percent: u8,
+    id_pattern: IdPattern,
 }
 
 fn main() -> ExitCode {
@@ -106,7 +114,7 @@ fn main() -> ExitCode {
 fn run() -> Result<(), Box<dyn Error>> {
     let Some(options) = parse_args()? else {
         println!(
-            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--trace-in IMPORT_JSON] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99]\nEngines: reference-bfs (default), compact-bfs, compact-workspace (reusable BFS scratch), traversal-bfs / traversal-dfs / traversal-bitset (benchmark controls), dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nImports require connectivity-import schema 1 and reject generation flags.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
+            "Usage: knotrel-benchmarks [--nodes N] [--rounds N] [--seed N] [--workload NAME] [--warmup N] [--repetitions N] [--trace-out PATH] [--trace-in IMPORT_JSON] [--engine NAME|all|COMMA_LIST] [--query-repeats N] [--query-percent 1..99] [--id-pattern sequential|random|shl16|shl32]\nEngines: reference-bfs (default), compact-bfs, compact-workspace (reusable BFS scratch), traversal-bfs / traversal-dfs / traversal-bitset (benchmark controls), dense-bfs, petgraph-dfs, outils-hdt, ett-scan (pruned v2), ett-scan-v1 (frozen baseline), hdt (sparse HDT v3), hdt-v2 (frozen HDT v2); query repeats default 0.\nDefaults: --nodes 10000 --rounds 1000 --seed 42 --warmup 1 --repetitions 1\nWorkloads: chain-split-rejoin-v1 (default), cycle-alternatives-v1, components-join-split-v1, hub-alternatives-v1, sustained-churn-path-v1, sustained-churn-blocks-v1, dense-bridge-churn-v1, redundant-bridge-churn-v1\nSustained workloads use 100 operations per round; --query-percent defaults to 50.\nImports require connectivity-import schema 1 and reject generation flags and non-sequential ID patterns.\nID patterns map generated vertex i to the ID seen by engines and the oracle (default sequential = i; random = splitmix64 output for state i, fixed key, independent of --seed; shl16 = i << 16; shl32 = i << 32). The fingerprint covers the mapped trace.\nUse --release --locked for measurements. Warmup counts complete unreported replays on fresh graphs."
         );
         println!(
             "Additional explicit fresh-packed benchmark controls (not included in all): {}, {}",
@@ -115,50 +123,67 @@ fn run() -> Result<(), Box<dyn Error>> {
         );
         return Ok(());
     };
-    let (workload, nodes, name, config, query_percent, bytes, imported) = if let Some(path) =
-        &options.trace_in
-    {
-        let start = Instant::now();
-        let bytes = std::fs::read(path)?;
-        let input: imported::ImportedTrace = serde_json::from_slice(&bytes)?;
-        let load_parse_ns = start.elapsed().as_nanos();
-        let start = Instant::now();
-        let mut metadata = input.validate()?;
-        metadata["validation_ns"] = serde_json::to_value(start.elapsed().as_nanos())?;
-        metadata["load_parse_ns"] = serde_json::to_value(load_parse_ns)?;
-        (
-            input.trace,
-            metadata["node_count"]
-                .as_u64()
-                .ok_or("invalid node count")?,
-            input.workload,
-            None,
-            None,
-            bytes,
-            Some(metadata),
-        )
-    } else {
-        let config = options.config;
-        let workload = generate_with_query_percent(options.kind, config, options.query_percent)?;
-        let query_percent = options.kind.is_sustained().then_some(options.query_percent);
-        let bytes = serde_json::to_vec(&TraceExport {
+    let (mut workload, nodes, name, config, query_percent, import_bytes, imported) =
+        if let Some(path) = &options.trace_in {
+            let start = Instant::now();
+            let bytes = std::fs::read(path)?;
+            let input: imported::ImportedTrace = serde_json::from_slice(&bytes)?;
+            let load_parse_ns = start.elapsed().as_nanos();
+            let start = Instant::now();
+            let mut metadata = input.validate()?;
+            metadata["validation_ns"] = serde_json::to_value(start.elapsed().as_nanos())?;
+            metadata["load_parse_ns"] = serde_json::to_value(load_parse_ns)?;
+            (
+                input.trace,
+                metadata["node_count"]
+                    .as_u64()
+                    .ok_or("invalid node count")?,
+                input.workload,
+                None,
+                None,
+                Some(bytes),
+                Some(metadata),
+            )
+        } else {
+            let config = options.config;
+            let workload =
+                generate_with_query_percent(options.kind, config, options.query_percent)?;
+            let query_percent = options.kind.is_sustained().then_some(options.query_percent);
+            (
+                workload,
+                config.nodes,
+                options.kind.name().to_owned(),
+                Some(config),
+                query_percent,
+                None,
+                None,
+            )
+        };
+    // Degrees use vertex indices, so they are counted before ID mapping.
+    let mut degree = vec![0_usize; usize::try_from(nodes)?];
+    for &(a, b) in &workload.initial_edges {
+        degree[a as usize] += 1;
+        degree[b as usize] += 1;
+    }
+    let initial_max_degree = degree.into_iter().max().unwrap_or(0);
+    let id_pattern = options.id_pattern;
+    id_pattern.check_nodes(nodes)?;
+    id_pattern.apply(&mut workload);
+    let id_pattern_name = (id_pattern != IdPattern::Sequential).then(|| id_pattern.name());
+    let bytes = match import_bytes {
+        // parse_args rejects non-sequential patterns for imports.
+        Some(bytes) => bytes,
+        None => serde_json::to_vec(&TraceExport {
             schema_version: 1,
             workload: options.kind.name(),
-            config,
+            config: options.config,
             query_percent,
+            id_pattern: id_pattern_name,
             trace: &workload,
-        })?;
-        (
-            workload,
-            config.nodes,
-            options.kind.name().to_owned(),
-            Some(config),
-            query_percent,
-            bytes,
-            None,
-        )
+        })?,
     };
-    // Exact import bytes or compact generated JSON; not a cryptographic hash.
+    // Exact import bytes or compact generated JSON of the mapped trace; not a
+    // cryptographic hash.
     let fingerprint = bytes.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
         (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
     });
@@ -171,12 +196,6 @@ fn run() -> Result<(), Box<dyn Error>> {
         file.write_all(&bytes)?;
     }
     drop(bytes);
-    let mut degree = vec![0_usize; usize::try_from(nodes)?];
-    for &(a, b) in &workload.initial_edges {
-        degree[a as usize] += 1;
-        degree[b as usize] += 1;
-    }
-    let initial_max_degree = degree.into_iter().max().unwrap_or(0);
     let timestamp_unix_seconds = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let benchmark_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let core_root = benchmark_root.join("../knotrel");
@@ -187,12 +206,18 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut reports = Vec::new();
     for &engine in &options.engines {
         for _ in 0..options.warmup {
-            replay(nodes, &workload, engine, options.query_repeats)?;
+            replay(nodes, id_pattern, &workload, engine, options.query_repeats)?;
         }
         let mut repetitions = Vec::new();
         repetitions.try_reserve_exact(options.repetitions)?;
         for _ in 0..options.repetitions {
-            repetitions.push(replay(nodes, &workload, engine, options.query_repeats)?);
+            repetitions.push(replay(
+                nodes,
+                id_pattern,
+                &workload,
+                engine,
+                options.query_repeats,
+            )?);
         }
         let report = Report {
             schema_version: if imported.is_some() { 4 } else { 2 },
@@ -210,6 +235,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             warmup: options.warmup,
             query_repeats: options.query_repeats,
             query_percent,
+            id_pattern: id_pattern_name,
             trace_fingerprint_fnv1a64: format!("{fingerprint:016x}"),
             initial_edges: workload.initial_edges.len(),
             initial_density: 2.0 * workload.initial_edges.len() as f64
@@ -237,12 +263,13 @@ fn run() -> Result<(), Box<dyn Error>> {
 /// allocator/process caches can remain warm. Setup and sorting are untimed.
 fn replay(
     node_count: u64,
+    id_pattern: IdPattern,
     workload: &Workload,
     engine: EngineKind,
     query_repeats: usize,
 ) -> Result<Run, Box<dyn Error>> {
     let setup_start = Instant::now();
-    let nodes: Vec<u64> = (0..node_count).collect();
+    let nodes: Vec<u64> = (0..node_count).map(|i| id_pattern.id(i)).collect();
     let mut graph = Engine::new(engine, &nodes)?;
     for &(source, target) in &workload.initial_edges {
         graph.link(source, target)?;
@@ -386,6 +413,7 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
     let mut engines = vec![EngineKind::Reference];
     let mut query_repeats = 0;
     let mut query_percent = 50;
+    let mut id_pattern = IdPattern::Sequential;
     let mut args = std::env::args().skip(1);
     while let Some(flag) = args.next() {
         if flag == "--help" || flag == "-h" {
@@ -436,6 +464,9 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
                     .ok_or("--query-repeats needs a value")?
                     .parse()?
             }
+            "--id-pattern" => {
+                id_pattern = IdPattern::parse(&args.next().ok_or("--id-pattern needs a value")?)?
+            }
             "--trace-in" => trace_in = Some(args.next().ok_or("--trace-in needs a value")?),
             "--trace-out" => trace_out = Some(args.next().ok_or("--trace-out needs a value")?),
             _ => return Err(format!("unknown argument: {flag}").into()),
@@ -443,6 +474,15 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
     }
     if trace_in.is_some() && generation_flags {
         return Err("--trace-in conflicts with generation flags".into());
+    }
+    // Imported traces keep their exact bytes as the fingerprint input and their
+    // own ID contract; only the identity pattern is trivially correct there.
+    if trace_in.is_some() && id_pattern != IdPattern::Sequential {
+        return Err("--trace-in accepts only --id-pattern sequential".into());
+    }
+    // Reject overflow before allocating the trace or any graph.
+    if trace_in.is_none() {
+        id_pattern.check_nodes(config.nodes)?;
     }
     if repetitions == 0 {
         return Err("repetitions must be at least 1".into());
@@ -457,6 +497,7 @@ fn parse_args() -> Result<Option<Options>, Box<dyn Error>> {
         engines,
         query_repeats,
         query_percent,
+        id_pattern,
     }))
 }
 

@@ -455,3 +455,108 @@ fn next_random(seed: &mut u64) -> u64 {
     // High bits avoid short low-bit cycles for power-of-two graph sizes.
     seed.rotate_left(29)
 }
+
+/// Maps generated vertex indices to the IDs every engine and the oracle see.
+///
+/// Generated traces use vertices `0..nodes`. A pattern rewrites every endpoint
+/// in the initial edges and operations, and the registered vertex universe,
+/// before replay; expected answers are unchanged because each mapping is
+/// injective. The trace fingerprint is computed on the mapped trace.
+/// `Sequential` is the identity and leaves traces, exports and fingerprints
+/// byte-for-byte as they were before this option existed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum IdPattern {
+    /// `id = i`.
+    #[default]
+    Sequential,
+    /// `id = splitmix64_mix(i + RANDOM_ID_KEY)` (wrapping): the splitmix64
+    /// output for state `i`. A fixed bijection on `u64`, independent of the
+    /// workload seed, so IDs differ between vertices for every trace.
+    Random,
+    /// `id = i << 16`; requires `nodes <= 2^48`.
+    Shl16,
+    /// `id = i << 32`; requires `nodes <= 2^32`.
+    Shl32,
+}
+
+/// Fixed additive key of [`IdPattern::Random`]: the splitmix64 increment.
+pub const RANDOM_ID_KEY: u64 = 0x9e37_79b9_7f4a_7c15;
+
+impl IdPattern {
+    /// Every pattern, in CLI order.
+    pub const ALL: [Self; 4] = [Self::Sequential, Self::Random, Self::Shl16, Self::Shl32];
+
+    /// Returns the CLI and report name.
+    #[must_use]
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Sequential => "sequential",
+            Self::Random => "random",
+            Self::Shl16 => "shl16",
+            Self::Shl32 => "shl32",
+        }
+    }
+
+    /// Resolves a CLI name.
+    ///
+    /// # Errors
+    /// Rejects unknown names.
+    pub fn parse(name: &str) -> Result<Self, &'static str> {
+        Self::ALL
+            .into_iter()
+            .find(|pattern| pattern.name() == name)
+            .ok_or("unknown id pattern (expected sequential, random, shl16 or shl32)")
+    }
+
+    /// Checks that every vertex in `0..nodes` maps without overflow.
+    ///
+    /// # Errors
+    /// Rejects node counts whose largest index would lose high bits.
+    pub fn check_nodes(self, nodes: u64) -> Result<(), &'static str> {
+        let shift = match self {
+            Self::Sequential | Self::Random => return Ok(()),
+            Self::Shl16 => 16,
+            Self::Shl32 => 32,
+        };
+        if nodes > 1_u64 << (64 - shift) {
+            return Err("node count overflows the id pattern");
+        }
+        Ok(())
+    }
+
+    /// Maps vertex index `i`; callers check [`Self::check_nodes`] first.
+    #[must_use]
+    pub fn id(self, i: u64) -> u64 {
+        match self {
+            Self::Sequential => i,
+            Self::Random => {
+                // splitmix64 finalizer: each step (xor-shift, odd multiply) is
+                // invertible, so the composition is a bijection on u64.
+                let mut z = i.wrapping_add(RANDOM_ID_KEY);
+                z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+                z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+                z ^ (z >> 31)
+            }
+            Self::Shl16 => i << 16,
+            Self::Shl32 => i << 32,
+        }
+    }
+
+    /// Rewrites every endpoint of `workload` in place.
+    pub fn apply(self, workload: &mut Workload) {
+        if self == Self::Sequential {
+            return;
+        }
+        for (source, target) in &mut workload.initial_edges {
+            *source = self.id(*source);
+            *target = self.id(*target);
+        }
+        for operation in &mut workload.operations {
+            let (Operation::Link { source, target }
+            | Operation::Cut { source, target }
+            | Operation::Connected { source, target, .. }) = operation;
+            *source = self.id(*source);
+            *target = self.id(*target);
+        }
+    }
+}
