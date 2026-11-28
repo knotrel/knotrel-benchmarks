@@ -1,0 +1,26 @@
+{
+ "attempt": 3,
+ "budget": "knotrel docs/releases/v1.2.0-qualification-plan.md section 14.11 with amendment 1; results/v1.2.0-qualification/attempt3/BUDGET.md",
+ "candidate": "24c260217194a8307b490bd2ea82bbdd0672a622",
+ "cap_hours": 9.0,
+ "frozen_on": "2026-11-28",
+ "matrix": "results/v1.2.0-qualification/attempt3/v120q-matrix.json",
+ "matrix_sha256": "2e44ec3d0c1a1a92575dcb170f0edada5933cd16439e35209126f9c89b6b3652",
+ "notes": [
+  "Candidate: knotrel main at 24c2602: the attempt-2 candidate plus #209 (bidirectional Graph::connected), #210 (FxHash ID maps in every engine) and #211 (per-thread reused query scratch, at most 256 KiB per thread).",
+  "Scope from the diff v1.1.0..24c2602 (plan section 14.2): V1 (all nine cells deciding), V2, K1, K2, K3 (query shapes), K4 (ID patterns on five engines), M1 (reused scratch), M2 (server memory), Q and Q-K4, B4.",
+  "Amendment 1 (knotrel#214): M1 allows at most 26 allocations per thread after the first 100 short queries (the code bound), and the cap is 9.0 h.",
+  "Pre-freeze preparation (prefreeze-a3, tooling 0d59c64) passed: builds on both arms with per-arm lockfiles, smokes, V1 dry runs, limiter activation, Q runner check, disk. The preparatory trial of K3, M1, M2 and K4 decided nothing (BUDGET.md).",
+  "Follow-ups FU-V1 and FU-B4 pre-authorized (plan section 14.9).",
+  "Authorized by the maintainer for knotrel#182 on 2026-11-28."
+ ],
+ "plan": "knotrel docs/releases/v1.2.0-qualification-plan.md section 14 (knotrel#213, merged 0f19e835; amendment 1 knotrel#214)",
+ "reference": {
+  "commit": "57c35e8d4b17bfce2d9941419ef251a2a2a1d69c",
+  "tag": "v1.1.0"
+ },
+ "schema": "v120q-freeze-1",
+ "second_session_cap_hours": 0,
+ "tooling": "4f7ed19a7689769b56c84a102f37845ab23ac2f5",
+ "window_multipliers": "results/v1.2.0-qualification/window-multipliers.json"
+}
