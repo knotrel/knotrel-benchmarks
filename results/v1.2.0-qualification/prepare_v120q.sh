@@ -128,6 +128,10 @@ FREE_KB=$(df -Pk "$EVIDENCE" | awk 'NR==2 {print $4}')
 mkdir -p "$CAMP/logs" "$CAMP/src/cand" "$CAMP/src/base" "$CAMP/targets" "$CAMP/delegated" \
   "$CAMP/A/sources/B" "$CAMP/A/sources/C" "$CAMP/A/build-inputs/B" "$CAMP/A/build-inputs/C"
 L=$CAMP/logs
+# Every script's command-line paths are confined (cli_paths); the campaign is an allowed root
+# from here on (derive_arm_lock.py runs before the V1 section sets the full list).
+LIFECYCLE_QUALIFICATION_ROOTS="$CAMP"
+export LIFECYCLE_QUALIFICATION_ROOTS
 trap 'RC=$?; [ "$RC" -eq 0 ] || echo "prepare failed (exit $RC) at $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$L/PREPARE-FAILED.txt"' EXIT
 echo "$LABEL" > "$L/prepare-mode.txt"
 echo "before: $(df -Pk "$EVIDENCE" | awk 'NR==2 {print $4}') KB free (minimum ${MIN_FREE_GB} GB)" > "$L/disk.txt"
