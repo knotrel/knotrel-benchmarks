@@ -22,6 +22,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_paths import confined, confined_directory  # noqa: E402
+
 NOHASH_STANZA = ('[[package]]\nname = "nohash-hasher"\nversion = "0.2.0"\n'
                  'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
                  'checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"\n')
@@ -83,7 +86,10 @@ def derive(text: str, version: str, nohash: bool) -> str:
 def main(argv: list[str]) -> int:
     if len(argv) != 3:
         raise SystemExit(__doc__)
-    lock_in, lock_out, knotrel = Path(argv[0]), Path(argv[1]), Path(argv[2])
+    # Command-line paths must lie inside the allowed roots (cli_paths, as every script here).
+    lock_in = confined(Path(argv[0]), "LOCK_IN")
+    lock_out = confined(Path(argv[1]), "LOCK_OUT")
+    knotrel = confined_directory(Path(argv[2]), "KNOTREL_CHECKOUT")
     text = lock_in.read_text()
     lock_out.write_text(derive(text, core_version(knotrel), core_needs_nohash(knotrel)))
     return 0
